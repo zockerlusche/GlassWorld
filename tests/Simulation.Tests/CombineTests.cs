@@ -115,14 +115,21 @@ public sealed class CombineTests
     [Fact]
     public void TheDeciderIsOfferedEveryThingNearbyNotOnlyThoseThatFit()
     {
-        var port = new RecordingPort();
+        // A decider that never answers: the free moments keep coming and nothing is used up meanwhile.
+        var port = new RecordingPort(answers: false);
         var (host, _) = World(port);
         var pyrite = host.Objects.Spawn("pyrite", new Position(2, 0));
         host.Objects.Spawn("flint", new Position(3.5, 0));
         host.Objects.Spawn("dry_grass", new Position(2.5, 0));
         host.Objects.Spawn("flint", new Position(30, 0));
 
-        host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        // known_only (R39, GW2 D979): the inhabitant believes something about these kinds of things.
+        var beliefs = host.Inhabitants.Get(Actor).Beliefs;
+        beliefs.Set("pyrite", "hard", true, 0.8);
+        beliefs.Set("flint", "hard", true, 0.8);
+        beliefs.Set("dry_grass", "burnable", true, 0.8);
+
+        host.World.Run(host.World.Calendar.TicksPerDay);
         var offers = port.Requests
             .SelectMany(r => r.Options.Where(o => o.Action == Combine).Select(o => (Request: r, Option: o)))
             .ToList();
@@ -148,6 +155,45 @@ public sealed class CombineTests
 
         string TypeOf(string id) => host.Objects.All.Single(o => o.Id == id).TypeId;
         static double Distance(Position a, Position b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Z - b.Z) * (a.Z - b.Z)));
+    }
+
+    [Fact]
+    public void ThingsTheInhabitantKnowsNothingAboutAreNotOfferedTogether()
+    {
+        // known_only (R39: the inhabitant can come to it from what it knows; GW2 D979): no belief, no try.
+        // A decider that never answers, so the inhabitant learns nothing about the flint meanwhile.
+        var port = new RecordingPort(answers: false);
+        var (host, _) = World(port);
+        var pyrite = host.Objects.Spawn("pyrite", new Position(2, 0));
+        var grass = host.Objects.Spawn("dry_grass", new Position(2.5, 0));
+        host.Objects.Spawn("flint", new Position(3, 0));
+        host.Inhabitants.Get(Actor).Beliefs.Set("pyrite", "hard", true, 0.8);
+        host.Inhabitants.Get(Actor).Beliefs.Set("dry_grass", "burnable", true, 0.8);
+
+        host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        var offers = port.Requests.SelectMany(r => r.Options.Where(o => o.Action == Combine)).ToList();
+        Assert.NotEmpty(port.Requests);
+        Assert.All(offers, o => Assert.Contains(o.Target, new[] { pyrite.Id, grass.Id }));
+        Assert.All(offers, o => Assert.Contains(Assert.Single(o.Partners), new[] { pyrite.Id, grass.Id }));
+    }
+
+    [Fact]
+    public void AFreeMomentOffersKnownThingsTogether()
+    {
+        // TL TH142 / GW2 D979: without a subject, pairs of known things near the asker. (An unknown thing would
+        // open a question of its own first; that unknown things are never offered is ThingsTheInhabitantKnowsNothingAbout...)
+        var port = new RecordingPort(answers: false);
+        var (host, _) = World(port);
+        var pyrite = host.Objects.Spawn("pyrite", new Position(1, 0));
+        var flint = host.Objects.Spawn("flint", new Position(1.5, 0));
+        var beliefs = host.Inhabitants.Get(Actor).Beliefs;
+        beliefs.Set("pyrite", "hard", true, 0.8);
+        beliefs.Set("flint", "hard", true, 0.8);
+
+        host.World.Run(host.World.Calendar.TicksPerDay);
+        var offers = port.Requests.Where(r => r.Occasion == "leisure").SelectMany(r => r.Options.Where(o => o.Action == Combine)).ToList();
+        Assert.NotEmpty(offers);
+        Assert.Contains(offers, o => (o.Target == pyrite.Id && o.Partners.Contains(flint.Id)) || (o.Target == flint.Id && o.Partners.Contains(pyrite.Id)));
     }
 
     [Fact]
@@ -224,7 +270,7 @@ public sealed class CombineTests
         return new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de");
     }
 
-    private sealed class RecordingPort : IDecisionPort
+    private sealed class RecordingPort(bool answers = true) : IDecisionPort
     {
         private readonly MockDecisionPort _mock = new();
 
@@ -236,6 +282,6 @@ public sealed class CombineTests
             _mock.Send(requestId, requestJson);
         }
 
-        public IReadOnlyList<PortMessage> Receive(long tick) => _mock.Receive(tick);
+        public IReadOnlyList<PortMessage> Receive(long tick) => answers ? _mock.Receive(tick) : [];
     }
 }

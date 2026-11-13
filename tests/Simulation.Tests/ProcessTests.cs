@@ -65,6 +65,22 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void TwoFibresBraidedTogetherBecomeACord()
+    {
+        // A1378 R10 (TL #23438): fibres to cord as a pair rule of the data - the one braided lasts, the other is used up.
+        var (host, events, _) = World(port: null);
+        var reed = host.Objects.Spawn("reed", new Position(1, 0));
+        var other = host.Objects.Spawn("reed", new Position(1.5, 0));
+
+        RunCombine(host, reed, other);
+        Assert.True(host.Objects.TryGet(reed.Id, out var cord));
+        Assert.Equal("reed", host.Processes!.RootOf(cord.TypeId));
+        Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
+        Assert.False(host.Objects.TryGet(other.Id, out _));
+        Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+    }
+
+    [Fact]
     public void AnUnknownTryIsJudgedOnceAndTheAnswerBecomesWorldTruth()
     {
         var port = new ScriptedJobPort();
@@ -121,6 +137,31 @@ public sealed class ProcessTests
         Assert.Single(port.Submitted);
         Assert.True(host.Objects.TryGet(grass.Id, out var same));
         Assert.Equal("dry_grass", same.TypeId);
+    }
+
+    [Fact]
+    public void NothingHappensOfALowerTechLevelIsAskedAgainOnceTheWorldIsHigher()
+    {
+        // Review GW1 #356: 'nothing happens' holds at the level it was judged at.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port);
+        var flint = host.Objects.Spawn("flint", new Position(1, 0));
+        var grass = host.Objects.Spawn("dry_grass", new Position(1.5, 0));
+        var truth = new[] { grass, flint }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
+        var id = ProcessSignatures.RuleId(ProcessSignatures.CombineTrial, truth, null, null);
+        var now = host.Milestones.TechLevelIndex;
+
+        // Judged at the level the world has now: stays 'nothing', nobody is asked.
+        host.Processes!.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now)], [], []));
+        RunCombine(host, grass, flint);
+        Assert.Empty(port.Submitted);
+
+        // Judged at a lower level: the world has risen since, so it is judged again - at the level of now.
+        host.Processes.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now - 1)], [], []));
+        RunCombine(host, grass, flint);
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal(host.Milestones.TechLevel, job.Payload.Process!.TechLevel);
+        Assert.Equal(now, Assert.Single(host.Processes.Pending).TechLevel);
     }
 
     [Fact]

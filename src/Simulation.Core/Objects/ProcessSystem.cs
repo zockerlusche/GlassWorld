@@ -16,7 +16,8 @@ namespace GlassWorld.Simulation.Objects;
 /// <param name="Rule">The rule as JSON (contract ProcessRule) when feasible, else null.</param>
 /// <param name="RequestId">The job that judged it; empty when the core knew without asking (no candidates).</param>
 /// <param name="Tick">When it became world truth.</param>
-public sealed record WorldProcessRule(string Id, bool Feasible, string? Rule, string RequestId, long Tick);
+/// <param name="TechLevel">The world's tech level (position) it was judged at (review GW1 #356): a 'nothing happens' of a lower level is judged again once the world is higher. Null = judged before the level could rise.</param>
+public sealed record WorldProcessRule(string Id, bool Feasible, string? Rule, string RequestId, long Tick, int? TechLevel = null);
 
 /// <summary>A job that is judging a try now; at most one per signature (review GW1 #23025).</summary>
 /// <param name="Id">World rule id of the try.</param>
@@ -24,7 +25,8 @@ public sealed record WorldProcessRule(string Id, bool Feasible, string? Rule, st
 /// <param name="Tick">When it was sent.</param>
 /// <param name="Inputs">The true property sets of the things, in canonical order (to check the answer).</param>
 /// <param name="Candidates">The processes the judge may choose from.</param>
-public sealed record PendingProcess(string Id, string RequestId, long Tick, IReadOnlyList<IReadOnlyList<string>> Inputs, IReadOnlyList<string> Candidates);
+/// <param name="TechLevel">The world's tech level (position) when it was sent; null without milestones.</param>
+public sealed record PendingProcess(string Id, string RequestId, long Tick, IReadOnlyList<IReadOnlyList<string>> Inputs, IReadOnlyList<string> Candidates, int? TechLevel = null);
 
 /// <summary>A changed thing's type (a processed variant of a base type): its root type gives its look.</summary>
 /// <param name="Id">Variant type id.</param>
@@ -127,17 +129,25 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         {
             if (!judged.Feasible || judged.Rule is null)
             {
-                return false;
-            }
+                // 'Nothing happens' holds at the level it was judged at; a world that has risen since asks again.
+                if (judged.TechLevel is not { } level || Milestones?.TechLevelIndex is not { } now || now <= level)
+                {
+                    return false;
+                }
 
-            if (Stored(judged.Rule) is { } rule)
+                _rules.Remove(id);
+            }
+            else if (Stored(judged.Rule) is { } rule)
             {
                 return _data.Applies(rule, Milestones?.TechLevelIndex) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
             }
 
-            // A stored rule this core cannot read any more (a later change of the rule's form, review GW1
-            // #349): it no longer counts, the try is judged again.
-            _rules.Remove(id);
+            else
+            {
+                // A stored rule this core cannot read any more (a later change of the rule's form, review GW1
+                // #349): it no longer counts, the try is judged again.
+                _rules.Remove(id);
+            }
         }
 
         if (_pending.ContainsKey(id) || _port is null)
@@ -149,8 +159,8 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         var candidates = _data.Candidates(things.Count, Milestones?.TechLevelIndex);
         if (candidates.Count == 0)
         {
-            // Nothing could happen to such things here: known without asking, and kept.
-            _rules[id] = new WorldProcessRule(id, false, null, string.Empty, world.Tick);
+            // Nothing could happen to such things at this level: nothing now, nothing kept (review GW1 #356) -
+            // the same try asks once the world has risen and a process fits.
             return false;
         }
 
@@ -181,12 +191,20 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         foreach (var rule in _rules.Values)
         {
             hasher.Write(rule.Id).Write(rule.Feasible).Write(rule.Rule ?? string.Empty).Write(rule.RequestId).Write(rule.Tick);
+            if (rule.TechLevel is { } level)
+            {
+                hasher.Write("tech").Write(level);
+            }
         }
 
         hasher.Write(_pending.Count);
         foreach (var pending in _pending.Values)
         {
             hasher.Write(pending.Id).Write(pending.RequestId).Write(pending.Tick).Write(string.Join('|', pending.Candidates));
+            if (pending.TechLevel is { } level)
+            {
+                hasher.Write("tech").Write(level);
+            }
         }
 
         // A variant's truth is hashed with it (review GW1 #23025): a changed rule file cannot give one id another truth unnoticed.
@@ -336,7 +354,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         };
         var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, world.Tick, json, null));
-        var pending = new PendingProcess(id, requestId, world.Tick, [.. canonical.Select(i => (IReadOnlyList<string>)i)], candidates);
+        var pending = new PendingProcess(id, requestId, world.Tick, [.. canonical.Select(i => (IReadOnlyList<string>)i)], candidates, Milestones?.TechLevelIndex);
         _pending[id] = pending;
         _pendingByRequest[requestId] = id;
         _port!.Submit(requestId, json);
@@ -379,7 +397,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
 
         // A rejected answer counts as 'nothing happens': the world does not ask the same again (the rule checker decided).
         var feasible = result.Feasible && reasons.Count == 0;
-        _rules[id] = new WorldProcessRule(id, feasible, feasible ? System.Text.Json.JsonSerializer.Serialize(result.Rule!) : null, pending.RequestId, world.Tick);
+        _rules[id] = new WorldProcessRule(id, feasible, feasible ? System.Text.Json.JsonSerializer.Serialize(result.Rule!) : null, pending.RequestId, world.Tick, pending.TechLevel);
     }
 
     /// <summary>A stored world rule, or null when it cannot be read as a rule of this contract.</summary>
