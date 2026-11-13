@@ -22,6 +22,7 @@ from typing import Protocol, cast
 from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
 
 OPEN_STATES = frozenset({"queued", "running", "deferred"})
+NIGHT_FACTS_MAX = 4  # A1618: the contract's limit of learned facts per night item
 
 
 class JobFailedError(Exception):
@@ -374,7 +375,7 @@ def _night_item(seq: int, record: _Record) -> dict[str, object]:
     made: object = outcome.result.get("image") if outcome is not None else None
     image = cast(dict[str, object], made).get("file") if isinstance(made, dict) else None
     inhabitant = record.job.inhabitant
-    return {
+    item: dict[str, object] = {
         "seq": seq,
         "job_id": record.job_id,
         "kind": record.kind,
@@ -383,6 +384,42 @@ def _night_item(seq: int, record: _Record) -> dict[str, object]:
         "object_type": None if object_type is None else _text(object_type),
         "image": image if record.state == "done" and isinstance(image, str) else None,
     }
+    learned = _learned(record, object_type)
+    if learned:
+        item["learned"] = learned
+    return item
+
+
+def _learned(record: _Record, object_type: object) -> list[dict[str, object]]:
+    """A1618 (B2683): what a done question job gave the inhabitant about the thing it wondered
+    about - its guesses as ids only, surest first, at most NIGHT_FACTS_MAX (the dream scene shows
+    them as a short guess). Nothing for other jobs or while the job is open."""
+    outcome = record.outcome
+    if record.state != "done" or outcome is None or object_type is None:
+        return []
+    answer: object = outcome.result.get("question")
+    if not isinstance(answer, dict):
+        return []
+    raw: object = cast(dict[str, object], answer).get("guesses")
+    guesses = (
+        [cast(dict[str, object], g) for g in cast(list[object], raw)]
+        if isinstance(raw, list)
+        else []
+    )
+    usable = [
+        g
+        for g in guesses
+        if isinstance(g.get("property"), str) and isinstance(g.get("value"), bool)
+    ]
+    usable.sort(key=lambda g: (-_confidence(g.get("confidence")), str(g["property"])))
+    return [
+        {"subject": _text(object_type), "property": g["property"], "value": g["value"]}
+        for g in usable[:NIGHT_FACTS_MAX]
+    ]
+
+
+def _confidence(value: object) -> float:
+    return float(value) if isinstance(value, (int, float)) else 0.0
 
 
 def _summary(record: _Record) -> dict[str, object]:
