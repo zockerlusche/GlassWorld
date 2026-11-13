@@ -24,6 +24,7 @@ public sealed record Occurrence(string ObjectId, string TypeId, int X, int Z, lo
 public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 {
     private readonly List<Occurrence> _occurrences = [];
+    private readonly HashSet<string> _growing = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<string, long> _regrowTicks;
     private readonly WorldObjects? _objects;
 
@@ -65,8 +66,12 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         if (_regrowTicks.ContainsKey(obj.TypeId))
         {
             _occurrences.Add(new Occurrence(obj.Id, obj.TypeId, x, z, null));
+            _growing.Add(obj.Id);
         }
     }
+
+    /// <summary>Whether an object stands at a regrowth place of the island now (a berry on its bush: it does not spoil there).</summary>
+    public bool GrowsInPlace(string objectId) => _growing.Contains(objectId);
 
     /// <summary>Restores the places that grow back (save games).</summary>
     public void Restore(IEnumerable<Occurrence> occurrences)
@@ -74,6 +79,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         ArgumentNullException.ThrowIfNull(occurrences);
         _occurrences.Clear();
         _occurrences.AddRange(occurrences);
+        _growing.Clear();
+        _growing.UnionWith(_occurrences.Select(o => o.ObjectId));
     }
 
     /// <summary>Hash of the generated data, computed once (the grid never changes).</summary>
@@ -272,6 +279,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             {
                 var grown = _objects.Spawn(place.TypeId, CentreOf(place.X, place.Z));
                 _occurrences[i] = place with { ObjectId = grown.Id, GoneSinceTick = null };
+                _growing.Remove(place.ObjectId);
+                _growing.Add(grown.Id);
             }
         }
     }

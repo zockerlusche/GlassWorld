@@ -395,6 +395,13 @@ public sealed class SimulationHost
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
         inhabitants.HeatAt = fire.HeatAt;
 
+        // D711 section 5 (plan D1008 H1): things wear away by material class; the island's things are there
+        // already, so they get their seeded age; what comes later is watched from its spawn.
+        // Only on islands, like the nature takt: a placeholder world has no regrowth to make up for what spoils.
+        var durability = content.Durability is { } durabilityData && map is not null
+            ? new DurabilitySystem(durabilityData, objects, world.Calendar.Settings.TicksPerHour, world.Seed, nature) { GrowsInPlace = map is null ? null : map.GrowsInPlace }
+            : null;
+
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
         if (processes is not null && content.Processes is { } heatTable)
         {
@@ -522,6 +529,11 @@ public sealed class SimulationHost
 
         // Out of the hash while nothing burns.
         world.Add(fire);
+        if (durability is not null)
+        {
+            // Out of the hash while only things of the world start exist.
+            world.Add(durability);
+        }
 
         // Out of the hash while no milestone is reached.
         world.Add(milestones);
@@ -538,6 +550,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Durability = durability,
             Milestones = milestones,
             Nature = nature,
             Conversation = conversation,
@@ -835,6 +848,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
+    public DurabilitySystem? Durability { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;

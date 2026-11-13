@@ -127,6 +127,10 @@
       "schema": "nature-settings"
     },
     {
+      "pattern": "durability/*.json",
+      "schema": "durability-settings"
+    },
+    {
       "pattern": "look/palette.json",
       "schema": "look-palette"
     },
