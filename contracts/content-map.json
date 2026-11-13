@@ -123,6 +123,10 @@
       "schema": "climate-settings"
     },
     {
+      "pattern": "nature/*.json",
+      "schema": "nature-settings"
+    },
+    {
       "pattern": "look/palette.json",
       "schema": "look-palette"
     },

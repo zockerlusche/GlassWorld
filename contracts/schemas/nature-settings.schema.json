@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/nature-settings.schema.json",
+  "title": "NatureSettings",
+  "description": "Data file content/nature/settings.json (B5 R13, R11, R51; A1380 N1, plan D989): the nature takt. Growth runs as integer sums per growth group - factor (permille, by season and drought) times ticks - so a place that was used up grows back once the sum since then reaches regrow_hours x 1000 (spawns.json). A group with 1000 everywhere grows exactly as by the clock. The takt also keeps sums of wet, frost and frost-on-wet takts for the durability of things (R51, K3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "takt_minutes", "groups", "types"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "takt_minutes": { "description": "Game minutes of one nature takt; season and weather are read at its start and hold for the whole takt.", "type": "integer", "minimum": 1, "maximum": 1440 },
+    "groups": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/NatureGroup" } },
+    "types": { "description": "Which object types belong to which growth group; a regrowing type without a group grows by the clock.", "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/NatureType" } },
+    "influences": { "description": "The influence sums for durability (R51); omitted = none kept.", "$ref": "#/$defs/NatureInfluences" }
+  },
+  "$defs": {
+    "NatureGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "seasons"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "seasons": { "description": "Growth in permille per season of the calendar (1000 = as by the clock, 0 = nothing grows); a season not listed counts 1000.", "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/SeasonGrowth" } },
+        "drought_permille": { "description": "Growth during a drought, in permille of the season's growth; omitted = 1000 (the drought does not matter).", "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "SeasonGrowth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["season", "permille"],
+      "properties": {
+        "season": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "permille": { "type": "integer", "minimum": 0, "maximum": 5000 }
+      }
+    },
+    "NatureType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "group"],
+      "properties": {
+        "type": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "group": { "$ref": "common.schema.json#/$defs/VocabId" }
+      }
+    },
+    "NatureInfluences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heat_min_tenth_c", "wet_frost_takts"],
+      "properties": {
+        "heat_min_tenth_c": { "description": "A takt counts as hot from this air temperature on.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "wet_frost_takts": { "description": "A frost takt counts as frost on wet things when the last wet takt is at most this many takts back.", "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    }
+  }
+}

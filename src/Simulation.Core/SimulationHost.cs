@@ -226,6 +226,15 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
+        // A1380 N1: the nature takt - growth by season and drought, influence sums for durability (R51).
+        Nature.NatureSystem? nature = null;
+        if (content.Nature is { } natureData && map is not null)
+        {
+            nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
+            map.Grown = nature.Grown;
+            world.Add(nature);
+        }
+
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
@@ -530,6 +539,7 @@ public sealed class SimulationHost
             Processes = processes,
             Fire = fire,
             Milestones = milestones,
+            Nature = nature,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -828,6 +838,9 @@ public sealed class SimulationHost
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
+
+    /// <summary>The nature takt (A1380); null on worlds without an island or nature data.</summary>
+    public Nature.NatureSystem? Nature { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

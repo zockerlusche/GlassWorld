@@ -49,6 +49,12 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         _regrowTicks = regrowTicks;
     }
 
+    /// <summary>
+    /// Whether a used-up place has grown back (type, gone since, now, regrow ticks): the nature takt with seasons
+    /// and drought (A1380); null = by the clock, as before.
+    /// </summary>
+    public Func<string, long, long, long, bool>? Grown { get; set; }
+
     /// <summary>Places that grow back, in the order they were placed.</summary>
     public IReadOnlyList<Occurrence> Occurrences => _occurrences;
 
@@ -261,7 +267,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 continue;
             }
 
-            if (world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
+            if (Grown?.Invoke(place.TypeId, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId])
+                ?? world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
             {
                 var grown = _objects.Spawn(place.TypeId, CentreOf(place.X, place.Z));
                 _occurrences[i] = place with { ObjectId = grown.Id, GoneSinceTick = null };
