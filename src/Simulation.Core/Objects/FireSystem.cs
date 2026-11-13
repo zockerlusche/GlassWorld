@@ -169,8 +169,14 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             longer = Math.Min(longer, world.Tick + ((long)most * _ticksPerHour / 60));
         }
 
+        if (longer <= until)
+        {
+            // Already at its most (review GW1 #355): the fuel stays where it is.
+            return false;
+        }
+
         _objects.Remove(fuelId);
-        _until[fireId] = Math.Max(until, longer);
+        _until[fireId] = longer;
         return true;
     }
 

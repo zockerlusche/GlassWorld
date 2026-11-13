@@ -42,10 +42,51 @@ public sealed class FuelTests
         for (var i = 0; i < 6; i++)
         {
             var peat = host.Objects.Spawn("peat", new Position(1.2, 0));
-            Assert.True(host.Fire.Feed(host.World, fire.Id, peat.Id));
+            host.Fire.Feed(host.World, fire.Id, peat.Id);
         }
 
         Assert.Equal(host.World.Tick + most, host.Fire.Burning.Single().Value);
+
+        // At its most a fire takes nothing more: the fuel stays (review GW1 #355).
+        var spare = host.Objects.Spawn("peat", new Position(1.2, 0));
+        Assert.False(host.Fire.Feed(host.World, fire.Id, spare.Id));
+        Assert.True(host.Objects.TryGet(spare.Id, out _));
+    }
+
+    [Fact]
+    public void FuelTakenAwayBeforeTheEndIsNotBurnt()
+    {
+        var (host, events) = World();
+        var fire = host.Objects.Spawn("fire", new Position(1, 0));
+        var wood = host.Objects.Spawn("dry_wood", new Position(1.5, 0));
+        host.World.Run(1);
+        var before = host.Fire.Burning.Single().Value;
+        var inhabitant = host.Inhabitants.Get(Actor);
+        inhabitant.Activity = new Activity(AddFuel, fire.Id, fire.Position, null, Partners: [wood.Id]);
+        for (var i = 0; i < 200 && !events.Any(e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == AddFuel); i++)
+        {
+            host.World.Run(1);
+        }
+
+        // Carried away out of reach of the fire while the inhabitant is at it: the same end check as combining.
+        host.Objects.Remove(wood.Id);
+        var moved = host.Objects.Spawn("dry_wood", new Position(30, 0));
+        inhabitant.Activity = inhabitant.Activity! with { Partners = [moved.Id] };
+        for (var i = 0; i < 2000 && inhabitant.Activity is { Action: AddFuel }; i++)
+        {
+            host.World.Run(1);
+        }
+
+        Assert.Equal(InhabitantsSystem.PartnerGone, Assert.Single(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.Action == AddFuel).Detail);
+        Assert.Equal(before, host.Fire.Burning.Single().Value);
+        Assert.True(host.Objects.TryGet(moved.Id, out _));
+    }
+
+    [Fact]
+    public void TheComfortLevelsGoFromColdToHot()
+    {
+        // ComfortLevelOf reads the vocabulary by position (review GW1 #355): reordering it would swap cold and hot.
+        Assert.Equal(["cold", "cool", "comfortable", "warm", "hot"], Content.Value.Vocabularies[Contracts.VocabularyKind.Comfort_level].Entries.Select(e => e.Id));
     }
 
     [Fact]
