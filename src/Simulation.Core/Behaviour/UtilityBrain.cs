@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -119,6 +120,12 @@ public sealed class UtilityBrain
     /// <summary>The data in use.</summary>
     public UtilityWeights Weights { get; }
 
+    /// <summary>
+    /// What a thing is by being made (the invention data's implied properties, D9): unknown counts as not, never as
+    /// the unknown-target belief - nobody takes a found thing for a made one (GW2 D971).
+    /// </summary>
+    public FrozenSet<string> MadeProperties { get; internal set; } = FrozenSet<string>.Empty;
+
     /// <summary>Whether any consideration aims at other inhabitants (target_inhabitant, W1744).</summary>
     public bool AimsAtInhabitants { get; }
 
@@ -154,6 +161,14 @@ public sealed class UtilityBrain
                 continue;
             }
 
+            // GW2 D971: a consideration about a made thing suggests nothing for a thing the inhabitant does not know
+            // to be made (use is not offered on clay).
+            if (targetTypeId is not null && !MadeAsBelieved(inhabitant, c, targetTypeId))
+            {
+                needBased = true;
+                continue;
+            }
+
             // A consideration that yields to the needs (yields_to_needs, B2-6 R14) counts like a need-based
             // one: it suggests its action only while the needs leave room for it.
             var yields = c.YieldsToNeeds ?? false;
@@ -171,6 +186,11 @@ public sealed class UtilityBrain
 
         return !needBased;
     }
+
+    /// <summary>Whether the inhabitant believes the target is made, where the consideration asks for it (true otherwise).</summary>
+    private bool MadeAsBelieved(Inhabitant inhabitant, Consideration c, string typeId) =>
+        new[] { c.TargetProperty, c.RequiresAlso }.All(p => p is null || !MadeProperties.Contains(p)
+            || (inhabitant.Beliefs.TryGet(typeId, p, out var belief) && belief.Value));
 
     /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
     public bool Serves(string action, string need) =>
@@ -488,7 +508,7 @@ public sealed class UtilityBrain
         ArgumentNullException.ThrowIfNull(inhabitant);
         return inhabitant.Beliefs.TryGet(typeId, property, out var belief)
             ? (belief.Value ? belief.Confidence : 0.0)
-            : Weights.UnknownTargetBelief;
+            : MadeProperties.Contains(property) ? 0.0 : Weights.UnknownTargetBelief;
     }
 
     /// <summary>
