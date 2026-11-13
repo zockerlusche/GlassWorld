@@ -74,6 +74,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("gradual")]
         public bool? Gradual { get; set; } = default!;
 
+        /// <summary>
+        /// B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wake_after_minutes")]
+        public int? WakeAfterMinutes { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
