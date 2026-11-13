@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A made thing can be used when there is time (GW2 D999, TL TH143): a free moment offers the decider 'use' on the made things in sight the inhabitant knows are made (#358), nearest first. Until now 'use' reached the decider only as the subject of a question, so a built thing waited for a low need and was never used in the 6-day run.
 - The inventor knows what it knows (R8, A1582): the invention job carries the inhabitant's own beliefs about the materials it sees (with source and confidence, never the truth), so the inventor prompt can work from 'what you know'.
 - Night questions are asked again, and the night look back is on (GW2 D971, B2698):
   - The day question 'what is this' exists only for a thing the inhabitant believes nothing about, and the night skipped exactly those, so no question was ever guessed at night. With `night_questions.ask_without_notice` the night asks anyway; the perception is what the thing shows at a glance (the looking data's visible properties it has), not stored as a belief.
