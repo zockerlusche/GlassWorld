@@ -162,7 +162,9 @@ public sealed class ProcessRuleSet
                 var conditions = r.Tool is { } tool ? r.Inputs.Append(tool) : r.Inputs;
                 var met = MostMet([.. conditions], inputs, 0, new bool[inputs.Count]);
                 var shared = conditions.Sum(c => c.PropertiesAll.Count(all.Contains));
-                return (met * 1000) + shared;
+                // The share of the rule's conditions met (GW2 D1016): one of two (strike) before one of three (bind).
+                var count = conditions.Count();
+                return (count == 0 ? 0 : met * 1000 / count * 1000) + shared;
             })
             .DefaultIfEmpty(0).Max();
         return [.. _processes.Where(p => !Ruled(p))
