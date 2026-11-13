@@ -1279,7 +1279,8 @@ public sealed class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
-            var isIntended = action == intended;
+            // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
+            var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
