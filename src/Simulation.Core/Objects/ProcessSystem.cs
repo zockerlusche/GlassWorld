@@ -182,7 +182,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             return false;
         }
 
-        var candidates = _data.Candidates(things.Count, Milestones?.TechLevelIndex, heat, heatSource is not null);
+        var candidates = _data.CandidatesFor(tried, heat);
         if (candidates.Count == 0)
         {
             // Nothing could happen to such things at this level: nothing now, nothing kept (review GW1 #356) -

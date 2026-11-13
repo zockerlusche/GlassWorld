@@ -157,6 +157,23 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void TheJudgeMayChooseFromEveryProcessThePhysicsAllowsNotOnlyFromRulesOfTheData()
+    {
+        // TL #23700 / GW2 D991: clay with spring water - no data rule fits at this level, but mixing may.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port, silent: true);
+        var clay = host.Objects.Spawn("clay", new Position(1, 0));
+        var water = host.Objects.Spawn("spring_water", new Position(1.5, 0));
+
+        RunCombine(host, clay, water);
+        var candidates = Assert.Single(port.Submitted).Payload.Process!.Candidates!;
+        Assert.Contains("mix", candidates);
+        Assert.Contains("soak", candidates);
+        Assert.DoesNotContain("heat", candidates);
+        Assert.InRange(candidates.Count, 1, ProcessRuleSet.MaxCandidates);
+    }
+
+    [Fact]
     public void NothingHappensIsWorldTruthTooAndAnAnswerThatDoesNotFitIsRefused()
     {
         var port = new ScriptedJobPort();

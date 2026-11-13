@@ -22,6 +22,8 @@ public sealed class ProcessRuleSet
     public const int MaxCandidates = 8;
 
     private readonly IReadOnlyList<ProcessRule> _rules;
+    private IReadOnlyList<string> _processes = [];
+    private Physics? _physics;
     private readonly IReadOnlyList<string> _techLevels;
     private readonly int _worldTech;
 
@@ -96,7 +98,11 @@ public sealed class ProcessRuleSet
             }
         }
 
-        return new ProcessRuleSet([.. data.Rules.OrderBy(r => r, Specificity.Instance)], techLevels, worldTechLevel, [.. data.HeatLevels]);
+        return new ProcessRuleSet([.. data.Rules.OrderBy(r => r, Specificity.Instance)], techLevels, worldTechLevel, [.. data.HeatLevels])
+        {
+            _processes = [.. processes.Order(StringComparer.Ordinal)],
+            _physics = data.Physics,
+        };
     }
 
     /// <summary>
@@ -128,6 +134,34 @@ public sealed class ProcessRuleSet
     /// </summary>
     public IReadOnlyList<string> Candidates(int things, int? worldTech = null, int? heat = null, bool withHeatSource = false) =>
         [.. _rules.Where(r => Applies(r, worldTech, heat) && Shaped(r, things, withHeatSource)).Select(r => r.Process).Distinct(StringComparer.Ordinal).Take(MaxCandidates)];
+
+    /// <summary>
+    /// The processes the judge may choose from for an unknown try, derived from the data as a whole (TL #23700, GW2
+    /// D991): every process of the vocabulary that the judge's physics table does not rule out for these things
+    /// (heat processes without heat, needs_any, never_if), most promising first - the most required properties the
+    /// things share with a rule of that process (any tech level and shape: the judge may find a new rule), ties by
+    /// id - at most <see cref="MaxCandidates"/>. Rules of the data apply before a try ever gets here.
+    /// </summary>
+    /// <param name="inputs">The true properties of the things the process would work on.</param>
+    /// <param name="heat">The heat level at the try, or null.</param>
+    public IReadOnlyList<string> CandidatesFor(IReadOnlyList<FrozenSet<string>> inputs, int? heat)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        var all = inputs.SelectMany(i => i).ToHashSet(StringComparer.Ordinal);
+        var physics = _physics;
+        bool Ruled(string process) =>
+            (heat is null && physics?.HeatProcesses.Contains(process) == true)
+            || (physics?.NeedsAny is { } needs && needs.TryGetValue(process, out var anyOf) && !anyOf.Any(all.Contains))
+            || (physics?.NeverIf is { } never && never.TryGetValue(process, out var not) && not.Any(all.Contains));
+        int Promise(string process) => _rules.Where(r => r.Process == process)
+            .Select(r => r.Inputs.Sum(i => i.PropertiesAll.Count(all.Contains)))
+            .DefaultIfEmpty(0).Max();
+        return [.. _processes.Where(p => !Ruled(p))
+            .Select(p => (Process: p, Promise: Promise(p)))
+            .OrderByDescending(p => p.Promise).ThenBy(p => p.Process, StringComparer.Ordinal)
+            .Take(MaxCandidates)
+            .Select(p => p.Process)];
+    }
 
     /// <summary>Whether a rule (of the data or found in the world) can apply here: no heat needed, tech level reached.</summary>
     /// <param name="rule">The rule.</param>
