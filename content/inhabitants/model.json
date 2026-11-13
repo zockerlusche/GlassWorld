@@ -29,7 +29,12 @@
     { "id": "sadness", "baseline": 0.1, "return_per_hour": 0.02 },
     { "id": "fear", "baseline": 0.05, "return_per_hour": 0.05 },
     { "id": "frustration", "baseline": 0.05, "return_per_hour": 0.03 },
-    { "id": "boredom", "baseline": 0.1, "return_per_hour": 0.02 }
+    { "id": "boredom", "baseline": 0.1, "return_per_hour": 0.02 },
+    { "id": "anger", "baseline": 0.0, "return_per_hour": 0.06 },
+    { "id": "love", "baseline": 0.0, "return_per_hour": 0.005 },
+    { "id": "pride", "baseline": 0.05, "return_per_hour": 0.02 },
+    { "id": "shame", "baseline": 0.0, "return_per_hour": 0.05 },
+    { "id": "jealousy", "baseline": 0.0, "return_per_hour": 0.05 }
   ],
   "mood_drivers": [
     { "need": "hunger", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },

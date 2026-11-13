@@ -103,6 +103,31 @@
     ] },
     { "event": "knowledge_gained", "detail_ends_with": "/seen", "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.01 }
+    ] },
+    { "event": "invented", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.15 }
+    ] },
+    { "event": "built", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.1 }
+    ] },
+    { "event": "discovered_process", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.1 }
+    ] },
+    { "event": "praised", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.05 }
+    ] },
+    { "event": "build_failed", "detail_ends_with": "gave_up", "effects": [
+      { "kind": "mood", "id": "shame", "delta": 0.05 }
+    ] },
+    { "event": "quarrelled", "effects": [
+      { "kind": "mood", "id": "anger", "delta": 0.2 }
+    ] },
+    { "event": "reconciled", "effects": [
+      { "kind": "mood", "id": "anger", "delta": -0.2 },
+      { "kind": "mood", "id": "love", "delta": 0.05 }
+    ] },
+    { "event": "partnered", "effects": [
+      { "kind": "mood", "id": "love", "delta": 0.3 }
     ] }
   ]
 }
