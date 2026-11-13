@@ -59,6 +59,20 @@ public sealed class NatureTests
     }
 
     [Fact]
+    public void AYearOfSumsStaysSmallInTheSave()
+    {
+        // Review GW1 #23580 (C): the series grow with time - one year of the shipped groups stays small.
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var data = ContentSet.Load(ContentDirectory).Nature!;
+        var nature = new NatureSystem(data, host.World.Calendar.Settings.TicksPerHour, null);
+        var year = host.World.Calendar.TicksPerSeason * host.World.Calendar.Settings.Seasons.Count;
+        Step(host, nature, year);
+
+        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(nature.Capture());
+        Assert.True(bytes.Length < 100_000, $"{bytes.Length} bytes for a year");
+    }
+
+    [Fact]
     public void TheSumsSurviveSavingAndLoading()
     {
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");

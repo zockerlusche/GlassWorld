@@ -47,6 +47,11 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     private const int FrostBit = 2;
     private const int HeatBit = 4;
     private const int WetFrostBit = 8;
+    private const string WetKey = "~wet";
+    private const string FrostKey = "~frost";
+    private const string HeatKey = "~heat";
+    private const string WetFrostKey = "~wet_frost";
+    private const ulong Offset = 14695981039346656037UL;
 
     private readonly NatureSettings _data;
     private readonly long _taktTicks;
@@ -58,6 +63,7 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     private readonly List<long> _frost = [];
     private readonly List<long> _heat = [];
     private readonly List<long> _wetFrost = [];
+    private readonly Dictionary<string, ulong> _digests = new(StringComparer.Ordinal);
     private long _baseTakt = -1;
     private long _lastWetTakt = -1;
     private int _flags;
@@ -144,15 +150,16 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
             // Close the takt that ends now: each sum grows by what held in it.
             foreach (var (group, series) in _growth)
             {
-                series.Add(series[^1] + (_current[group] * _taktTicks));
+                Append(group, series, series[^1] + (_current[group] * _taktTicks));
             }
 
-            if (_data.Influences is not null)
+            // Only series that were opened (influences need weather; a world without a climate keeps none).
+            if (_data.Influences is not null && _wet.Count > 0)
             {
-                Close(_wet, WetBit);
-                Close(_frost, FrostBit);
-                Close(_heat, HeatBit);
-                Close(_wetFrost, WetFrostBit);
+                Close(WetKey, _wet, WetBit);
+                Close(FrostKey, _frost, FrostBit);
+                Close(HeatKey, _heat, HeatBit);
+                Close(WetFrostKey, _wetFrost, WetFrostBit);
             }
         }
 
@@ -166,13 +173,14 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         hasher.Write(_baseTakt).Write(_growth.Count);
         foreach (var (group, series) in _growth)
         {
-            hasher.Write(group).Write(_current[group]).Write(series.Count).Write(series[^1]);
+            // The whole series counts (review GW1 #375): a running digest of every value, not only the last.
+            hasher.Write(group).Write(_current[group]).Write(series.Count).Write((long)_digests[group]);
         }
 
         hasher.Write(_wet.Count);
         if (_wet.Count > 0)
         {
-            hasher.Write(_wet[^1]).Write(_frost[^1]).Write(_heat[^1]).Write(_wetFrost[^1]).Write(_lastWetTakt).Write(_flags);
+            hasher.Write((long)_digests[WetKey]).Write((long)_digests[FrostKey]).Write((long)_digests[HeatKey]).Write((long)_digests[WetFrostKey]).Write(_lastWetTakt).Write(_flags);
         }
     }
 
@@ -215,6 +223,19 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         Replace(_wetFrost, state.WetFrost);
         _lastWetTakt = state.LastWetTakt;
         _flags = state.Flags;
+        _digests.Clear();
+        foreach (var (group, series) in _growth)
+        {
+            _digests[group] = DigestOf(series);
+        }
+
+        if (_wet.Count > 0)
+        {
+            _digests[WetKey] = DigestOf(_wet);
+            _digests[FrostKey] = DigestOf(_frost);
+            _digests[HeatKey] = DigestOf(_heat);
+            _digests[WetFrostKey] = DigestOf(_wetFrost);
+        }
 
         static void Replace(List<long> into, List<long> from)
         {
@@ -244,7 +265,8 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
                     continue;
                 }
 
-                _growth[group.Id] = [(takt - _baseTakt) * _taktTicks * 1000];
+                _growth[group.Id] = [];
+                Append(group.Id, _growth[group.Id], (takt - _baseTakt) * _taktTicks * 1000);
             }
 
             _current[group.Id] = factor;
@@ -257,10 +279,10 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
 
         if (_wet.Count == 0)
         {
-            _wet.Add(0);
-            _frost.Add(0);
-            _heat.Add(0);
-            _wetFrost.Add(0);
+            Append(WetKey, _wet, 0);
+            Append(FrostKey, _frost, 0);
+            Append(HeatKey, _heat, 0);
+            Append(WetFrostKey, _wetFrost, 0);
         }
 
         var reading = Weather.Read(world);
@@ -286,7 +308,19 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         }
     }
 
-    private void Close(List<long> series, int bit) => series.Add(series[^1] + ((_flags & bit) != 0 ? 1 : 0));
+    private void Close(string key, List<long> series, int bit) => Append(key, series, series[^1] + ((_flags & bit) != 0 ? 1 : 0));
+
+    /// <summary>Adds a value to a series and to its running digest (FNV-1a over the values).</summary>
+    private void Append(string key, List<long> series, long value)
+    {
+        series.Add(value);
+        _digests[key] = Fold(_digests.GetValueOrDefault(key, Offset), value);
+    }
+
+    private static ulong Fold(ulong digest, long value) => (digest ^ unchecked((ulong)value)) * 1099511628211UL;
+
+    /// <summary>The digest of a whole series, as the appends build it (for a restored save).</summary>
+    private static ulong DigestOf(List<long> series) => series.Aggregate(Offset, (d, v) => Fold(d, v));
 
     /// <summary>
     /// The growth sum of a group at a tick: the sum at the boundary before plus the factor of that takt times the
