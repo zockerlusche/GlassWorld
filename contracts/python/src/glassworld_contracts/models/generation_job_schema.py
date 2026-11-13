@@ -288,11 +288,9 @@ class ProcessPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    process: str = Field(
+    process: common_schema.VocabId | None = Field(
         ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+        description="The process the inhabitant applies; null for a combine trial (then 'candidates' is set).",
     )
     inputs: list[common_schema.ObservedThing] = Field(..., max_length=4, min_length=1)
     tool: common_schema.ObservedThing | None
@@ -309,6 +307,12 @@ class ProcessPayload(BaseModel):
     signature: common_schema.ProcessSignature = Field(
         ...,
         description='Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.',
+    )
+    candidates: list[common_schema.VocabId] | None = Field(
+        None,
+        description="Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.",
+        max_length=8,
+        min_length=1,
     )
 
 

@@ -195,14 +195,17 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule.
+    /// An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule. A combine trial (B2687 K2, D932): the inhabitant puts things together without choosing a process - 'process' is null, the core lists the processes whose input/tool shape fits in 'candidates', and the judge says which of them happens, if any.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ProcessPayload
     {
 
+        /// <summary>
+        /// The process the inhabitant applies; null for a combine trial (then 'candidates' is set).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("process")]
-        public string Process { get; set; } = default!;
+        public string? Process { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inputs")]
         public System.Collections.Generic.ICollection<ObservedThing> Inputs { get; set; } = new System.Collections.ObjectModel.Collection<ObservedThing>();
@@ -227,6 +230,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("signature")]
         public ProcessSignature Signature { get; set; } = new ProcessSignature();
+
+        /// <summary>
+        /// Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("candidates")]
+        public System.Collections.Generic.ICollection<string>? Candidates { get; set; } = default!;
 
     }
 
