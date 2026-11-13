@@ -241,6 +241,10 @@
     {
       "id": "dreamed",
       "description": "An inhabitant dreamed in the compute night (A1584, B2592)."
+    },
+    {
+      "id": "praised",
+      "description": "The player's praise reached an inhabitant (A1538, B2678)."
     }
   ]
 }

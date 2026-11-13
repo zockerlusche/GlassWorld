@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Praise works (A1538, B2678): when the service classifies the player's text as praise and the inhabitant understood it (reply or gesture), the core lifts its joy (+0.04) and its relation to the player (affection +0.02, trust +0.01, fear -0.01) on top of the reply's own changes - at most once per game hour (`conversation.json` `praise`). Event `praised`.
 - Night items carry what a question learned (A1618, B2683; service side of GW3's `learned`): a done question job lists its guesses about the thing as ids only, surest first, at most 4 - the dream scene shows them as a short guess.
 - Dream texts (A1618, B2683 part 1, Marcel W1943): in the night scene what an inhabitant learned pops up as a short guess beside the dream images and fades - 'Joro: Pyrit – hart?' / 'Joro: pyrite – hard?' - worded from the vocabulary (`ui.night.learned.true/false`, object and property words), never a sentence of the AI. Source: the new optional `learned` facts of a done night item (night-items `NightFact`: subject, property, value - ids only); same timing, limit and 'reduce motion' as the images, switch `dreams.show_learned` in look/night.json. The service fills the facts next (GW2).
 - Conversation v7 (A1617, B2678): the voice can point at a thing while it speaks - the prompt says what it points at (by the name under 'What you see'), and a naming reaches the core only for exactly that thing; without pointing nothing is named. config: conversation prompt 7.

@@ -50,5 +50,14 @@
     }
   ],
   "log_max_entries": 500,
-  "history_lines_max": 200
+  "history_lines_max": 200,
+  "praise": {
+    "mood": "joy",
+    "mood_delta": 0.04,
+    "affection": 0.02,
+    "trust": 0.01,
+    "respect": 0.0,
+    "fear": -0.01,
+    "every_minutes": 60
+  }
 }

@@ -77,6 +77,44 @@ public sealed class ConversationTests : IDisposable
     }
 
     [Fact]
+    public void PraiseLiftsTheMoodAndTheRelationOnceAnHourOnlyWhenUnderstood()
+    {
+        // A1538 (B2678): what praise does is data, on top of the reply's own changes; at most once per every_minutes.
+        var (host, id) = Host();
+        var praise = host.Content.Conversation.Praise!;
+        var rule = host.Content.Conversation.Outcomes.Single(o => o.Outcome == OutcomeChangeOutcome.Reply);
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Danke!", null, ConversationSystem.PraiseKind);
+        var events = Collect(host);
+        var inhabitant = host.Inhabitants.Get(id);
+        var joy = inhabitant.Moods[praise.Mood];
+        var trust = inhabitant.Relationships.Get(ConversationSystem.PlayerId, default).Trust;
+        if (trust == 0)
+        {
+            trust = host.Content.Knowledge.RelationshipStart.Trust;
+        }
+
+        Say(host, id, "Das hast du gut gemacht!");
+        host.World.Run(2);
+        Assert.Single(events, e => e.Kind == ConversationSystem.Praised);
+        // Moods fade a little every tick (mood dynamics), so within a small tolerance.
+        Assert.InRange(inhabitant.Moods[praise.Mood], Math.Min(1, joy + praise.MoodDelta) - 0.005, Math.Min(1, joy + praise.MoodDelta));
+        Assert.Equal(trust + rule.Trust + praise.Trust, inhabitant.Relationships.Get(ConversationSystem.PlayerId, default).Trust, 6);
+
+        // Again within the hour: the reply counts, the praise does not.
+        host.World.Run(2);
+        Say(host, id, "Toll!");
+        host.World.Run(2);
+        Assert.Single(events, e => e.Kind == ConversationSystem.Praised);
+
+        // Not understood: no praise either.
+        host.World.Run(praise.EveryMinutes * host.World.Calendar.Settings.TicksPerHour / 60);
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Not_understood, "Was?", null, ConversationSystem.PraiseKind);
+        Say(host, id, "Super!");
+        host.World.Run(2);
+        Assert.Single(events, e => e.Kind == ConversationSystem.Praised);
+    }
+
+    [Fact]
     public void TheLiveServiceAnswerOfMarcelsTestBecomesASaidEvent()
     {
         // W1688: the exact answer the local service sent in the play test (only id and tick follow the
@@ -446,7 +484,7 @@ public sealed class ConversationTests : IDisposable
         return events;
     }
 
-    private sealed class FixedPort(ConversationResponseOutcome outcome, string? text, string? expression) : IConversationPort
+    private sealed class FixedPort(ConversationResponseOutcome outcome, string? text, string? expression, string? voice = null) : IConversationPort
     {
         private readonly Queue<PortMessage> _ready = new();
 
@@ -461,6 +499,7 @@ public sealed class ConversationTests : IDisposable
                 Outcome = outcome,
                 Reply = text is null ? null : new GeneratedText { Locale = request.DisplayLocale, Text = text },
                 Expression = expression,
+                Voice = voice is null ? null : new VoiceClass { Kind = voice },
                 Rationale = "test",
                 Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "test", LatencyMs = 0, Attempts = 1 },
             };

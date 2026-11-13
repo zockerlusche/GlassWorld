@@ -1603,6 +1603,10 @@
       "text": "Geträumt"
     },
     {
+      "key": "vocab.event.praised",
+      "text": "Gelobt"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },
