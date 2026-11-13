@@ -50,7 +50,7 @@
           "maxLength": 48
         },
         "text_key": {
-          "description": "Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action}; '{is} {property}' stay together (facts of one moment are joined there).",
+          "description": "Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action} {word}; '{is} {property}' stay together (facts of one moment are joined there).",
           "type": "string",
           "pattern": "^msg\\.learnlog\\.[a-z0-9_]+$",
           "maxLength": 64

@@ -20,7 +20,7 @@ class LearningLogKind(BaseModel):
     )
     text_key: str = Field(
         ...,
-        description="Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action}; '{is} {property}' stay together (facts of one moment are joined there).",
+        description="Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action} {word}; '{is} {property}' stay together (facts of one moment are joined there).",
         max_length=64,
         pattern='^msg\\.learnlog\\.[a-z0-9_]+$',
     )

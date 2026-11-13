@@ -111,6 +111,7 @@ public static class LearningLogWriter
             .Replace("{time}", string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"), StringComparison.Ordinal)
             .Replace("{thing}", entry.TypeId is { } type ? ThingName(host, texts, type) : string.Empty, StringComparison.Ordinal)
             .Replace("{is} {property}", facts, StringComparison.Ordinal)
+            .Replace("{word}", entry.Detail ?? string.Empty, StringComparison.Ordinal)
             .Replace("{from}", entry.From is { } from ? NameOf(host, from) : "?", StringComparison.Ordinal)
             .Replace("{other}", entry.OtherId is { } other ? NameOf(host, other) : string.Empty, StringComparison.Ordinal)
             .Replace("{need}", entry.Action is { } need ? Vocab(texts, "need", need) : string.Empty, StringComparison.Ordinal)

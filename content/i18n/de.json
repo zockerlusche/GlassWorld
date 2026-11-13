@@ -2981,6 +2981,10 @@
     {
       "key": "msg.learnlog.praised",
       "text": "{time} wird von dir gelobt"
+    },
+    {
+      "key": "msg.learnlog.word_heard",
+      "text": "{time} hört von dir das Wort „{word}“ für {thing}"
     }
   ]
 }

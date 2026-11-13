@@ -23,7 +23,7 @@ namespace GlassWorld.Contracts
         public string Event { get; set; } = default!;
 
         /// <summary>
-        /// Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action}; '{is} {property}' stay together (facts of one moment are joined there).
+        /// Text key of the line; for knowledge_gained the source (seen, experienced, heard, guessed) is appended ('.heard'). Placeholders: {time} {thing} {is} {property} {from} {other} {need} {action} {word}; '{is} {property}' stay together (facts of one moment are joined there).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("text_key")]
         public string TextKey { get; set; } = default!;

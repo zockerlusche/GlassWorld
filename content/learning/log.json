@@ -50,6 +50,10 @@
     {
       "event": "praised",
       "text_key": "msg.learnlog.praised"
+    },
+    {
+      "event": "word_heard",
+      "text_key": "msg.learnlog.word_heard"
     }
   ]
 }

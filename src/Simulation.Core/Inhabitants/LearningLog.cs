@@ -14,7 +14,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="Source">For knowledge: seen, experienced, heard or guessed.</param>
 /// <param name="Value">For knowledge: whether the thing has the property, as the inhabitant now believes.</param>
 /// <param name="From">For knowledge heard: who told it.</param>
-public sealed record LearningEntry(long Tick, string InhabitantId, string Kind, string? Action, string? TypeId, string? OtherId, string? Property, string? Source, bool? Value, string? From);
+/// <param name="Detail">The event's own detail for other kinds (e.g. the word heard), if any.</param>
+public sealed record LearningEntry(long Tick, string InhabitantId, string Kind, string? Action, string? TypeId, string? OtherId, string? Property, string? Source, bool? Value, string? From, string? Detail = null);
 
 /// <summary>
 /// The learning log (B2685 part B, A1620): it reads along the core's event stream and keeps, per event kind named
@@ -78,7 +79,7 @@ public sealed class LearningLog
         else
         {
             var type = e.TargetType ?? (e.TargetId is { } id && _objects.TryGet(id, out var thing) ? thing.TypeId : e.TargetId);
-            entry = new LearningEntry(e.Tick, e.InhabitantId, e.Kind, e.Action, type, null, null, null, null, null);
+            entry = new LearningEntry(e.Tick, e.InhabitantId, e.Kind, e.Action, type, null, null, null, null, null, e.Detail);
         }
 
         _entries.Add(entry);

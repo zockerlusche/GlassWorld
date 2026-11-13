@@ -33,7 +33,7 @@ public sealed class LearningLogTests : IDisposable
         host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, 5, mira.Id, "listen", "conifer_tree") { Detail = "edible/" + KnowledgeSources.Heard });
         host.Inhabitants.Report(new WorldEvent("action_started", 6, mira.Id, "eat", null)); // not a kind of the log
 
-        var entry = Assert.Single(host.LearningLog!.Entries);
+        var entry = host.LearningLog!.Entries.Single();
         Assert.Equal(("conifer_tree", "edible", KnowledgeSources.Heard, (bool?)false, joro.Id), (entry.TypeId, entry.Property, entry.Source, entry.Value, entry.From));
     }
 
@@ -69,6 +69,16 @@ public sealed class LearningLogTests : IDisposable
         host.Inhabitants.Report(new WorldEvent("first_meeting", 8, joro.Id, null, mira.Id));
         Assert.Empty(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory));
         Assert.Equal("kept", File.ReadAllText(file));
+    }
+
+    [Fact]
+    public void AWordTheVoiceSaidForAThingIsLoggedWithTheWord()
+    {
+        // #352: word_heard carries the word in its detail and the type as its target.
+        var (host, mira, _) = TwoInhabitants();
+        host.Inhabitants.Report(new WorldEvent("word_heard", 9, mira.Id, null, "spring_water") { Detail = "Glitzerwasser" });
+        var entry = host.LearningLog!.Entries.Single();
+        Assert.Equal(("spring_water", "Glitzerwasser"), (entry.TypeId, entry.Detail));
     }
 
     private static (SimulationHost Host, Inhabitant Mira, Inhabitant Joro) TwoInhabitants()
