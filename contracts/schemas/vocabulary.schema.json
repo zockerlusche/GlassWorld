@@ -37,7 +37,14 @@
         "event",
         "knowledge_source",
         "soil",
-        "voice_kind"
+        "voice_kind",
+        "comfort_level",
+        "light_level",
+        "water_depth",
+        "direction",
+        "outline_size",
+        "vital",
+        "condition"
       ]
     },
     "entries": {

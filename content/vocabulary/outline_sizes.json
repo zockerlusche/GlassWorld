@@ -1,0 +1,14 @@
+{
+  "contract_version": "0.2",
+  "kind": "outline_size",
+  "entries": [
+    {
+      "id": "large",
+      "description": "Something large, the size of a tree, a big rock or a hut."
+    },
+    {
+      "id": "medium",
+      "description": "Something about the size of a person."
+    }
+  ]
+}

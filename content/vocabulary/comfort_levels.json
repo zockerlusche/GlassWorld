@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "kind": "comfort_level",
+  "entries": [
+    {
+      "id": "cold",
+      "description": "Much colder than this inhabitant likes."
+    },
+    {
+      "id": "cool",
+      "description": "A little colder than this inhabitant likes."
+    },
+    {
+      "id": "comfortable",
+      "description": "Just as warm as this inhabitant likes."
+    },
+    {
+      "id": "warm",
+      "description": "A little warmer than this inhabitant likes."
+    },
+    {
+      "id": "hot",
+      "description": "Much warmer than this inhabitant likes."
+    }
+  ]
+}
