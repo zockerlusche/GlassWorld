@@ -852,6 +852,29 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return together;
     }
 
+    /// <summary>Detail of an action_started event that is a first try (GW3 #22738): the actor knows nothing yet of what the action depends on.</summary>
+    public const string Try = "try";
+
+    /// <summary>
+    /// Whether the inhabitant's current action on a thing is a first try (GW3 #22741, for the card and the diary):
+    /// see <see cref="Tries"/>. False without an action on a thing.
+    /// </summary>
+    public bool IsTrying(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return inhabitant.Activity is { TargetId: { } id } activity && _objects.TryGet(id, out var thing) && Tries(inhabitant, activity.Action, thing.TypeId);
+    }
+
+    /// <summary>
+    /// A first try: the action's effect rules depend on properties of the target (eat: edible, drink: drinkable ...)
+    /// and the inhabitant holds no belief about any of them for this type - it tries to find out (learning by trying).
+    /// </summary>
+    private bool Tries(Inhabitant inhabitant, string action, string typeId)
+    {
+        var depends = _actions.Rules(action).Select(r => r.RequiresProperty).OfType<string>().Distinct(StringComparer.Ordinal).ToList();
+        return depends.Count > 0 && depends.All(property => !inhabitant.Beliefs.TryGet(typeId, property, out _));
+    }
+
     /// <summary>
     /// Whether an inhabitant is asleep (the one definition, data: togetherness.sleep_action of the inhabitant
     /// model, once that action has started): nobody addresses a sleeper (B2466), so the rule checker cancels
@@ -1150,7 +1173,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
-            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { TargetType = target?.TypeId });
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+            {
+                TargetType = target?.TypeId,
+                Detail = target is not null && Tries(inhabitant, activity.Action, target.TypeId) ? Try : null,
+            });
             Imprint(world, inhabitant, activity, target, listener);
             return;
         }
