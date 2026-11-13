@@ -158,3 +158,16 @@ def test_the_mock_invents_no_idea_and_fits_the_contract() -> None:
     assert schema["properties"]["ideas"]["items"]["properties"]["roots"]["items"]["enum"] == list(
         known(JOB)
     )
+
+
+def test_v2_keeps_an_ideas_roots_to_what_it_is_about() -> None:
+    """D936: the model listed everything it knew as roots; v2 allows at most max_roots (3)."""
+    from glassworld_ai.review import build_values, output_schema
+
+    v2 = load_prompt(REPO / "prompts", "review/night", 2)
+    schema = output_schema(JOB, ["calm"], None, v2.settings)
+    roots = schema["properties"]["ideas"]["items"]["properties"]["roots"]
+    assert roots["maxItems"] == v2.settings["max_roots"] == 3
+    assert "only the 1 to 3 thing(s) the idea itself is" in v2.render(build_values(JOB, v2)).system
+    old = output_schema(JOB, ["calm"], None, TEMPLATE.settings)
+    assert old["properties"]["ideas"]["items"]["properties"]["roots"]["maxItems"] == 8

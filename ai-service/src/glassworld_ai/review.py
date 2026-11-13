@@ -206,7 +206,14 @@ def build_values(
         "actions": ", ".join(plain_id(a) for a in payload.actions),
         "max_new_ideas": str(payload.max_new_ideas),
         "max_intentions": str(payload.max_intentions),
+        "max_roots": str(_max_roots(settings)),
     }
+
+
+def _max_roots(settings: dict[str, Any] | None) -> int:
+    """v2 (D936): at most this many roots per idea (prompt settings); v1 had the contract's 8."""
+    raw: object = (settings or {}).get("max_roots", 8)
+    return max(1, min(8, raw)) if isinstance(raw, int) else 8
 
 
 def output_schema(
@@ -279,7 +286,7 @@ def output_schema(
                         "roots": {
                             "type": "array",
                             "minItems": 1,
-                            "maxItems": 8,
+                            "maxItems": _max_roots(settings),
                             "items": root_items,
                         },
                         "thought": {"type": "string", "minLength": 1, "maxLength": 160},
