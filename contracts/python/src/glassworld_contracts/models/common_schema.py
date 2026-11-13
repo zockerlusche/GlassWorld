@@ -662,6 +662,11 @@ class InhabitantState(BaseModel):
         None,
         description="B9 R11 / Marcel W1698: the inhabitant's own name, so it can introduce itself; absent while it has none. Optional.",
     )
+    vitals: list[LevelEntry] | None = Field(
+        None,
+        description="Vital values 0..1 by id of the vocabulary 'vital' (B5 R22: air; 1 = full). Sorted by id by the core. Optional; absent = not stated.",
+        max_length=8,
+    )
 
 
 class Invention(BaseModel):

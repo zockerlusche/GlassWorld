@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.2",
+  "kind": "vital",
+  "entries": [
+    {
+      "id": "air",
+      "description": "Air to breathe: full on land, it runs out under water."
+    }
+  ]
+}

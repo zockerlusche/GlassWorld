@@ -465,6 +465,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string? Name { get; set; } = default!;
 
+        /// <summary>
+        /// Vital values 0..1 by id of the vocabulary 'vital' (B5 R22: air; 1 = full). Sorted by id by the core. Optional; absent = not stated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("vitals")]
+        public System.Collections.Generic.ICollection<LevelEntry>? Vitals { get; set; } = default!;
+
     }
 
     /// <summary>

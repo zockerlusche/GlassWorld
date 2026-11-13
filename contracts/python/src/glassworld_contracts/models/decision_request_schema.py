@@ -108,6 +108,28 @@ class EnvironmentState(BaseModel):
         ge=0.0,
         le=10000.0,
     )
+    comfort: str | None = Field(
+        None,
+        description="How the temperature feels to this inhabitant against its own comfort zone (B5 R31, B2672 F2): an id of the vocabulary 'comfort_level' (cold, cool, comfortable, warm, hot). Optional; absent = not stated.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    light: str | None = Field(
+        None,
+        description="The light where the inhabitant is (B5 R33): an id of the vocabulary 'light_level' (day, dusk, night, lit). Optional; absent = not stated.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    wet: bool | None = Field(
+        None,
+        description='Whether the inhabitant is wet from rain or water (B5 R30). Optional; absent = not stated.',
+    )
+    in_water: str | None = Field(
+        None,
+        description="Whether and how deep the inhabitant stands in water (B5 R41): an id of the vocabulary 'water_depth' (none, shallow, deep). Optional; absent = not stated.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class CalledAs(BaseModel):
@@ -130,6 +152,51 @@ class MorningIntention(BaseModel):
     )
     about: common_schema.Subject | None
     thought: common_schema.GeneratedText | None
+
+
+class PerceivedOutline(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    size: str = Field(
+        ...,
+        description="An id of the vocabulary 'outline_size'.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    direction: str = Field(
+        ...,
+        description="An id of the vocabulary 'direction' (map axes): for telling outlines apart; the inhabitants know no compass (GW2 #22472).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    distance_m: float = Field(
+        ..., description='Distance in metres, rounded by the core.', ge=0.0, le=10000.0
+    )
+
+
+class RememberedInhabitant(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    hours_ago: int = Field(
+        ...,
+        description='Whole game hours since this inhabitant was last seen.',
+        ge=0,
+        le=1000000,
+    )
+    direction: str = Field(
+        ...,
+        description="An id of the vocabulary 'direction': where it was last seen, seen from here.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class Option(BaseModel):
@@ -200,6 +267,16 @@ class Perception(BaseModel):
     objects: list[PerceivedObject] = Field(..., max_length=64)
     inhabitants: list[PerceivedInhabitant] = Field(
         ..., description='Other inhabitants in sight, nearest first.', max_length=16
+    )
+    outlines: list[PerceivedOutline] | None = Field(
+        None,
+        description='Things beyond the sight range that show only as an outline (B5 R34, B2583): size, direction and a rounded distance, never a type or a property. Optional; absent = none stated.',
+        max_length=16,
+    )
+    remembered_inhabitants: list[RememberedInhabitant] | None = Field(
+        None,
+        description="Other inhabitants out of sight, where this inhabitant last saw them (B5 R35): how long ago and in which direction. Inhabitants in sight are in 'inhabitants' only. Optional; absent = none stated.",
+        max_length=32,
     )
 
 

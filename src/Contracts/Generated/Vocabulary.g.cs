@@ -167,5 +167,33 @@ namespace GlassWorld.Contracts
         Voice_kind = 20,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("comfort_level")]
+        Comfort_level = 21,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("light_level")]
+        Light_level = 22,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("water_depth")]
+        Water_depth = 23,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("direction")]
+        Direction = 24,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("outline_size")]
+        Outline_size = 25,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("vital")]
+        Vital = 26,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("condition")]
+        Condition = 27,
+
+
     }
 }
