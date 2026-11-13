@@ -2090,6 +2090,18 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The control of one dream image: the made picture if it can be read, else the object type's shape; null if neither exists.</summary>
     private Control? DreamNode(DreamImage image, float size)
     {
+        // A1618 (B2683): a learned fact as a short guess in words of the vocabulary - no sentence of the AI.
+        if (image.Learned is { } fact)
+        {
+            var words = TextFill.Fill(Tr(fact.Value ? "ui.night.learned.true" : "ui.night.learned.false"), new Dictionary<string, string>
+            {
+                ["name"] = fact.InhabitantId is { } who ? NameOfId(who) : string.Empty,
+                ["thing"] = Tr(VocabKeys.ObjectType(fact.Subject)),
+                ["property"] = Tr(VocabKeys.Property(fact.Property)),
+            });
+            return new Label { Text = words, ThemeTypeVariation = UiTheme.OnDarkHeaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center };
+        }
+
         // The file name is checked by the contract (a plain name, no path); a missing or broken file falls back to the shape.
         if (image.ImageFile is { } file && System.IO.File.Exists(System.IO.Path.Combine(_dreamFolder, file)))
         {

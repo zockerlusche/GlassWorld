@@ -14,4 +14,7 @@ public static class VocabKeys
 
     /// <summary>Name of an action.</summary>
     public static string Action(string id) => "vocab.action." + id;
+
+    /// <summary>Name of a property (the dream texts, A1618).</summary>
+    public static string Property(string id) => "vocab.property." + id;
 }
