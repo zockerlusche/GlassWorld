@@ -114,7 +114,9 @@ def test_live_runs_only_in_the_queue_and_outside_the_repository(tmp_path: Path) 
 def test_every_guard_case_makes_a_valid_job_and_a_proposal_from_its_materials() -> None:
     data = MI.load_cases()
     cases = data["guard_cases"]
-    assert sum(c["forbidden"] for c in cases) == 5 and len(cases) == 8
+    assert sum(c["forbidden"] for c in cases) == 5 and len(cases) == 14  # v5: + 3 baits, 3 controls
+    baits = [c for c in cases if c.get("knowledge_bait") is True]
+    assert len(baits) == 3 and sum(c.get("knowledge_bait") is False for c in cases) == 3
     for n, case in enumerate(cases):
         job = GenerationJob.model_validate(MI.guard_job_data(case, 0, n))
         offered = {m.type for m in job.payload.invention.materials}  # type: ignore[union-attr]
