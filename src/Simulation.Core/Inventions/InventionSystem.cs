@@ -82,6 +82,9 @@ public sealed record InventionState(
 /// </summary>
 public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntimeCatalog
 {
+    /// <summary>The world's milestones and reached tech level (A1625); null = the start level of the data.</summary>
+    public MilestoneSystem? Milestones { get; set; }
+
     /// <summary>Event: an invention entered the world (target = runtime type id, action = purpose).</summary>
     public const string Invented = "invented";
 
@@ -484,7 +487,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                     Subject = null,
                     Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
                     Materials = materials,
-                    TechLevel = settings.TechLevel,
+                    TechLevel = Milestones?.TechLevel ?? settings.TechLevel,
                     Limits = new InventionLimits { MaxSizeM = settings.Limits.MaxSizeM, MaxParts = settings.Limits.MaxParts, MaxRounds = settings.Limits.MaxRounds },
                 },
             },
@@ -546,7 +549,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     private void Decide(World world, OpenWant want, InventionResult result, string json)
     {
-        var reasons = InventionCheck.Check(result, want.Materials.ToHashSet(StringComparer.Ordinal), _rules).ToList();
+        var reasons = InventionCheck.Check(result, want.Materials.ToHashSet(StringComparer.Ordinal), _rules, Milestones?.TechLevel).ToList();
         var typeId = TypeIdFor(want.RequestId);
         if (reasons.Count == 0 && _types.Contains(typeId))
         {

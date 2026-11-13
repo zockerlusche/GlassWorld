@@ -47,6 +47,9 @@ public sealed record ProcessState(long Counter, IReadOnlyList<WorldProcessRule> 
 /// </summary>
 public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
 {
+    /// <summary>The world's milestones and reached tech level (A1625); null = the start level of the data.</summary>
+    public Inventions.MilestoneSystem? Milestones { get; set; }
+
     private readonly ProcessRuleSet _data;
     private readonly WorldTypeCatalog _types;
     private readonly WorldObjects _objects;
@@ -129,7 +132,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
 
             if (Stored(judged.Rule) is { } rule)
             {
-                return _data.Applies(rule) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
+                return _data.Applies(rule, Milestones?.TechLevelIndex) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
             }
 
             // A stored rule this core cannot read any more (a later change of the rule's form, review GW1
@@ -143,7 +146,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             return false;
         }
 
-        var candidates = _data.Candidates(things.Count);
+        var candidates = _data.Candidates(things.Count, Milestones?.TechLevelIndex);
         if (candidates.Count == 0)
         {
             // Nothing could happen to such things here: known without asking, and kept.
@@ -318,7 +321,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                     })],
                     Tool = null,
                     HeatLevel = null,
-                    TechLevel = _data.TechLevel,
+                    TechLevel = Milestones?.TechLevel ?? _data.TechLevel,
                     Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
                     Signature = new ProcessSignature
                     {
@@ -417,7 +420,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             reasons.Add("not_a_candidate");
         }
 
-        if (!_data.Applies(rule))
+        if (!_data.Applies(rule, Milestones?.TechLevelIndex))
         {
             reasons.Add("heat_or_tech_level");
         }

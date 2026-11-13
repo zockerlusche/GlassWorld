@@ -1611,6 +1611,62 @@
       "text": "Wort gehört"
     },
     {
+      "key": "vocab.event.milestone_reached",
+      "text": "Meilenstein erreicht"
+    },
+    {
+      "key": "msg.milestone.first_edge",
+      "text": "Erste Schneide"
+    },
+    {
+      "key": "msg.milestone.first_cord",
+      "text": "Erste Schnur"
+    },
+    {
+      "key": "msg.milestone.first_handled_tool",
+      "text": "Erstes Werkzeug mit Griff"
+    },
+    {
+      "key": "msg.milestone.first_fire",
+      "text": "Erstes Feuer"
+    },
+    {
+      "key": "msg.milestone.first_container",
+      "text": "Erstes Gefäß"
+    },
+    {
+      "key": "msg.milestone.cooked_food",
+      "text": "Gekochtes Essen"
+    },
+    {
+      "key": "msg.milestone.first_shelter",
+      "text": "Erster Unterstand"
+    },
+    {
+      "key": "msg.milestone.first_warming_thing",
+      "text": "Erstes wärmendes Ding"
+    },
+    {
+      "key": "msg.milestone.fired_clay",
+      "text": "Gebrannter Ton"
+    },
+    {
+      "key": "msg.milestone.charcoal",
+      "text": "Holzkohle"
+    },
+    {
+      "key": "msg.milestone.bread",
+      "text": "Brot"
+    },
+    {
+      "key": "msg.milestone.glass",
+      "text": "Glas"
+    },
+    {
+      "key": "msg.milestone.first_metal",
+      "text": "Erstes Metall"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },

@@ -1611,6 +1611,62 @@
       "text": "Heard a word"
     },
     {
+      "key": "vocab.event.milestone_reached",
+      "text": "Milestone reached"
+    },
+    {
+      "key": "msg.milestone.first_edge",
+      "text": "First edge"
+    },
+    {
+      "key": "msg.milestone.first_cord",
+      "text": "First cord"
+    },
+    {
+      "key": "msg.milestone.first_handled_tool",
+      "text": "First tool with a handle"
+    },
+    {
+      "key": "msg.milestone.first_fire",
+      "text": "First fire"
+    },
+    {
+      "key": "msg.milestone.first_container",
+      "text": "First container"
+    },
+    {
+      "key": "msg.milestone.cooked_food",
+      "text": "Cooked food"
+    },
+    {
+      "key": "msg.milestone.first_shelter",
+      "text": "First shelter"
+    },
+    {
+      "key": "msg.milestone.first_warming_thing",
+      "text": "First warming thing"
+    },
+    {
+      "key": "msg.milestone.fired_clay",
+      "text": "Fired clay"
+    },
+    {
+      "key": "msg.milestone.charcoal",
+      "text": "Charcoal"
+    },
+    {
+      "key": "msg.milestone.bread",
+      "text": "Bread"
+    },
+    {
+      "key": "msg.milestone.glass",
+      "text": "Glass"
+    },
+    {
+      "key": "msg.milestone.first_metal",
+      "text": "First metal"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Question unanswered"
     },

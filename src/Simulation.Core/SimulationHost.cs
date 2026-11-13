@@ -275,6 +275,8 @@ public sealed class SimulationHost
             return new Air(known.TemperatureTenthC - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
         }
 
+        // A1625: the clothing reads the reached tech level; the milestones come a little later.
+        MilestoneSystem? milestonesRef = null;
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
             AirAt = AirAt,
@@ -296,7 +298,7 @@ public sealed class SimulationHost
                 w.Now.SeasonId,
                 climate,
                 map?.CellOf(at) is { } cell ? map.Map.BiomeAt(cell.X, cell.Z) : null,
-                content.Inventions.Settings.TechLevel),
+                milestonesRef?.TechLevel ?? content.Inventions.Settings.TechLevel),
         };
         CheckNightTriggers(settings, content.Knowledge);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, content.Inventions.Guard, displayLocale)
@@ -364,6 +366,17 @@ public sealed class SimulationHost
         {
             inhabitants.Processing = processes.Try;
         }
+
+        // B2598, A1583/A1625: the world's milestones, recognised from what is made; the tech level rises with them.
+        var milestones = new MilestoneSystem(content.Milestones, content.Inventions.TechLevels, content.Inventions.Settings.TechLevel, types, objects, inhabitants);
+        milestonesRef = milestones;
+        inventions.Milestones = milestones;
+        if (processes is not null)
+        {
+            processes.Milestones = milestones;
+        }
+
+        milestones.TechLevelRaised += level => lookEpoch.ReachedTechLevel = level;
 
         // B2687 K3: burning things burn down or go out in the rain, and warm the air around them.
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
@@ -470,6 +483,9 @@ public sealed class SimulationHost
         // Out of the hash while nothing burns.
         world.Add(fire);
 
+        // Out of the hash while no milestone is reached.
+        world.Add(milestones);
+
         world.Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
@@ -482,6 +498,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Milestones = milestones,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -777,6 +794,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
+    public MilestoneSystem Milestones { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

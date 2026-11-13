@@ -92,7 +92,11 @@ public static class InventionCheck
     public const string UnknownAction = "unknown_action";
 
     /// <summary>Checks a result against the rules and the materials sent with the job.</summary>
-    public static IReadOnlyList<string> Check(InventionResult result, IReadOnlySet<string> perceivedTypes, InventionRules rules)
+    /// <param name="result">The AI's result.</param>
+    /// <param name="perceivedTypes">What the inventor saw.</param>
+    /// <param name="rules">The rules of the data.</param>
+    /// <param name="techLevel">The world's reached tech level (A1625); null = the start level of the data.</param>
+    public static IReadOnlyList<string> Check(InventionResult result, IReadOnlySet<string> perceivedTypes, InventionRules rules, string? techLevel = null)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(perceivedTypes);
@@ -139,7 +143,7 @@ public static class InventionCheck
         }
 
         var level = IndexOf(rules.TechLevels, invention.TechLevel);
-        var allowed = IndexOf(rules.TechLevels, settings.TechLevel);
+        var allowed = IndexOf(rules.TechLevels, techLevel ?? settings.TechLevel);
         if (level < 0 || allowed < 0 || level > allowed)
         {
             reasons.Add(TechLevel);

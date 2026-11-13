@@ -109,14 +109,16 @@ public sealed class ProcessRuleSet
     /// right shape for these things (two inputs, or one input and a tool) that can apply here (no heat
     /// needed, tech level reached), by their most specific such rule, each once, at most <see cref="MaxCandidates"/>.
     /// </summary>
-    public IReadOnlyList<string> Candidates(int things) =>
-        [.. _rules.Where(r => Applies(r) && Shaped(r, things)).Select(r => r.Process).Distinct(StringComparer.Ordinal).Take(MaxCandidates)];
+    public IReadOnlyList<string> Candidates(int things, int? worldTech = null) =>
+        [.. _rules.Where(r => Applies(r, worldTech) && Shaped(r, things)).Select(r => r.Process).Distinct(StringComparer.Ordinal).Take(MaxCandidates)];
 
     /// <summary>Whether a rule (of the data or found in the world) can apply here: no heat needed, tech level reached.</summary>
-    public bool Applies(ProcessRule rule)
+    /// <param name="rule">The rule.</param>
+    /// <param name="worldTech">The world's reached tech level as a number (A1625); null = the start level of the data.</param>
+    public bool Applies(ProcessRule rule, int? worldTech = null)
     {
         ArgumentNullException.ThrowIfNull(rule);
-        return rule.HeatMin is null && IndexOf(_techLevels, rule.TechLevel) is var level && level >= 0 && level <= _worldTech;
+        return rule.HeatMin is null && IndexOf(_techLevels, rule.TechLevel) is var level && level >= 0 && level <= (worldTech ?? _worldTech);
     }
 
     /// <summary>
