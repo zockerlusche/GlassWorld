@@ -529,6 +529,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// </summary>
     public const string NoWalkableStep = "no_walkable_step";
 
+    /// <summary>Detail of a cancelled action whose partner thing is gone or out of reach of its target (combine, B2687).</summary>
+    public const string PartnerGone = "partner_gone";
+
+    /// <summary>Event: something came of using things together (combine, B2687); target = the new thing, detail = the rule.</summary>
+    public const string Combined = "combined";
+
     /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
     public LookAppearance? Looks { get; init; }
 
@@ -632,6 +638,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 probe?.Enter(PartSpacing);
                 var walked = inhabitant.Position;
                 KeepClearOnTheWay(inhabitant, before);
+                if (!InReachOfStartedTarget(inhabitant))
+                {
+                    // W1936: arrived and begun - the way is not shortened short of the thing.
+                    inhabitant.Position = walked;
+                }
                 if (inhabitant.Position != walked && inhabitant.Activity is { Route: not null } activity
                     && planned is not null && planned.Action == activity.Action && planned.TargetId == activity.TargetId)
                 {
@@ -850,6 +861,41 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         return together;
+    }
+
+    /// <summary>Detail of a sleep started at bedtime (B2680).</summary>
+    public const string Bedtime = "bedtime";
+
+    /// <summary>B2680: whether it is past the data's bedtime after nightfall (inhabitant model, togetherness).</summary>
+    public bool AtBedtime(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && world.Calendar.NightBeganInWorld(world.Tick);
+    }
+
+    /// <summary>Detail of an action_started event that is a first try (GW3 #22738): the actor knows nothing yet of what the action depends on.</summary>
+    public const string Try = "try";
+
+    /// <summary>
+    /// Whether the inhabitant's current action on a thing is a first try (GW3 #22741, for the card and the diary):
+    /// see <see cref="Tries"/>. False without an action on a thing.
+    /// </summary>
+    public bool IsTrying(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return inhabitant.Activity is { TargetId: { } id } activity && _objects.TryGet(id, out var thing) && Tries(inhabitant, activity.Action, thing.TypeId);
+    }
+
+    /// <summary>
+    /// A first try: the action's effect rules depend on properties of the target (eat: edible, drink: drinkable ...)
+    /// and the inhabitant holds no belief about any of them for this type - it tries to find out (learning by trying).
+    /// </summary>
+    private bool Tries(Inhabitant inhabitant, string action, string typeId)
+    {
+        var depends = _actions.Rules(action).Select(r => r.RequiresProperty).OfType<string>().Distinct(StringComparer.Ordinal).ToList();
+        return depends.Count > 0 && depends.All(property => !inhabitant.Beliefs.TryGet(typeId, property, out _));
     }
 
     /// <summary>
@@ -1136,6 +1182,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
+            if (!PartnersReady(activity, target))
+            {
+                // B2687: the rule checker at the start - the partner thing must still lie within reach.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = PartnerGone });
+                inhabitant.Activity = null;
+                return;
+            }
+
             if (listener is not null)
             {
                 KeepConversationDistance(inhabitant, listener);
@@ -1150,7 +1204,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
-            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { TargetType = target?.TypeId });
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+            {
+                TargetType = target?.TypeId,
+                Detail = target is not null && Tries(inhabitant, activity.Action, target.TypeId) ? Try
+                    : string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal) && AtBedtime(world) ? Bedtime : null,
+            });
             Imprint(world, inhabitant, activity, target, listener);
             return;
         }
@@ -1178,6 +1237,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         if (remaining > 0)
         {
             inhabitant.Activity = activity with { RemainingTicks = remaining };
+            return;
+        }
+
+        if (!PartnersReady(activity, target))
+        {
+            // B2687: and again at the end - someone may have taken or eaten the partner meanwhile; then
+            // nothing is used up and nothing comes of it.
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = PartnerGone });
+            inhabitant.Activity = null;
             return;
         }
 
@@ -1395,6 +1463,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     continue;
                 }
 
+                if (StartedTargetOf(mover) is { } held && Distance(spot, held.Position) > held.Reach + 1e-9)
+                {
+                    // W1936: one whose action on a thing has begun stays within its reach; others give way.
+                    continue;
+                }
+
                 var d = Distance(spot, anchor);
                 if (d < bestDistance - 1e-9)
                 {
@@ -1410,6 +1484,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             mover.Position = chosen;
         }
     }
+
+    /// <summary>The thing of an action that has begun (and how near it must stay), or null (W1936).</summary>
+    private (Position Position, double Reach)? StartedTargetOf(Inhabitant inhabitant) =>
+        inhabitant.Activity is { RemainingTicks: not null, TargetId: { } id } activity && ResolveTarget(id)?.Thing is { } thing
+            ? (thing.Position, ReachOf(activity.Action, null))
+            : null;
+
+    /// <summary>Whether an inhabitant with a begun action on a thing is within its reach (true without one).</summary>
+    private bool InReachOfStartedTarget(Inhabitant inhabitant) =>
+        StartedTargetOf(inhabitant) is not { } held || Distance(inhabitant.Position, held.Position) <= held.Reach + 1e-9;
 
     /// <summary>Whether anybody but the two stands closer to a spot than the limit.</summary>
     private bool Crowded(Position spot, Inhabitant mover, Inhabitant other, double limit)
@@ -1444,6 +1528,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
+        // B2680: at bedtime an awake inhabitant lies down, unless a pressing need keeps it awake (B2681).
+        if (AtBedtime(world) && _model.Togetherness?.SleepAction is { } bed && PressingBelowNeglect(inhabitant, bed) is null)
+        {
+            return new Activity(bed, null, inhabitant.Position, null);
+        }
+
         // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
         // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;
@@ -1853,6 +1943,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 // B2594: a thing the inhabitant has used and that is still there is a place it knows, like
                 // one it has looked at: it finds its way back to it when the weather hides it.
                 inhabitant.RememberPlace(target.Id, new PlaceMemory(target.TypeId, target.Position, world.Tick), memory.PlaceMemoryMax);
+            }
+
+            if (activity.Partners is { Count: > 0 })
+            {
+                changed |= Combine(world, inhabitant, activity, target);
             }
         }
 

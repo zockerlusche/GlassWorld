@@ -44,6 +44,31 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("regrow_hours")]
         public int? RegrowHours { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("grows_on")]
+        public SpawnGrowsOn? GrowsOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// W1936 (B2640, the world for the eye): a fruit grows at its plant. Instances of this rule lie only within within_cells (each axis) of an instance of object_type, which another rule spawns; the plant is never thinned out around a start while its fruit lies there. Absent = the thing lies on its own (stones, wood, mushrooms).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SpawnGrowsOn
+    {
+
+        /// <summary>
+        /// The plant the thing grows on (a type another spawn rule places).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("within_cells")]
+        public int WithinCells { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -85,7 +85,20 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100000
+        },
+        "grows_on": {
+          "$ref": "#/$defs/SpawnGrowsOn"
         }
+      }
+    },
+    "SpawnGrowsOn": {
+      "description": "W1936 (B2640, the world for the eye): a fruit grows at its plant. Instances of this rule lie only within within_cells (each axis) of an instance of object_type, which another rule spawns; the plant is never thinned out around a start while its fruit lies there. Absent = the thing lies on its own (stones, wood, mushrooms).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["object_type", "within_cells"],
+      "properties": {
+        "object_type": { "description": "The plant the thing grows on (a type another spawn rule places).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "within_cells": { "description": "Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).", "type": "integer", "minimum": 1, "maximum": 8 }
       }
     },
     "SpawnCountRange": {

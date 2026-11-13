@@ -96,7 +96,8 @@ public sealed class SleepTests
         var sleepStarts = new List<double>();
         host.Inhabitants.Reported += e =>
         {
-            if (e.Kind == InhabitantsSystem.ActionStarted && e.Action == SleepAction)
+            // B2680: at bedtime the rested lie down too - that is no 'sleep when rested' of the needs.
+            if (e.Kind == InhabitantsSystem.ActionStarted && e.Action == SleepAction && e.Detail != InhabitantsSystem.Bedtime)
             {
                 sleepStarts.Add(host.Inhabitants.All.Single(i => i.Id == e.InhabitantId).Needs["sleep"]);
             }

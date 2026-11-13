@@ -1,6 +1,7 @@
 using GlassWorld.Contracts;
 using GlassWorld.Game.Prototype.Look;
 using GlassWorld.Presentation.World;
+using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.View;
 using Godot;
 using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
@@ -170,7 +171,7 @@ public partial class FigureView : Node3D
     /// <paramref name="place"/> stands there at once (after a warm-up). <paramref name="all"/> (the snapshot's
     /// inhabitants) lets the clip follow the kind of target and turns two inhabitants of one action to each other.
     /// </summary>
-    public void Apply(InhabitantSnapshot inhabitant, long tick, int ticks, bool place = false, IReadOnlyList<InhabitantSnapshot>? all = null)
+    public void Apply(InhabitantSnapshot inhabitant, long tick, int ticks, bool place = false, IReadOnlyList<InhabitantSnapshot>? all = null, IReadOnlyList<WorldObject>? objects = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var figures = _shared.Figures;
@@ -188,9 +189,10 @@ public partial class FigureView : Node3D
         var chooser = _shared.Chooser;
         AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
         var moving = !place && _motion.StepM >= figures.WalkMinStepM;
-        if (all is not null && MayTurn && InhabitantActivity.FacePoint(inhabitant, all) is { } face)
+        if (all is not null && MayTurn && InhabitantActivity.FacePoint(inhabitant, all, objects) is { } face)
         {
-            // Only an upright figure turns to the other inhabitant; lying or sitting it does not swivel (W1729).
+            // Only an upright figure turns to the other inhabitant or the thing it acts on (W1936); lying or sitting
+            // it does not swivel (W1729).
             _motion.Face(face.X, face.Z, figures.WalkMinStepM);
         }
 

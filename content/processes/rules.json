@@ -7,6 +7,153 @@
     "kiln",
     "furnace"
   ],
+  "physics": {
+    "heat_processes": [
+      "heat",
+      "fire",
+      "char",
+      "melt"
+    ],
+    "no_new": [
+      "edible",
+      "drinkable"
+    ],
+    "never_remove": [
+      "edible",
+      "poisonous",
+      "drinkable",
+      "healing"
+    ],
+    "needs_any": {
+      "braid": [
+        "braidable"
+      ],
+      "melt": [
+        "scratchable",
+        "fine_grained",
+        "malleable",
+        "hardens_in_fire"
+      ],
+      "char": [
+        "smoulders",
+        "burnable"
+      ],
+      "grind": [
+        "hard",
+        "edible",
+        "long_lasting"
+      ]
+    },
+    "never_if": {
+      "melt": [
+        "burnable"
+      ]
+    },
+    "may_add": {
+      "heat": [
+        "hot",
+        "cooked"
+      ],
+      "dry": [
+        "burnable",
+        "long_lasting",
+        "hard"
+      ],
+      "strike": [
+        "sharp",
+        "sparks"
+      ],
+      "split": [
+        "sharp",
+        "building_material"
+      ],
+      "cut": [
+        "sharp",
+        "portable"
+      ],
+      "soak": [
+        "malleable"
+      ],
+      "mix": [
+        "malleable",
+        "milky",
+        "sticky"
+      ],
+      "bind": [
+        "portable"
+      ],
+      "braid": [
+        "long_lasting",
+        "portable"
+      ],
+      "shape": [
+        "container"
+      ],
+      "fire": [
+        "hard",
+        "long_lasting",
+        "fine_grained",
+        "alkaline"
+      ],
+      "char": [
+        "burnable"
+      ],
+      "melt": [
+        "malleable",
+        "hot",
+        "transparent"
+      ],
+      "grind": [
+        "fine_grained"
+      ]
+    },
+    "may_remove": {
+      "heat": [],
+      "dry": [
+        "malleable"
+      ],
+      "strike": [],
+      "split": [],
+      "cut": [],
+      "soak": [
+        "hard"
+      ],
+      "mix": [],
+      "bind": [],
+      "braid": [],
+      "shape": [],
+      "fire": [
+        "malleable",
+        "hardens_in_fire",
+        "burnable",
+        "fibrous",
+        "braidable",
+        "building_material"
+      ],
+      "char": [
+        "building_material",
+        "fibrous",
+        "braidable",
+        "splittable"
+      ],
+      "melt": [
+        "hard"
+      ],
+      "grind": []
+    },
+    "examples": {
+      "works": [
+        "Heating water in a vessel over a fire makes it hot.",
+        "Drying cut grass makes it burnable.",
+        "Striking a hard stone with another hard stone gives it a sharp edge."
+      ],
+      "does_not": [
+        "Wood never melts (it burns or chars).",
+        "Stones cannot be braided (only long fibres can).",
+        "Soaking a stone changes nothing."
+      ]
+    }
+  },
   "rules": [
     {
       "id": "split_hard_stone_to_edge",

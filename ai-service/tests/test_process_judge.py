@@ -380,3 +380,120 @@ def test_judge_v1_refuses_a_combine_trial() -> None:
     )
     with pytest.raises(JobFailedError, match="judge v2"):
         precheck(GenerationJob.model_validate(data), CTX)
+
+
+COMBINE_DATA: dict[str, Any] = json.loads(
+    (REPO / "contracts/examples/valid/generation-job.process-combine-trial.json").read_text("utf-8")
+)
+COMBINE = GenerationJob.model_validate(COMBINE_DATA)  # flint + driftwood, candidates strike/split
+CTX2 = JudgeContext(
+    REPO / "content",
+    Vocabulary.load(REPO / "content/vocabulary"),
+    guard_settings(load_prompt(REPO / "prompts", "process/judge", 2)),
+    combine=True,
+)
+WOOD = ["burnable", "splittable"]  # input 1 in canonical order
+STONE = ["hard", "sparks"]
+
+
+def _combine(process: str, add: list[str], feasible: bool = True) -> str:
+    rule = {**GOOD["rule"], "changes": 1, "add_properties": add}
+    return json.dumps({"feasible": feasible, "process": process, "rationale": "x", "rule": rule})
+
+
+def test_v2_prompt_snapshot_of_a_combine_trial(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "process/judge", 2)
+    rendered = template.render(build_values(COMBINE, CTX2))
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    assert "- strike: " in rendered.user and "- split: " in rendered.user
+    snapshot = SNAPSHOTS / "process-judge.v2.combine-flint-driftwood.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
+    assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_v2_the_judge_names_the_process_and_the_rule_keeps_the_trials_id() -> None:
+    """B2687 K2: the chosen process goes into the rule; the id is the combine trial's."""
+    result = parse_judgement(_combine("split", ["building_material"]), COMBINE, CTX2)
+    rule = result["rule"]
+    assert rule["process"] == "split"
+    assert rule["id"] == world_rule_id("combine", [WOOD, STONE], None, None)
+    assert rule["result"]["add_properties"] == ["building_material"]
+    nothing = parse_judgement(_combine("strike", ["sharp"], feasible=False), COMBINE, CTX2)
+    assert nothing == {"feasible": False, "rule": None, "rationale": "x"}
+
+
+@pytest.mark.parametrize(
+    ("raw", "problem"),
+    [
+        (_combine("heat", ["hot"]), "process"),  # not a candidate
+        (_combine("strike", ["building_material"]), "strike cannot give"),  # split's, not strike's
+    ],
+)
+def test_v2_the_chosen_process_must_be_a_candidate_within_its_own_limits(
+    raw: str, problem: str
+) -> None:
+    with pytest.raises(InvalidOutputError, match=problem):
+        parse_judgement(raw, COMBINE, CTX2)
+
+
+def test_v2_physics_drops_impossible_candidates_before_any_call() -> None:
+    """Heat processes without heat in reach (A1574 not built yet): no candidate left, no call."""
+    from glassworld_ai.process.judge import output_schema, precheck
+
+    data = json.loads(json.dumps(COMBINE_DATA))
+    data["payload"]["process"]["candidates"] = ["heat", "char"]
+    early = precheck(GenerationJob.model_validate(data), CTX2)
+    assert early is not None and early["feasible"] is False
+    data["payload"]["process"]["candidates"] = ["heat", "strike"]
+    schema = output_schema(GenerationJob.model_validate(data), CTX2)
+    assert schema["properties"]["process"]["enum"] == ["strike"]
+
+
+CTX3 = JudgeContext(
+    REPO / "content",
+    Vocabulary.load(REPO / "content/vocabulary"),
+    combine=True,
+    physics_from_data=True,
+)
+
+
+def test_v3_reads_the_physics_from_the_data_unchanged_from_v2() -> None:
+    """A1554 (F5297 = A): one place for all physics - the data hold v2's table as it was."""
+    assert CTX3.guard == CTX2.guard
+    assert CTX3.examples["works"] and CTX3.examples["does_not"]
+
+
+def test_v3_prompt_snapshot_with_the_examples_from_the_data(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "process/judge", 3)
+    assert "guard" not in template.settings
+    rendered = template.render(build_values(COMBINE, CTX3))
+    for example in CTX3.examples["works"] + CTX3.examples["does_not"]:
+        assert f"  - {example}" in rendered.system
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    snapshot = SNAPSHOTS / "process-judge.v3.combine-flint-driftwood.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
+    assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_the_service_builds_the_v3_context_from_the_config(settings: Settings) -> None:
+    from glassworld_ai.app import _judge_context  # pyright: ignore[reportPrivateUsage]
+
+    ctx = _judge_context(settings)
+    assert settings.process_prompt_version == 3
+    assert ctx.combine and ctx.guard == CTX3.guard
+
+
+def test_physics_from_data_without_data_fails_at_start(tmp_path: Path) -> None:
+    import shutil
+
+    content = tmp_path / "content"
+    shutil.copytree(REPO / "content", content)
+    rules = json.loads((content / "processes/rules.json").read_text("utf-8"))
+    del rules["physics"]
+    (content / "processes/rules.json").write_text(json.dumps(rules), encoding="utf-8")
+    with pytest.raises(GuardError, match="physics"):
+        JudgeContext(content, Vocabulary.load(content / "vocabulary"), physics_from_data=True)

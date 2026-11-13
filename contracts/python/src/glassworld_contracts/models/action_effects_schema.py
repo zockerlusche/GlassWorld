@@ -17,6 +17,24 @@ class Destination(StrEnum):
     frontier = 'frontier'
 
 
+class ActionPartners(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    reach_m: float = Field(
+        ...,
+        description='Greatest distance of a partner thing from the target, at the offer and again when the action starts and ends.',
+        gt=0.0,
+        le=20.0,
+    )
+    max_options: int = Field(
+        ...,
+        description='At most this many options with a partner per question.',
+        ge=1,
+        le=8,
+    )
+
+
 class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
@@ -57,6 +75,10 @@ class ActionTiming(BaseModel):
         description='B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.',
         ge=0,
         le=1440,
+    )
+    partners: ActionPartners | None = Field(
+        None,
+        description='Only for actions on an object that use further things together with it (combine, B2687): how the core offers them. Omitted = the action uses its target alone.',
     )
 
 
