@@ -61,6 +61,7 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     private long _baseTakt = -1;
     private long _lastWetTakt = -1;
     private int _flags;
+    private long _lastTick = -1;
 
     /// <summary>Creates the takt; <paramref name="weather"/> null = no weather (no drought, no influences).</summary>
     public NatureSystem(NatureSettings data, int ticksPerHour, WeatherSystem? weather)
@@ -124,10 +125,14 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        if (world.Tick % _taktTicks != 0 && _baseTakt >= 0)
+
+        // Once per tick: a boundary is never closed twice (not state - a world steps each tick once).
+        if (world.Tick == _lastTick || (world.Tick % _taktTicks != 0 && _baseTakt >= 0))
         {
             return;
         }
+
+        _lastTick = world.Tick;
 
         var takt = world.Tick / _taktTicks;
         if (_baseTakt < 0)
