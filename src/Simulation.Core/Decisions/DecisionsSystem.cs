@@ -1377,6 +1377,16 @@ public sealed class DecisionsSystem : IWorldSystem
                     }
 
                     break;
+                case VocabularyEntryTarget.Object when target is null && _brain.IsAboutMadeThings(action):
+                    // D999 (TL TH143): in a free moment, the made things in sight the asker knows are made (#358), nearest
+                    // first - so what was built can be used when there is time, not only when a need is low. Whether it
+                    // helps is the world's matter (the effect rules of its true properties).
+                    foreach (var made in things.Where(o => _brain.BelievesMadeFor(asker, action, o.TypeId) && !Rests(asker, action, o.Id, tick)))
+                    {
+                        (isIntended ? first : raw).Add((action, made.Id, null));
+                    }
+
+                    break;
                 default:
                     // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
