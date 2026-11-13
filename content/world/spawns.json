@@ -85,7 +85,11 @@
         "max": 5
       },
       "max_total": 48,
-      "regrow_hours": 48
+      "regrow_hours": 48,
+      "grows_on": {
+        "object_type": "berry_bush",
+        "within_cells": 1
+      }
     },
     {
       "biome": "meadow",
@@ -199,7 +203,11 @@
         "max": 3
       },
       "max_total": 48,
-      "regrow_hours": 72
+      "regrow_hours": 72,
+      "grows_on": {
+        "object_type": "fruit_tree",
+        "within_cells": 2
+      }
     },
     {
       "biome": "forest",
@@ -210,7 +218,21 @@
         "max": 5
       },
       "max_total": 60,
-      "regrow_hours": 48
+      "regrow_hours": 48,
+      "grows_on": {
+        "object_type": "berry_bush",
+        "within_cells": 1
+      }
+    },
+    {
+      "biome": "forest",
+      "object_type": "berry_bush",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 24
     },
     {
       "biome": "forest",
@@ -231,7 +253,11 @@
         "max": 4
       },
       "max_total": 48,
-      "regrow_hours": 96
+      "regrow_hours": 96,
+      "grows_on": {
+        "object_type": "hazel_bush",
+        "within_cells": 1
+      }
     },
     {
       "biome": "forest",

@@ -171,7 +171,7 @@ public static partial class WorldGenerator
             : null;
         var starts = Starts(preset, map, feasible, near, content.StartSeparationCm, Stream(attemptSeed, "worldgen/start"));
         StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
-        QuietStarts(preset, catalog, objects, starts, Stream(attemptSeed, "worldgen/quiet"));
+        QuietStarts(preset, catalog, content.Spawns.Spawns.Where(r => r.GrowsOn is not null).Select(r => r.GrowsOn!.ObjectType).ToHashSet(StringComparer.Ordinal), objects, starts, Stream(attemptSeed, "worldgen/quiet"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
         var present = new bool[biomeIds.Count];
@@ -812,8 +812,12 @@ public static partial class WorldGenerator
                         continue;
                     }
 
+                    // W1936: a fruit only within reach of one of its plants.
+                    var grows = rules[r].GrowsOn;
+                    var plants = grows is null ? null : objects.Where(o => o.TypeId == grows.ObjectType).Select(o => (o.X, o.Z)).ToList();
                     options.AddRange(cells
-                        .Where(c => Near(c.X, c.Z) && !taken.Contains(c) && c != (start.X, start.Z))
+                        .Where(c => Near(c.X, c.Z) && !taken.Contains(c) && c != (start.X, start.Z)
+                            && (plants is null || plants.Any(p => Math.Abs(p.X - c.X) <= grows!.WithinCells && Math.Abs(p.Z - c.Z) <= grows.WithinCells)))
                         .Select(c => (r, c.X, c.Z)));
                 }
 
@@ -831,8 +835,72 @@ public static partial class WorldGenerator
                     room[rule]--;
                     pool.RemoveAll(o => (o.X == x && o.Z == z) || room[o.Rule] <= 0);
                 }
+
+                // W1936: still short and a fruit would serve - set a plant and its fruit together (both rules with room).
+                have = objects.Count(o => Near(o.X, o.Z) && Reachable(o.X, o.Z) && Matches(o.TypeId));
+                for (var k = have; k < resource.Min; k++)
+                {
+                    var pairs = PlantAndFruit(rules, room, cellsOf, objects, (start.X, start.Z), Near, Reachable, Matches);
+                    if (pairs.Count == 0)
+                    {
+                        break;
+                    }
+
+                    var (fruitRule, plantRule, plant, fruit) = pairs[rng.NextInt(0, pairs.Count)];
+                    objects.Add(new IslandObject(rules[plantRule].ObjectType, plant.X, plant.Z));
+                    objects.Add(new IslandObject(rules[fruitRule].ObjectType, fruit.X, fruit.Z));
+                    room[plantRule]--;
+                    room[fruitRule]--;
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// W1936: places for a plant and its fruit near a start - the plant on a free cell of its own rule's biome within
+    /// the supply radius, the fruit on a free cell of its rule's biome within the rule's reach of that plant and within
+    /// the radius; reachable pairs first, then any. Data order of rules and cells (deterministic).
+    /// </summary>
+    private static List<(int FruitRule, int PlantRule, (int X, int Z) Plant, (int X, int Z) Fruit)> PlantAndFruit(
+        List<SpawnRule> rules, int[] room, Dictionary<string, List<(int X, int Z)>> cellsOf, List<IslandObject> objects, (int X, int Z) start,
+        Func<int, int, bool> near, Func<int, int, bool> reachable, Func<string, bool> matches)
+    {
+        var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
+        var all = new List<(int, int, (int X, int Z), (int X, int Z))>();
+        for (var r = 0; r < rules.Count; r++)
+        {
+            if (room[r] <= 0 || rules[r].GrowsOn is not { } grows || !matches(rules[r].ObjectType) || cellsOf.GetValueOrDefault(rules[r].Biome) is not { } fruitCells)
+            {
+                continue;
+            }
+
+            var fruitAllowed = fruitCells.ToHashSet();
+            for (var pr = 0; pr < rules.Count; pr++)
+            {
+                if (room[pr] <= 0 || rules[pr].GrowsOn is not null || rules[pr].ObjectType != grows.ObjectType || cellsOf.GetValueOrDefault(rules[pr].Biome) is not { } plantCells)
+                {
+                    continue;
+                }
+
+                foreach (var plant in plantCells.Where(c => near(c.X, c.Z) && !taken.Contains(c) && c != start))
+                {
+                    for (var dz = -grows.WithinCells; dz <= grows.WithinCells; dz++)
+                    {
+                        for (var dx = -grows.WithinCells; dx <= grows.WithinCells; dx++)
+                        {
+                            var fruit = (X: plant.X + dx, Z: plant.Z + dz);
+                            if ((dx != 0 || dz != 0) && fruit != start && fruitAllowed.Contains(fruit) && !taken.Contains(fruit) && near(fruit.X, fruit.Z))
+                            {
+                                all.Add((r, pr, plant, fruit));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        var walkable = all.Where(p => reachable(p.Item3.X, p.Item3.Z) && reachable(p.Item4.X, p.Item4.Z)).ToList();
+        return walkable.Count > 0 ? walkable : all;
     }
 
     /// <summary>
@@ -840,7 +908,7 @@ public static partial class WorldGenerator
     /// the objects that serve no start supply resource stays (chosen by the generator stream); caves and
     /// drinking water stay. The inhabitants meet fewer unknown things at once; the rest keeps the plenty.
     /// </summary>
-    private static void QuietStarts(WorldPreset preset, ObjectCatalog catalog, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
+    private static void QuietStarts(WorldPreset preset, ObjectCatalog catalog, IReadOnlySet<string> spawnPlants, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
     {
         var supply = preset.Start.Supply;
         if (supply.QuietRadiusCells is not { } radius || starts.Count == 0)
@@ -850,6 +918,9 @@ public static partial class WorldGenerator
 
         var keep = supply.QuietKeepPermille ?? 1000;
         var kept = preset.Water.DrinkSpots.Select(s => s.ObjectType).Append(preset.Caves.ObjectType).ToHashSet(StringComparer.Ordinal);
+
+        // W1936: plants that something grows on stay, so no fruit is left without its plant.
+        kept.UnionWith(spawnPlants);
         bool Serves(string type) => supply.Resources.Any(r => r.PropertiesAll.All(p => catalog.HasProperty(type, p)) && !r.PropertiesNone.Any(p => catalog.HasProperty(type, p)));
         objects.RemoveAll(o =>
             !kept.Contains(o.TypeId) && !Serves(o.TypeId)
@@ -1032,15 +1103,26 @@ public static partial class WorldGenerator
     {
         var byBiome = SpawnCells(map);
         var taken = new HashSet<(int, int)>(objects.Select(o => (o.X, o.Z)));
-        foreach (var rule in spawns.Spawns)
+
+        // W1936: what grows on a plant comes after all plants, each in data order.
+        foreach (var rule in spawns.Spawns.Where(r => r.GrowsOn is null).Concat(spawns.Spawns.Where(r => r.GrowsOn is not null)))
         {
-            if (!byBiome.TryGetValue(rule.Biome, out var cells) || cells.Count == 0)
+            if (!byBiome.TryGetValue(rule.Biome, out var biomeCells) || biomeCells.Count == 0)
             {
                 continue;
             }
 
-            var allowed = cells.ToHashSet();
-            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? spawns.MinPerRule : 0, cells.Count * rule.Per1000Cells / 1000));
+            // A fruit's centres are the cells of its plants (cluster around one plant, within its reach).
+            var plants = rule.GrowsOn is { } grows ? objects.Where(o => o.TypeId == grows.ObjectType).Select(o => (o.X, o.Z)).ToList() : null;
+            var cells = plants ?? biomeCells;
+            var scatter = rule.GrowsOn?.WithinCells ?? spawns.ScatterCells;
+            if (cells.Count == 0)
+            {
+                continue;
+            }
+
+            var allowed = biomeCells.ToHashSet();
+            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? spawns.MinPerRule : 0, biomeCells.Count * rule.Per1000Cells / 1000));
             var placed = 0;
             for (var guard = 0; placed < target && guard < target * 20; guard++)
             {
@@ -1048,7 +1130,7 @@ public static partial class WorldGenerator
                 var size = rng.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
                 for (var k = 0; k < size && placed < target; k++)
                 {
-                    int x = cx + rng.NextInt(-spawns.ScatterCells, spawns.ScatterCells + 1), z = cz + rng.NextInt(-spawns.ScatterCells, spawns.ScatterCells + 1);
+                    int x = cx + rng.NextInt(-scatter, scatter + 1), z = cz + rng.NextInt(-scatter, scatter + 1);
                     if (!map.Contains(x, z) || taken.Contains((x, z)))
                     {
                         continue;
