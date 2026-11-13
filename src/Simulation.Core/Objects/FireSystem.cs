@@ -42,6 +42,15 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         _ticksPerHour = ticksPerHour;
     }
 
+    /// <summary>Event: a fire burnt down (A1379; vocabulary event).</summary>
+    public const string BurnedOut = "burned_out";
+
+    /// <summary>Event: rain put a fire out (A1379; vocabulary event).</summary>
+    public const string PutOut = "put_out";
+
+    /// <summary>Told when a burning thing ends: the thing (already gone from the world) and how (burnt down / put out).</summary>
+    public Action<World, WorldObject, string>? Ended { get; set; }
+
     /// <summary>The air at a place (precipitation puts fires out); null = no weather, fires only burn down.</summary>
     public Func<World, Position, Air?>? AirAt { get; init; }
 
@@ -88,10 +97,12 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            if (world.Tick >= until || AirAt?.Invoke(world, thing.Position) is { Precipitation: true })
+            var burnt = world.Tick >= until;
+            if (burnt || AirAt?.Invoke(world, thing.Position) is { Precipitation: true })
             {
                 _objects.Remove(id);
                 (done ??= []).Add(id);
+                Ended?.Invoke(world, thing, burnt ? BurnedOut : PutOut);
             }
         }
 
@@ -129,6 +140,38 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         return (int)Math.Round(total, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>Whether the thing is burning now and its type takes fuel (A1379).</summary>
+    public bool TakesFuel(WorldObject thing)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        return _until.ContainsKey(thing.Id) && ParamsOf(thing.TypeId)?.TakesFuel == true;
+    }
+
+    /// <summary>
+    /// Fuel put into a burning thing (A1379): when the fire takes fuel and the partner is fuel, the partner is
+    /// used up and the fire burns its fuel_minutes longer, at most burn_max_minutes from now. Returns whether
+    /// it burns longer now; anything else changes nothing (offered by reach, not by truth).
+    /// </summary>
+    public bool Feed(World world, string fireId, string fuelId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (!_until.TryGetValue(fireId, out var until) || !_objects.TryGet(fireId, out var fire) || !_objects.TryGet(fuelId, out var fuel)
+            || ParamsOf(fire.TypeId) is not { TakesFuel: true } fireParams || ParamsOf(fuel.TypeId)?.FuelMinutes is not { } minutes)
+        {
+            return false;
+        }
+
+        var longer = until + ((long)minutes * _ticksPerHour / 60);
+        if (fireParams.BurnMaxMinutes is { } most)
+        {
+            longer = Math.Min(longer, world.Tick + ((long)most * _ticksPerHour / 60));
+        }
+
+        _objects.Remove(fuelId);
+        _until[fireId] = Math.Max(until, longer);
+        return true;
     }
 
     /// <inheritdoc/>

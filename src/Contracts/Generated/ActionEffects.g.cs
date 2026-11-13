@@ -109,6 +109,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_options")]
         public int MaxOptions { get; set; } = default!;
 
+        /// <summary>
+        /// The partner is fuel for the target (A1379): offered only on a burning thing whose type takes fuel; at the end the partner is used up and the target burns its fuel_minutes longer, at most burn_max_minutes from now. A partner without fuel_minutes gives nothing (offered by reach, not by truth). Omitted = false (combine).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("feeds")]
+        public bool? Feeds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

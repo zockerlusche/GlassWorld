@@ -15,6 +15,7 @@
     { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
     { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" },
     { "id": "combine", "description": "Use two or more objects together (strike, rub, tie, mix).", "target": "object" },
+    { "id": "add_fuel", "description": "Put this thing into the fire so it burns longer.", "target": "object" },
     { "id": "warn", "description": "Warn another inhabitant about something believed dangerous (passes on knowledge, B4a).", "target": "inhabitant" },
     { "id": "show", "description": "Show another inhabitant an object or how something works (passes on knowledge, B4a).", "target": "inhabitant" },
     { "id": "teach", "description": "Teach another inhabitant what one knows about something (passes on knowledge, B4a).", "target": "inhabitant" },

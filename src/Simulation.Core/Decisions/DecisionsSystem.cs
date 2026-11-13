@@ -1293,6 +1293,12 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
+                        // A1379: fuel only for a burning thing that takes fuel (the data of its type).
+                        if (withOthers.Feeds && TakesFuel?.Invoke(target) != true)
+                        {
+                            break;
+                        }
+
                         // B2687: an action that uses a second thing (combine) once per thing within reach of the
                         // subject, nearest first - never by whether a rule fits (R39): what comes of it is the
                         // world's truth, whether one tries is the inhabitant's. Nothing near, no option.
@@ -1363,6 +1369,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// Things in sight within the action's partner reach of the subject, nearest to it first (ties by id),
     /// at most the data's number (B2687). The same in every run: the order depends on positions and ids only.
     /// </summary>
+    /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
+    public Func<WorldObject, bool>? TakesFuel { get; set; }
+
     private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing) =>
         things.Where(o => o.Id != target.Id)
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
@@ -1395,6 +1404,9 @@ public sealed class DecisionsSystem : IWorldSystem
 
                 // B2594: how far it sees right now; what lies beyond is not in the perception lists.
                 VisibilityM = Math.Round(_inhabitants.SightRadiusM, 1),
+
+                // A1379: how warm it feels to this inhabitant, the same felt value its warmth need uses.
+                Comfort = _inhabitants.ComfortLevelOf(world, inhabitant),
             },
             Perception = new Perception
             {

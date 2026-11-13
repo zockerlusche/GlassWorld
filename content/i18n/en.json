@@ -675,6 +675,10 @@
       "text": "Introduce"
     },
     {
+      "key": "vocab.action.add_fuel",
+      "text": "Add fuel"
+    },
+    {
       "key": "vocab.biome.beach_sea",
       "text": "Beach and sea"
     },
@@ -1997,6 +2001,14 @@
     {
       "key": "vocab.event.answer_expired",
       "text": "Answer expired"
+    },
+    {
+      "key": "vocab.event.burned_out",
+      "text": "Fire burnt down"
+    },
+    {
+      "key": "vocab.event.put_out",
+      "text": "Fire put out by rain"
     },
     {
       "key": "vocab.soil.loam",
