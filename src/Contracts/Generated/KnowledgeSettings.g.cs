@@ -195,6 +195,13 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// D971: also ask about a thing the inhabitant believes nothing about (the day question unknown_object exists only for such things). The perception is then what it noticed by seeing the thing: the looking data's visible properties the thing has (never more than looking shows, not stored as a belief). Absent or false = such a question waits until the inhabitant has looked or tried.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("ask_without_notice")]
+        public bool? AskWithoutNotice { get; set; } = default!;
+
+        /// <summary>
         /// Priority of question jobs (generation-job: higher runs first).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
