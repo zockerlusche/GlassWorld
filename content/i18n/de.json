@@ -2969,6 +2969,10 @@
     {
       "key": "ui.card.musing.male",
       "text": "Was ihn beschäftigt"
+    },
+    {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Baut auf etwas, das der Bewohner nicht weiß"
     }
   ]
 }
