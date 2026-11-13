@@ -142,6 +142,12 @@ class UiWindowTokens(BaseModel):
         ge=0.0,
         le=0.9,
     )
+    point_radius_m: float | None = Field(
+        None,
+        description='A1617 (B2678): a click while pointing picks the nearest thing within this distance of the clicked ground point (metres).',
+        ge=0.5,
+        le=10.0,
+    )
     invention_icon_px: int | None = Field(
         None,
         description="Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.",

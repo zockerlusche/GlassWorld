@@ -248,6 +248,13 @@ namespace GlassWorld.Contracts
         public string PlayerText { get; set; } = default!;
 
         /// <summary>
+        /// A1617 (B2678): the object type the player points at while writing (a click on a thing in the world), set by the core only when the speaker sees a thing of that type. Absent = the player points at nothing. Data only, like player_text: naming may refer to it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("pointed_at")]
+        public string? PointedAt { get; set; } = default!;
+
+        /// <summary>
         /// Last lines of this conversation, oldest first.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("recent_lines")]
