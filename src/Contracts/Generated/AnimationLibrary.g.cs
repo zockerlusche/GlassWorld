@@ -66,6 +66,14 @@ namespace GlassWorld.Contracts
         public string Clip { get; set; } = default!;
 
         /// <summary>
+        /// A1632 (D958 D1): only with target object - this mapping applies when the thing's reach (look/objects visuals) is this; it wins over the mapping for the target kind alone. Lets an action on a thing on the ground crouch, on a bush reach forward.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reach")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AnimationMappingReach>))]
+        public AnimationMappingReach? Reach { get; set; } = default!;
+
+        /// <summary>
         /// Only for kind action: this mapping applies when the action is aimed at this kind of target (inhabitant: another inhabitant; object: a thing of the world). A mapping without target applies otherwise. Lets an action bend down only for a thing on the ground, never towards another inhabitant (Marcel W1687).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -241,6 +249,24 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("special")]
         Special = 3,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum AnimationMappingReach
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("low")]
+        Low = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("mid")]
+        Mid = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("high")]
+        High = 2,
 
 
     }

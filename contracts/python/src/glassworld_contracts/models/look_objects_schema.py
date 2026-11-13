@@ -54,6 +54,12 @@ class ObjectLookFallback(BaseModel):
 type Type = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
+class Reach(StrEnum):
+    low = 'low'
+    mid = 'mid'
+    high = 'high'
+
+
 class ObjectNiche(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -214,6 +220,10 @@ class ObjectVisual(BaseModel):
         description='Half width in metres (at size factor 1) of an elongated footprint across its local x axis (a log); absent = round (footprint_m).',
         ge=0.0,
         le=10.0,
+    )
+    reach: Reach | None = Field(
+        None,
+        description="A1632 (D958 D1): where a hand meets this thing when someone acts on it - low (on the ground: crouch), mid (hip to chest: bushes, trunks, reeds), high (above the head). The animation mappings choose by it; absent = the action's general clip.",
     )
     sway_m: float | None = Field(
         None,

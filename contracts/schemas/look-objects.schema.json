@@ -216,6 +216,11 @@
           "minimum": 0,
           "maximum": 10
         },
+        "reach": {
+          "description": "A1632 (D958 D1): where a hand meets this thing when someone acts on it - low (on the ground: crouch), mid (hip to chest: bushes, trunks, reeds), high (above the head). The animation mappings choose by it; absent = the action's general clip.",
+          "type": "string",
+          "enum": ["low", "mid", "high"]
+        },
         "sway_m": {
           "description": "How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.",
           "type": "number",

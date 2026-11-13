@@ -45,6 +45,7 @@ public sealed class AnimationChooser
     private readonly Dictionary<string, ClipChoice> _choices;
     private readonly Dictionary<(string Kind, string Id), string> _mappings;
     private readonly Dictionary<(string Action, AnimationMappingTarget Target), string> _actionsByTarget;
+    private readonly Dictionary<(string Action, AnimationMappingReach Reach), string> _actionsByReach;
     private readonly ClipChoice _fallback;
     private readonly AnimationGait[] _gaits;
     private readonly (string Clip, double Weight, (string Value, bool High, double Weight)[] Factors, double SpeedSpread, bool Mirror)[] _idle;
@@ -61,8 +62,10 @@ public sealed class AnimationChooser
         _choices = clips.Values.Where(c => c.Source == AnimationClipSource.Asset && c.Asset is not null)
             .ToDictionary(c => c.Id, c => new ClipChoice(c.Id, c.Asset!, c.Speed ?? 1.0, c.Loop, FellBack: false), StringComparer.Ordinal);
         _mappings = library.Mappings.Where(m => m.Target is null).ToDictionary(m => (m.Kind.ToString().ToLowerInvariant(), m.Id), m => m.Clip);
-        _actionsByTarget = library.Mappings.Where(m => m.Kind == AnimationMappingKind.Action && m.Target is not null)
+        _actionsByTarget = library.Mappings.Where(m => m.Kind == AnimationMappingKind.Action && m.Target is not null && m.Reach is null)
             .ToDictionary(m => (m.Id, m.Target!.Value), m => m.Clip);
+        _actionsByReach = library.Mappings.Where(m => m.Kind == AnimationMappingKind.Action && m.Target == AnimationMappingTarget.Object && m.Reach is not null)
+            .ToDictionary(m => (m.Id, m.Reach!.Value), m => m.Clip);
         _fallback = _choices.TryGetValue(library.FallbackClip, out var f)
             ? f with { FellBack = true }
             : throw new InvalidDataException($"Fallback clip '{library.FallbackClip}' must be an asset clip.");
@@ -78,8 +81,10 @@ public sealed class AnimationChooser
     /// The clip for an action id from the vocabulary; given the kind of its target, a mapping for that kind
     /// wins over the general one (data: showing something to an inhabitant talks instead of bending down, W1687).
     /// </summary>
-    public ClipChoice ForAction(string action, AnimationMappingTarget? target = null) =>
-        Resolve((target is { } kind ? _actionsByTarget.GetValueOrDefault((action, kind)) : null) ?? _mappings.GetValueOrDefault(("action", action)));
+    public ClipChoice ForAction(string action, AnimationMappingTarget? target = null, AnimationMappingReach? reach = null) =>
+        Resolve((target == AnimationMappingTarget.Object && reach is { } height ? _actionsByReach.GetValueOrDefault((action, height)) : null)
+            ?? (target is { } kind ? _actionsByTarget.GetValueOrDefault((action, kind)) : null)
+            ?? _mappings.GetValueOrDefault(("action", action)));
 
     /// <summary>The clip for an expression id from the vocabulary.</summary>
     public ClipChoice ForExpression(string expression) => Resolve(_mappings.GetValueOrDefault(("expression", expression)));
@@ -165,12 +170,12 @@ public sealed class AnimationChooser
     /// clip is an idle behaviour (the action <c>idle</c>), no action, or an action whose clip is not made yet
     /// play the idle behaviour from core values instead (the missing clip is returned for the log).
     /// </summary>
-    public FigureClip ForInhabitant(string? action, bool moving, string inhabitantId, long slot, IReadOnlyDictionary<string, double> values, AnimationMappingTarget? target = null)
+    public FigureClip ForInhabitant(string? action, bool moving, string inhabitantId, long slot, IReadOnlyDictionary<string, double> values, AnimationMappingTarget? target = null, AnimationMappingReach? reach = null)
     {
         ClipChoice? missing = null;
         if (action is not null)
         {
-            var clip = ForAction(action, target);
+            var clip = ForAction(action, target, reach);
             if (moving)
             {
                 return new FigureClip(clip, Walking: true, null);
