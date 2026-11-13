@@ -1176,6 +1176,7 @@ def _judge_context(settings: Settings) -> JudgeContext:
         settings.content_dir,
         Vocabulary.load(settings.content_dir / "vocabulary"),
         guard_settings(template),
+        combine=template.settings.get("combine") is True,
     )
 
 

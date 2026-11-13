@@ -306,8 +306,8 @@ def _setting_texts(node: object, key: str = "") -> list[str]:
 
 # Prompts in use that still name things of the world, each with the open decision (D763).
 NAMES_THINGS_PENDING: dict[str, str] = {
-    "process/judge.v1": "D763 A3: the judge of processes states physics with fire as prose; "
-    "open decision (TL) whether those rules become data",
+    "process/judge.v2": "D763 A3: the judge of processes states physics with fire as prose "
+    "(text as v1); open decision (TL) whether those rules become data",
 }
 
 
