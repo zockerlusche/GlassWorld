@@ -1799,6 +1799,10 @@
       "text": "jemand"
     },
     {
+      "key": "vocab.event.combined",
+      "text": "Etwas entstanden"
+    },
+    {
       "key": "vocab.event.discovered_process",
       "text": "Arbeitsschritt entdeckt"
     },
