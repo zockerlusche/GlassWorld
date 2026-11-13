@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
