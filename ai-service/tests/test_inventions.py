@@ -398,3 +398,11 @@ def test_v6_says_what_the_inhabitant_knows_about_its_materials(settings: Setting
     assert "## What you know\n- clay_lump is not edible (you tried it yourself)" in user
     v5 = load_prompt(settings.prompts_dir, "invention/invent", 5)
     assert "## What you know" not in v5.render(inventor_values(job, v5, vocab, "")).user
+    # An invention by the inhabitant's name for it, never its runtime id alone (review GW1 #374).
+    data["payload"]["invention"]["inhabitant"]["knowledge"][0] |= {
+        "subject": {"kind": "type", "id": "inv_a1b2c3d4e5f6"},
+        "label": {"de": "Lehmschale", "en": "Clay bowl"},
+    }
+    named = GenerationJob.model_validate(data)
+    user = v6.render(inventor_values(named, v6, vocab, "")).user
+    assert 'inv_a1b2c3d4e5f6 (you call it "Lehmschale") is not edible' in user

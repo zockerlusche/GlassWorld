@@ -280,7 +280,7 @@ def parse_guard(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
 # --- prompt values ---------------------------------------------------------------------------
 
 
-def _knowledge_text(payload: Any, settings: dict[str, Any]) -> str:
+def _knowledge_text(payload: Any, settings: dict[str, Any], locale: str = "en") -> str:
     """v6 (A1582, R8): what the inhabitant believes about the things it sees - its own beliefs
     with where they come from, never the truth (GW1 #372). Empty without the setting."""
     words = settings.get("source_words")
@@ -293,9 +293,12 @@ def _knowledge_text(payload: Any, settings: dict[str, Any]) -> str:
             continue
         verb = "is" if entry.value else "is not"
         how = sources.get(plain_id(entry.source), plain_id(entry.source))
-        lines.append(
-            f"- {plain_id(entry.subject.id)} {verb} {humanize(plain_id(entry.property))} ({how})"
-        )
+        # An invention by the inhabitant's name for it, like the materials (#251, review GW1 #374);
+        # never its runtime id alone.
+        type_id = plain_id(entry.subject.id)
+        name = own_names([(type_id, getattr(entry, "label", None))], locale).get(type_id)
+        said = f'{type_id} (you call it "{name}")' if name else type_id
+        lines.append(f"- {said} {verb} {humanize(plain_id(entry.property))} ({how})")
     return "\n".join(lines) or "- (nothing yet)"
 
 
@@ -360,7 +363,7 @@ def inventor_values(
         "why": why,
         "character": character,
         "materials": _materials_text(payload, _material_names(job, template)),
-        "knowledge": _knowledge_text(payload, settings),
+        "knowledge": _knowledge_text(payload, settings, plain_id(job.display_locale)),
         "tech_level": humanize(plain_id(payload.tech_level)),
         "processes": "\n".join(
             f"- {vocab_line(vocab, 'process', p)}" for p in vocab.ids("process")
