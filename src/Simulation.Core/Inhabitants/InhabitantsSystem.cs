@@ -638,6 +638,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 probe?.Enter(PartSpacing);
                 var walked = inhabitant.Position;
                 KeepClearOnTheWay(inhabitant, before);
+                if (!InReachOfStartedTarget(inhabitant))
+                {
+                    // W1936: arrived and begun - the way is not shortened short of the thing.
+                    inhabitant.Position = walked;
+                }
                 if (inhabitant.Position != walked && inhabitant.Activity is { Route: not null } activity
                     && planned is not null && planned.Action == activity.Action && planned.TargetId == activity.TargetId)
                 {
@@ -1458,6 +1463,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     continue;
                 }
 
+                if (StartedTargetOf(mover) is { } held && Distance(spot, held.Position) > held.Reach + 1e-9)
+                {
+                    // W1936: one whose action on a thing has begun stays within its reach; others give way.
+                    continue;
+                }
+
                 var d = Distance(spot, anchor);
                 if (d < bestDistance - 1e-9)
                 {
@@ -1473,6 +1484,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             mover.Position = chosen;
         }
     }
+
+    /// <summary>The thing of an action that has begun (and how near it must stay), or null (W1936).</summary>
+    private (Position Position, double Reach)? StartedTargetOf(Inhabitant inhabitant) =>
+        inhabitant.Activity is { RemainingTicks: not null, TargetId: { } id } activity && ResolveTarget(id)?.Thing is { } thing
+            ? (thing.Position, ReachOf(activity.Action, null))
+            : null;
+
+    /// <summary>Whether an inhabitant with a begun action on a thing is within its reach (true without one).</summary>
+    private bool InReachOfStartedTarget(Inhabitant inhabitant) =>
+        StartedTargetOf(inhabitant) is not { } held || Distance(inhabitant.Position, held.Position) <= held.Reach + 1e-9;
 
     /// <summary>Whether anybody but the two stands closer to a spot than the limit.</summary>
     private bool Crowded(Position spot, Inhabitant mover, Inhabitant other, double limit)

@@ -67,7 +67,24 @@ public sealed class FruitAtPlantTests
             }
         };
 
-        host.World.Run(host.World.Calendar.TicksPerDay * 3);
+        // GW3 D948: and through the whole action - spacing must not push one away from what it works on.
+        for (var t = 0; t < host.World.Calendar.TicksPerDay * 3; t++)
+        {
+            host.World.Step();
+            foreach (var who in host.Inhabitants.All)
+            {
+                if (who.Activity is { RemainingTicks: not null, TargetId: { } id } a && host.Objects.TryGet(id, out var thing))
+                {
+                    var reach = host.Content.Actions.Timing(a.Action).ReachM;
+                    var d = Math.Sqrt(Math.Pow(who.Position.X - thing.Position.X, 2) + Math.Pow(who.Position.Z - thing.Position.Z, 2));
+                    if (d > reach + 1e-6)
+                    {
+                        violations.Add($"{who.Id} {a.Action} {thing.TypeId} during at {d:0.00} m (reach {reach:0.00})");
+                    }
+                }
+            }
+        }
+
         Assert.True(checkedStarts > 0);
         Assert.True(violations.Count == 0, $"seed {seed}: {violations.Count} of {checkedStarts} out of reach, e.g. {string.Join("; ", violations.Take(3))}");
     }
