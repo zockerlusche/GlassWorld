@@ -45,14 +45,27 @@ public sealed class SleepTests
         var events = new List<WorldEvent>();
         host.Inhabitants.Reported += events.Add;
 
-        host.World.Run(host.Content.Actions.Timing(SleepAction).DurationTicks);
-        var woken = Assert.Single(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.InhabitantId == sleeper.Id && e.Action == SleepAction && e.Detail!.StartsWith(InhabitantsSystem.WokenByNeed, StringComparison.Ordinal));
-        Assert.Equal(InhabitantsSystem.WokenByNeed + "/thirst", woken.Detail);
+        bool Woken(WorldEvent e) => e.Kind == InhabitantsSystem.ActionCancelled && e.InhabitantId == sleeper.Id && e.Action == SleepAction && e.Detail!.StartsWith(InhabitantsSystem.WokenByNeed, StringComparison.Ordinal);
+        var limit = host.Content.Actions.Timing(SleepAction).DurationTicks;
+        for (var i = 0; i < limit && !events.Any(Woken); i++)
+        {
+            host.World.Step();
+        }
 
-        // Awake and still thirsty, it does not lie down again (no sleep-wake loop where there is no water).
-        Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == SleepAction && e.Tick > woken.Tick);
+        var woken = Assert.Single(events, Woken);
+        Assert.Equal(InhabitantsSystem.WokenByNeed + "/thirst", woken.Detail);
         Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.ActionFinished && e.Action == SleepAction);
         Assert.True(sleeper.Needs["sleep"] > 0.2, "the hours it slept count");
+
+        // Awake, still thirsty and not exhausted, it does not lie down again (no sleep-wake loop without water):
+        // the next hours while its sleep stays above the exhaustion threshold.
+        var exhausted = Content.InhabitantModel.Needs.Single(n => n.Id == "sleep").NeglectBelow;
+        for (var i = 0; i < 2 * host.World.Calendar.Settings.TicksPerHour && sleeper.Needs["sleep"] >= exhausted; i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == SleepAction && e.Tick > woken.Tick);
     }
 
     [Fact]
