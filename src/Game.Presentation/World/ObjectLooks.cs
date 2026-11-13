@@ -263,10 +263,19 @@ public sealed class ObjectLooks
     public IReadOnlyList<ObjectLook> Visuals { get; }
 
     /// <summary>Whether the data has an entry for the type.</summary>
-    public bool Knows(string typeId) => _byType.ContainsKey(typeId);
+    public bool Knows(string typeId) => _byType.ContainsKey(typeId) || (RootOf?.Invoke(typeId) is { } root && _byType.ContainsKey(root));
 
     /// <summary>The look of a type, or the fallback marker.</summary>
-    public ObjectLook For(string typeId) => _byType.TryGetValue(typeId, out var look) ? look : Fallback;
+    public ObjectLook For(string typeId) =>
+        _byType.TryGetValue(typeId, out var look) ? look
+        : RootOf?.Invoke(typeId) is { } root && _byType.TryGetValue(root, out var rootLook) ? rootLook
+        : Fallback;
+
+    /// <summary>
+    /// The type a changed thing was made from (a processed variant, B2687 K2), or null: a variant looks like
+    /// its root until it gets a look of its own. Set by the game from the world.
+    /// </summary>
+    public Func<string, string?>? RootOf { get; set; }
 
     /// <summary>True the first time an unknown type is asked for in this run (log it once), false after.</summary>
     public bool FirstUnknown(string typeId) => !Knows(typeId) && _reported.Add(typeId);

@@ -396,6 +396,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("night_jobs", JsonSerializer.Serialize(s.NightJobs, Json)));
         }
 
+        if (s.Processes is not null)
+        {
+            // Judged tries, open process jobs and variant types (B2687 K2); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("processes", JsonSerializer.Serialize(s.Processes, Json)));
+        }
+
         if (s.ContentFingerprint is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
@@ -662,6 +668,7 @@ public static class SaveGameStore
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
             ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
             NightJobs = meta.TryGetValue("night_jobs", out var nightJobs) ? JsonSerializer.Deserialize<Simulation.Night.NightJobsState>(nightJobs, Json) : null,
+            Processes = meta.TryGetValue("processes", out var processes) ? JsonSerializer.Deserialize<Simulation.Objects.ProcessState>(processes, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),
