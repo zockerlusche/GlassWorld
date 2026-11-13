@@ -360,7 +360,8 @@ public sealed class IndexTests : IDisposable
             Assert.All(types, type => Assert.Equal(
                 open.Any(q => q.InhabitantId == inhabitant.Id && q.Subject == "type:" + type),
                 host.Decisions.HasOpenQuestion(inhabitant.Id, type)));
-            Assert.Equal(open.Where(q => q.InhabitantId == inhabitant.Id).Select(q => q.Id), host.Decisions.OpenQuestionIds(inhabitant.Id));
+            // A free moment (leisure, #309) is no question the inhabitant has: OpenQuestionIds leaves it out.
+            Assert.Equal(open.Where(q => q.InhabitantId == inhabitant.Id && q.Kind != DecisionsSystem.Leisure).Select(q => q.Id), host.Decisions.OpenQuestionIds(inhabitant.Id));
         }
     }
 
