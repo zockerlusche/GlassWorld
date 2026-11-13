@@ -118,7 +118,7 @@ class CalledAs(BaseModel):
     label: common_schema.VocabId | None
 
 
-class Intention(BaseModel):
+class MorningIntention(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -249,7 +249,7 @@ class DecisionRequest(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    intention: Intention | None = Field(
+    intention: MorningIntention | None = Field(
         None,
         description="Only with occasion 'intention' (B2687, A1584): what the inhabitant meant to do this morning (from its nightly look back) - an action, what it is about, and the morning thought it had. The core makes sure that action on a thing of that kind is among the options; the AI may take it up or do something else (PR2). Absent otherwise, and from an older core.",
     )

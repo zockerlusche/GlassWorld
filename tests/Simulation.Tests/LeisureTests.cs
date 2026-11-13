@@ -106,6 +106,27 @@ public sealed class LeisureTests
     }
 
     /// <summary>One inhabitant alone on empty ground: no thing and nobody to ask about, every need met, bored.</summary>
+    [Fact]
+    public void AFreeMomentOffersTheMorningsIntentionOnceWithAThingOfItsKindInSight()
+    {
+        // B2687 step 2: the morning's intention is said in the request (occasion intention) with the nearest thing of
+        // its kind as the target; it is used up once it went out, so the next free moment is a plain one.
+        var (host, port, a) = Alone();
+        var near = host.Objects.Spawn("flint", new Position(2, 0));
+        host.Objects.Spawn("flint", new Position(9, 0));
+        a.Beliefs.Set("flint", "sharp", true, 0.8, KnowledgeSources.Seen, null, 0);
+        a.Ideas.Intend([new Intention("inspect", "type", "flint", 0, "Heute schaue ich mir den Stein an.")]);
+
+        host.World.Step();
+
+        var request = Assert.Single(port.Requests);
+        Assert.Empty(ContractValidator.Validate("decision-request", ContractSerializer.Serialize(request)));
+        Assert.Equal(DecisionsSystem.IntentionOccasion, request.Occasion);
+        Assert.Equal(("inspect", "flint", "Heute schaue ich mir den Stein an."), (request.Intention!.Action, request.Intention.About!.Id, request.Intention.Thought!.Text));
+        Assert.Contains(request.Options, o => o.Target == near.Id);
+        Assert.Empty(a.Ideas.Intentions);
+    }
+
     private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone()
     {
         var port = new CountingPort();

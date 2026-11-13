@@ -5,7 +5,8 @@
     "need_below": 0.15,
     "hours_below": 24,
     "cooldown_hours": 72,
-    "max_open": 1
+    "max_open": 1,
+    "idea_ripe_at": 0.7
   },
   "retry_after_minutes": 60,
   "tech_level": "tool",

@@ -156,6 +156,12 @@ public sealed class DecisionsSystem : IWorldSystem
     // The subject of a leisure question: one per inhabitant at a time, cooled down by the data's every_hours.
     private const string LeisureSubject = "leisure";
 
+    /// <summary>Occasion of a free moment that offers the morning's intention (B2687 step 2, decider v12).</summary>
+    public const string IntentionOccasion = "intention";
+
+    // The intention a free moment offers while its request is built (Send reads it; empty otherwise).
+    private Intention? _offering;
+
     /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
     public const string BuildStuck = "build_stuck";
 
@@ -632,7 +638,19 @@ public sealed class DecisionsSystem : IWorldSystem
 
             if (!presses)
             {
-                Ask(world, inhabitant, Leisure, LeisureSubject, null);
+                // B2687 step 2: an intention of the morning is offered once - with a thing of its kind in sight as the
+                // target (the core's options for it), or without a subject; the AI may take it up or not (PR2).
+                var things = inhabitant.Ideas.Intentions.Count > 0 ? Perceived(inhabitant) : [];
+                var intention = inhabitant.Ideas.Intentions.FirstOrDefault(i => i.AboutId is null || things.Any(t => t.TypeId == i.AboutId));
+                var target = intention?.AboutId is { } typeId ? things.Where(t => t.TypeId == typeId).MinBy(t => ((t.Position.X - inhabitant.Position.X) * (t.Position.X - inhabitant.Position.X)) + ((t.Position.Z - inhabitant.Position.Z) * (t.Position.Z - inhabitant.Position.Z))) : null;
+                _offering = intention;
+                Ask(world, inhabitant, Leisure, LeisureSubject, target);
+                _offering = null;
+                // Used up only when it really went out (a held-back question is asked later as a plain free moment).
+                if (intention is not null && _openOf.GetValueOrDefault(inhabitant.Id)?.Any(q => q.Kind == Leisure && q.AskedTick == world.Tick && q.RequestId.Length > 0) == true)
+                {
+                    inhabitant.Ideas.Use(intention);
+                }
             }
         }
     }
@@ -1151,6 +1169,16 @@ public sealed class DecisionsSystem : IWorldSystem
         if (kind == Leisure)
         {
             request.Occasion = Leisure;
+            if (_offering is { } offered)
+            {
+                request.Occasion = IntentionOccasion;
+                request.Intention = new MorningIntention
+                {
+                    Action = offered.Action,
+                    About = offered.AboutId is { } about ? new Subject { Kind = Enum.Parse<SubjectKind>(offered.AboutKind ?? "type", ignoreCase: true), Id = about } : null,
+                    Thought = offered.Thought is { } text ? new GeneratedText { Locale = Enum.Parse<Locale>(DisplayLocale, ignoreCase: true), Text = text } : null,
+                };
+            }
         }
 
         _passable.Clear();

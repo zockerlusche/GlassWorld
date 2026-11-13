@@ -230,7 +230,7 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class Intention
+    public partial class MorningIntention
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("action")]
@@ -310,7 +310,7 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("intention")]
-        public Intention? Intention { get; set; } = default!;
+        public MorningIntention? Intention { get; set; } = default!;
 
     }
 }
