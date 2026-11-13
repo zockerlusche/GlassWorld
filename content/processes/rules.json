@@ -1170,14 +1170,15 @@
           "properties_none": [
             "long_lasting"
           ]
+        },
+        {
+          "properties_all": [
+            "water"
+          ],
+          "properties_none": []
         }
       ],
-      "tool": {
-        "properties_all": [
-          "water"
-        ],
-        "properties_none": []
-      },
+      "tool": null,
       "heat_min": null,
       "duration_ticks": 600,
       "tech_level": "wilderness",
