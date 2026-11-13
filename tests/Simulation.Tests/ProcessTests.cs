@@ -140,6 +140,31 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void NothingHappensOfALowerTechLevelIsAskedAgainOnceTheWorldIsHigher()
+    {
+        // Review GW1 #356: 'nothing happens' holds at the level it was judged at.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port);
+        var flint = host.Objects.Spawn("flint", new Position(1, 0));
+        var grass = host.Objects.Spawn("dry_grass", new Position(1.5, 0));
+        var truth = new[] { grass, flint }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
+        var id = ProcessSignatures.RuleId(ProcessSignatures.CombineTrial, truth, null, null);
+        var now = host.Milestones.TechLevelIndex;
+
+        // Judged at the level the world has now: stays 'nothing', nobody is asked.
+        host.Processes!.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now)], [], []));
+        RunCombine(host, grass, flint);
+        Assert.Empty(port.Submitted);
+
+        // Judged at a lower level: the world has risen since, so it is judged again - at the level of now.
+        host.Processes.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now - 1)], [], []));
+        RunCombine(host, grass, flint);
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal(host.Milestones.TechLevel, job.Payload.Process!.TechLevel);
+        Assert.Equal(now, Assert.Single(host.Processes.Pending).TechLevel);
+    }
+
+    [Fact]
     public void AnErrorIsNoAnswerALaterTryAsksAgain()
     {
         var port = new ScriptedJobPort();
