@@ -127,8 +127,14 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                 return false;
             }
 
-            var rule = System.Text.Json.JsonSerializer.Deserialize<ProcessRule>(judged.Rule)!;
-            return _data.Applies(rule) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
+            if (Stored(judged.Rule) is { } rule)
+            {
+                return _data.Applies(rule) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
+            }
+
+            // A stored rule this core cannot read any more (a later change of the rule's form, review GW1
+            // #349): it no longer counts, the try is judged again.
+            _rules.Remove(id);
         }
 
         if (_pending.ContainsKey(id) || _port is null)
@@ -371,6 +377,19 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         // A rejected answer counts as 'nothing happens': the world does not ask the same again (the rule checker decided).
         var feasible = result.Feasible && reasons.Count == 0;
         _rules[id] = new WorldProcessRule(id, feasible, feasible ? System.Text.Json.JsonSerializer.Serialize(result.Rule!) : null, pending.RequestId, world.Tick);
+    }
+
+    /// <summary>A stored world rule, or null when it cannot be read as a rule of this contract.</summary>
+    private static ProcessRule? Stored(string json)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<ProcessRule>(json) is { Inputs.Count: > 0, Result: not null } rule ? rule : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The core's own check of a judged rule (D471 P3 step 4): it must fit the try it answers.</summary>
