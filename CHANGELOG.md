@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A night question about a thing the inhabitant knows nothing about goes out only when the thing shows something at a glance (GW2 D999): a conifer shows none of the visible properties, and with an empty perception the model guessed from memories of other things. Such a question waits until the inhabitant has looked or tried, as before.
 - The inventor knows what it knows (R8, A1582): the invention job carries the inhabitant's own beliefs about the materials it sees (with source and confidence, never the truth), so the inventor prompt can work from 'what you know'.
 - Night questions are asked again, and the night look back is on (GW2 D971, B2698):
   - The day question 'what is this' exists only for a thing the inhabitant believes nothing about, and the night skipped exactly those, so no question was ever guessed at night. With `night_questions.ask_without_notice` the night asks anyway; the perception is what the thing shows at a glance (the looking data's visible properties it has), not stored as a belief.
