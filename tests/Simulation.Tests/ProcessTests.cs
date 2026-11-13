@@ -157,6 +157,21 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void ForTwoStonesStrikingAndSplittingComeBeforeBinding()
+    {
+        // GW2 D999: a rule whose condition a thing fully meets ranks before one that only shares single properties.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port, silent: true);
+        var stone = host.Objects.Spawn("fieldstone", new Position(1, 0));
+        var other = host.Objects.Spawn("fieldstone", new Position(1.5, 0));
+
+        RunCombine(host, stone, other);
+        var candidates = Assert.Single(port.Submitted).Payload.Process!.Candidates!.ToList();
+        Assert.Equal("strike", candidates[0]);
+        Assert.True(candidates.IndexOf("split") < candidates.IndexOf("bind") || !candidates.Contains("bind"), string.Join(",", candidates));
+    }
+
+    [Fact]
     public void TheJudgeMayChooseFromEveryProcessThePhysicsAllowsNotOnlyFromRulesOfTheData()
     {
         // TL #23700 / GW2 D991: clay with spring water - no data rule fits at this level, but mixing may.
