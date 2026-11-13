@@ -4,12 +4,12 @@
   "seed": 4242,
   "display_locale": "de",
   "request_id": "00000000-1583-4000-8000-000000000001",
-  "kind": "chronicle",
+  "kind": "milestone",
   "priority": 5,
   "inhabitant": "inh-000002",
   "object": null,
   "payload": {
-    "chronicle": {
+    "milestone": {
       "milestone": "first_fire",
       "text_key": "msg.milestone.first_fire",
       "made": {

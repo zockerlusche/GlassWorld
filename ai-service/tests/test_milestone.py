@@ -10,17 +10,17 @@ from typing import Any
 
 import pytest
 
-from glassworld_ai import chronicle
-from glassworld_ai.chronicle import (
-    Checks,
-    MockChronicle,
-    OllamaChronicle,
-    build_values,
-    parse_sentence,
-)
+from glassworld_ai import milestone
 from glassworld_ai.config import Settings
 from glassworld_ai.jobs import JobFailedError
 from glassworld_ai.llm.jobcall import InvalidOutputError, ModelCallSettings
+from glassworld_ai.milestone import (
+    Checks,
+    MockMilestones,
+    OllamaMilestones,
+    build_values,
+    parse_sentence,
+)
 from glassworld_ai.prompts import load_prompt
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.texts import TextCatalog
@@ -29,10 +29,10 @@ from glassworld_contracts import GenerationJob
 REPO = Path(__file__).resolve().parents[2]
 SNAPSHOTS = Path(__file__).resolve().parent / "snapshots"
 JOB_DATA: dict[str, Any] = json.loads(
-    (REPO / "contracts/examples/valid/generation-job.chronicle-first-fire.json").read_text("utf-8")
+    (REPO / "contracts/examples/valid/generation-job.milestone-first-fire.json").read_text("utf-8")
 )
 JOB = GenerationJob.model_validate(JOB_DATA)
-TEMPLATE = load_prompt(REPO / "prompts", "chronicle/milestone", 1)
+TEMPLATE = load_prompt(REPO / "prompts", "milestone/sentence", 1)
 TEXTS = TextCatalog.load(REPO / "content/i18n")
 GUARD = TextGuard.from_file(REPO / "content/safety/rules.json")
 
@@ -45,7 +45,7 @@ def test_prompt_snapshot() -> None:
     rendered = TEMPLATE.render(build_values(JOB, TEMPLATE, TEXTS))
     assert "Feuer" in rendered.user and "Mira, Joro" in rendered.user
     text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
-    snapshot = SNAPSHOTS / "chronicle-milestone.v1.first-fire.txt"
+    snapshot = SNAPSHOTS / "milestone-sentence.v1.first-fire.txt"
     if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
@@ -78,12 +78,12 @@ def test_no_passing_answer_is_no_sentence(monkeypatch: pytest.MonkeyPatch) -> No
     async def no_answer(**_: object) -> object:
         raise JobFailedError("invalid_model_output", "no valid answer", retryable=False)
 
-    monkeypatch.setattr(chronicle, "ask_model", no_answer)
+    monkeypatch.setattr(milestone, "ask_model", no_answer)
 
     class _Client:
         model = "fake"
 
-    handler = OllamaChronicle(
+    handler = OllamaMilestones(
         client=_Client(),  # type: ignore[arg-type]
         queue=None,  # type: ignore[arg-type]
         template=TEMPLATE,
@@ -93,16 +93,16 @@ def test_no_passing_answer_is_no_sentence(monkeypatch: pytest.MonkeyPatch) -> No
         texts=TEXTS,
     )
     outcome = asyncio.run(handler(JOB))
-    assert outcome.result == {"chronicle": {"sentence": None}}
-    mock = asyncio.run(MockChronicle()(JOB))
-    assert mock.result == {"chronicle": {"sentence": None}}
+    assert outcome.result == {"milestone": {"sentence": None}}
+    mock = asyncio.run(MockMilestones()(JOB))
+    assert mock.result == {"milestone": {"sentence": None}}
 
 
-def test_the_service_answers_the_chronicle_kind(settings: Settings) -> None:
-    assert (settings.chronicle_prompt, settings.chronicle_prompt_version) == (
-        "chronicle/milestone",
+def test_the_service_answers_the_milestone_kind(settings: Settings) -> None:
+    assert (settings.milestone_prompt, settings.milestone_prompt_version) == (
+        "milestone/sentence",
         1,
     )
     night = json.loads((REPO / "content/hardware/night.json").read_text("utf-8"))
-    plan = next(k for k in night["kinds"] if k["kind"] == "chronicle")
+    plan = next(k for k in night["kinds"] if k["kind"] == "milestone")
     assert plan["when"] == "any"  # B2598: in the moment it is reached

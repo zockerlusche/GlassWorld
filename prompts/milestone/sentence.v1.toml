@@ -1,4 +1,4 @@
-name = "chronicle/milestone"
+name = "milestone/sentence"
 version = 1
 description = "The chronicle's sentence for a milestone (R35, B2598, A1583, D962): when the core reaches a milestone, one calm sentence in the player's language, naming only the given inhabitants and thing by their names; the base line (text key) stays the truth. Content guard, no raw id, and in German no thing of this world it was not given (A1613); no passing answer = no sentence (R24/B2644)."
 

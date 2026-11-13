@@ -38,8 +38,13 @@
       "model": "qwen3.5:9b"
     },
     {
-      "kind": "chronicle",
+      "kind": "milestone",
       "when": "any",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "chronicle",
+      "when": "night",
       "model": "qwen3.5:9b"
     },
     {

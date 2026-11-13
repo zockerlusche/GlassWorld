@@ -108,8 +108,8 @@
         "review": {
           "$ref": "#/$defs/ReviewPayload"
         },
-        "chronicle": {
-          "$ref": "#/$defs/ChroniclePayload"
+        "milestone": {
+          "$ref": "#/$defs/MilestonePayload"
         }
       },
       "minProperties": 1,
@@ -809,26 +809,7 @@
         }
       }
     },
-    "ChronicleName": {
-      "description": "Something the sentence may name, by the name the maker knows it by (its label from its beliefs, never the truth id), with the id it stands for.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "label"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/EntityId"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
-        }
-      }
-    },
-    "ChroniclePayload": {
+    "MilestonePayload": {
       "description": "R35 (B2598, A1583, D962): a milestone was reached - the chronicle gets one calm sentence for it, written once, in the player's language. The milestone's text key names it in both languages (the base line stays the truth); null sentence = none (content guard or grounding, R24/B2644); a late or failed job leaves the milestone without a sentence.",
       "type": "object",
       "additionalProperties": false,
@@ -855,7 +836,7 @@
           "description": "The thing made, by the maker's name for it, or null (a rule without a thing).",
           "anyOf": [
             {
-              "$ref": "#/$defs/ChronicleName"
+              "$ref": "#/$defs/MilestoneName"
             },
             {
               "type": "null"
@@ -868,7 +849,7 @@
           "minItems": 1,
           "maxItems": 4,
           "items": {
-            "$ref": "#/$defs/ChronicleName"
+            "$ref": "#/$defs/MilestoneName"
           }
         },
         "day": {
@@ -888,8 +869,27 @@
           "type": "array",
           "maxItems": 4,
           "items": {
-            "$ref": "#/$defs/ChronicleName"
+            "$ref": "#/$defs/MilestoneName"
           }
+        }
+      }
+    },
+    "MilestoneName": {
+      "description": "Something the sentence may name, by the name the maker knows it by (its label from its beliefs, never the truth id), with the id it stands for.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
         }
       }
     }

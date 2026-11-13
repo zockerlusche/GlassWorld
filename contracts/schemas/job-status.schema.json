@@ -102,8 +102,8 @@
         "review": {
           "$ref": "#/$defs/ReviewResult"
         },
-        "chronicle": {
-          "$ref": "#/$defs/ChronicleResult"
+        "milestone": {
+          "$ref": "#/$defs/MilestoneResult"
         }
       },
       "minProperties": 1,
@@ -841,7 +841,7 @@
         }
       }
     },
-    "ChronicleResult": {
+    "MilestoneResult": {
       "description": "R35 (D962): the chronicle's sentence for a milestone in the player's language, or null when the content guard or the grounding left it out (no stand-in sentence, B2644).",
       "type": "object",
       "additionalProperties": false,

@@ -209,7 +209,7 @@ class InventionIdea(BaseModel):
     roots: list[common_schema.Subject] = Field(..., max_length=8, min_length=1)
 
 
-class ChronicleName(BaseModel):
+class MilestoneName(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -220,43 +220,6 @@ class ChronicleName(BaseModel):
         pattern='^[a-z][a-z0-9_-]*$',
     )
     label: str = Field(..., max_length=64, min_length=1)
-
-
-class ChroniclePayload(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    milestone: str = Field(
-        ...,
-        description='Milestone id (content/milestones/catalog.json).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    text_key: str = Field(
-        ...,
-        description="The milestone's text key (DE/EN).",
-        max_length=64,
-        pattern='^msg\\.milestone\\.[a-z0-9_]+$',
-    )
-    made: ChronicleName | None = Field(
-        ...,
-        description="The thing made, by the maker's name for it, or null (a rule without a thing).",
-    )
-    inhabitants: list[ChronicleName] = Field(
-        ...,
-        description='Who reached it, the maker first, by the names they have.',
-        max_length=4,
-        min_length=1,
-    )
-    day: int = Field(
-        ..., description='Game day it was reached (1 = the first).', ge=1, le=1000000
-    )
-    max_chars: int = Field(..., description='Longest sentence (data).', ge=40, le=280)
-    things: list[ChronicleName] | None = Field(
-        None,
-        description="Other things that took part (a rule's inputs, e.g. spark and dry grass for a fire), by the maker's names for them; the sentence may name these too. Optional; absent = none.",
-        max_length=4,
-    )
 
 
 class QuestionPayload(BaseModel):
@@ -438,6 +401,43 @@ class ReviewPayload(BaseModel):
     max_intentions: int = Field(..., ge=0, le=3)
 
 
+class MilestonePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    milestone: str = Field(
+        ...,
+        description='Milestone id (content/milestones/catalog.json).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    text_key: str = Field(
+        ...,
+        description="The milestone's text key (DE/EN).",
+        max_length=64,
+        pattern='^msg\\.milestone\\.[a-z0-9_]+$',
+    )
+    made: MilestoneName | None = Field(
+        ...,
+        description="The thing made, by the maker's name for it, or null (a rule without a thing).",
+    )
+    inhabitants: list[MilestoneName] = Field(
+        ...,
+        description='Who reached it, the maker first, by the names they have.',
+        max_length=4,
+        min_length=1,
+    )
+    day: int = Field(
+        ..., description='Game day it was reached (1 = the first).', ge=1, le=1000000
+    )
+    max_chars: int = Field(..., description='Longest sentence (data).', ge=40, le=280)
+    things: list[MilestoneName] | None = Field(
+        None,
+        description="Other things that took part (a rule's inputs, e.g. spark and dry grass for a fire), by the maker's names for them; the sentence may name these too. Optional; absent = none.",
+        max_length=4,
+    )
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -452,7 +452,7 @@ class JobPayload(BaseModel):
     dream: DreamPayload | None = None
     model3d: Model3dPayload | None = None
     review: ReviewPayload | None = None
-    chronicle: ChroniclePayload | None = None
+    milestone: MilestonePayload | None = None
 
 
 class GenerationJob(BaseModel):

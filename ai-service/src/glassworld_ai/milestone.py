@@ -1,7 +1,7 @@
 # jsonschema ships incomplete type information.
 # pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
 # pyright: reportUnknownVariableType=false, reportUnknownLambdaType=false
-"""The chronicle's sentence for a milestone (R35, B2598, A1583, D962): job kind chronicle.
+"""The chronicle's sentence for a milestone (R35, B2598, A1583, D962): job kind milestone.
 
 When the core reaches a milestone, the model writes one calm sentence for the chronicle in the
 player's language, naming only the inhabitants and the thing it is given, by their names. The
@@ -43,14 +43,14 @@ from glassworld_ai.texts import TextCatalog
 from glassworld_ai.words import ContextError, plain_id
 from glassworld_contracts import GenerationJob
 
-ROLE = "chronicle"
+ROLE = "milestone"
 _ID_LIKE = re.compile(r"[a-z0-9]+(?:[_-][a-z0-9]+)+")
 
 
-def chronicle_payload(job: GenerationJob) -> Any:
-    payload = job.payload.chronicle
+def milestone_payload(job: GenerationJob) -> Any:
+    payload = job.payload.milestone
     if payload is None:
-        raise ContextError("job has no chronicle payload")
+        raise ContextError("job has no milestone payload")
     return payload
 
 
@@ -70,7 +70,7 @@ def _milestone_text(payload: Any, texts: TextCatalog | None, locale: str) -> str
 def build_values(
     job: GenerationJob, template: PromptTemplate, texts: TextCatalog | None = None
 ) -> dict[str, str]:
-    payload = chronicle_payload(job)
+    payload = milestone_payload(job)
     locale = plain_id(job.display_locale)
     language = _table(template.settings, "language_names").get(locale)
     if language is None:
@@ -89,7 +89,7 @@ def build_values(
 
 
 def output_schema(job: GenerationJob) -> dict[str, Any]:
-    payload = chronicle_payload(job)
+    payload = milestone_payload(job)
     return {
         "type": "object",
         "additionalProperties": False,
@@ -111,7 +111,7 @@ class Checks:
         texts: TextCatalog | None,
         settings: dict[str, Any],
     ) -> None:
-        payload = chronicle_payload(job)
+        payload = milestone_payload(job)
         self._guard = guard
         locale = plain_id(job.display_locale)
         self._ids = {plain_id(payload.milestone)} | {plain_id(i.id) for i in payload.inhabitants}
@@ -167,10 +167,10 @@ def parse_sentence(raw: str, job: GenerationJob, checks: Checks) -> str:
 
 def _result(job: GenerationJob, sentence: str | None) -> dict[str, object]:
     said = None if sentence is None else {"locale": plain_id(job.display_locale), "text": sentence}
-    return {"chronicle": {"sentence": said}}
+    return {"milestone": {"sentence": said}}
 
 
-class OllamaChronicle:
+class OllamaMilestones:
     """Writes the sentence with the language model (low priority, 13 per world at most)."""
 
     def __init__(
@@ -219,15 +219,15 @@ class OllamaChronicle:
         )
 
 
-class MockChronicle:
+class MockMilestones:
     """Deterministic stand-in: no sentence (the base line alone), so core tests stay calm."""
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
-        chronicle_payload(job)
+        milestone_payload(job)
         return JobOutcome(_result(job, None), "mock", "mock", None, 0, 1)
 
 
-class ReplayChronicle:
+class ReplayMilestones:
     """Answers from the call log: the first valid model answer recorded for the job id."""
 
     def __init__(

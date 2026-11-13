@@ -60,8 +60,8 @@ namespace GlassWorld.Contracts
         public ReviewResult? Review { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
-        public ChronicleResult? Chronicle { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("milestone")]
+        public MilestoneResult? Milestone { get; set; } = default!;
 
     }
 
@@ -512,7 +512,7 @@ namespace GlassWorld.Contracts
     /// R35 (D962): the chronicle's sentence for a milestone in the player's language, or null when the content guard or the grounding left it out (no stand-in sentence, B2644).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class ChronicleResult
+    public partial class MilestoneResult
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("sentence")]

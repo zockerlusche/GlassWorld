@@ -302,7 +302,7 @@ class ReviewResult(BaseModel):
     morning_mood: common_schema.VocabId | None
 
 
-class ChronicleResult(BaseModel):
+class MilestoneResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -360,7 +360,7 @@ class JobResult(BaseModel):
     dream: DreamResult | None = None
     model3d: Model3dResult | None = None
     review: ReviewResult | None = None
-    chronicle: ChronicleResult | None = None
+    milestone: MilestoneResult | None = None
 
 
 class JobStatus(BaseModel):
