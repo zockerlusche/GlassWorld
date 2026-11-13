@@ -231,6 +231,12 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             {
                 hasher.Write("tech").Write(level);
             }
+
+            // The heat at the try (B2700), only where there was any, like the tech level (review GW1 #371).
+            if (pending.Heat is { } heat)
+            {
+                hasher.Write("heat").Write(heat);
+            }
         }
 
         // A variant's truth is hashed with it (review GW1 #23025): a changed rule file cannot give one id another truth unnoticed.
