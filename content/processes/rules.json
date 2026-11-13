@@ -873,6 +873,44 @@
         "produces": null,
         "consumes": []
       }
+    },
+    {
+      "id": "seal_fibres_with_resin_to_vessel",
+      "process": "shape",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": [
+            "container"
+          ]
+        },
+        {
+          "properties_all": [
+            "sticky"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 90,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "container",
+          "waterproof"
+        ],
+        "remove_properties": [
+          "braidable"
+        ],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
     }
   ]
 }

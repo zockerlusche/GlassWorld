@@ -2969,6 +2969,10 @@
     {
       "key": "ui.card.musing.male",
       "text": "What occupies them"
+    },
+    {
+      "key": "vocab.property.waterproof",
+      "text": "Waterproof"
     }
   ]
 }

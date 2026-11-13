@@ -96,6 +96,7 @@ Character:
 - stone (Looks like stone or rock; seen by looking.)
 - transparent (You can see through it (glass).)
 - water (Looks like water: a spring, a pool or the sea; seen by looking.)
+- waterproof (Tight: water does not seep through it.)
 
 ## Things you could do (optional idea)
 add_fuel, approach, build_step, combine, drink, drop, eat, explore, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn

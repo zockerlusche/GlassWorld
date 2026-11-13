@@ -2969,6 +2969,10 @@
     {
       "key": "ui.card.musing.male",
       "text": "Was ihn beschäftigt"
+    },
+    {
+      "key": "vocab.property.waterproof",
+      "text": "Wasserdicht"
     }
   ]
 }
