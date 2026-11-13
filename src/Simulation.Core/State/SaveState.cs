@@ -157,6 +157,9 @@ public sealed record SaveState(
     /// games from before.
     /// </summary>
     public Night.NightJobsState? NightJobs { get; init; }
+
+    /// <summary>The world's judged tries, open process jobs and variant types (B2687 K2); null = none.</summary>
+    public Objects.ProcessState? Processes { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -226,6 +229,7 @@ public static class StateCodec
             Diary = host.Diary.All,
             DiaryVersion = host.Diary.Version,
             NightJobs = host.NightJobs.HasState ? host.NightJobs.Capture() : null,
+            Processes = host.Processes is { HasState: true } processes ? processes.Capture() : null,
         };
     }
 
@@ -375,6 +379,7 @@ public static class StateCodec
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
+        host.Processes?.Restore(state.Processes);
         host.UseLoggedPlayerSettings();
         return host;
     }
