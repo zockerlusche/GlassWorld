@@ -51,7 +51,8 @@
       "sharp",
       "fibrous",
       "transparent",
-      "container"
+      "container",
+      "luminous"
     ],
     "inspect_confidence": 0.8,
     "guessed_confidence": 0.4,

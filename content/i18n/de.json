@@ -2969,6 +2969,18 @@
     {
       "key": "ui.card.musing.male",
       "text": "Was ihn beschäftigt"
+    },
+    {
+      "key": "vocab.property.waterproof",
+      "text": "Wasserdicht"
+    },
+    {
+      "key": "vocab.property.luminous",
+      "text": "Leuchtend"
+    },
+    {
+      "key": "vocab.property.digging",
+      "text": "Grabend"
     }
   ]
 }

@@ -131,6 +131,10 @@
       "description": "Rich and greasy, like butter or oil."
     },
     {
+      "id": "waterproof",
+      "description": "Tight: water does not seep through it."
+    },
+    {
       "id": "fruit",
       "description": "Looks like a fruit, nut or berry; seen by looking."
     },
@@ -145,6 +149,14 @@
     {
       "id": "stone",
       "description": "Looks like stone or rock; seen by looking."
+    },
+    {
+      "id": "luminous",
+      "description": "Gives off light; it shines even in the dark."
+    },
+    {
+      "id": "digging",
+      "description": "Has a broad, firm blade on a handle, like a scoop."
     }
   ]
 }
