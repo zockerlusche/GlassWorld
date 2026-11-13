@@ -136,6 +136,13 @@ public sealed class ContentSet
         var needs = Ids(vocabularies, VocabularyKind.Need);
         var moods = Ids(vocabularies, VocabularyKind.Mood);
         CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait));
+        var conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json")));
+        if (conversation.Praise is { } praise && !moods.Contains(praise.Mood))
+        {
+            // A1538 (review GW2 #345): a typo would silently skip the mood.
+            throw new InvalidDataException($"conversation praise names unknown mood '{praise.Mood}'");
+        }
+
         var actionIds = Ids(vocabularies, VocabularyKind.Action);
         if (model.Diary?.LeftOutActions?.FirstOrDefault(a => !actionIds.Contains(a)) is { } unknownAction)
         {
@@ -222,7 +229,7 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
-            Conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json"))),
+            Conversation = conversation,
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
