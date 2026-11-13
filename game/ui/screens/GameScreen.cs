@@ -68,6 +68,7 @@ public partial class GameScreen : CanvasLayer
     private ChronicleBook? _chronicle;
     private Contracts.ChronicleKinds? _kinds;
     private int _chronicleShown = -1;
+    private int _chronicleToldShown;
     private long? _chronicleDay;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
@@ -1206,10 +1207,14 @@ public partial class GameScreen : CanvasLayer
             _chronicle.Sync(host.Chronicle);
         }
 
-        if (_chronicle is null || _chronicle.Version == _chronicleShown)
+        // A day narrative from the computing night (A1355) shows the page anew as well.
+        var told = _presenter?.Host?.ChronicleNight.Narratives.Count() ?? 0;
+        if (_chronicle is null || (_chronicle.Version == _chronicleShown && told == _chronicleToldShown))
         {
             return;
         }
+
+        _chronicleToldShown = told;
 
         // A1354 (B8 R11): one game day per page. On the newest page new entries show up at once; an
         // older page stays where the player put it.
@@ -1308,6 +1313,20 @@ public partial class GameScreen : CanvasLayer
                 _sideBar.Open("chronicle");
             };
             _timelineList.AddChild(jump);
+        }
+
+        // B8 R10 (A1355): the day's narrative from the computing night stands above its base lines, quieter.
+        if (_style is not null && _presenter?.Host is { } world && ChronicleBook.NarrativeOn(shown, world.ChronicleNight.Narratives, TranslationServer.GetLocale()) is { } narrative)
+        {
+            var story = new Label
+            {
+                Text = narrative,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            story.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+            _chronicleList.AddChild(story);
         }
 
         // The entries of the day: a click opens the inhabitant's card (and the camera follows on the island).

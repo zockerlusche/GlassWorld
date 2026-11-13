@@ -63,6 +63,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("milestone")]
         public MilestonePayload? Milestone { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
+        public ChroniclePayload? Chronicle { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -628,6 +632,84 @@ namespace GlassWorld.Contracts
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class MilestoneName
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B8 R10 (A1355): the chronicle of one finished game day as a short narrative (family book) in the computing night, in the player's language. The entries are the day's base lines as data (text key, names, ids); the service words them only from these and the content guard checks the result. Null narrative = the base lines stay (no stand-in); a late or failed job leaves the day without a narrative for good.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChroniclePayload
+    {
+
+        /// <summary>
+        /// The finished game day (1 = the first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("day")]
+        public int Day { get; set; } = default!;
+
+        /// <summary>
+        /// The day's chronicle entries, oldest first (at most the data's number).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("entries")]
+        public System.Collections.Generic.ICollection<ChronicleDayLine> Entries { get; set; } = new System.Collections.ObjectModel.Collection<ChronicleDayLine>();
+
+        /// <summary>
+        /// Longest narrative (data; at most the 280 of a generated text).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One base line of the day: the chronicle kind with its text key and what fills it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChronicleDayLine
+    {
+
+        /// <summary>
+        /// Chronicle kind (content/chronicle/kinds.json).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The kind's text key (DE/EN).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text_key")]
+        public string TextKey { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
+        public ChronicleDayName Inhabitant { get; set; } = new ChronicleDayName();
+
+        /// <summary>
+        /// The thing or the other inhabitant, by the name the chronicle shows, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("target")]
+        public ChronicleDayName? Target { get; set; } = default!;
+
+        /// <summary>
+        /// The action of the entry (vocabulary), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string? Action { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Someone or something a chronicle line names, by the name the chronicle shows (inhabitant names, thing labels), with the id it stands for.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChronicleDayName
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
