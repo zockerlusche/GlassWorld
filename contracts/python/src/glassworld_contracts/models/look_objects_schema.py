@@ -28,6 +28,7 @@ class ObjectLookShape(StrEnum):
     fruit = 'fruit'
     shell = 'shell'
     reeds = 'reeds'
+    flame = 'flame'
     marker = 'marker'
     none = 'none'
 
@@ -168,6 +169,48 @@ class ObjectStreamSources(BaseModel):
     )
 
 
+class ObjectGlow(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    light_color: str = Field(
+        ...,
+        description='Palette colour id of the light.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    light_energy: float = Field(
+        ...,
+        description='Strength of the light (0 = no light, the body still glows).',
+        ge=0.0,
+        le=8.0,
+    )
+    light_range_m: float = Field(
+        ...,
+        description='How far the light reaches, in metres at size factor 1.',
+        ge=0.0,
+        le=20.0,
+    )
+    light_height_m: float = Field(
+        ...,
+        description="Height of the light above the object's foot, in metres at size factor 1.",
+        ge=0.0,
+        le=4.0,
+    )
+    flicker: float = Field(
+        ...,
+        description='Share of the strength that wavers (0 = steady).',
+        ge=0.0,
+        le=1.0,
+    )
+    flicker_hz: float = Field(
+        ...,
+        description='How fast it wavers (calm: a few times a second at most).',
+        ge=0.0,
+        le=12.0,
+    )
+
+
 class ObjectVisual(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -222,6 +265,7 @@ class ObjectVisual(BaseModel):
         le=2.0,
     )
     niche: ObjectNiche | None = None
+    glow: ObjectGlow | None = None
 
 
 class ObjectDecor(BaseModel):

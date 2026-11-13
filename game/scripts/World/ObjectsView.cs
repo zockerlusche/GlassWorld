@@ -18,7 +18,9 @@ namespace GlassWorld.Game.World;
 /// the ink outline sways with them. The outline is pushed out along the directions the meshes carry
 /// (<see cref="ObjectShapes"/>, TL #20750), so it sits on flat-shaded rocks too. A mesh with a second
 /// surface (the dark inside of a rock niche) carries its materials itself: the look's material and the
-/// unlit one of the inside. Presentation only: it never writes core state.
+/// unlit one of the inside. A look with <c>glow</c> (fire, spark; M2 find TL #23595) is drawn self-lit, so it
+/// shows at night too, and each of its objects carries a warm point light that flickers gently, all from
+/// the data. Presentation only: it never writes core state.
 /// </summary>
 public partial class ObjectsView : Node3D
 {
@@ -35,6 +37,12 @@ public partial class ObjectsView : Node3D
     private IReadOnlyList<WorldObject> _decor = [];
     private readonly Dictionary<string, CrownLayer> _crowns = new(StringComparer.Ordinal);
     private FigureCrownFade? _fade;
+    private readonly Dictionary<string, (ObjectGlow Glow, Color Color)> _glows = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<OmniLight3D>> _lights = new(StringComparer.Ordinal);
+    private readonly List<(OmniLight3D Light, float Energy, float Flicker, float Hz, float Phase)> _flicker = [];
+
+    /// <summary>Lights of glowing objects now (smoke and tests).</summary>
+    public int Lights => _flicker.Count;
 
     /// <summary>Decorative plants drawn with the objects (presentation only).</summary>
     public int DecorCount => _decor.Count;
@@ -78,7 +86,13 @@ public partial class ObjectsView : Node3D
             }
 
             var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), data.OutlineMitreLimit, Weights, look.Niche);
-            var material = Land(Comic, look, mesh);
+            var glow = data.Visuals.FirstOrDefault(v => v.Id == look.VisualId)?.Glow;
+            Material material = glow is null ? Land(Comic, look, mesh) : Glowing();
+            if (glow is not null)
+            {
+                view._glows[look.VisualId] = (glow, colors.TryGetValue(glow.LightColor, out var light) ? light : throw new InvalidDataException($"Object look {look.VisualId}: glow light_color '{glow.LightColor}' is not in the palette."));
+            }
+
             if (hullOutline && data.Outline && data.OutlineWidthM > 0)
             {
                 // The outline sways with its plant: the same sway values as the material it follows.
@@ -111,6 +125,13 @@ public partial class ObjectsView : Node3D
 
         return view;
     }
+
+    /// <summary>The self-lit material of a glowing look: its vertex colours at full strength, by day and by night.</summary>
+    private static StandardMaterial3D Glowing() => new()
+    {
+        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        VertexColorUseAsAlbedo = true,
+    };
 
     /// <summary>A warm comic material of the land for a look: vertex colours, living nature on, the look's sway.</summary>
     private static ShaderMaterial Land(Shader shader, ObjectLook look, Mesh mesh)
@@ -270,11 +291,78 @@ public partial class ObjectsView : Node3D
                 crown.Reset(multi);
             }
 
+            if (_glows.TryGetValue(id, out var glow))
+            {
+                PlaceLights(id, glow.Glow, glow.Color, multi);
+            }
+
             layer.Visible = placed.Count > 0;
             Drawn += placed.Count;
         }
 
         return true;
+    }
+
+    /// <summary>One light per glowing object, above its foot and scaled with it; the flicker list follows.</summary>
+    private void PlaceLights(string visualId, ObjectGlow glow, Color color, MultiMesh multi)
+    {
+        if (!_lights.TryGetValue(visualId, out var lights))
+        {
+            lights = [];
+            _lights[visualId] = lights;
+        }
+
+        var wanted = glow.LightEnergy > 0 ? multi.InstanceCount : 0;
+        while (lights.Count > wanted)
+        {
+            lights[^1].QueueFree();
+            lights.RemoveAt(lights.Count - 1);
+        }
+
+        while (lights.Count < wanted)
+        {
+            var light = new OmniLight3D { Name = visualId + "_light", ShadowEnabled = false, LightColor = color };
+            AddChild(light);
+            lights.Add(light);
+        }
+
+        for (var i = 0; i < lights.Count; i++)
+        {
+            var at = multi.GetInstanceTransform(i);
+            var scale = at.Basis.Y.Length();
+            lights[i].Position = at.Origin + (Vector3.Up * (float)glow.LightHeightM * scale);
+            lights[i].OmniRange = (float)glow.LightRangeM * scale;
+            lights[i].LightEnergy = (float)glow.LightEnergy;
+        }
+
+        _flicker.Clear();
+        foreach (var (id, list) in _lights)
+        {
+            var g = _glows[id].Glow;
+            for (var i = 0; i < list.Count; i++)
+            {
+                // A phase of its own per light, so two fires never waver in step.
+                _flicker.Add((list[i], (float)g.LightEnergy, (float)g.Flicker, (float)g.FlickerHz, 1.7f * i));
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void _Process(double delta)
+    {
+        if (_flicker.Count == 0)
+        {
+            return;
+        }
+
+        // Two slow waves of their own per light: calm wavering, never a blink.
+        var t = (float)(Time.GetTicksMsec() / 1000.0);
+        foreach (var (light, energy, flicker, hz, phase) in _flicker)
+        {
+            var a = Mathf.Tau * hz * t;
+            var waver = 0.5f + (0.25f * Mathf.Sin(a + phase)) + (0.25f * Mathf.Sin((1.7f * a) + (2.3f * phase)));
+            light.LightEnergy = energy * (1 - (flicker * waver));
+        }
     }
 
     /// <summary>A tree layer and its see-through twin: which trees are faded now and at what opacity.</summary>

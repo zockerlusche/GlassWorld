@@ -154,6 +154,17 @@ public static class ObjectShapes
                 }
 
                 break;
+            case ObjectLookShape.Flame:
+                // A small fire, about 1 m at size factor 1: two crossed pieces of wood (role 2), a bed of
+                // embers (role 1) and three flame tongues (role 0). The view draws it self-lit (glow data).
+                var across = new Basis(Vector3.Forward, Mathf.Pi / 2);
+                parts.Add(new CylinderMesh { TopRadius = 0.05f, BottomRadius = 0.05f, Height = 0.7f, RadialSegments = 6 }, new Transform3D(across.Rotated(Vector3.Up, 0.5f), new Vector3(0, 0.05f, 0)), color(2));
+                parts.Add(new CylinderMesh { TopRadius = 0.05f, BottomRadius = 0.05f, Height = 0.7f, RadialSegments = 6 }, new Transform3D(across.Rotated(Vector3.Up, -0.6f), new Vector3(0, 0.09f, 0)), color(2));
+                parts.Add(Ball(0.22f, 8, 4), At(0, 0.06f, 0, 1, 0.35f, 1), color(1));
+                parts.Add(new CylinderMesh { TopRadius = 0, BottomRadius = 0.2f, Height = 0.75f, RadialSegments = 7 }, At(0, 0.45f, 0), color(0));
+                parts.Add(new CylinderMesh { TopRadius = 0, BottomRadius = 0.13f, Height = 0.5f, RadialSegments = 6 }, At(0.12f, 0.33f, 0.06f), color(0));
+                parts.Add(new CylinderMesh { TopRadius = 0, BottomRadius = 0.11f, Height = 0.42f, RadialSegments = 6 }, At(-0.1f, 0.29f, -0.08f), color(1));
+                break;
             case ObjectLookShape.Marker:
                 // Calm and neutral: a low rounded post, nothing that looks like a warning.
                 parts.Add(new CylinderMesh { TopRadius = 0.13f, BottomRadius = 0.16f, Height = 0.3f, RadialSegments = 8 }, At(0, 0.15f, 0), color(0));

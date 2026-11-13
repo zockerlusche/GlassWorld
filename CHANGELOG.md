@@ -284,6 +284,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Fixed
 
+- Fire no longer looks like a tiny dot (M2 find, TL #23595, D985-D987): fire and spark have looks of their own with the new shape `flame` (crossed wood, embers, flame tongues; fire about 1 m, the spark small) and the new look data `glow`: the body is drawn self-lit, so it shows at night, and each such object carries a warm point light that flickers gently (colour, strength, range, height and flicker are data). New palette colours `flame` and `ember`.
 - Whoever looks at, picks or eats a thing turns to it (W1936, TL #23084, visual check D948: Joro looked at a berry with his back to the bush): a standing figure with an action on a thing turns its whole body to the thing at the data's `turn_rate_deg_s`; walking it faces where it walks, and another inhabitant it faces (B2528) comes first.
 - The bars of the inhabitant card name what they show (W1938, rule of B2642): Satt / Fed, Getrunken / Watered, Ausgeruht / Rested, Warm, Sicher / Safe instead of Hunger, Durst, Schlaf, Wärme, Sicherheit - a full bar reads as good. The need's own word stays where a sentence means the need (a call for help, the mailbox). Colour and thumb (B2642) follow with A1513.
 - Hints no longer hang below the bottom edge (W1934, W1744): the hint area was placed only on a new window size, while empty, and every later hint grew it out of the picture with only its top border to see; it is now placed again whenever a hint comes or goes. The smoke run checks it.

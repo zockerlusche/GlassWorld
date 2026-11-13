@@ -616,19 +616,55 @@
     {
       "id": "spark",
       "types": [
-        "spark",
-        "fire"
-      ],
-      "shape": "fruit",
-      "colors": [
         "spark"
       ],
-      "size_m": 0.4,
+      "shape": "flame",
+      "colors": [
+        "spark",
+        "spark",
+        "driftwood"
+      ],
+      "size_m": 0.35,
       "size_jitter": 0.0,
-      "lift_m": 0.05,
+      "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.1,
+      "glow": {
+        "light_color": "spark",
+        "light_energy": 1.2,
+        "light_range_m": 2.5,
+        "light_height_m": 0.3,
+        "flicker": 0.6,
+        "flicker_hz": 6.0
+      }
+    },
+    {
+      "id": "fire",
+      "types": [
+        "fire"
+      ],
+      "shape": "flame",
+      "colors": [
+        "flame",
+        "ember",
+        "bark"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.05,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.35,
+      "sway_m": 0.04,
+      "glow": {
+        "light_color": "flame",
+        "light_energy": 2.5,
+        "light_range_m": 7.0,
+        "light_height_m": 0.6,
+        "flicker": 0.25,
+        "flicker_hz": 3.0
+      }
     },
     {
       "id": "shell",

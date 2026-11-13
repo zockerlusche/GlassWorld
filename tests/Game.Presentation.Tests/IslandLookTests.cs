@@ -26,6 +26,28 @@ public sealed class IslandLookTests
     private static ObjectLooks Looks() =>
         new(Read<LookObjects>("look", "objects.json"), Read<LookPalette>("look", "palette.json").Colors.Select(c => c.Id).ToHashSet(StringComparer.Ordinal));
 
+    [Fact]
+    public void FireAndSparkHaveGlowingLooksOfTheirOwn()
+    {
+        // M2 find (TL #23595): fire was the spark's tiny dot; now each has a flame look that gives light.
+        var data = Read<LookObjects>("look", "objects.json");
+        var palette = Read<LookPalette>("look", "palette.json").Colors.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        var looks = Looks();
+        Assert.NotEqual(looks.For("fire").VisualId, looks.For("spark").VisualId);
+        foreach (var type in new[] { "fire", "spark" })
+        {
+            var look = looks.For(type);
+            Assert.Equal(ObjectLookShape.Flame, look.Shape);
+            var glow = data.Visuals.Single(v => v.Id == look.VisualId).Glow;
+            Assert.NotNull(glow);
+            Assert.Contains(glow.LightColor, palette);
+            Assert.InRange(glow.FlickerHz, 0, 6);
+        }
+
+        Assert.True(looks.For("fire").SizeM > looks.For("spark").SizeM);
+        Assert.True(data.Visuals.Single(v => v.Id == looks.For("fire").VisualId).Glow!.LightRangeM > data.Visuals.Single(v => v.Id == looks.For("spark").VisualId).Glow!.LightRangeM);
+    }
+
     [Theory]
     [InlineData(LookWorldWorld.Placeholder, null, WorldLookMode.Placeholder)]
     [InlineData(LookWorldWorld.Island, null, WorldLookMode.Island)]

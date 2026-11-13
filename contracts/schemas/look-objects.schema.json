@@ -100,6 +100,7 @@
         "fruit",
         "shell",
         "reeds",
+        "flame",
         "marker",
         "none"
       ]
@@ -224,6 +225,9 @@
         },
         "niche": {
           "$ref": "#/$defs/ObjectNiche"
+        },
+        "glow": {
+          "$ref": "#/$defs/ObjectGlow"
         }
       }
     },
@@ -457,6 +461,57 @@
           "type": "number",
           "minimum": 0,
           "maximum": 20
+        }
+      }
+    },
+    "ObjectGlow": {
+      "description": "A look that gives light (M2 find, TL #23595: fire, spark): its body is drawn self-lit, so it shows at night too, and each such object carries a warm point light that flickers. Presentation only; absent = an ordinary lit look.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light_color",
+        "light_energy",
+        "light_range_m",
+        "light_height_m",
+        "flicker",
+        "flicker_hz"
+      ],
+      "properties": {
+        "light_color": {
+          "description": "Palette colour id of the light.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 64
+        },
+        "light_energy": {
+          "description": "Strength of the light (0 = no light, the body still glows).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "light_range_m": {
+          "description": "How far the light reaches, in metres at size factor 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "light_height_m": {
+          "description": "Height of the light above the object's foot, in metres at size factor 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "flicker": {
+          "description": "Share of the strength that wavers (0 = steady).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "flicker_hz": {
+          "description": "How fast it wavers (calm: a few times a second at most).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12
         }
       }
     }
