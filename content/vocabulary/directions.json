@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.2",
+  "kind": "direction",
+  "entries": [
+    {
+      "id": "north",
+      "description": "Towards the north of the map."
+    },
+    {
+      "id": "northeast",
+      "description": "Towards the northeast of the map."
+    },
+    {
+      "id": "east",
+      "description": "Towards the east of the map."
+    },
+    {
+      "id": "southeast",
+      "description": "Towards the southeast of the map."
+    },
+    {
+      "id": "south",
+      "description": "Towards the south of the map."
+    },
+    {
+      "id": "southwest",
+      "description": "Towards the southwest of the map."
+    },
+    {
+      "id": "west",
+      "description": "Towards the west of the map."
+    },
+    {
+      "id": "northwest",
+      "description": "Towards the northwest of the map."
+    }
+  ]
+}

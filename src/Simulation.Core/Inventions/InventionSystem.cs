@@ -17,7 +17,8 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="SinceTick">Tick the wish arose.</param>
 /// <param name="Materials">Types sent as perceived materials with the current job (the final check uses them).</param>
 /// <param name="RetryAtTick">Set after a retryable error: the wish is sent again at this tick.</param>
-public sealed record OpenWant(string InhabitantId, string Want, string RequestId, long SinceTick, IReadOnlyList<string> Materials, long? RetryAtTick);
+/// <param name="IdeaId">The inhabitant's own ripe idea the wish came from (B2687, trigger idea), or null.</param>
+public sealed record OpenWant(string InhabitantId, string Want, string RequestId, long SinceTick, IReadOnlyList<string> Materials, long? RetryAtTick, string? IdeaId = null);
 
 /// <summary>An invention that passed the final check and is now a runtime type of the world.</summary>
 /// <param name="TypeId">Runtime type id (deterministic from the request id).</param>
@@ -218,7 +219,9 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                 continue;
             }
 
-            _wants[due.InhabitantId] = Submit(world, _inhabitants.Get(due.InhabitantId), due.Want, materials) with { SinceTick = due.SinceTick };
+            var asker = _inhabitants.Get(due.InhabitantId);
+            var idea = due.IdeaId is { } dueIdea ? asker.Ideas.Ideas.FirstOrDefault(i => i.Id == dueIdea) : null;
+            _wants[due.InhabitantId] = Submit(world, asker, due.Want, materials, idea) with { SinceTick = due.SinceTick };
         }
 
         Trigger(world);
@@ -246,6 +249,11 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         foreach (var w in _wants.Values)
         {
             hasher.Write(w.InhabitantId).Write(w.Want).Write(w.RequestId).Write(w.SinceTick).Write(w.RetryAtTick ?? -1).Write(w.Materials.Count);
+            if (w.IdeaId is { } ideaId)
+            {
+                // B2687: written only for a wish from an idea, so older worlds keep their hashes.
+                hasher.Write(ideaId);
+            }
             foreach (var m in w.Materials)
             {
                 hasher.Write(m);
@@ -365,7 +373,14 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                 _cooldowns.Remove(inhabitant.Id);
             }
 
-            if (lack is null || _wants.ContainsKey(inhabitant.Id) || _wants.Count >= trigger.MaxOpen)
+            if (_wants.ContainsKey(inhabitant.Id) || _wants.Count >= trigger.MaxOpen)
+            {
+                continue;
+            }
+
+            // B2687 step 2 (R28): without a lack, a ripe idea of its own may become the wish - once per idea.
+            var idea = lack is null ? RipeIdea(inhabitant, trigger.IdeaRipeAt) : null;
+            if (lack is null && idea is null)
             {
                 continue;
             }
@@ -376,10 +391,42 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                 continue;
             }
 
-            _wants[inhabitant.Id] = Submit(world, inhabitant, lack.Value.Need, materials);
-            _inhabitants.Report(new WorldEvent(Wanted, world.Tick, inhabitant.Id, lack.Value.Need, null));
+            var want = lack?.Need ?? LowestNeed(inhabitant);
+            _wants[inhabitant.Id] = Submit(world, inhabitant, want, materials, idea);
+            if (idea is not null)
+            {
+                inhabitant.Ideas.MarkTried(idea.Id);
+            }
+
+            _inhabitants.Report(new WorldEvent(Wanted, world.Tick, inhabitant.Id, want, null));
         }
     }
+
+    /// <summary>
+    /// The oldest idea not tried yet whose strength reached the data's value and whose roots the inhabitant still
+    /// believes (types it holds beliefs about, ideas it still has), with at least one subject root; null otherwise.
+    /// </summary>
+    private static Idea? RipeIdea(Inhabitant inhabitant, double? ripeAt)
+    {
+        if (ripeAt is not { } ripe)
+        {
+            return null;
+        }
+
+        var ideas = inhabitant.Ideas.Ideas;
+        return ideas.FirstOrDefault(i => !i.Tried && i.Strength >= ripe
+            && i.Roots.Any(r => r.Kind != IdeaRootKinds.Idea)
+            && i.Roots.All(r => r.Kind switch
+            {
+                IdeaRootKinds.Type => inhabitant.Beliefs.About(r.Id).Any(),
+                IdeaRootKinds.Idea => ideas.Any(o => o.Id == r.Id),
+                _ => true,
+            }));
+    }
+
+    // The want of a wish from an idea: its least satisfied need (then by id) - the idea is the reason, the need what it is for.
+    private static string LowestNeed(Inhabitant inhabitant) =>
+        inhabitant.Needs.OrderBy(n => n.Value).ThenBy(n => n.Key, StringComparer.Ordinal).First().Key;
 
     /// <summary>Perceived things as the inhabitant sees them: one per type, nearest first, with believed-true properties only.</summary>
     private List<ObservedThing> Materials(Inhabitant inhabitant)
@@ -406,7 +453,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     private static double Square(double value) => value * value;
 
-    private OpenWant Submit(World world, Inhabitant inhabitant, string want, List<ObservedThing> materials)
+    private OpenWant Submit(World world, Inhabitant inhabitant, string want, List<ObservedThing> materials, Idea? idea = null)
     {
         _counter++;
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id + "/invention", _counter);
@@ -426,7 +473,13 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
             {
                 Invention = new InventionPayload
                 {
-                    Trigger = InventionPayloadTrigger.Need,
+                    Trigger = idea is null ? InventionPayloadTrigger.Need : InventionPayloadTrigger.Idea,
+                    Idea = idea is null ? null : new InventionIdea
+                    {
+                        Id = idea.Id,
+                        Text = idea.Text,
+                        Roots = [.. idea.Roots.Where(r => r.Kind != IdeaRootKinds.Idea).Take(8).Select(r => new Subject { Kind = Enum.Parse<SubjectKind>(r.Kind, ignoreCase: true), Id = r.Id })],
+                    },
                     Want = want,
                     Subject = null,
                     Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
@@ -439,7 +492,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, world.Tick, json, null));
         _port!.Submit(requestId, json);
-        return new OpenWant(inhabitant.Id, want, requestId, world.Tick, [.. materials.Select(m => m.Type)], null);
+        return new OpenWant(inhabitant.Id, want, requestId, world.Tick, [.. materials.Select(m => m.Type)], null, idea?.Id);
     }
 
     private void Apply(World world, PortMessage message)

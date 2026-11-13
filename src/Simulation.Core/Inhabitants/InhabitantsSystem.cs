@@ -2120,7 +2120,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// The belief a passing action would carry from teller to listener, or null: matching the action's data
     /// (properties, value), sure enough, not something the listener experienced itself; surest first, then
     /// type and property by id. A belief the listener already holds the same way and at least as surely as it
-    /// would hear it is not passed again (W1696: telling what the other already knows brings nothing).
+    /// would hear it is not passed again (W1696: telling what the other already knows brings nothing), nor one
+    /// it already heard from this very teller (A1624, D921: teaching raises trust, so 'as surely' alone offered
+    /// the same topic again and again).
     /// </summary>
     public static (string TypeId, string PropertyId, Belief Belief)? PassableBelief(KnowledgeSettings knowledge, Inhabitant teller, Inhabitant listener, string action)
     {
@@ -2143,7 +2145,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 || (rule.Properties.Count > 0 && !rule.Properties.Contains(b.PropertyId))
                 || (rule.Value is { } value && b.Belief.Value != value)
                 || (listener.Beliefs.TryGet(b.TypeId, b.PropertyId, out var own)
-                    && (own.Source == KnowledgeSources.Experienced || (own.Value == b.Belief.Value && own.Confidence >= b.Belief.Confidence * trust))))
+                    && (own.Source == KnowledgeSources.Experienced
+                        || (own.Value == b.Belief.Value && (own.Confidence >= b.Belief.Confidence * trust || own.ToldBy == teller.Id)))))
             {
                 continue;
             }

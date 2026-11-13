@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.2",
+  "kind": "condition",
+  "entries": [
+    {
+      "id": "cold",
+      "description": "A cold: sneezing, a runny nose, tired."
+    },
+    {
+      "id": "belly_ache",
+      "description": "Belly ache, from bad food or bad water."
+    },
+    {
+      "id": "fever",
+      "description": "Fever: hot cheeks, weak, needs rest."
+    }
+  ]
+}

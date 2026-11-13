@@ -1575,6 +1575,14 @@
       "text": "Freier Moment ohne Antwort"
     },
     {
+      "key": "vocab.event.idea",
+      "text": "Idee"
+    },
+    {
+      "key": "vocab.event.dreamed",
+      "text": "Geträumt"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },
@@ -2009,6 +2017,110 @@
     {
       "key": "vocab.knowledge_source.seen",
       "text": "gesehen"
+    },
+    {
+      "key": "vocab.comfort_level.cold",
+      "text": "Kalt"
+    },
+    {
+      "key": "vocab.comfort_level.cool",
+      "text": "Kühl"
+    },
+    {
+      "key": "vocab.comfort_level.comfortable",
+      "text": "Angenehm"
+    },
+    {
+      "key": "vocab.comfort_level.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.comfort_level.hot",
+      "text": "Heiß"
+    },
+    {
+      "key": "vocab.light_level.day",
+      "text": "Tag"
+    },
+    {
+      "key": "vocab.light_level.dusk",
+      "text": "Dämmerung"
+    },
+    {
+      "key": "vocab.light_level.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "vocab.light_level.lit",
+      "text": "Beleuchtet"
+    },
+    {
+      "key": "vocab.water_depth.none",
+      "text": "Nicht im Wasser"
+    },
+    {
+      "key": "vocab.water_depth.shallow",
+      "text": "Flaches Wasser"
+    },
+    {
+      "key": "vocab.water_depth.deep",
+      "text": "Tiefes Wasser"
+    },
+    {
+      "key": "vocab.direction.north",
+      "text": "Norden"
+    },
+    {
+      "key": "vocab.direction.northeast",
+      "text": "Nordosten"
+    },
+    {
+      "key": "vocab.direction.east",
+      "text": "Osten"
+    },
+    {
+      "key": "vocab.direction.southeast",
+      "text": "Südosten"
+    },
+    {
+      "key": "vocab.direction.south",
+      "text": "Süden"
+    },
+    {
+      "key": "vocab.direction.southwest",
+      "text": "Südwesten"
+    },
+    {
+      "key": "vocab.direction.west",
+      "text": "Westen"
+    },
+    {
+      "key": "vocab.direction.northwest",
+      "text": "Nordwesten"
+    },
+    {
+      "key": "vocab.outline_size.large",
+      "text": "Groß"
+    },
+    {
+      "key": "vocab.outline_size.medium",
+      "text": "Mittelgroß"
+    },
+    {
+      "key": "vocab.vital.air",
+      "text": "Luft"
+    },
+    {
+      "key": "vocab.condition.cold",
+      "text": "Erkältung"
+    },
+    {
+      "key": "vocab.condition.belly_ache",
+      "text": "Bauchweh"
+    },
+    {
+      "key": "vocab.condition.fever",
+      "text": "Fieber"
     },
     {
       "key": "ui.toast.look",

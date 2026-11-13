@@ -55,6 +55,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("model3d")]
         public Model3dPayload? Model3d { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("review")]
+        public ReviewPayload? Review { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -125,7 +129,7 @@ namespace GlassWorld.Contracts
         public InventionPayloadTrigger Trigger { get; set; } = default!;
 
         /// <summary>
-        /// Need or action the inhabitant has no solution for (vocabulary need or action).
+        /// Need or action the inhabitant has no solution for (vocabulary need or action). With trigger 'idea' it is only the least satisfied need for the record: the prompts (inventor v5, guard v4) take the idea as what is wanted and do not say this want (review GW1 #333).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("want")]
         public string Want { get; set; } = default!;
@@ -153,6 +157,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("limits")]
         public InventionLimits Limits { get; set; } = new InventionLimits();
+
+        /// <summary>
+        /// Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("idea")]
+        public InventionIdea? Idea { get; set; } = default!;
 
     }
 
@@ -184,14 +195,17 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule.
+    /// An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule. A combine trial (B2687 K2, D932): the inhabitant puts things together without choosing a process - 'process' is null, the core lists the processes whose input/tool shape fits in 'candidates', and the judge says which of them happens, if any.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ProcessPayload
     {
 
+        /// <summary>
+        /// The process the inhabitant applies; null for a combine trial (then 'candidates' is set).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("process")]
-        public string Process { get; set; } = default!;
+        public string? Process { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("inputs")]
         public System.Collections.Generic.ICollection<ObservedThing> Inputs { get; set; } = new System.Collections.ObjectModel.Collection<ObservedThing>();
@@ -216,6 +230,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("signature")]
         public ProcessSignature Signature { get; set; } = new ProcessSignature();
+
+        /// <summary>
+        /// Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("candidates")]
+        public System.Collections.Generic.ICollection<string>? Candidates { get; set; } = default!;
 
     }
 
@@ -432,6 +453,117 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_triangles")]
         public int MaxTriangles { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An idea the inhabitant already has (B2578, B4b R28): its id in the core, a short English text (internal, never shown as is), its roots (subjects of its own knowledge, or other ideas by id) and how grown it is.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewIdea
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roots")]
+        public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The nightly look back of one inhabitant (A1584, B7 R18-R22, B2592, B2687): it replaces memory and dream. From the day's events, the memory, what the inhabitant knows (its Fundbuch, B2589) and its ideas, the AI writes the new memory summary, a dream, new or grown ideas, intentions for the morning and the morning mood. What ideas and intentions do the core decides from data; the review never changes the character (R19).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewPayload
+    {
+
+        /// <summary>
+        /// The day's events, oldest first (as for memory and dream).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<MemoryFact> Events { get; set; } = new System.Collections.ObjectModel.Collection<MemoryFact>();
+
+        /// <summary>
+        /// The current memory summary (English, internal; may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public string Memory { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memory_max_chars")]
+        public int MemoryMaxChars { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dream_max_chars")]
+        public int DreamMaxChars { get; set; } = default!;
+
+        /// <summary>
+        /// Strongest mood at the end of the day, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string? Mood { get; set; } = default!;
+
+        /// <summary>
+        /// Tones the dream may have (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tones")]
+        public System.Collections.Generic.ICollection<string> Tones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// What the inhabitant believes (its Fundbuch, B2589), cut by relevance in the core; only beliefs, never the truth. Roots of ideas and the subjects of intentions must come from here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knowledge")]
+        public System.Collections.Generic.ICollection<KnowledgeEntry> Knowledge { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeEntry>();
+
+        /// <summary>
+        /// The inhabitant's current ideas (may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ideas")]
+        public System.Collections.Generic.ICollection<ReviewIdea> Ideas { get; set; } = new System.Collections.ObjectModel.Collection<ReviewIdea>();
+
+        /// <summary>
+        /// Needs at the end of the day (0 = urgent, 1 = satisfied).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needs")]
+        public System.Collections.Generic.ICollection<LevelEntry> Needs { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Character traits (creativity: how often and how bold; curiosity: trying out - B2578, no new trait).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("traits")]
+        public System.Collections.Generic.ICollection<LevelEntry> Traits { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Actions an intention may name (vocabulary, general ones).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_new_ideas")]
+        public int MaxNewIdeas { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_intentions")]
+        public int MaxIntentions { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionIdea
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roots")]
+        public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
 
     }
 

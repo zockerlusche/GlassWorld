@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "kind": "light_level",
+  "entries": [
+    {
+      "id": "day",
+      "description": "Daylight: one sees far."
+    },
+    {
+      "id": "dusk",
+      "description": "Dim light at dawn or dusk."
+    },
+    {
+      "id": "night",
+      "description": "Dark: one sees only what is close."
+    },
+    {
+      "id": "lit",
+      "description": "Dark around, but a fire or a glow nearby gives light."
+    }
+  ]
+}

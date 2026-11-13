@@ -224,6 +224,9 @@ public sealed class Inhabitant
     /// </summary>
     public InhabitantMemory Memory { get; } = new();
 
+    /// <summary>Its ideas and intentions from the nightly look back (A1584, B2578, B2592); empty until the first one.</summary>
+    public InhabitantIdeas Ideas { get; } = new();
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -318,6 +321,12 @@ public sealed class Inhabitant
         {
             hasher.Write("memory");
             Memory.WriteState(hasher);
+        }
+
+        // Ideas and intentions only once there are any (A1584), so worlds without them keep their hashes.
+        if (Ideas.HasState)
+        {
+            Ideas.WriteState(hasher);
         }
     }
 

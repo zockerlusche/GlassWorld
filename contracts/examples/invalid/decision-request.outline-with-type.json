@@ -1,0 +1,144 @@
+{
+  "contract_version": "0.2",
+  "request_id": "6f1d2c3b-5a4e-4b7c-9d8e-1f2a3b4c5d6e",
+  "tick": 5400,
+  "seed": 424242,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ],
+    "memory": {
+      "summary": "",
+      "recent": []
+    },
+    "knowledge": [],
+    "relationships": [],
+    "habits": [],
+    "vitals": [
+      {
+        "id": "air",
+        "value": 1.0
+      }
+    ]
+  },
+  "environment": {
+    "time_of_day": "night",
+    "temperature_c": 4.0,
+    "weather": [
+      "rain"
+    ],
+    "visibility_m": 10,
+    "comfort": "cold",
+    "light": "night",
+    "wet": true,
+    "in_water": "shallow"
+  },
+  "perception": {
+    "objects": [
+      {
+        "id": "obj-0042",
+        "type": "red_berry_bush",
+        "distance_m": 4.5,
+        "known_properties": []
+      },
+      {
+        "id": "obj-0007",
+        "type": "apple_tree",
+        "distance_m": 22.0,
+        "known_properties": [
+          {
+            "property": "edible",
+            "value": true,
+            "confidence": 0.9
+          }
+        ]
+      }
+    ],
+    "inhabitants": [],
+    "outlines": [
+      {
+        "size": "large",
+        "direction": "northeast",
+        "distance_m": 40,
+        "type": "boulder"
+      },
+      {
+        "size": "medium",
+        "direction": "south",
+        "distance_m": 20
+      }
+    ],
+    "remembered_inhabitants": [
+      {
+        "id": "inh-0002",
+        "hours_ago": 3,
+        "direction": "west"
+      }
+    ]
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "inspect",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o2",
+      "action": "eat",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o3",
+      "action": "move_to",
+      "target": "obj-0007",
+      "partners": []
+    },
+    {
+      "option_id": "o4",
+      "action": "idle",
+      "target": null,
+      "partners": []
+    }
+  ]
+}

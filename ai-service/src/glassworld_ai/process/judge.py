@@ -74,9 +74,16 @@ class JudgeContext:
     guard: dict[str, Any]
 
     def __init__(
-        self, content_dir: Path, vocab: Vocabulary, guard: dict[str, Any] | None = None
+        self,
+        content_dir: Path,
+        vocab: Vocabulary,
+        guard: dict[str, Any] | None = None,
+        combine: bool = False,
     ) -> None:
         self.guard = validate_guard(guard or {}, vocab)
+        self.vocab = vocab
+        # v2 (B2687 K2): the prompt answers a combine trial (process null + candidates).
+        self.combine = combine
         settings = json.loads((content_dir / "invention/settings.json").read_text(encoding="utf-8"))
         self.living = set(cast(list[str], settings.get("living_properties", [])))
         self.properties = [p for p in vocab.ids("property") if p not in self.living]
@@ -90,11 +97,40 @@ def guard_settings(template: PromptTemplate) -> dict[str, Any]:
     return cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
 
 
-def _payload(job: GenerationJob) -> Any:
+def _payload(job: GenerationJob, ctx: JudgeContext | None = None) -> Any:
     payload = job.payload.process
     if payload is None:
         raise JobFailedError("bad_request", "process job without process payload", retryable=False)
+    if payload.process is None:
+        # B2687 K2: a combine trial (process null + candidates) is answered by judge v2, not by v1.
+        if ctx is not None and not ctx.combine:
+            raise JobFailedError("bad_request", "combine trial needs judge v2", retryable=False)
+        if not payload.candidates:
+            raise JobFailedError("bad_request", "combine trial without candidates", retryable=False)
     return payload
+
+
+def _combining(payload: Any) -> bool:
+    return payload.process is None
+
+
+def _choices(payload: Any, ctx: JudgeContext) -> tuple[list[str], list[str]]:
+    """The processes that may happen (physics allows them) and why the others cannot."""
+    _, inputs, _, heat = _signature(payload)
+    asked = (
+        [plain_id(c) for c in payload.candidates]
+        if _combining(payload)
+        else [plain_id(payload.process)]
+    )
+    possible: list[str] = []
+    reasons: list[str] = []
+    for process in asked:
+        reason = impossible(ctx.guard, process, inputs, heat)
+        if reason is None:
+            possible.append(process)
+        else:
+            reasons.append(reason)
+    return possible, reasons
 
 
 def _signature(payload: Any) -> tuple[str, list[list[str]], list[str] | None, str | None]:
@@ -138,22 +174,25 @@ def impossible(
 
 def precheck(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any] | None:
     """The 'not feasible' result when physics rules the try out, else None (then ask the model)."""
-    process, inputs, _, heat = _signature(_payload(job))
-    reason = impossible(ctx.guard, process, inputs, heat)
-    if reason is None:
+    possible, reasons = _choices(_payload(job, ctx), ctx)
+    if possible:
         return None
-    return {"feasible": False, "rule": None, "rationale": f"Physics: {reason}."[:280]}
+    return {"feasible": False, "rule": None, "rationale": f"Physics: {'; '.join(reasons)}."[:280]}
 
 
 def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
-    payload = _payload(job)
-    process, inputs, _, heat = _signature(payload)
-    by_heat = process in ctx.guard.get("heat_processes", [])
+    payload = _payload(job, ctx)
+    _, inputs, _, heat = _signature(payload)
+    possible = _choices(payload, ctx)[0] or [""]
+    # Combine trial (v2): the limits of all possible processes together; parse checks the chosen.
+    by_heat = all(p in ctx.guard.get("heat_processes", []) for p in possible)
     heat_choices: list[Any] = _upto(ctx.heat_levels, heat) + ([] if by_heat else [None])
-    may_add = cast(dict[str, list[str]], ctx.guard.get("may_add", {})).get(process)
+    adds = [cast(dict[str, list[str]], ctx.guard.get("may_add", {})).get(p) for p in possible]
+    may_add = None if any(a is None for a in adds) else {x for a in adds if a for x in a}
     addable = [p for p in ctx.properties if may_add is None or p in may_add]
     protected = set(ctx.guard.get("never_remove", []))
-    may_remove = cast(dict[str, list[str]], ctx.guard.get("may_remove", {})).get(process)
+    removes = [cast(dict[str, list[str]], ctx.guard.get("may_remove", {})).get(p) for p in possible]
+    may_remove = None if any(r is None for r in removes) else {x for r in removes if r for x in r}
     removable = sorted(
         {p for props in inputs for p in props if may_remove is None or p in may_remove} - protected
     )
@@ -203,7 +242,7 @@ def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
             "duration_ticks": {"type": "integer", "minimum": MIN_TICKS, "maximum": MAX_TICKS},
         },
     }
-    return {
+    schema: dict[str, Any] = {
         "type": "object",
         "additionalProperties": False,
         "required": ["feasible", "rationale", "rule"],
@@ -213,17 +252,38 @@ def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
             "rule": rule,  # always filled (Ollama ignores conditions); unused when not feasible
         },
     }
+    if _combining(payload):
+        # v2 (B2687 K2): which of the possible processes happens (filled even when nothing does).
+        schema["required"] = ["feasible", "process", "rationale", "rule"]
+        schema["properties"] = {
+            "feasible": {"type": "boolean"},
+            "process": {"type": "string", "enum": possible},
+            "rationale": schema["properties"]["rationale"],
+            "rule": rule,
+        }
+    return schema
 
 
 def build_values(job: GenerationJob, ctx: JudgeContext) -> dict[str, str]:
-    payload = _payload(job)
+    payload = _payload(job, ctx)
     process, inputs, tool, heat = _signature(payload)
 
     def props(values: list[str]) -> str:
         return ", ".join(humanize(v) for v in values) or "(nothing special)"
 
+    said = humanize(process)
+    if _combining(payload):
+        # v2 (B2687 K2): the inhabitant chose no process - the possible ones, each with what it is.
+        lines = []
+        for choice in _choices(payload, ctx)[0]:
+            about = ctx.vocab.describe("process", choice)
+            lines.append(f"- {choice}: {about}" if about else f"- {choice}")
+        said = (
+            "The inhabitant puts these things together and chooses no process. "
+            "Which ONE of these happens, if any (answer its id as process):\n" + "\n".join(lines)
+        )
     return {
-        "process": humanize(process),
+        "process": said,
         "inputs": "\n".join(f"{n}. {props(p)}" for n, p in enumerate(inputs, start=1)),
         "tool": props(tool) if tool else "(none)",
         "heat": humanize(heat) if heat else "(no heat)",
@@ -256,7 +316,10 @@ def parse_judgement(raw: str, job: GenerationJob, ctx: JudgeContext) -> dict[str
     rationale = " ".join(str(values["rationale"]).split())[:280]
     if not values["feasible"]:
         return {"feasible": False, "rule": None, "rationale": rationale}
-    process, inputs, tool, heat = _signature(_payload(job))
+    payload = _payload(job, ctx)
+    signed, inputs, tool, heat = _signature(payload)
+    # v2 (B2687 K2): in a combine trial the judge names the process; the rule id stays the trial's.
+    process = str(values["process"]) if _combining(payload) else signed
     chosen = cast(dict[str, Any], values["rule"])
     target = int(chosen["changes"]) - 1
     if process in ctx.guard.get("heat_processes", []) and chosen["heat_min"] is None:
@@ -272,12 +335,20 @@ def parse_judgement(raw: str, job: GenerationJob, ctx: JudgeContext) -> dict[str
     if set(added) & ctx.living:
         raise InvalidOutputError("things never become alive (B2531)")
     added = sorted(set(added) - set(inputs[target]))
+    limit_add = cast(dict[str, list[str]], ctx.guard.get("may_add", {})).get(process)
+    limit_remove = cast(dict[str, list[str]], ctx.guard.get("may_remove", {})).get(process)
+    if limit_add is not None and set(added) - set(limit_add):
+        raise InvalidOutputError(f"{process} cannot give {sorted(set(added) - set(limit_add))}")
+    if limit_remove is not None and set(removed) - set(limit_remove):
+        raise InvalidOutputError(
+            f"{process} cannot take {sorted(set(removed) - set(limit_remove))}"
+        )
     if not added and not removed:
         raise InvalidOutputError("a feasible try must change something")
     # Rule order: the changing input first (rule semantics), the others in canonical order.
     order = [target] + [i for i in range(len(inputs)) if i != target]
     rule = {
-        "id": world_rule_id(process, inputs, tool, heat),
+        "id": world_rule_id(signed, inputs, tool, heat),
         "process": process,
         "inputs": [{"properties_all": inputs[i], "properties_none": []} for i in order],
         "tool": {"properties_all": tool, "properties_none": []} if tool else None,

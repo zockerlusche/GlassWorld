@@ -48,7 +48,11 @@ public sealed record SavedInhabitant(
     IReadOnlyList<string>? KnownNames = null,
     IReadOnlyList<string>? Met = null,
     IReadOnlyList<SavedImprint>? Imprints = null,
-    SavedMemory? Memory = null);
+    SavedMemory? Memory = null,
+    SavedIdeas? Ideas = null);
+
+/// <summary>An inhabitant's ideas and intentions as saved (A1584): the running number and both lists.</summary>
+public sealed record SavedIdeas(long Counter, IReadOnlyList<Idea> Ideas, IReadOnlyList<Intention> Intentions);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -192,7 +196,8 @@ public static class StateCodec
                 i.KnownNames.Count > 0 ? [.. i.KnownNames] : null,
                 i.Met.Count > 0 ? [.. i.Met] : null,
                 i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null,
-                i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null))],
+                i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
+                i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -306,6 +311,11 @@ public static class StateCodec
             if (saved.Memory is { } memory)
             {
                 inhabitant.Memory.Restore(memory.Summary, memory.LastSeq, memory.Events, memory.Firsts, memory.SealedSeq);
+            }
+
+            if (saved.Ideas is { } ideas)
+            {
+                inhabitant.Ideas.Restore(ideas.Counter, ideas.Ideas, ideas.Intentions);
             }
 
             inhabitant.Repeat = saved.Repeat;

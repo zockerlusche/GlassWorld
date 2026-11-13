@@ -342,3 +342,34 @@ def test_v4_and_guard_v3_check_that_the_idea_answers_the_want(settings: Settings
     g2 = load_prompt(settings.prompts_dir, "guard/invention", 2)
     old = g2.render(guard_values(job, BOWL, 1, vocab, safety, g2.settings))
     assert "off_want" not in old.system and "What the inhabitant wanted" not in old.user
+
+
+def test_v5_and_guard_v4_take_a_ripe_idea_as_the_want(settings: Settings) -> None:
+    """B2687 (R28): a ripe idea of its own is the reason - the inventor hears it, the guard checks
+    the thing against it; older prompts render as before."""
+    from glassworld_ai.invention.flow import guard_values, inventor_values
+
+    vocab = _vocab(settings)
+    data = copy.deepcopy(JOB_DATA)
+    data["payload"]["invention"]["trigger"] = "idea"
+    data["payload"]["invention"]["want"] = "purpose"
+    data["payload"]["invention"]["idea"] = {
+        "id": "idea-0001",
+        "text": "The sharp stone might open a nut.",
+        "roots": [{"kind": "type", "id": "flint"}],
+    }
+    job = GenerationJob.model_validate(data)
+    v5 = load_prompt(settings.prompts_dir, "invention/invent", 5)
+    rendered = v5.render(inventor_values(job, v5, vocab, ""))
+    assert "You had an idea of your own: The sharp stone might open a nut." in rendered.user
+    safety = safety_categories(settings.content_dir)
+    g4 = load_prompt(settings.prompts_dir, "guard/invention", 4)
+    guard = g4.render(guard_values(job, BOWL, 1, vocab, safety, g4.settings))
+    assert "its own idea: The sharp stone might open a nut." in guard.user
+    # Review GW1 #333: with trigger idea the want (lowest need, for the record) is not said,
+    # so a good idea is never sent back for not helping that need.
+    assert "Purpose" not in guard.user
+    assert "Purpose" not in rendered.user
+    g3 = load_prompt(settings.prompts_dir, "guard/invention", 3)
+    old = g3.render(guard_values(job, BOWL, 1, vocab, safety, g3.settings))
+    assert "its own idea" not in old.user

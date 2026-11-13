@@ -1,5 +1,5 @@
 {
-  "description": "Test vectors for ProcessSignature (common.schema.json): canonical JSON and world rule id. Both the AI service (Python) and the core (C#) must produce exactly these. Vectors 6 and 7 show the normalisation: duplicate properties and an empty tool list give the same id as the normal form.",
+  "description": "Test vectors for ProcessSignature (common.schema.json): canonical JSON and world rule id. Both the AI service (Python) and the core (C#) must produce exactly these. Vectors 6 and 7 show the normalisation: duplicate properties and an empty tool list give the same id as the normal form. The last vector is a combine trial (B2687 K2): process 'combine', the judge picks the process.",
   "vectors": [
     {
       "signature": {
@@ -120,6 +120,25 @@
       },
       "canonical": "{\"heat_level\":null,\"inputs\":[[\"dry_now\",\"fibrous\"]],\"process\":\"soak\",\"tool\":null}",
       "rule_id": "world_019435fe802d9e39"
+    },
+    {
+      "signature": {
+        "process": "combine",
+        "inputs": [
+          [
+            "burnable",
+            "splittable"
+          ],
+          [
+            "hard",
+            "sparks"
+          ]
+        ],
+        "tool": null,
+        "heat_level": null
+      },
+      "canonical": "{\"heat_level\":null,\"inputs\":[[\"burnable\",\"splittable\"],[\"hard\",\"sparks\"]],\"process\":\"combine\",\"tool\":null}",
+      "rule_id": "world_c2a5b9579adcb6a0"
     }
   ]
 }

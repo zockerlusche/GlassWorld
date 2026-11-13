@@ -5,38 +5,95 @@
   "description": "Data file content/invention/settings.json (D471 D5, B4b): when an inhabitant wants to invent something, what the core sends to the AI and the limits of its final check. Placeholders until Marcel decides; no invention, recipe or object is named here.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "job_priority", "trigger", "retry_after_minutes", "tech_level", "limits", "max_materials", "living_properties", "implied_properties"],
+  "required": [
+    "contract_version",
+    "job_priority",
+    "trigger",
+    "retry_after_minutes",
+    "tech_level",
+    "limits",
+    "max_materials",
+    "living_properties",
+    "implied_properties"
+  ],
   "properties": {
-    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
-    "job_priority": { "description": "Priority of invention jobs in the service queue (B7 O2).", "type": "integer", "minimum": 0, "maximum": 100 },
-    "trigger": { "$ref": "#/$defs/InventionTrigger" },
-    "retry_after_minutes": { "description": "After a retryable error the wish stays open and is sent again with a new request id after this many game minutes (B2487).", "type": "integer", "minimum": 1, "maximum": 10080 },
-    "tech_level": { "description": "Highest tech level the world allows now (vocabulary tech_level; order of the vocabulary = order of the levels).", "$ref": "common.schema.json#/$defs/VocabId" },
-    "limits": { "$ref": "#/$defs/InventionLimitSettings" },
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "job_priority": {
+      "description": "Priority of invention jobs in the service queue (B7 O2).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "trigger": {
+      "$ref": "#/$defs/InventionTrigger"
+    },
+    "retry_after_minutes": {
+      "description": "After a retryable error the wish stays open and is sent again with a new request id after this many game minutes (B2487).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10080
+    },
+    "tech_level": {
+      "description": "Highest tech level the world allows now (vocabulary tech_level; order of the vocabulary = order of the levels).",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "limits": {
+      "$ref": "#/$defs/InventionLimitSettings"
+    },
     "forbidden_terms": {
       "description": "Youth protection for inventions (B4b R16, B2481): what an invention, a new need or a new ability must not be - a weapon, a trap, hunting or fishing gear, poison. A name holding one of these terms is refused by the core whatever the AI guard said (reason forbidden_purpose). Per language; a term matches a whole word, * at its start lets the word begin otherwise (German compounds: *falle matches Tierfalle), * at its end lets it go on (jagd* matches Jagdspeer). Kept apart from the content guard of all AI text, so a thought may still name a spear. Omitted = no such check.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["de", "en"],
+      "required": [
+        "de",
+        "en"
+      ],
       "properties": {
-        "de": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "pattern": "^\\*?[a-zäöüß]{2,32}\\*?$" } },
-        "en": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "pattern": "^\\*?[a-z]{2,32}\\*?$" } }
+        "de": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^\\*?[a-zäöüß]{2,32}\\*?$"
+          }
+        },
+        "en": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^\\*?[a-z]{2,32}\\*?$"
+          }
+        }
       }
     },
-    "max_materials": { "description": "At most this many perceived things are sent as materials (contract maximum 16).", "type": "integer", "minimum": 1, "maximum": 16 },
+    "max_materials": {
+      "description": "At most this many perceived things are sent as materials (contract maximum 16).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
     "implied_properties": {
       "description": "Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).",
       "type": "array",
       "maxItems": 16,
       "uniqueItems": true,
-      "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
     },
     "living_properties": {
       "description": "B2531: properties only living beings have. An invention that brings one of them is refused by the core. Empty while the property vocabulary has none.",
       "type": "array",
       "maxItems": 64,
       "uniqueItems": true,
-      "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
     }
   },
   "$defs": {
@@ -44,23 +101,70 @@
       "description": "A lack without a solution: a need stays below a threshold for a while (D471 stage 1).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["need_below", "hours_below", "cooldown_hours", "max_open"],
+      "required": [
+        "need_below",
+        "hours_below",
+        "cooldown_hours",
+        "max_open"
+      ],
       "properties": {
-        "need_below": { "description": "Need satisfaction below this counts as lack (0 = unsatisfied, 1 = satisfied).", "type": "number", "minimum": 0, "maximum": 1 },
-        "hours_below": { "description": "Game hours the need must stay below the threshold.", "type": "integer", "minimum": 1, "maximum": 10000 },
-        "cooldown_hours": { "description": "Game hours before the same inhabitant wants to invent again after a wish closed.", "type": "integer", "minimum": 0, "maximum": 100000 },
-        "max_open": { "description": "Open wishes in the whole world at the same time.", "type": "integer", "minimum": 1, "maximum": 64 }
+        "need_below": {
+          "description": "Need satisfaction below this counts as lack (0 = unsatisfied, 1 = satisfied).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hours_below": {
+          "description": "Game hours the need must stay below the threshold.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "cooldown_hours": {
+          "description": "Game hours before the same inhabitant wants to invent again after a wish closed.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max_open": {
+          "description": "Open wishes in the whole world at the same time.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "idea_ripe_at": {
+          "description": "B2687 (B4b R28, A1585): an own idea whose strength reached this value and whose roots the inhabitant still believes becomes a wish (trigger 'idea') when no lack does; once per idea, with the same cooldown and open limit. Absent = ideas never become wishes.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "InventionLimitSettings": {
       "description": "Limits sent with every invention job and checked again by the core (B4b R14).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["max_size_m", "max_parts", "max_rounds"],
+      "required": [
+        "max_size_m",
+        "max_parts",
+        "max_rounds"
+      ],
       "properties": {
-        "max_size_m": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
-        "max_parts": { "type": "integer", "minimum": 2, "maximum": 64 },
-        "max_rounds": { "type": "integer", "minimum": 1, "maximum": 3 }
+        "max_size_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "max_parts": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 64
+        },
+        "max_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
       }
     }
   }
