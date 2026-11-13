@@ -149,6 +149,14 @@
     {
       "id": "stone",
       "description": "Looks like stone or rock; seen by looking."
+    },
+    {
+      "id": "luminous",
+      "description": "Gives off light; it shines even in the dark."
+    },
+    {
+      "id": "digging",
+      "description": "Has a broad, firm blade on a handle, like a scoop."
     }
   ]
 }

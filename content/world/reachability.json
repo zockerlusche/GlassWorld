@@ -6,10 +6,15 @@
     { "id": "shelter", "any_of": [ { "properties_all": ["sheltering"], "properties_none": [] } ] },
     { "id": "cooling", "any_of": [ { "properties_all": ["cooling"], "properties_none": [] } ] },
     { "id": "warmth", "any_of": [ { "properties_all": ["hot"], "properties_none": [] }, { "properties_all": ["insulating"], "properties_none": [] } ] },
-    { "id": "light", "any_of": [] }
+    { "id": "light", "any_of": [ { "properties_all": ["luminous"], "properties_none": [] } ] }
   ],
   "known_gaps": [
-    { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
+    { "gap": "process:harden_stick_in_fire", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
+    { "gap": "process:smoke_food", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
+    { "gap": "process:desalinate_water", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
+    { "gap": "process:brew_herb_tea", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
+    { "gap": "process:mix_clay_mortar", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
+    { "gap": "process:warm_stone_by_fire", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
 
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },
     { "gap": "heat:embers", "reason": "No data says which thing gives which heat level (see heat:warm)." },
@@ -29,10 +34,8 @@
     { "gap": "process:curdle_milk_to_cheese", "reason": "Needs heat level warm; a milky thing is reachable since the hazelnut is fatty (A1575), the warm heat source is not." },
 
     { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:embers)." },
-    { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:embers)." },
     { "gap": "property:alkaline", "reason": "Only made by burn_to_ash, which needs heat (see heat:open_fire)." },
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
-    { "gap": "property:insulating", "reason": "No object type carries it and no rule makes it: no clothing rule, no wool (D643 question 1)." },
 
     { "gap": "tech:workshop", "reason": "Its only rule is melt_sand_with_ash (see there)." },
     { "gap": "tech:metal", "reason": "Follows workshop; its only rule is melt_with_furnace (see there)." }

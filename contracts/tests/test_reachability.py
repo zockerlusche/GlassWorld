@@ -124,8 +124,9 @@ def test_without_the_spark_maker_fire_is_out_of_reach(tmp_path: Path) -> None:
     gaps = _gaps(content)
     assert {"type:pyrite", "type:spark", "type:fire"} <= gaps
     assert "combination:fire_from_spark_and_dry_grass" in gaps
-    # Warmth hangs on something hot: without sparks and fire the goal is out of reach too.
-    assert "goal:warmth" in gaps
+    # Warmth is something hot or something insulating: without sparks and fire a grass bed still keeps warm
+    # (D988 rule 8, lay_grass_bed), so the goal stays in reach.
+    assert "goal:warmth" not in gaps
 
 
 def test_a_heat_source_opens_the_rules_that_need_heat() -> None:

@@ -2973,6 +2973,14 @@
     {
       "key": "vocab.property.waterproof",
       "text": "Waterproof"
+    },
+    {
+      "key": "vocab.property.luminous",
+      "text": "Luminous"
+    },
+    {
+      "key": "vocab.property.digging",
+      "text": "Digging"
     }
   ]
 }

@@ -487,7 +487,11 @@
           "burnable",
           "building_material",
           "fibrous",
-          "braidable"
+          "braidable",
+          "container",
+          "hard",
+          "sharp",
+          "waterproof"
         ],
         "produces": null,
         "consumes": []
@@ -573,7 +577,9 @@
           "properties_all": [
             "container"
           ],
-          "properties_none": []
+          "properties_none": [
+            "burnable"
+          ]
         }
       ],
       "tool": null,
@@ -635,7 +641,9 @@
             "container",
             "hard"
           ],
-          "properties_none": []
+          "properties_none": [
+            "burnable"
+          ]
         }
       ],
       "tool": null,
@@ -910,6 +918,457 @@
         "consumes": [
           1
         ]
+      }
+    },
+    {
+      "id": "harden_stick_in_fire",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "building_material",
+            "portable"
+          ],
+          "properties_none": [
+            "hard"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 60,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "hard"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "bind_torch",
+      "process": "bind",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "building_material",
+            "portable"
+          ],
+          "properties_none": [
+            "luminous"
+          ]
+        },
+        {
+          "properties_all": [
+            "sticky",
+            "burnable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 30,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "luminous"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "bind_scoop_to_handle",
+      "process": "bind",
+      "inputs": [
+        {
+          "properties_all": [
+            "sharp",
+            "container"
+          ],
+          "properties_none": [
+            "hard",
+            "digging"
+          ]
+        },
+        {
+          "properties_all": [
+            "burnable",
+            "building_material"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "fibrous"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 60,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "digging"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "smoke_food",
+      "process": "dry",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible"
+          ],
+          "properties_none": [
+            "long_lasting",
+            "cooked"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 360,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "long_lasting"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "desalinate_water",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "water",
+            "salty"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "container",
+          "waterproof"
+        ],
+        "properties_none": []
+      },
+      "heat_min": "open_fire",
+      "duration_ticks": 120,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "drinkable"
+        ],
+        "remove_properties": [
+          "salty"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "brew_herb_tea",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "water",
+            "drinkable"
+          ],
+          "properties_none": [
+            "salty",
+            "healing"
+          ]
+        },
+        {
+          "properties_all": [
+            "healing",
+            "edible"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "container",
+          "waterproof"
+        ],
+        "properties_none": []
+      },
+      "heat_min": "embers",
+      "duration_ticks": 30,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "healing"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "lay_grass_bed",
+      "process": "braid",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "fibrous"
+          ],
+          "properties_none": [
+            "braidable",
+            "insulating"
+          ]
+        },
+        {
+          "properties_all": [
+            "burnable",
+            "fibrous"
+          ],
+          "properties_none": [
+            "braidable"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 60,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "insulating"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "ret_fibres",
+      "process": "soak",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": [
+            "long_lasting"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 600,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "long_lasting"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "weave_basket",
+      "process": "braid",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable",
+            "long_lasting"
+          ],
+          "properties_none": [
+            "container"
+          ]
+        },
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable",
+            "long_lasting"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 120,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "container"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "mix_clay_mortar",
+      "process": "mix",
+      "inputs": [
+        {
+          "properties_all": [
+            "malleable",
+            "building_material"
+          ],
+          "properties_none": [
+            "sticky"
+          ]
+        },
+        {
+          "properties_all": [
+            "alkaline",
+            "fine_grained"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "water",
+          "drinkable"
+        ],
+        "properties_none": [
+          "salty"
+        ]
+      },
+      "heat_min": null,
+      "duration_ticks": 30,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "sticky"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "dry_peat",
+      "process": "dry",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "portable"
+          ],
+          "properties_none": [
+            "building_material",
+            "fibrous",
+            "smoulders",
+            "sticky",
+            "edible"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 600,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "smoulders"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "carve_bowl",
+      "process": "cut",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "building_material",
+            "portable"
+          ],
+          "properties_none": [
+            "container"
+          ]
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard",
+          "sharp"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 120,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "container"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "warm_stone_by_fire",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "stone",
+            "hard",
+            "portable"
+          ],
+          "properties_none": [
+            "hot"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 60,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "hot"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
       }
     }
   ]
