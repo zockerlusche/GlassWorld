@@ -1607,6 +1607,10 @@
       "text": "Praised"
     },
     {
+      "key": "vocab.event.word_heard",
+      "text": "Heard a word"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Question unanswered"
     },

@@ -529,6 +529,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         };
         Change(inhabitant, outcome, reply is null ? null : new ConversationLineState(false, world.Tick, reply.Locale.ToString().ToLowerInvariant(), reply.Text));
         Praise(world, inhabitant, response, outcome);
+        TakeNaming(world, inhabitant, response, outcome);
         switch (outcome)
         {
             case OutcomeChangeOutcome.Reply:
@@ -568,6 +569,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Event: the player's praise reached an inhabitant (A1538).</summary>
     public const string Praised = "praised";
 
+    /// <summary>Event: the inhabitant heard the player's word for a thing it sees (A1617).</summary>
+    public const string WordHeard = "word_heard";
+
+    /// <summary>The voice kind of a naming (vocabulary voice_kind).</summary>
+    public const string NamingKind = "naming";
+
     /// <summary>The voice kind of praise (vocabulary voice_kind).</summary>
     public const string PraiseKind = "praise";
 
@@ -603,6 +610,25 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             Math.Clamp(r.Trust + praise.Trust, 0, 1),
             Math.Clamp(r.Respect + praise.Respect, 0, 1)));
         _inhabitants.Report(new WorldEvent(Praised, world.Tick, inhabitant.Id, null, null));
+    }
+
+    /// <summary>
+    /// A1538/A1617 (B2678): a word for a thing - into the memory first (a name proposal by trust comes with A1536).
+    /// The core checks again: understood (reply or gesture), a thing the inhabitant sees now, a word the guard allows.
+    /// </summary>
+    private void TakeNaming(World world, Inhabitant inhabitant, ConversationResponse response, OutcomeChangeOutcome outcome)
+    {
+        if (_settings.Naming is not { } naming || response.Voice is not { Kind: NamingKind, Naming: { } named }
+            || outcome is not (OutcomeChangeOutcome.Reply or OutcomeChangeOutcome.Gesture)
+            || string.IsNullOrWhiteSpace(named.Word) || !_guard.Check(named.Word).Allowed
+            || !_decisions.PerceivedTypes(inhabitant).Contains(named.Type, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        var memory = MemoryOf(inhabitant.Id);
+        _memories[inhabitant.Id] = memory with { Understanding = Math.Clamp(memory.Understanding + naming.Understanding, 0, _settings.UnderstandingMax) };
+        _inhabitants.Report(new WorldEvent(WordHeard, world.Tick, inhabitant.Id, null, named.Type) { Detail = named.Word.Trim() });
     }
 
     /// <summary>Applies the data's changes for an outcome (never numbers from the answer, B2462).</summary>

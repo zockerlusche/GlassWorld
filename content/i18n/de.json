@@ -1607,6 +1607,10 @@
       "text": "Gelobt"
     },
     {
+      "key": "vocab.event.word_heard",
+      "text": "Wort gehört"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },

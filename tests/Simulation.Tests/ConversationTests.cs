@@ -115,6 +115,33 @@ public sealed class ConversationTests : IDisposable
     }
 
     [Fact]
+    public void ANamedWordForAThingInSightGoesIntoTheMemoryAndUnderstandingGrows()
+    {
+        // A1617 (B2678): a word first into the memory; only for a thing the inhabitant sees, only when understood.
+        var (host, id) = Host();
+        var inhabitant = host.Inhabitants.Get(id);
+        var near = host.Objects.Spawn("flint", new GlassWorld.Simulation.Objects.Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.World.Step();
+        var naming = host.Content.Conversation.Naming!;
+        var rule = host.Content.Conversation.Outcomes.Single(o => o.Outcome == OutcomeChangeOutcome.Reply);
+        var events = Collect(host);
+        var before = host.Conversation.MemoryOf(id).Understanding;
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Stein.", null, ConversationSystem.NamingKind, (near.TypeId, "Feuerstein"));
+        Say(host, id, "Das ist ein Feuerstein.");
+        host.World.Run(2);
+        var heard = Assert.Single(events, e => e.Kind == ConversationSystem.WordHeard);
+        Assert.Equal((near.TypeId, "Feuerstein"), (heard.TargetId, heard.Detail));
+        Assert.Equal(before + rule.Understanding + naming.Understanding, host.Conversation.MemoryOf(id).Understanding, 9);
+
+        // A thing it does not see is no naming.
+        host.World.Run(2);
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Hm.", null, ConversationSystem.NamingKind, ("nothing_in_sight", "Ding"));
+        Say(host, id, "Das ist ein Ding.");
+        host.World.Run(2);
+        Assert.Single(events, e => e.Kind == ConversationSystem.WordHeard);
+    }
+
+    [Fact]
     public void TheLiveServiceAnswerOfMarcelsTestBecomesASaidEvent()
     {
         // W1688: the exact answer the local service sent in the play test (only id and tick follow the
@@ -484,7 +511,7 @@ public sealed class ConversationTests : IDisposable
         return events;
     }
 
-    private sealed class FixedPort(ConversationResponseOutcome outcome, string? text, string? expression, string? voice = null) : IConversationPort
+    private sealed class FixedPort(ConversationResponseOutcome outcome, string? text, string? expression, string? voice = null, (string Type, string Word)? named = null) : IConversationPort
     {
         private readonly Queue<PortMessage> _ready = new();
 
@@ -499,7 +526,7 @@ public sealed class ConversationTests : IDisposable
                 Outcome = outcome,
                 Reply = text is null ? null : new GeneratedText { Locale = request.DisplayLocale, Text = text },
                 Expression = expression,
-                Voice = voice is null ? null : new VoiceClass { Kind = voice },
+                Voice = voice is null ? null : new VoiceClass { Kind = voice, Naming = named is { } n ? new VoiceNaming { Type = n.Type, Word = n.Word } : null },
                 Rationale = "test",
                 Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "test", LatencyMs = 0, Attempts = 1 },
             };
