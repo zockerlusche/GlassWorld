@@ -118,6 +118,8 @@
       { "event": "combined", "formative": "always" },
       { "event": "milestone_reached", "formative": "always" },
       { "event": "word_heard", "formative": "always" },
+      { "event": "burned_out", "formative": "first" },
+      { "event": "put_out", "formative": "first" },
       { "event": "invented", "formative": "always" },
       { "event": "built", "formative": "always" },
       { "event": "first_use", "formative": "always" },

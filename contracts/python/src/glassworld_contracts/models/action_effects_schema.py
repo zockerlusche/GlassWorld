@@ -33,6 +33,10 @@ class ActionPartners(BaseModel):
         ge=1,
         le=8,
     )
+    feeds: bool | None = Field(
+        None,
+        description='The partner is fuel for the target (A1379): offered only on a burning thing whose type takes fuel; at the end the partner is used up and the target burns its fuel_minutes longer, at most burn_max_minutes from now. A partner without fuel_minutes gives nothing (offered by reach, not by truth). Omitted = false (combine).',
+    )
 
 
 class Kind(StrEnum):

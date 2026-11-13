@@ -270,6 +270,12 @@ class ComfortZone(BaseModel):
         ge=-500,
         le=600,
     )
+    band_tenth_c: int | None = Field(
+        None,
+        description='Width of the cool and the warm band just outside the zone, in tenths of a degree (A1379): the request tells the decider comfortable inside the zone, cool/warm within the band, cold/hot beyond (vocabulary comfort_level, in its order). Omitted = no comfort in the request.',
+        ge=1,
+        le=300,
+    )
     individual_shift_tenth_c: int | None = Field(
         None,
         description="Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.",

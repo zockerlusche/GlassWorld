@@ -73,11 +73,32 @@ namespace GlassWorld.Contracts
         public int? CrownRadiusCm { get; set; } = default!;
 
         /// <summary>
-        /// How long one piece burns as fuel, in game minutes (B5-2, R7, D634 R45).
+        /// How long a thing of this type burns on its own once it is in the world, in game minutes; then it is gone (a fire, a spark; B2687 K3, R7, B2690).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("burn_minutes")]
         public int? BurnMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// A burning thing of this type can be fed (A1379): fuel put into it makes it burn longer. Only with burn_minutes. Omitted = false (a spark).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("takes_fuel")]
+        public bool? TakesFuel { get; set; } = default!;
+
+        /// <summary>
+        /// Feeding makes it burn at most this long from now, in game minutes (a pile of grass gives no day-long fire). Only with takes_fuel.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("burn_max_minutes")]
+        public int? BurnMaxMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// How much longer a fire burns when a piece of this is put into it, in game minutes (A1379, D634 R45). It does not make the thing burn on its own.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("fuel_minutes")]
+        public int? FuelMinutes { get; set; } = default!;
 
         /// <summary>
         /// Felt temperature added right at the source while it burns or glows, in tenths of a degree; it falls off with distance by a data table (B5-2, R4, R7).

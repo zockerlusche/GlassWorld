@@ -1947,7 +1947,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             if (activity.Partners is { Count: > 0 })
             {
-                changed |= Combine(world, inhabitant, activity, target);
+                // A1379: fuel into a fire, else things used together (B2687).
+                changed |= _actions.Timing(activity.Action).Feeds
+                    ? Feeding?.Invoke(world, inhabitant, target.Id, activity.Partners[0]) ?? false
+                    : Combine(world, inhabitant, activity, target);
             }
         }
 

@@ -675,6 +675,10 @@
       "text": "Vorstellen"
     },
     {
+      "key": "vocab.action.add_fuel",
+      "text": "Nachlegen"
+    },
+    {
       "key": "vocab.biome.beach_sea",
       "text": "Strand und Meer"
     },
@@ -2053,6 +2057,14 @@
     {
       "key": "vocab.event.answer_expired",
       "text": "Antwort verfallen"
+    },
+    {
+      "key": "vocab.event.burned_out",
+      "text": "Feuer heruntergebrannt"
+    },
+    {
+      "key": "vocab.event.put_out",
+      "text": "Feuer vom Regen gelöscht"
     },
     {
       "key": "vocab.soil.loam",

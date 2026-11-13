@@ -89,6 +89,18 @@ public sealed class ObjectCatalog : ITypeTruth
         Pair("shade_height_cm", p.ShadeHeightCm, "crown_radius_cm", p.CrownRadiusCm);
         Pair("heat_tenth_c", p.HeatTenthC, "heat_radius_cm", p.HeatRadiusCm);
         Pair("light_radius_cm", p.LightRadiusCm, "light_permille", p.LightPermille);
+
+        // A1379: only something that burns on its own can be fed, and only something fed has a most.
+        if (p.TakesFuel == true && p.BurnMinutes is null)
+        {
+            problems.Add("takes_fuel needs burn_minutes");
+        }
+
+        if (p.BurnMaxMinutes is not null && p.TakesFuel != true)
+        {
+            problems.Add("burn_max_minutes needs takes_fuel");
+        }
+
         return problems;
 
         void Pair(string a, int? valueA, string b, int? valueB)
