@@ -68,6 +68,13 @@ namespace GlassWorld.Contracts
         public double ReduceMotionFactor { get; set; } = default!;
 
         /// <summary>
+        /// A1618 (B2683): what an inhabitant learned in the night (night items 'learned') appears as a short text among the images, with the same timing and limit. Absent or false = no texts.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("show_learned")]
+        public bool? ShowLearned { get; set; } = default!;
+
+        /// <summary>
         /// What a job kind shows: 'symbol' = the shape of the object type it is about, as soon as the job is seen; 'image' = that symbol and, once the job is done, the picture it made; 'none' = nothing. Kinds not listed show nothing.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("appearances")]

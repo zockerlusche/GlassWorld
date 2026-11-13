@@ -27,6 +27,25 @@ type Image = Annotated[
 ]
 
 
+class NightFact(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: str = Field(
+        ...,
+        description='Object type the fact is about.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    property: str = Field(
+        ...,
+        description='Property id (vocabulary).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool = Field(..., description='Whether the subject has the property.')
+
+
 class NightItem(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -50,6 +69,11 @@ class NightItem(BaseModel):
     image: Image | None = Field(
         ...,
         description="File name of a picture the job made (image result, the service's output folder, no path); only for a done image job, null otherwise.",
+    )
+    learned: list[NightFact] | None = Field(
+        None,
+        description="A1618 (B2683): what the inhabitant took from this job as facts - only for a done job, ids only (no wording, B7 R10): the dream scene shows them as a short guess ('Joro: pyrite - hard?'). They are the job's result, not yet checked by the core (it does so after the scene). Absent = nothing to show.",
+        max_length=4,
     )
 
 

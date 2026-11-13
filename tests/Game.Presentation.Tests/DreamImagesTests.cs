@@ -35,6 +35,28 @@ public sealed class DreamImagesTests
     }
 
     [Fact]
+    public void WhatWasLearnedInADoneJobAppearsAsTextsOnce()
+    {
+        // A1618 (B2683): facts of a done job, ids only; a running job shows none; the same page again adds nothing.
+        var dreams = new DreamImages(Data());
+        var running = Item(1, "j-1", JobKind.Question, JobState.Running, "pyrite");
+        var done = Item(2, "j-1", JobKind.Question, JobState.Done, "pyrite");
+        done.Learned = [new NightFact { Subject = "pyrite", Property = "hard", Value = true }, new NightFact { Subject = "pyrite", Property = "edible", Value = false }];
+        dreams.Take(Items("s", running, done));
+        dreams.Take(Items("s", done));
+        var shown = new List<DreamImage>();
+        for (var t = 0.0; t < 60; t += 0.1)
+        {
+            shown.AddRange(dreams.Update(0.1, false).Where(i => i.Learned is not null));
+        }
+
+        var facts = shown.Select(i => i.Learned!).Distinct().ToList();
+        Assert.Equal(2, facts.Count);
+        Assert.Contains(new DreamFact("inh-000001", "pyrite", "hard", true), facts);
+        Assert.Contains(new DreamFact("inh-000001", "pyrite", "edible", false), facts);
+    }
+
+    [Fact]
     public void AJobAboutAThingShowsItsSymbolOnceAndItsPictureWhenDone()
     {
         var dreams = new DreamImages(Data());

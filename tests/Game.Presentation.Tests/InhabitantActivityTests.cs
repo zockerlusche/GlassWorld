@@ -116,6 +116,21 @@ public sealed class InhabitantActivityTests
     }
 
     [Fact]
+    public void OneStandingAtAThingItActsOnTurnsToItWalkingItDoesNot()
+    {
+        // W1936 (TL #23084, visual check D948: Joro looked at a berry with his back to the bush).
+        var berry = new WorldObject("obj-000001", "red_berry", new Position(2, 1));
+        var looks = Inhabitant("inh-000001", "inspect", "obj-000001", new Position(0, 0));
+        Assert.Equal(berry.Position, InhabitantActivity.FacePoint(looks, [looks], [berry]));
+        Assert.Null(InhabitantActivity.FacePoint(looks with { Gait = "walk" }, [looks], [berry]));
+        Assert.Null(InhabitantActivity.FacePoint(looks, [looks], null));
+
+        // Another inhabitant the core says it faces still comes first.
+        var other = Inhabitant("inh-000002", null, null, new Position(-1, 0));
+        Assert.Equal(other.Position, InhabitantActivity.FacePoint(looks with { Facing = "inh-000002" }, [looks, other], [berry]));
+    }
+
+    [Fact]
     public void AWalkingFigureDoesNotTurnAway()
     {
         var motion = new FigureMotion(new Point3(0, 0, 0), 180);
