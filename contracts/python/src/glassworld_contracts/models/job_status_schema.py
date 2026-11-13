@@ -302,6 +302,13 @@ class ReviewResult(BaseModel):
     morning_mood: common_schema.VocabId | None
 
 
+class ChronicleResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sentence: common_schema.GeneratedText | None
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -353,6 +360,7 @@ class JobResult(BaseModel):
     dream: DreamResult | None = None
     model3d: Model3dResult | None = None
     review: ReviewResult | None = None
+    chronicle: ChronicleResult | None = None
 
 
 class JobStatus(BaseModel):

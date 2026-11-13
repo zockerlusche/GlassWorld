@@ -39,7 +39,7 @@
     },
     {
       "kind": "chronicle",
-      "when": "night",
+      "when": "any",
       "model": "qwen3.5:9b"
     },
     {

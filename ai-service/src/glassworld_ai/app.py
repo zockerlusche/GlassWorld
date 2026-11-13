@@ -25,6 +25,7 @@ from glassworld_ai.builder.plan import (
     bounds_tolerance,
 )
 from glassworld_ai.calllog import CallLog
+from glassworld_ai.chronicle import MockChronicle, OllamaChronicle, ReplayChronicle
 from glassworld_ai.config import Settings
 from glassworld_ai.conversation import (
     Conversationalist,
@@ -182,6 +183,7 @@ def create_app(
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
+                app.state.jobs.register("chronicle", _ollama_chronicle(settings, ollama, app))
                 app.state.jobs.register("review", _ollama_reviews(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
@@ -1099,6 +1101,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
             "dream": MockDreams(),
+            "chronicle": MockChronicle(),
             "review": MockReviews(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
@@ -1112,6 +1115,16 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
             "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
+            "chronicle": ReplayChronicle(
+                _chronicle_log(settings),
+                _text_guard(settings),
+                _texts(settings),
+                load_prompt(
+                    settings.prompts_dir,
+                    settings.chronicle_prompt,
+                    settings.chronicle_prompt_version,
+                ),
+            ),
             "review": ReplayReviews(
                 _review_log(settings),
                 _text_guard(settings),
@@ -1208,6 +1221,24 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
         settings=_call_settings(settings),
         log=_dream_log(settings),
         guard=_text_guard(settings),
+    )
+
+
+def _chronicle_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "chronicle.jsonl")
+
+
+def _ollama_chronicle(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaChronicle:
+    return OllamaChronicle(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.chronicle_prompt, settings.chronicle_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_chronicle_log(settings),
+        guard=_text_guard(settings),
+        texts=_texts(settings),
     )
 
 

@@ -59,6 +59,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("review")]
         public ReviewPayload? Review { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
+        public ChroniclePayload? Chronicle { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -564,6 +568,73 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("roots")]
         public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
+
+    }
+
+    /// <summary>
+    /// Something the sentence may name, by the name the maker knows it by (its label from its beliefs, never the truth id), with the id it stands for.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChronicleName
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// R35 (B2598, A1583, D962): a milestone was reached - the chronicle gets one calm sentence for it, written once, in the player's language. The milestone's text key names it in both languages (the base line stays the truth); null sentence = none (content guard or grounding, R24/B2644); a late or failed job leaves the milestone without a sentence.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChroniclePayload
+    {
+
+        /// <summary>
+        /// Milestone id (content/milestones/catalog.json).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("milestone")]
+        public string Milestone { get; set; } = default!;
+
+        /// <summary>
+        /// The milestone's text key (DE/EN).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text_key")]
+        public string TextKey { get; set; } = default!;
+
+        /// <summary>
+        /// The thing made, by the maker's name for it, or null (a rule without a thing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("made")]
+        public ChronicleName? Made { get; set; } = default!;
+
+        /// <summary>
+        /// Who reached it, the maker first, by the names they have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitants")]
+        public System.Collections.Generic.ICollection<ChronicleName> Inhabitants { get; set; } = new System.Collections.ObjectModel.Collection<ChronicleName>();
+
+        /// <summary>
+        /// Game day it was reached (1 = the first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("day")]
+        public int Day { get; set; } = default!;
+
+        /// <summary>
+        /// Longest sentence (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+        /// <summary>
+        /// Other things that took part (a rule's inputs, e.g. spark and dry grass for a fire), by the maker's names for them; the sentence may name these too. Optional; absent = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("things")]
+        public System.Collections.Generic.ICollection<ChronicleName>? Things { get; set; } = default!;
 
     }
 

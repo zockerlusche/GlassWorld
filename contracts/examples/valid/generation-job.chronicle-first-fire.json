@@ -1,0 +1,43 @@
+{
+  "contract_version": "0.2",
+  "tick": 2600,
+  "seed": 4242,
+  "display_locale": "de",
+  "request_id": "00000000-1583-4000-8000-000000000001",
+  "kind": "chronicle",
+  "priority": 5,
+  "inhabitant": "inh-000002",
+  "object": null,
+  "payload": {
+    "chronicle": {
+      "milestone": "first_fire",
+      "text_key": "msg.milestone.first_fire",
+      "made": {
+        "id": "fire",
+        "label": "Feuer"
+      },
+      "inhabitants": [
+        {
+          "id": "inh-000001",
+          "label": "Mira"
+        },
+        {
+          "id": "inh-000002",
+          "label": "Joro"
+        }
+      ],
+      "day": 6,
+      "max_chars": 140,
+      "things": [
+        {
+          "id": "spark",
+          "label": "Funke"
+        },
+        {
+          "id": "dry_grass",
+          "label": "Trockenes Gras"
+        }
+      ]
+    }
+  }
+}
