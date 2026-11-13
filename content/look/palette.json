@@ -102,6 +102,14 @@
       "color": "#f7c65a"
     },
     {
+      "id": "flame",
+      "color": "#f59a3e"
+    },
+    {
+      "id": "ember",
+      "color": "#c9542f"
+    },
+    {
       "id": "resin",
       "color": "#cf9238"
     },

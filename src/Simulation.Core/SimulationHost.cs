@@ -360,7 +360,11 @@ public sealed class SimulationHost
         // B2687 K2: what comes of things put together beyond the combination rules; its jobs go through the
         // same router and into the same job log as the inventions'.
         var processes = content.Processes is { } processRules
-            ? new ProcessSystem(processRules, types, objects, inhabitants, jobs, inventions.Log, content.Inventions.Settings.JobPriority, displayLocale) { ValidateRequests = options.ValidateRequests }
+            ? new ProcessSystem(processRules, types, objects, inhabitants, jobs, inventions.Log, content.Inventions.Settings.JobPriority, displayLocale)
+            {
+                ValidateRequests = options.ValidateRequests,
+                Implied = [.. content.Inventions.Settings.ImpliedProperties],
+            }
             : null;
         if (processes is not null)
         {
@@ -382,6 +386,13 @@ public sealed class SimulationHost
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
         inhabitants.HeatAt = fire.HeatAt;
 
+        // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
+        if (processes is not null && content.Processes is { } heatTable)
+        {
+            processes.HeatOf = thing => fire.HeatLevelOf(thing, heatTable.HeatLevels);
+            processes.HeatNear = (at, action) => fire.HeatLevelNear(at, actions.HasTiming(action) ? actions.Timing(action).PartnerReachM : 0, heatTable.HeatLevels);
+        }
+
         // A1379: fuel into a fire; how warm it feels goes into the request; a fire's end is seen by those near.
         decisions.TakesFuel = fire.TakesFuel;
         inhabitants.Feeding = (w, _, fireId, fuelId) => fire.Feed(w, fireId, fuelId);
@@ -402,7 +413,7 @@ public sealed class SimulationHost
             }
         };
 
-        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
+        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests, Truth = types };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
