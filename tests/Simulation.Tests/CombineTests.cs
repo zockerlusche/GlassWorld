@@ -87,7 +87,13 @@ public sealed class CombineTests
         }
 
         host.Objects.Remove(grass.Id);
-        host.World.Run(host.World.Calendar.TicksPerDay / 24);
+
+        // Only until the try ends: a spark burns down after its minutes (K3), which is not what this test is about.
+        for (var i = 0; i < 2000 && host.Inhabitants.Get(Actor).Activity is { Action: Combine }; i++)
+        {
+            host.World.Run(1);
+        }
+
         var cancelled = Assert.Single(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.Action == Combine);
         Assert.Equal(InhabitantsSystem.PartnerGone, cancelled.Detail);
         Assert.True(host.Objects.TryGet(spark.Id, out _));
