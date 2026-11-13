@@ -118,6 +118,9 @@ public sealed class ContentSet
     /// <summary>The basic processing rules (content/processes/rules.json, B2537) as a combine trial applies them (B2687 K2); null without the file.</summary>
     public ProcessRuleSet? Processes { get; init; }
 
+    /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
+    public MilestoneCatalog? Milestones { get; init; }
+
     /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
     public SkillLevelSettings SkillLevels { get; init; } = new();
 
@@ -214,6 +217,15 @@ public sealed class ContentSet
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         var names = LoadNames(contentDirectory);
+        var processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+            ? ProcessRuleSet.Create(
+                ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                objects,
+                inventions.Processes,
+                inventions.TechLevels,
+                inventions.Settings.TechLevel)
+            : null;
+        var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
         return new ContentSet(
             calendar,
             objects,
@@ -233,14 +245,8 @@ public sealed class ContentSet
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
             Conversation = conversation,
-            Processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
-                ? ProcessRuleSet.Create(
-                    ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
-                    objects,
-                    inventions.Processes,
-                    inventions.TechLevels,
-                    inventions.Settings.TechLevel)
-                : null,
+            Processes = processes,
+            Milestones = milestones,
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
@@ -719,6 +725,49 @@ public sealed class ContentSet
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
         Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The milestones (B2598), if the file exists: known properties, rules and tech levels, unique ids, and exactly
+    /// one of made_with and rule per milestone.
+    /// </summary>
+    private static MilestoneCatalog? LoadMilestones(string contentDirectory, HashSet<string> properties, HashSet<string> rules, IReadOnlyList<string> techLevels)
+    {
+        var path = Path.Combine(contentDirectory, "milestones", "catalog.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var catalog = ContractSerializer.Deserialize<MilestoneCatalog>(File.ReadAllText(path));
+        var problems = new List<string>();
+        foreach (var milestone in catalog.Milestones)
+        {
+            var made = milestone.MadeWith is { Count: > 0 };
+            if (made == milestone.Rule is not null)
+            {
+                problems.Add($"'{milestone.Id}' needs exactly one of made_with and rule");
+            }
+
+            problems.AddRange((milestone.MadeWith ?? []).Where(p => !properties.Contains(p)).Select(p => $"'{milestone.Id}' names unknown property '{p}'"));
+            if (milestone.Rule is { } rule && !rules.Contains(rule))
+            {
+                problems.Add($"'{milestone.Id}' names unknown rule '{rule}'");
+            }
+
+            if (milestone.RaisesTechLevel is { } level && !techLevels.Contains(level, StringComparer.Ordinal))
+            {
+                problems.Add($"'{milestone.Id}' names unknown tech level '{level}'");
+            }
+        }
+
+        problems.AddRange(catalog.Milestones.GroupBy(m => m.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"'{g.Key}' twice"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Milestones: " + string.Join("; ", problems) + ".");
+        }
+
+        return catalog;
+    }
 
     private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits)
     {

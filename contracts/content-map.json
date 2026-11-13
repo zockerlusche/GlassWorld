@@ -171,6 +171,10 @@
       "schema": "base-sound-library"
     },
     {
+      "pattern": "milestones/*.json",
+      "schema": "milestone-catalog"
+    },
+    {
       "pattern": "processes/*.json",
       "schema": "process-rules"
     },

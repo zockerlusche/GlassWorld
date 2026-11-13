@@ -257,6 +257,10 @@
     {
       "id": "word_heard",
       "description": "An inhabitant heard the player's word for a thing it sees (A1617, B2678); target the type, detail the word."
+    },
+    {
+      "id": "milestone_reached",
+      "description": "The world reached a milestone of the data for the first time (B2598); detail the milestone id, target type the made thing's type."
     }
   ]
 }

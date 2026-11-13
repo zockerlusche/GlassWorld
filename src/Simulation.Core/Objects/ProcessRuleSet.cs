@@ -90,12 +90,14 @@ public sealed class ProcessRuleSet
     /// The most specific data rule that fits the try (things[0] = target, things[1] = partner, each with
     /// its true properties), or null.
     /// </summary>
-    public ProcessMatch? Match(IReadOnlyList<FrozenSet<string>> things)
+    /// <param name="things">The true properties of the things, target first.</param>
+    /// <param name="worldTech">The world's reached tech level as a number (A1625); null = the start level of the data.</param>
+    public ProcessMatch? Match(IReadOnlyList<FrozenSet<string>> things, int? worldTech = null)
     {
         ArgumentNullException.ThrowIfNull(things);
         foreach (var rule in _rules)
         {
-            if (Applies(rule) && Fit(rule, things) is { } match)
+            if (Applies(rule, worldTech) && Fit(rule, things) is { } match)
             {
                 return match;
             }
@@ -109,14 +111,16 @@ public sealed class ProcessRuleSet
     /// right shape for these things (two inputs, or one input and a tool) that can apply here (no heat
     /// needed, tech level reached), by their most specific such rule, each once, at most <see cref="MaxCandidates"/>.
     /// </summary>
-    public IReadOnlyList<string> Candidates(int things) =>
-        [.. _rules.Where(r => Applies(r) && Shaped(r, things)).Select(r => r.Process).Distinct(StringComparer.Ordinal).Take(MaxCandidates)];
+    public IReadOnlyList<string> Candidates(int things, int? worldTech = null) =>
+        [.. _rules.Where(r => Applies(r, worldTech) && Shaped(r, things)).Select(r => r.Process).Distinct(StringComparer.Ordinal).Take(MaxCandidates)];
 
     /// <summary>Whether a rule (of the data or found in the world) can apply here: no heat needed, tech level reached.</summary>
-    public bool Applies(ProcessRule rule)
+    /// <param name="rule">The rule.</param>
+    /// <param name="worldTech">The world's reached tech level as a number (A1625); null = the start level of the data.</param>
+    public bool Applies(ProcessRule rule, int? worldTech = null)
     {
         ArgumentNullException.ThrowIfNull(rule);
-        return rule.HeatMin is null && IndexOf(_techLevels, rule.TechLevel) is var level && level >= 0 && level <= _worldTech;
+        return rule.HeatMin is null && IndexOf(_techLevels, rule.TechLevel) is var level && level >= 0 && level <= (worldTech ?? _worldTech);
     }
 
     /// <summary>
