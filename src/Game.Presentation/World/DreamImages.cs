@@ -10,7 +10,18 @@ namespace GlassWorld.Presentation.World;
 /// <param name="X">Centre on screen, 0..1 from the left.</param>
 /// <param name="Y">Centre on screen, 0..1 from the top.</param>
 /// <param name="Alpha">Opacity now, 0..brightness.</param>
-public sealed record DreamImage(string Key, string JobId, string? ObjectType, string? ImageFile, double X, double Y, double Alpha);
+public sealed record DreamImage(string Key, string JobId, string? ObjectType, string? ImageFile, double X, double Y, double Alpha)
+{
+    /// <summary>A1618 (B2683): a learned fact shown as text instead of a picture; null for an image.</summary>
+    public DreamFact? Learned { get; init; }
+}
+
+/// <summary>What an inhabitant took from a night job (A1618): ids only, the game words it (a guess, the core checks it later).</summary>
+/// <param name="InhabitantId">Who learned it, or null.</param>
+/// <param name="Subject">Object type.</param>
+/// <param name="Property">Property id.</param>
+/// <param name="Value">Whether the subject has it.</param>
+public sealed record DreamFact(string? InhabitantId, string Subject, string Property, bool Value);
 
 /// <summary>
 /// The dream images of the night scene (B2579, D637 R11/R13) without Godot. They come only from the service's
@@ -24,8 +35,8 @@ public sealed record DreamImage(string Key, string JobId, string? ObjectType, st
 public sealed class DreamImages(NightDreams data)
 {
     private readonly NightDreams _data = data ?? throw new ArgumentNullException(nameof(data));
-    private readonly Queue<(string Key, string JobId, string? Type, string? File)> _waiting = new();
-    private readonly List<(string Key, string JobId, string? Type, string? File, double X, double Y, double Age)> _active = [];
+    private readonly Queue<(string Key, string JobId, string? Type, string? File, DreamFact? Fact)> _waiting = new();
+    private readonly List<(string Key, string JobId, string? Type, string? File, DreamFact? Fact, double X, double Y, double Age)> _active = [];
     private readonly HashSet<string> _taken = new(StringComparer.Ordinal);
     private readonly List<string> _shown = [];
     private string? _session;
@@ -67,6 +78,21 @@ public sealed class DreamImages(NightDreams data)
         foreach (var item in items.Items)
         {
             Since = Math.Max(Since, item.Seq);
+
+            // A1618: what was learned, as short texts, whatever the job's own appearance.
+            if (_data.ShowLearned == true && item.State == JobState.Done && item.Learned is { Count: > 0 } facts)
+            {
+                var n = 0;
+                foreach (var fact in facts)
+                {
+                    var key = $"{item.JobId}|learned|{n++}";
+                    if (_taken.Add(key))
+                    {
+                        _waiting.Enqueue((key, item.JobId, null, null, new DreamFact(item.Inhabitant, fact.Subject, fact.Property, fact.Value)));
+                    }
+                }
+            }
+
             var show = _data.Appearances.FirstOrDefault(a => a.Kind == item.Kind)?.Show ?? NightAppearanceShow.None;
             if (show == NightAppearanceShow.None)
             {
@@ -75,12 +101,12 @@ public sealed class DreamImages(NightDreams data)
 
             if (item.ObjectType is { } type && _taken.Add(item.JobId + "|symbol"))
             {
-                _waiting.Enqueue((item.JobId + "|symbol", item.JobId, type, null));
+                _waiting.Enqueue((item.JobId + "|symbol", item.JobId, type, null, null));
             }
 
             if (show == NightAppearanceShow.Image && item.State == JobState.Done && item.Image is { } file && _taken.Add(item.JobId + "|image"))
             {
-                _waiting.Enqueue((item.JobId + "|image", item.JobId, item.ObjectType, file));
+                _waiting.Enqueue((item.JobId + "|image", item.JobId, item.ObjectType, file, null));
             }
         }
 
@@ -124,12 +150,12 @@ public sealed class DreamImages(NightDreams data)
         {
             var next = _waiting.Dequeue();
             var (x, y) = Place(next.Key);
-            _active.Add((next.Key, next.JobId, next.Type, next.File, x, y, 0));
+            _active.Add((next.Key, next.JobId, next.Type, next.File, next.Fact, x, y, 0));
             _shown.Add(next.JobId);
             _sinceStart = 0;
         }
 
-        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.Type, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, hold, fadeOut)))];
+        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.Type, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, hold, fadeOut)) { Learned = a.Fact })];
     }
 
     /// <summary>Opacity share 0..1 of an image of the given age: a soft rise, a stand, a soft fall.</summary>

@@ -45,7 +45,23 @@
             { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*\\.png$", "maxLength": 120 },
             { "type": "null" }
           ]
+        },
+        "learned": {
+          "description": "A1618 (B2683): what the inhabitant took from this job as facts - only for a done job, ids only (no wording, B7 R10): the dream scene shows them as a short guess ('Joro: pyrite - hard?'). They are the job's result, not yet checked by the core (it does so after the scene). Absent = nothing to show.",
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/NightFact" }
         }
+      }
+    },
+    "NightFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "property", "value"],
+      "properties": {
+        "subject": { "description": "Object type the fact is about.", "$ref": "common.schema.json#/$defs/VocabId" },
+        "property": { "description": "Property id (vocabulary).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "value": { "description": "Whether the subject has the property.", "type": "boolean" }
       }
     }
   }

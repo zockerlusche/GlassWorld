@@ -51,6 +51,37 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("image")]
         public string? Image { get; set; } = default!;
 
+        /// <summary>
+        /// A1618 (B2683): what the inhabitant took from this job as facts - only for a done job, ids only (no wording, B7 R10): the dream scene shows them as a short guess ('Joro: pyrite - hard?'). They are the job's result, not yet checked by the core (it does so after the scene). Absent = nothing to show.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("learned")]
+        public System.Collections.Generic.ICollection<NightFact>? Learned { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NightFact
+    {
+
+        /// <summary>
+        /// Object type the fact is about.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string Subject { get; set; } = default!;
+
+        /// <summary>
+        /// Property id (vocabulary).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the subject has the property.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
     }
 
     /// <summary>
