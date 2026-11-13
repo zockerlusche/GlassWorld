@@ -113,9 +113,10 @@ public sealed class BedtimeTests
         }
 
         Assert.Equal(JobPhase.Night, port.Phases[^1].Phase);
+        var signals = port.Phases.Count;
         a.Activity = null; // woken
         host.World.Run(host.World.Calendar.Settings.TicksPerHour / 2);
-        Assert.Equal(JobPhase.Night, port.Phases[^1].Phase);
+        Assert.Equal(signals, port.Phases.Count); // no Day and Night again in between (review GW2 #339)
     }
 
     private static long FirstNightTick(GlassWorld.Simulation.Time.WorldCalendar calendar)
