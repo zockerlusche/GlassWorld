@@ -874,6 +874,43 @@
         "produces": null,
         "consumes": []
       }
+    },
+    {
+      "id": "seal_fibres_with_sticky",
+      "process": "shape",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": [
+            "waterproof"
+          ]
+        },
+        {
+          "properties_all": [
+            "sticky"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 90,
+      "tech_level": "shaping",
+      "result": {
+        "add_properties": [
+          "waterproof"
+        ],
+        "remove_properties": [
+          "braidable"
+        ],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
     }
   ]
 }

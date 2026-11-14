@@ -3015,6 +3015,10 @@
       "text": "What occupies them"
     },
     {
+      "key": "vocab.property.waterproof",
+      "text": "Waterproof"
+    },
+    {
       "key": "vocab.guard_reason.beyond_knowledge",
       "text": "Builds on something the inhabitant does not know"
     },

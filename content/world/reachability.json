@@ -26,15 +26,11 @@
     { "gap": "process:fire_shaped_clay", "reason": "Needs heat level strong_heat (see heat:strong_heat)." },
     { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level melting_heat, ash (burn_to_ash) and a thing that is fine_grained and hard: sand is only a soil, not an object (D643 question 4)." },
     { "gap": "process:melt_at_melting_heat", "reason": "Needs heat level melting_heat and charcoal (char_wood). The rule melts sandstone or slate; there is no ore object (D643 question 2)." },
-    { "gap": "process:grind_nuts_with_water_to_milk", "reason": "No thing is fatty: the hazelnut does not carry the property (D643)." },
-    { "gap": "process:churn_milk_to_butter", "reason": "No thing is milky: nut milk is blocked (see process:grind_nuts_with_water_to_milk) and animals with milk are not in the catalogue (B5)." },
-    { "gap": "process:curdle_milk_to_cheese", "reason": "Needs heat level warm and a milky thing (see process:churn_milk_to_butter)." },
+    { "gap": "process:curdle_milk_to_cheese", "reason": "Needs heat level warm; a milky thing is reachable since the hazelnut is fatty (A1575), the warm heat source is not." },
 
     { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:glowing)." },
     { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:glowing)." },
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
-    { "gap": "property:fatty", "reason": "No object type carries it and only churn_milk_to_butter makes it (D643)." },
-    { "gap": "property:milky", "reason": "Only made by grind_nuts_with_water_to_milk (see there)." },
 
     { "gap": "tech:processing", "reason": "Its only rule is melt_sand_with_ash (see there)." },
     { "gap": "tech:smelting", "reason": "Follows processing; its only rule is melt_at_melting_heat (see there)." }
