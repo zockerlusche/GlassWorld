@@ -206,5 +206,9 @@ namespace GlassWorld.Contracts
         Sensation = 28,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("felt")]
+        Felt = 29,
+
+
     }
 }

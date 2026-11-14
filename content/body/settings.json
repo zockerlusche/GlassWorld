@@ -492,5 +492,34 @@
       "property": "sheltering"
     }
   ],
-  "experience_every_minutes": 10
+  "experience_every_minutes": 10,
+  "felt_places": {
+    "cell_m": 8,
+    "max": 32,
+    "forget_hours": 168,
+    "from_comfort": [
+      {
+        "level": "cold",
+        "felt": "cold"
+      },
+      {
+        "level": "cool",
+        "felt": "cool"
+      },
+      {
+        "level": "comfortable",
+        "felt": "mild"
+      },
+      {
+        "level": "warm",
+        "felt": "warm"
+      },
+      {
+        "level": "hot",
+        "felt": "hot"
+      }
+    ],
+    "wet": "wet",
+    "kept_dry": "dry_in_rain"
+  }
 }

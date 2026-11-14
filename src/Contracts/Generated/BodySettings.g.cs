@@ -77,6 +77,50 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyFeltPlaces
+    {
+
+        /// <summary>
+        /// Size of a place: a grid square of this many metres (floor of the position).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cell_m")]
+        public int CellM { get; set; } = default!;
+
+        /// <summary>
+        /// Places remembered per inhabitant; beyond it the oldest is forgotten (ties by place).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public int Max { get; set; } = default!;
+
+        /// <summary>
+        /// A remembered feeling is forgotten after this many game hours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forget_hours")]
+        public int ForgetHours { get; set; } = default!;
+
+        /// <summary>
+        /// Which feeling (vocabulary felt) a comfort level gives.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from_comfort")]
+        public System.Collections.Generic.ICollection<From_comfort> FromComfort { get; set; } = new System.Collections.ObjectModel.Collection<From_comfort>();
+
+        /// <summary>
+        /// The feeling while it is wet there (before the comfort level); omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wet")]
+        public string? Wet { get; set; } = default!;
+
+        /// <summary>
+        /// The feeling when a thing there kept it dry in the rain (before everything else); omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("kept_dry")]
+        public string? KeptDry { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BodyExperience
     {
 
@@ -189,6 +233,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<BodyExperience>? Experiences { get; set; } = default!;
 
         /// <summary>
+        /// B5 R32 (D1099): the inhabitant remembers how a place felt - the latest feeling per grid square, a few places, forgotten after a while. Absent = no such memory.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("felt_places")]
+        public BodyFeltPlaces? FeltPlaces { get; set; } = default!;
+
+        /// <summary>
         /// How often, in game minutes, what is felt near things is taken in.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -201,6 +252,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("cover")]
         public System.Collections.Generic.ICollection<BodyCover>? Cover { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class From_comfort
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("felt")]
+        public string Felt { get; set; } = default!;
 
     }
 
