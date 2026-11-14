@@ -52,6 +52,9 @@ public partial class GameScreen : CanvasLayer
     private readonly List<(bool Own, Button Tab)> _zoneTabs = [];
     private bool _zones;
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+    private readonly LineEdit _inhabitantSearch = new() { Name = "Search", PlaceholderText = "ui.inhabitants.search", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClearButtonEnabled = true };
+    private readonly OptionButton _inhabitantFilter = new() { Name = "Filter", TooltipText = "ui.inhabitants.filter_tooltip" };
+    private IReadOnlyList<InhabitantRow> _inhabitantRows = [];
     private readonly VBoxContainer _questionList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly HashSet<string> _hintedQuestions = new(StringComparer.Ordinal);
@@ -194,14 +197,31 @@ public partial class GameScreen : CanvasLayer
 
         _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
-            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            [new GwColumn("ui.inhabitants.column.pinned", true, Check: true), new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
+
+        // B2749: pin a favourite right in the list (the player's own mark, a logged command as on the card).
+        _inhabitants.RowChecked += (id, on) => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
+            on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, id));
+        foreach (var filter in InhabitantListModel.Filters)
+        {
+            _inhabitantFilter.AddItem(InhabitantListModel.Key(filter), (int)filter);
+        }
+
+        _inhabitantSearch.TextChanged += _ => FillInhabitantList();
+        _inhabitantFilter.ItemSelected += _ => FillInhabitantList();
         _log = new ConversationLog(
             style.Tokens.Window.LogLines,
             presenter.Host.Content.Vocabularies[VocabularyKind.Action].Entries.Where(e => e.Spoken == true).Select(e => e.Id).ToHashSet(StringComparer.Ordinal));
         _diary = new ActivityDiary(style.Tokens.Window.DiaryLines, presenter.Host.World.Calendar);
-        _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
+        // B2749: search and filter above the list (the corner shows only the important ones of many).
+        var find = new HBoxContainer { Name = "Find" };
+        find.AddChild(_inhabitantSearch);
+        find.AddChild(_inhabitantFilter);
+        var inhabitantsContent = _sideBar.Add("inhabitants", "ui.inhabitants.title").Content;
+        inhabitantsContent.AddChild(find);
+        inhabitantsContent.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
 
         // Who said or thought what (Marcel W1696): the readable source, while the bubbles stay short.
@@ -388,6 +408,19 @@ public partial class GameScreen : CanvasLayer
         zones
             ? [.. ScreenZones.Themes.SelectMany(t => t.Panels).Where(k => k != ScreenZones.Card), ScreenZones.FromMenu]
             : ["inhabitants", "questions", ScreenZones.Pinned, "chronicle", "help", "mailbox"];
+
+    /// <summary>UI tour only (B2749): search and filter of the inhabitants window, as the player types and picks.</summary>
+    public void FindInhabitantsForShots(string search, InhabitantFilter filter)
+    {
+        _inhabitantSearch.Text = search;
+        _inhabitantFilter.Select(_inhabitantFilter.GetItemIndex((int)filter));
+        FillInhabitantList();
+        Layout();
+    }
+
+    /// <summary>UI tour only (B2749): rows the inhabitants window shows now.</summary>
+    public int InhabitantRowsForShots => InhabitantListModel.Filter(
+        _inhabitantRows, _inhabitantSearch.Text, (InhabitantFilter)Math.Max(0, _inhabitantFilter.GetSelectedId()), Knocking(), _style!.Tokens.Bars, ListName).Count;
 
     /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
     public void OpenPanelForShots(string? key)
@@ -2432,7 +2465,8 @@ public partial class GameScreen : CanvasLayer
         var rows = _feed.Inhabitants();
         _activities = Activities(rows);
         // The activity column is a text column: GwTable sorts it by its text in the game's language (the 0 is never read).
-        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [ListName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
+        _inhabitantRows = rows;
+        FillInhabitantList();
         RefreshQuestions(rows);
         RefreshLog(rows);
 

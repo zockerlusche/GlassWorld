@@ -230,6 +230,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("world_check_grounds")]
         public System.Collections.Generic.ICollection<string> WorldCheckGrounds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// Diary entries the card shows at once (B2603: the last ones on top, more on a click).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_diary_lines")]
+        public int CardDiaryLines { get; set; } = default!;
+
+        /// <summary>
+        /// Last sentences of the conversation the card shows above the talk field (B2603: one conversation).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_talk_lines")]
+        public int CardTalkLines { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -856,6 +868,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portraits_compact_from")]
         public int PortraitsCompactFrom { get; set; } = default!;
+
+        /// <summary>
+        /// From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portraits_important_from")]
+        public int PortraitsImportantFrom { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many important inhabitants in the corner (B2749).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portraits_important_max")]
+        public int PortraitsImportantMax { get; set; } = default!;
 
         /// <summary>
         /// Largest share of the free height the portrait list takes; more scrolls.

@@ -145,6 +145,8 @@
         "compact_portrait_px",
         "portrait_list_width",
         "portraits_compact_from",
+        "portraits_important_from",
+        "portraits_important_max",
         "portrait_list_height_share",
         "round_button_px",
         "favor_bar_width",
@@ -201,6 +203,18 @@
           "type": "integer",
           "minimum": 2,
           "maximum": 1000
+        },
+        "portraits_important_from": {
+          "description": "From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
+        },
+        "portraits_important_max": {
+          "description": "At most this many important inhabitants in the corner (B2749).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
         },
         "portrait_list_height_share": {
           "description": "Largest share of the free height the portrait list takes; more scrolls.",

@@ -218,6 +218,18 @@ class UiWindowTokens(BaseModel):
         description='Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).',
         min_length=1,
     )
+    card_diary_lines: int = Field(
+        ...,
+        description='Diary entries the card shows at once (B2603: the last ones on top, more on a click).',
+        ge=1,
+        le=50,
+    )
+    card_talk_lines: int = Field(
+        ...,
+        description='Last sentences of the conversation the card shows above the talk field (B2603: one conversation).',
+        ge=0,
+        le=50,
+    )
 
 
 class UiButtonTokens(BaseModel):
@@ -482,6 +494,18 @@ class Zones(BaseModel):
         description='From this many inhabitants the list shows portraits only and scrolls (D957 section 1).',
         ge=2,
         le=1000,
+    )
+    portraits_important_from: int = Field(
+        ...,
+        description='From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).',
+        ge=2,
+        le=1000,
+    )
+    portraits_important_max: int = Field(
+        ...,
+        description='At most this many important inhabitants in the corner (B2749).',
+        ge=1,
+        le=50,
     )
     portrait_list_height_share: float = Field(
         ...,

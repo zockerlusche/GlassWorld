@@ -73,6 +73,7 @@ public partial class GameScreen
             _presenter?.ChooseFigure(id);
         };
         _portraits.PictureWanted += WantPortrait;
+        _portraits.MoreChosen += () => _sideBar.Open("inhabitants");
         _portraits.PictureOf = id => _portraitPictures.GetValueOrDefault(id);
     }
 
@@ -167,6 +168,29 @@ public partial class GameScreen
     }
 
     /// <summary>The corners from the snapshot (Refresh): portraits, season and weather, favour bar, counts on the buttons.</summary>
+    /// <summary>Who knocks on the glass now: the senders of the open messages (B2749).</summary>
+    private HashSet<string> Knocking() =>
+        _presenter?.Host is { } host
+            ? [.. host.Mailbox.Open.Select(m => m.InhabitantId).OfType<string>()]
+            : [];
+
+    /// <summary>The inhabitants window with the player's search and filter (B2749); sorting stays with the columns.</summary>
+    private void FillInhabitantList()
+    {
+        if (_style is null || _activities is null)
+        {
+            return;
+        }
+
+        var filter = (InhabitantFilter)Math.Max(0, _inhabitantFilter.GetSelectedId());
+        var rows = InhabitantListModel.Filter(_inhabitantRows, _inhabitantSearch.Text, filter, Knocking(), _style.Tokens.Bars, ListName);
+        var pinned = Tr("ui.inhabitants.column.pinned");
+        _inhabitants.SetRows([.. rows.Where(r => _activities.ContainsKey(r.Id)).Select(r => new GwRow(
+            r.Id,
+            [pinned, ListName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)],
+            [r.Favourite ? 1 : 0, r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
+    }
+
     private void RefreshCorners(IReadOnlyList<InhabitantRow> rows, ClockView clock)
     {
         if (!_zones || _style is null || _feed is null || _activities is null)
@@ -175,10 +199,13 @@ public partial class GameScreen
         }
 
         var unnamed = Tr("ui.inhabitant.unnamed");
-        _portraits.Selected = _cardId;
-        _portraits.SetRows([.. rows.Select(r => new PortraitEntry(r.Id, ScreenModel.DisplayName(r, unnamed), _activities[r.Id], CornerModel.Brooding(r)))]);
-
         var zones = _style.Tokens.Zones;
+        _portraits.Selected = _cardId;
+
+        // B2749 (TL #25515): from portraits_important_from on only the important ones, and '+N' for the rest.
+        var (shown, more) = CornerModel.Shown(rows, zones, _cardId, Knocking());
+        _portraits.SetRows([.. shown.Select(r => new PortraitEntry(r.Id, ScreenModel.DisplayName(r, unnamed), _activities[r.Id], CornerModel.Brooding(r)))], more);
+
         var season = CornerModel.SeasonId(clock.SeasonKey);
         _seasonIcon.Icon = CornerModel.IconFor(zones.SeasonIcons, season);
         _seasonIcon.TooltipText = Tr(clock.SeasonKey);
@@ -559,9 +586,9 @@ public partial class GameScreen
             var middle = new Rect2((float)mx, (float)my, (float)mw, (float)mh);
             var log = _sideBar.PanelOf(ScreenZones.Pinned);
             var rows = _feed.Inhabitants();
-            if (_topBar.Visible || _sideBar.Visible || !_corner.Visible || !_portraits.Visible || _portraits.Count != rows.Count)
+            if (_topBar.Visible || _sideBar.Visible || !_corner.Visible || !_portraits.Visible || _portraits.Count + _portraits.More != rows.Count)
             {
-                return $"the corners are not shown (top bar {_topBar.Visible}, side bar {_sideBar.Visible}, portraits {_portraits.Count} of {rows.Count})";
+                return $"the corners are not shown (top bar {_topBar.Visible}, side bar {_sideBar.Visible}, portraits {_portraits.Count} and {_portraits.More} more of {rows.Count})";
             }
 
             if (_corner.Position.X < view.X / 2 || _portraits.Position.X > view.X / 2 || log.Position.X > view.X / 2 || log.Position.Y < view.Y / 2)

@@ -295,6 +295,38 @@
       "text": "Hier lebt noch niemand."
     },
     {
+      "key": "ui.inhabitants.column.pinned",
+      "text": "Liebling"
+    },
+    {
+      "key": "ui.inhabitants.search",
+      "text": "Name suchen …"
+    },
+    {
+      "key": "ui.inhabitants.filter_tooltip",
+      "text": "Welche Bewohner die Liste zeigt"
+    },
+    {
+      "key": "ui.inhabitants.filter.all",
+      "text": "Alle"
+    },
+    {
+      "key": "ui.inhabitants.filter.pinned",
+      "text": "Lieblinge"
+    },
+    {
+      "key": "ui.inhabitants.filter.asking",
+      "text": "Mit Frage"
+    },
+    {
+      "key": "ui.inhabitants.filter.knocking",
+      "text": "Klopft an"
+    },
+    {
+      "key": "ui.inhabitants.filter.weak",
+      "text": "Schwach"
+    },
+    {
       "key": "ui.inhabitants.title",
       "text": "Bewohner"
     },
@@ -2905,6 +2937,14 @@
     {
       "key": "ui.corner.portrait_tip",
       "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.more",
+      "text": "+{count}"
+    },
+    {
+      "key": "ui.corner.more_tooltip",
+      "text": "Alle {count} Bewohner zeigen"
     },
     {
       "key": "ui.corner.weather",

@@ -235,11 +235,14 @@ public static class UiLayoutCheck
         var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, style.Tokens.Zones.MiddleShare);
         var middle = new Rect2((float)mx, (float)my, (float)mw, (float)mh);
         var activity = host.Tr("ui.activity.show.inhabitant_topic");
-        foreach (var (count, right, rightName) in new (int, GwSidePanel, string)[] { (2, window, "window"), (style.Tokens.Zones.PortraitsCompactFrom + 4, window, "window"), (2, card, "card") })
+        // B2749: a few (full rows), some (portraits only), many (the important ones and +N).
+        var zones = style.Tokens.Zones;
+        foreach (var (count, right, rightName) in new (int, GwSidePanel, string)[] { (2, window, "window"), (zones.PortraitsCompactFrom + 1, window, "window"), (50, window, "window"), (2, card, "card") })
         {
             window.Visible = right == window;
             card.Visible = right == card;
-            portraits.SetRows([.. Enumerable.Range(1, count).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))]);
+            var showing = count >= zones.PortraitsImportantFrom ? zones.PortraitsImportantMax : count;
+            portraits.SetRows([.. Enumerable.Range(1, showing).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))], count - showing);
             for (var pass = 0; pass < 2; pass++)
             {
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -299,6 +302,11 @@ public static class UiLayoutCheck
             if (portraits.Compact != (count >= style.Tokens.Zones.PortraitsCompactFrom))
             {
                 problems.Add($"{count} portraits: compact is {portraits.Compact}");
+            }
+
+            if (portraits.MoreButton.Visible != (count > showing))
+            {
+                problems.Add($"{count} portraits: '+N' shown is {portraits.MoreButton.Visible}");
             }
         }
 

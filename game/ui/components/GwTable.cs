@@ -5,7 +5,8 @@ namespace GlassWorld.Game.Ui.Components;
 /// <summary>A table column: header key and whether its values are numbers (right-aligned, D366 section 7).</summary>
 /// <param name="HeaderKey">Translation key of the header.</param>
 /// <param name="Numeric">Numbers are right-aligned and sorted numerically.</param>
-public sealed record GwColumn(string HeaderKey, bool Numeric);
+/// <param name="Check">A tick box per row the player switches (B2749: pin an inhabitant); sorted by its number.</param>
+public sealed record GwColumn(string HeaderKey, bool Numeric, bool Check = false);
 
 /// <summary>A table row: shown texts, numbers for numeric columns, plus the row's id.</summary>
 /// <param name="Id">Row id (e.g. inhabitant id), never shown.</param>
@@ -35,12 +36,25 @@ public partial class GwTable : VBoxContainer
     [Signal]
     public delegate void RowSelectedEventHandler(string id);
 
+    /// <summary>Raised when the player ticks or unticks the check cell of a row (B2749: pin an inhabitant).</summary>
+    [Signal]
+    public delegate void RowCheckedEventHandler(string id, bool on);
+
     /// <summary>Creates the table.</summary>
     public GwTable()
     {
         AddChild(_tree);
         AddChild(_empty);
         _tree.ColumnTitleClicked += (column, _) => SortBy((int)column);
+        _tree.ItemEdited += () =>
+        {
+            var column = _tree.GetEditedColumn();
+            if (!_rebuilding && _tree.GetEdited() is { } item && column >= 0 && column < _columns.Count && _columns[column].Check
+                && item.GetMetadata(0).AsString() is { Length: > 0 } id)
+            {
+                EmitSignal(SignalName.RowChecked, id, item.IsChecked(column));
+            }
+        };
         _tree.ItemSelected += () =>
         {
             if (!_rebuilding && _tree.GetSelected()?.GetMetadata(0).AsString() is { Length: > 0 } id)
@@ -87,7 +101,14 @@ public partial class GwTable : VBoxContainer
                 var item = _items[row.Id];
                 for (var i = 0; i < _columns.Count; i++)
                 {
-                    if (item.GetText(i) != row.Cells[i])
+                    if (_columns[i].Check)
+                    {
+                        if (item.IsChecked(i) != row.Numbers[i] > 0)
+                        {
+                            item.SetChecked(i, row.Numbers[i] > 0);
+                        }
+                    }
+                    else if (item.GetText(i) != row.Cells[i])
                     {
                         item.SetText(i, row.Cells[i]);
                     }
@@ -198,6 +219,15 @@ public partial class GwTable : VBoxContainer
             item.SetMetadata(0, row.Id);
             for (var i = 0; i < _columns.Count; i++)
             {
+                if (_columns[i].Check)
+                {
+                    item.SetCellMode(i, TreeItem.TreeCellMode.Check);
+                    item.SetChecked(i, row.Numbers[i] > 0);
+                    item.SetEditable(i, true);
+                    item.SetTooltipText(i, row.Cells[i]);
+                    continue;
+                }
+
                 item.SetText(i, row.Cells[i]);
                 item.SetTextAlignment(i, _columns[i].Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left);
             }
