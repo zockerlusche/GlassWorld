@@ -347,6 +347,9 @@ def main(argv: list[str] | None = None) -> int:
             str(save),
             "--log-json",
             str(log_json),
+            # A1620/A1695: the readable learning log per game day, as evidence next to the save.
+            "--learning-log",
+            str(out),  # the writer makes its own learning-log folder in it
         ],
         out / "lauf.log",
         env,

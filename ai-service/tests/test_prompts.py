@@ -533,6 +533,21 @@ def test_v10_is_v9_without_an_occasion_and_ignores_one_it_has_no_words_for() -> 
     assert "Right now" not in _render(_leisure(), version=9)  # v9 does not read it
 
 
+def test_drive_reaches_the_decider_only_as_a_strength() -> None:
+    """A1695 (D1086, B2728): the trait drive needs no prompt change - it shows like every trait, as
+    a word for its strength, and adds nothing that says what to do (PR2)."""
+    base = _request("hungry-berries")
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["inhabitant"]["traits"] = [*data["inhabitant"]["traits"], {"id": "drive", "value": 0.85}]
+    with_drive = DecisionRequest.model_validate(data)
+    before = _render(base, version=14)
+    after = _render(with_drive, version=14)
+    added = [line for line in after.splitlines() if line not in before.splitlines()]
+    assert len(added) == 1 and added[0].startswith("- drive: ") and added[0].endswith("(0.85)"), (
+        added
+    )
+
+
 def test_v14_names_trying_as_possible_without_a_value() -> None:
     """D1096 #9 (B2745 e): v13 said a try not yet made is 'often worth more' and listed in a free
     moment what one could try - that steers to one kind of action. v14 says trying is possible
