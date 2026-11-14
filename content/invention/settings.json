@@ -113,6 +113,7 @@
   "max_materials": 12,
   "living_properties": [],
   "require_base_function": false,
+  "material_transfer": ["hard", "burnable", "long_lasting", "waterproof", "insulating"],
   "implied_properties": [
     "crafted"
   ]
