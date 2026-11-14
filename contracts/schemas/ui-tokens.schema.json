@@ -132,14 +132,24 @@
       }
     },
     "zones": {
-      "description": "Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.",
+      "description": "Sizes of the corner layout (UI concept Variante A, D957 v4, B2643; grew out of the zones preview W1717/D642): compact corners so the middle of the picture stays free.",
       "type": "object",
       "additionalProperties": false,
       "required": [
         "side_panel_width",
         "log_width",
         "log_height_share",
-        "panel_padding"
+        "panel_padding",
+        "portrait_px",
+        "compact_portrait_px",
+        "portrait_list_width",
+        "portraits_compact_from",
+        "portrait_list_height_share",
+        "round_button_px",
+        "favor_bar_width",
+        "middle_share",
+        "season_icons",
+        "weather_icons"
       ],
       "properties": {
         "side_panel_width": {
@@ -165,6 +175,68 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 64
+        },
+        "portrait_px": {
+          "description": "Diameter of an inhabitant's round portrait in the list top left.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 256
+        },
+        "compact_portrait_px": {
+          "description": "Diameter of a portrait in the compact list (many inhabitants: portraits only, the name on hover).",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 256
+        },
+        "portrait_list_width": {
+          "description": "Width of the portrait list top left with name and activity.",
+          "type": "integer",
+          "minimum": 120,
+          "maximum": 1200
+        },
+        "portraits_compact_from": {
+          "description": "From this many inhabitants the list shows portraits only and scrolls (D957 section 1).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
+        },
+        "portrait_list_height_share": {
+          "description": "Largest share of the free height the portrait list takes; more scrolls.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        },
+        "round_button_px": {
+          "description": "Diameter of the round symbol buttons top right (menu, questions, mail, chronicle, inhabitants).",
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 256
+        },
+        "favor_bar_width": {
+          "description": "Width of the favour bar top right.",
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 1200
+        },
+        "middle_share": {
+          "description": "Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.9
+        },
+        "season_icons": {
+          "description": "Symbol of each season in the time block top right (season ids of the world time data).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UiIconChoice"
+          }
+        },
+        "weather_icons": {
+          "description": "Symbol of each weather in the time block top right (ids of the weather vocabulary); an unknown weather shows the symbol 'unknown'.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UiIconChoice"
+          }
         }
       }
     }
@@ -663,6 +735,49 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "UiIconChoice": {
+      "description": "Which drawn symbol stands for an id (no picture files: the symbols are drawn by the game).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "icon"
+      ],
+      "properties": {
+        "id": {
+          "description": "Season or weather id.",
+          "type": "string",
+          "minLength": 1
+        },
+        "icon": {
+          "description": "Drawn symbol.",
+          "type": "string",
+          "enum": [
+            "menu",
+            "question",
+            "letter",
+            "book",
+            "person",
+            "pause",
+            "play",
+            "fast",
+            "blossom",
+            "sun",
+            "leaf",
+            "snowflake",
+            "cloud",
+            "rain",
+            "snow",
+            "fog",
+            "storm",
+            "frost",
+            "heat",
+            "drought",
+            "unknown"
+          ]
         }
       }
     }

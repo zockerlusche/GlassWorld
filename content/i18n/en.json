@@ -2791,20 +2791,40 @@
       "text": "{name} did not answer."
     },
     {
-      "key": "ui.settings.zones_preview",
-      "text": "New screen layout (preview)"
+      "key": "ui.settings.classic_layout",
+      "text": "Old screen layout (fallback)"
     },
     {
       "key": "ui.zone.people",
       "text": "Inhabitants"
     },
     {
-      "key": "ui.zone.world",
-      "text": "World"
+      "key": "ui.zone.chronicle",
+      "text": "Chronicle"
     },
     {
-      "key": "ui.zone.contact",
-      "text": "Contact"
+      "key": "ui.zone.questions",
+      "text": "What is on their minds"
+    },
+    {
+      "key": "ui.zone.mailbox",
+      "text": "Mailbox"
+    },
+    {
+      "key": "ui.pause.help",
+      "text": "Help and gifts"
+    },
+    {
+      "key": "ui.corner.brooding",
+      "text": "Puzzling over a question"
+    },
+    {
+      "key": "ui.corner.portrait_tip",
+      "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.weather",
+      "text": "Weather: {weather}"
     },
     {
       "key": "ui.card.title",
@@ -2933,18 +2953,6 @@
     {
       "key": "ui.zone.tab.timeline",
       "text": "Timeline"
-    },
-    {
-      "key": "ui.zone.tab.questions",
-      "text": "What occupies them"
-    },
-    {
-      "key": "ui.zone.tab.help",
-      "text": "Help"
-    },
-    {
-      "key": "ui.zone.tab.mailbox",
-      "text": "Mailbox"
     },
     {
       "key": "msg.hint.questions_many",

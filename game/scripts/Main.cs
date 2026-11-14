@@ -115,6 +115,14 @@ public partial class Main : Node3D
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
             _settings = _smokeFrames > 0 || _shotsFolder is not null ? PlayerSettings.Parse(null, _limits) : SettingsStore.Load(_settingsPath, _limits);
+
+            // The smoke's screen checks were written for the old layout; the corners (the standard, A1682) have their
+            // own check, CheckCornersAsync, until step 3 removes the old layout.
+            if (_smokeFrames > 0)
+            {
+                _settings = _settings with { ClassicLayout = true };
+            }
+
             ApplySettings(_settings);
         }
 
@@ -503,6 +511,7 @@ public partial class Main : Node3D
             })
         {
             Share = _meta is null || _library is null ? null : ShareWorld,
+            Help = () => _screen?.OpenHelp(),
 
             // A world without a save place (screenshot runs) never claims "saved" (W1689b).
             SaveNow = () => _world?.SavePath is not null && SaveAsked(),
