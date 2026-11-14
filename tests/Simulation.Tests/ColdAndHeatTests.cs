@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
 
 namespace GlassWorld.Simulation.Tests;
@@ -66,6 +67,128 @@ public sealed class ColdAndHeatTests : IDisposable
         Assert.True(withModifiers.Inhabitants.Get(id).Needs["hunger"] < without.Inhabitants.Get(id).Needs["hunger"]);
     }
 
+    [Fact]
+    public void OnAWinterNightWithoutFireTheWarmthNeedFallsAndAFireOrAShelterSlowsIt()
+    {
+        // TL #25829/#25856 (D1112 #5): a winter night without fire - the warmth need falls; with a fire next to the
+        // inhabitant, or a rock niche keeping the wind off, it falls more slowly (or recovers).
+        var content = WinterFirstContent();
+        var need = Content.Value.InhabitantModel.ComfortZone!.Need;
+
+        var (open, openInhabitant) = WinterNight(content);
+        var level = open.Inhabitants.ComfortLevelOf(open.World, openInhabitant);
+        Assert.True(level is "cold" or "cool", $"comfort level {level} on a winter night");
+        var openDrop = Drop(open, openInhabitant, need, _ => { });
+
+        var (fire, fireInhabitant) = WinterNight(content);
+        var fireDrop = Drop(fire, fireInhabitant, need, h => h.Objects.Spawn("fire", new Position(fireInhabitant.Position.X + 0.5, fireInhabitant.Position.Z)));
+
+        var (niche, nicheInhabitant) = WinterNight(content);
+        var nicheDrop = Drop(niche, nicheInhabitant, need, h => h.Objects.Spawn("rock_niche", new Position(nicheInhabitant.Position.X + 1, nicheInhabitant.Position.Z)));
+
+        Assert.True(openDrop > 0, $"{need} did not fall on a winter night ({openDrop})");
+        Assert.True(fireDrop < openDrop, $"with a fire {fireDrop} >= {openDrop}");
+        Assert.True(nicheDrop <= openDrop, $"in a niche {nicheDrop} > {openDrop}");
+    }
+
+    /// <summary>How much a need falls over two hours of the night after <paramref name="setup"/>.</summary>
+    private static double Drop(SimulationHost host, Inhabitant inhabitant, string need, Action<SimulationHost> setup)
+    {
+        setup(host);
+        var before = inhabitant.Needs[need];
+        host.World.Run(2 * host.World.Calendar.Settings.TicksPerHour);
+        return before - inhabitant.Needs[need];
+    }
+
+    /// <summary>The second winter night at 1 o'clock (past the climate's one-day season transition), nobody lighting a fire.</summary>
+    private static (SimulationHost Host, Inhabitant Inhabitant) WinterNight(string content)
+    {
+        var host = Island(content);
+        Assert.Equal("winter", host.World.Now.SeasonId);
+        host.World.Run(host.World.Calendar.TicksPerDay);
+        while (host.World.Now.Hour != 1)
+        {
+            host.World.Run(1);
+        }
+
+        Assert.DoesNotContain(host.Objects.All, o => o.TypeId == "fire");
+        return (host, host.Inhabitants.All.First());
+    }
+
+    /// <summary>A copy of the content whose year begins in winter (calendar and climate lists).</summary>
+    private string WinterFirstContent() => CopyContent(target =>
+    {
+        var timePath = Path.Combine(target, "world", "time.json");
+        var time = JsonNode.Parse(File.ReadAllText(timePath))!.AsObject();
+        var seasons = time["seasons"]!.AsArray();
+        var winter = seasons.First(s => (string?)s!["id"] == "winter")!;
+        seasons.Remove(winter);
+        seasons.Insert(0, winter);
+        File.WriteAllText(timePath, time.ToJsonString());
+
+        // The climate lists its seasons in calendar order too: winter first there as well.
+        foreach (var climatePath in Directory.EnumerateFiles(Path.Combine(target, "climate"), "*.json"))
+        {
+            var climate = JsonNode.Parse(File.ReadAllText(climatePath))!;
+            WinterFirst(climate);
+            File.WriteAllText(climatePath, climate.ToJsonString());
+        }
+    });
+
+    /// <summary>Every list of the four seasons (items with a 'season') starts with winter, the rest in their order.</summary>
+    private static void WinterFirst(JsonNode? node)
+    {
+        if (node is JsonArray array)
+        {
+            var winter = array.FirstOrDefault(i => i is JsonObject o && (string?)o["season"] == "winter");
+            if (winter is not null && array.Count == 4 && array.All(i => i is JsonObject o && o["season"] is not null))
+            {
+                array.Remove(winter);
+                array.Insert(0, winter);
+            }
+
+            foreach (var item in array.ToList())
+            {
+                WinterFirst(item);
+            }
+        }
+        else if (node is JsonObject obj)
+        {
+            foreach (var (_, value) in obj.ToList())
+            {
+                WinterFirst(value);
+            }
+        }
+    }
+
+    /// <summary>A copy of the content, changed by <paramref name="change"/> (the copy's directory).</summary>
+    private string CopyContent(Action<string> change)
+    {
+        var target = Path.Combine(Path.GetTempPath(), "gw-cold-" + Guid.NewGuid().ToString("N"));
+        _copies.Add(target);
+        foreach (var file in Directory.EnumerateFiles(ContentDirectory, "*", SearchOption.AllDirectories))
+        {
+            var to = Path.Combine(target, Path.GetRelativePath(ContentDirectory, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.Copy(file, to);
+        }
+
+        change(target);
+        return target;
+    }
+
+    /// <summary>A copy of the content in which the comfort zone lies far above any air (always too cold), changed further by <paramref name="change"/>.</summary>
+    private string Copy(Action<JsonObject> change) => CopyContent(target =>
+    {
+        var modelPath = Path.Combine(target, "inhabitants", "model.json");
+        var model = JsonNode.Parse(File.ReadAllText(modelPath))!.AsObject();
+        var zone = model["comfort_zone"]!.AsObject();
+        zone["min_tenth_c"] = 590;
+        zone["max_tenth_c"] = 600;
+        change(zone);
+        File.WriteAllText(modelPath, model.ToJsonString());
+    });
+
     public void Dispose()
     {
         foreach (var copy in _copies)
@@ -79,28 +202,6 @@ public sealed class ColdAndHeatTests : IDisposable
         var host = SimulationHost.CreateGeneratedWorld(content, 23, new SilentPort(), "de", "start_island");
         host.World.Run(1);
         return host;
-    }
-
-    /// <summary>A copy of the content in which the comfort zone lies far above any air (always too cold), changed further by <paramref name="change"/>.</summary>
-    private string Copy(Action<JsonObject> change)
-    {
-        var target = Path.Combine(Path.GetTempPath(), "gw-cold-" + Guid.NewGuid().ToString("N"));
-        _copies.Add(target);
-        foreach (var file in Directory.EnumerateFiles(ContentDirectory, "*", SearchOption.AllDirectories))
-        {
-            var to = Path.Combine(target, Path.GetRelativePath(ContentDirectory, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
-            File.Copy(file, to);
-        }
-
-        var modelPath = Path.Combine(target, "inhabitants", "model.json");
-        var model = JsonNode.Parse(File.ReadAllText(modelPath))!.AsObject();
-        var zone = model["comfort_zone"]!.AsObject();
-        zone["min_tenth_c"] = 590;
-        zone["max_tenth_c"] = 600;
-        change(zone);
-        File.WriteAllText(modelPath, model.ToJsonString());
-        return target;
     }
 
     private sealed class SilentPort : IDecisionPort
