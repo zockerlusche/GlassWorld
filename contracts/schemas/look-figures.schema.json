@@ -110,6 +110,14 @@
         "$ref": "#/$defs/FigureClothingPart"
       }
     },
+    "gestures": {
+      "description": "Arm gestures over the running pose (D958 D2): the first gesture whose action and reach fit the shown action clip moves the arms by two-bone IK. Frame, not outcome: the core says what is done, this only shows it.",
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/FigureGesture"
+      }
+    },
     "sitting": {
       "description": "Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.",
       "$ref": "#/$defs/FigureSitting"
@@ -132,6 +140,138 @@
     }
   },
   "$defs": {
+    "FigureGesture": {
+      "description": "One arm gesture: a calm cycle of reach out (rise), stay at the start point (dip), move to the head (lift), hold, lower and rest. Points are in the figure's own frame in metres for a figure of size 1 (x towards the arm's own side, y up, z forward), so one set of numbers serves both arms.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actions",
+        "arms",
+        "rise_s",
+        "hold_s",
+        "lower_s",
+        "rest_s",
+        "influence",
+        "to_head",
+        "pole"
+      ],
+      "properties": {
+        "id": {
+          "description": "Name of the gesture.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "actions": {
+          "description": "Core actions the gesture shows (vocabulary actions).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "reach": {
+          "description": "Only for targets of these reach heights (look objects 'reach'); missing = any, also without a target.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(low|mid|high)$"
+          }
+        },
+        "arms": {
+          "description": "Which arms move.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(left|right)$"
+          }
+        },
+        "rise_s": {
+          "description": "Real seconds the arm needs to reach its first point.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10
+        },
+        "dip_s": {
+          "description": "Real seconds at the start point before the hands move to the head (0 or missing: straight to the head).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "lift_s": {
+          "description": "Real seconds from the start point to the head.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "hold_s": {
+          "description": "Real seconds the hand stays at the head (mouth).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "lower_s": {
+          "description": "Real seconds back to the pose of the clip.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10
+        },
+        "rest_s": {
+          "description": "Real seconds before the next cycle (chewing, swallowing).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "influence": {
+          "description": "How strongly the gesture overrides the clip at its peak (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "to_head": {
+          "description": "Target of the hand relative to the head bone (metres, figure frame), e.g. in front of the mouth.",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2
+          }
+        },
+        "from_body": {
+          "description": "Start point relative to the figure's root (metres, figure frame), e.g. the water in front of the knees; missing: none, the hand goes to the head at once.",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2
+          }
+        },
+        "pole": {
+          "description": "Where the elbow points, relative to the figure's root (metres, figure frame), for the right arm.",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2
+          }
+        }
+      }
+    },
     "FigureLying": {
       "description": "Lying down to sleep (W1695, W1729), a placeholder until the figures have a lying clip: the figure sits down on the ground with the library's sit transition (sit_clip over sit_s), then rolls from sitting onto its side about its hips (roll_deg over roll_s, eased) while the hips slide to the lying spot and the legs open a little; the lying clips play their seated loop laid on its side. The lying body follows the ground: tilted to the slope under it (at most max_tilt_deg) and lifted so that no sampled body point is below the ground. Getting up is the same in reverse and ends with rise_clip. A lying figure never turns its body to a voice or to another inhabitant.",
       "type": "object",
