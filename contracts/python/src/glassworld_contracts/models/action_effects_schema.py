@@ -33,6 +33,10 @@ class ActionPartners(BaseModel):
         ge=1,
         le=8,
     )
+    known_only: bool | None = Field(
+        None,
+        description='Offered only with things the inhabitant already believes something about, the target and each partner (spec R39: the inhabitant can come to it from what it knows, B2578; GW2 D979). Its own beliefs, never the truth. Omitted = false (every thing in reach).',
+    )
     feeds: bool | None = Field(
         None,
         description='The partner is fuel for the target (A1379): offered only on a burning thing whose type takes fuel; at the end the partner is used up and the target burns its fuel_minutes longer, at most burn_max_minutes from now. A partner without fuel_minutes gives nothing (offered by reach, not by truth). Omitted = false (combine).',
@@ -43,6 +47,7 @@ class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
     will_to_live = 'will_to_live'
+    trait = 'trait'
 
 
 class ActionTiming(BaseModel):
@@ -90,10 +95,13 @@ class Effect(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    kind: Kind
+    kind: Kind = Field(
+        ...,
+        description="trait (D1086, B2728): a trait of the inhabitant, at most its start range's max - used by event_effects (success strengthens).",
+    )
     id: str = Field(
         ...,
-        description='Need or mood id; ignored for will_to_live.',
+        description='Need, mood or trait id; ignored for will_to_live.',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

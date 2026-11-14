@@ -33,7 +33,7 @@ Answer only with the JSON object requested.
 ## Process
 The inhabitant puts these things together and chooses no process. Which ONE of these happens, if any (answer its id as process):
 - strike: Hit one hard thing against another.
-- split: Break something along its grain or layers into flat pieces.
+- split: Break something apart along its grain or layers.
 
 ## Inputs (true properties, numbered)
 1. burnable, splittable

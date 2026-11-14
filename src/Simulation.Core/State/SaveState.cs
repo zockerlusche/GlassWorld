@@ -164,6 +164,18 @@ public sealed record SaveState(
     /// <summary>Burning things with the tick they burn down (B2687 K3); null = none.</summary>
     public IReadOnlyList<Objects.BurningThing>? Burning { get; init; }
 
+    /// <summary>Fading and forgotten knowledge (D1017 G1); null = none.</summary>
+    public Inhabitants.ForgettingState? Forgetting { get; init; }
+
+    /// <summary>The nature takt's sums (A1380); null = none.</summary>
+    public Nature.NatureState? Nature { get; init; }
+
+    /// <summary>Things that came after the world start, with the tick they came (D711 section 5); null = none.</summary>
+    public IReadOnlyList<Objects.PlacedThing>? Placed { get; init; }
+
+    /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
+    public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
+
     /// <summary>The reached milestones (B2598, A1583); null = none.</summary>
     public IReadOnlyList<Inventions.ReachedMilestone>? Milestones { get; init; }
 }
@@ -237,6 +249,10 @@ public static class StateCodec
             NightJobs = host.NightJobs.HasState ? host.NightJobs.Capture() : null,
             Processes = host.Processes is { HasState: true } processes ? processes.Capture() : null,
             Burning = host.Fire.HasState ? host.Fire.Capture() : null,
+            Forgetting = host.Forgetting.HasState ? host.Forgetting.Capture() : null,
+            Nature = host.Nature is { HasState: true } nature ? nature.Capture() : null,
+            Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
+            Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
         };
     }
@@ -389,6 +405,10 @@ public static class StateCodec
         host.NightJobs.Restore(state.NightJobs);
         host.Processes?.Restore(state.Processes);
         host.Fire.Restore(state.Burning);
+        host.Forgetting.Restore(state.Forgetting);
+        host.Nature?.Restore(state.Nature);
+        host.Durability?.Restore(state.Placed, state.Tick);
+        host.Body?.Restore(state.Wet);
         host.Milestones.Restore(state.Milestones);
         host.UseLoggedPlayerSettings();
         return host;

@@ -38,7 +38,11 @@ public sealed record InventionRecord(string TypeId, string RequestId, string Inh
 /// <param name="Tick">Tick it entered the world.</param>
 /// <param name="SoundFile">Its own sound from the sound model (file name in the service's output folder), or null: then the game takes the base library by the description (D471 D7).</param>
 /// <param name="SoundDescription">The rule guard's sound description, or null when it needs no sound.</param>
-public sealed record InventionInfo(string TypeId, LocalizedName Name, InventionCategory Category, string Purpose, string InhabitantId, long Tick, string? SoundFile = null, string? SoundDescription = null);
+public sealed record InventionInfo(string TypeId, LocalizedName Name, InventionCategory Category, string Purpose, string InhabitantId, long Tick, string? SoundFile = null, string? SoundDescription = null)
+{
+    /// <summary>The base function it was mapped to (D827 R31), or null; for log, prompt and UI only - no rule branches on it (D1022).</summary>
+    public string? BaseFunction { get; init; }
+}
 
 /// <summary>Runtime types of the world (inventions) for UI and later systems.</summary>
 public interface IRuntimeCatalog
@@ -140,6 +144,12 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
     /// </summary>
     public bool ValidateRequests { get; init; } = true;
+
+    /// <summary>
+    /// Knowledge data (B4a): with it the inventor's job carries what the inhabitant believes about the materials it
+    /// sees (R8, A1582) - its own beliefs with source and confidence, never the truth; null = needs, moods and memory only.
+    /// </summary>
+    public KnowledgeSettings? Knowledge { get; set; }
 
     /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
     public string DisplayLocale
@@ -302,7 +312,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
         foreach (var record in state.Inventions)
         {
-            _types.Register(record.TypeId, Parse(record).Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
+            _types.Register(record.TypeId, _rules.PropertiesOf(Parse(record)));
             _inventions[record.TypeId] = record;
         }
 
@@ -325,7 +335,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         string? file = _sounds.TryGetValue(record.TypeId, out var sound) && sound.ResultJson is not null
             ? JsonSerializer.Deserialize<SoundResult>(sound.ResultJson, RecordJson)?.File
             : null;
-        return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick, file, decision?.Needed == true ? decision.Description : null);
+        return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick, file, decision?.Needed == true ? decision.Description : null)
+        {
+            BaseFunction = invention.BaseFunction,
+        };
     }
 
     private static int SeedOf(string requestId) => DecisionIds.SeedOf(requestId);
@@ -485,7 +498,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                     },
                     Want = want,
                     Subject = null,
-                    Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
+                    Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, [.. materials.Select(m => m.Type).Distinct(StringComparer.Ordinal)], [], _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
                     Materials = materials,
                     TechLevel = Milestones?.TechLevel ?? settings.TechLevel,
                     Limits = new InventionLimits { MaxSizeM = settings.Limits.MaxSizeM, MaxParts = settings.Limits.MaxParts, MaxRounds = settings.Limits.MaxRounds },
@@ -572,7 +585,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         }
 
         var invention = result.Invention!;
-        _types.Register(typeId, invention.Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
+        _types.Register(typeId, _rules.PropertiesOf(invention));
         _inventions[typeId] = new InventionRecord(
             typeId,
             want.RequestId,

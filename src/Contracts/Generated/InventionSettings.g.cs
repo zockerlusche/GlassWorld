@@ -118,6 +118,13 @@ namespace GlassWorld.Contracts
         public int MaxMaterials { get; set; } = default!;
 
         /// <summary>
+        /// Final check point 11 (D827 R31): when true, an invention without a base function is refused (missing_base_function). False while the guard does not map things yet; a base function that is not in the list is always refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("require_base_function")]
+        public bool? RequireBaseFunction { get; set; } = default!;
+
+        /// <summary>
         /// Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("implied_properties")]

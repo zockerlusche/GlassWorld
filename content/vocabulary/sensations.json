@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.2",
+  "kind": "sensation",
+  "entries": [
+    {
+      "id": "near_fire",
+      "description": "A big fire burns close by: fire has spread to several things near the inhabitant."
+    }
+  ]
+}

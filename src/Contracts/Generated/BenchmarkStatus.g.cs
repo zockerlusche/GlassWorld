@@ -192,6 +192,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public LocalizedName? Label { get; set; } = default!;
 
+        /// <summary>
+        /// D1017 G1: false while the belief fades - the inhabitant is no longer sure of it; the prompt says 'you think so'. Absent (or true): sure. A forgotten belief is not sent at all. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sure")]
+        public bool? Sure { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -560,6 +567,10 @@ namespace GlassWorld.Contracts
         Review = 10,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("milestone")]
+        Milestone = 11,
+
+
     }
 
     /// <summary>
@@ -684,6 +695,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
         public string TechLevel { get; set; } = default!;
+
+        /// <summary>
+        /// The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("base_function")]
+        public string? BaseFunction { get; set; } = default!;
 
         /// <summary>
         /// Optional (B4b R11).
@@ -1070,6 +1088,27 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("strength")]
         public double Strength { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// D1086 (B2728): how a trait of the inhabitant scales a value - a factor read from a point table over the trait's value (linear in between, constant outside). Only how often or how readily, never what (PR2). An inhabitant without the trait gets factor 1.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TraitCurve
+    {
+
+        /// <summary>
+        /// Trait id (vocabulary trait).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("trait")]
+        public string Trait { get; set; } = default!;
+
+        /// <summary>
+        /// Points [trait value, factor] with ascending trait value in 0..1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("curve")]
+        public System.Collections.Generic.ICollection<System.Collections.Generic.ICollection<double>> Curve { get; set; } = new System.Collections.ObjectModel.Collection<System.Collections.Generic.ICollection<double>>();
 
     }
 

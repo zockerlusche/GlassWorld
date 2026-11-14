@@ -53,6 +53,10 @@
       "schleuder",
       "steinschleuder*",
       "*steinschleuder",
+      "wurfschleuder*",
+      "*wurfschleuder",
+      "schleuderstein*",
+      "*schleuderstein",
       "katapult*",
       "*katapult",
       "blasrohr*",
@@ -92,6 +96,7 @@
       "club",
       "clubs",
       "slingshot*",
+      "slingstone*",
       "catapult*",
       "blowgun*",
       "boomerang*",
@@ -107,6 +112,7 @@
   },
   "max_materials": 12,
   "living_properties": [],
+  "require_base_function": false,
   "implied_properties": [
     "crafted"
   ]

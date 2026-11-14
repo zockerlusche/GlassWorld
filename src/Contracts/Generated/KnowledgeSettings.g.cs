@@ -195,6 +195,13 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// D971: also ask about a thing the inhabitant believes nothing about (the day question unknown_object exists only for such things). The perception is then what it noticed by seeing the thing: the looking data's visible properties the thing has (never more than looking shows, not stored as a belief). Absent or false = such a question waits until the inhabitant has looked or tried.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("ask_without_notice")]
+        public bool? AskWithoutNotice { get; set; } = default!;
+
+        /// <summary>
         /// Priority of question jobs (generation-job: higher runs first).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
@@ -633,6 +640,48 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("intention_actions")]
         public System.Collections.Generic.ICollection<string> IntentionActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// D1086: idea_grow is multiplied by this trait factor (ideas ripen faster). Omitted = the same for all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("idea_grow_by_trait")]
+        public TraitCurve? IdeaGrowByTrait { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// D1017 G1 (B2707): knowledge fades when it is not used. Once a game day every belief's strength is 1 - decay_per_day[its source] x days since it was last used (learned, acted on); the inhabitant is then as sure as before times the strength (a fading belief reaches the AI as a weaker one), below forgotten_below the belief leaves its mind and is kept as forgotten (nothing is deleted). A source not listed never fades. Absent = nothing fades.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeForgetting
+    {
+
+        /// <summary>
+        /// Strength lost per game day without use, by knowledge source (vocabulary knowledge_source).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decay_per_day")]
+        public System.Collections.Generic.IDictionary<string, double> DecayPerDay { get; set; } = new System.Collections.Generic.Dictionary<string, double>();
+
+        /// <summary>
+        /// Below this strength a belief is forgotten.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forgotten_below")]
+        public double ForgottenBelow { get; set; } = default!;
+
+        /// <summary>
+        /// D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("floor_after")]
+        public System.Collections.Generic.ICollection<Floor_after>? FloorAfter { get; set; } = default!;
+
+        /// <summary>
+        /// D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unsure_below")]
+        public double? UnsureBelow { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -744,6 +793,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("review")]
         public KnowledgeReview? Review { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("forgetting")]
+        public KnowledgeForgetting? Forgetting { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -837,6 +890,21 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("why")]
         Why = 4,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Floor_after
+    {
+
+        /// <summary>
+        /// Memory kind (knowledge memory events: kind, or the action as kind).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("floor")]
+        public double Floor { get; set; } = default!;
 
     }
 }

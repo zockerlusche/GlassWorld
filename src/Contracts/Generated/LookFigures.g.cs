@@ -13,6 +13,103 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// One arm gesture: a calm cycle of reach out (rise), stay at the start point (dip), move to the head (lift), hold, lower and rest. Points are in the figure's own frame in metres for a figure of size 1 (x towards the arm's own side, y up, z forward), so one set of numbers serves both arms.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureGesture
+    {
+
+        /// <summary>
+        /// Name of the gesture.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Core actions the gesture shows (vocabulary actions).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Only for targets of these reach heights (look objects 'reach'); missing = any, also without a target.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reach")]
+        public System.Collections.Generic.ICollection<string>? Reach { get; set; } = default!;
+
+        /// <summary>
+        /// Which arms move.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("arms")]
+        public System.Collections.Generic.ICollection<string> Arms { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Real seconds the arm needs to reach its first point.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rise_s")]
+        public double RiseS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds at the start point before the hands move to the head (0 or missing: straight to the head).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dip_s")]
+        public double? DipS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds from the start point to the head.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lift_s")]
+        public double? LiftS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds the hand stays at the head (mouth).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hold_s")]
+        public double HoldS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds back to the pose of the clip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lower_s")]
+        public double LowerS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds before the next cycle (chewing, swallowing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_s")]
+        public double RestS { get; set; } = default!;
+
+        /// <summary>
+        /// How strongly the gesture overrides the clip at its peak (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("influence")]
+        public double Influence { get; set; } = default!;
+
+        /// <summary>
+        /// Target of the hand relative to the head bone (metres, figure frame), e.g. in front of the mouth.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("to_head")]
+        public System.Collections.Generic.ICollection<double> ToHead { get; set; } = new System.Collections.ObjectModel.Collection<double>();
+
+        /// <summary>
+        /// Start point relative to the figure's root (metres, figure frame), e.g. the water in front of the knees; missing: none, the hand goes to the head at once.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("from_body")]
+        public System.Collections.Generic.ICollection<double>? FromBody { get; set; } = default!;
+
+        /// <summary>
+        /// Where the elbow points, relative to the figure's root (metres, figure frame), for the right arm.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pole")]
+        public System.Collections.Generic.ICollection<double> Pole { get; set; } = new System.Collections.ObjectModel.Collection<double>();
+
+    }
+
+    /// <summary>
     /// Lying down to sleep (W1695, W1729), a placeholder until the figures have a lying clip: the figure sits down on the ground with the library's sit transition (sit_clip over sit_s), then rolls from sitting onto its side about its hips (roll_deg over roll_s, eased) while the hips slide to the lying spot and the legs open a little; the lying clips play their seated loop laid on its side. The lying body follows the ground: tilted to the slope under it (at most max_tilt_deg) and lifted so that no sampled body point is below the ground. Getting up is the same in reverse and ends with rise_clip. A lying figure never turns its body to a voice or to another inhabitant.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -634,6 +731,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("clothing_parts")]
         public System.Collections.Generic.ICollection<FigureClothingPart> ClothingParts { get; set; } = new System.Collections.ObjectModel.Collection<FigureClothingPart>();
+
+        /// <summary>
+        /// Arm gestures over the running pose (D958 D2): the first gesture whose action and reach fit the shown action clip moves the arms by two-bone IK. Frame, not outcome: the core says what is done, this only shows it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("gestures")]
+        public System.Collections.Generic.ICollection<FigureGesture>? Gestures { get; set; } = default!;
 
         /// <summary>
         /// Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.

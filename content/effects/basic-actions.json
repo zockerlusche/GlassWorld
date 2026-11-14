@@ -20,7 +20,7 @@
     { "action": "introduce", "destination": "here", "duration_minutes": 2, "reach_m": 2 },
     { "action": "approach", "destination": "here", "duration_minutes": 1, "reach_m": 2 },
     { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 },
-    { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4 } },
+    { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "known_only": true } },
     { "action": "add_fuel", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "feeds": true } }
   ],
   "rules": [
@@ -93,6 +93,9 @@
     ] }
   ],
   "event_effects": [
+    { "event": "built", "effects": [{ "kind": "trait", "id": "drive", "delta": 0.02 }] },
+    { "event": "discovered_process", "effects": [{ "kind": "trait", "id": "drive", "delta": 0.01 }] },
+    { "event": "milestone_reached", "effects": [{ "kind": "trait", "id": "drive", "delta": 0.01 }] },
     { "event": "build_failed", "detail_ends_with": "gave_up", "effects": [
       { "kind": "mood", "id": "frustration", "delta": 0.15 }
     ] },

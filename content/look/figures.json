@@ -313,5 +313,67 @@
     "alpha": 0.3,
     "all_inhabitants": false,
     "focus_within_m": 30
-  }
+  },
+  "gestures": [
+    {
+      "id": "scoop",
+      "actions": [
+        "drink"
+      ],
+      "reach": [
+        "low"
+      ],
+      "arms": [
+        "left",
+        "right"
+      ],
+      "rise_s": 0.7,
+      "dip_s": 0.5,
+      "lift_s": 0.8,
+      "hold_s": 0.7,
+      "lower_s": 0.7,
+      "rest_s": 1.6,
+      "influence": 0.9,
+      "to_head": [
+        0.05,
+        -0.1,
+        0.12
+      ],
+      "from_body": [
+        0.12,
+        0.05,
+        0.42
+      ],
+      "pole": [
+        0.35,
+        0.4,
+        -0.25
+      ]
+    },
+    {
+      "id": "hand_to_mouth",
+      "actions": [
+        "eat",
+        "drink"
+      ],
+      "arms": [
+        "right"
+      ],
+      "rise_s": 0.6,
+      "hold_s": 0.8,
+      "lower_s": 0.6,
+      "rest_s": 1.8,
+      "influence": 0.9,
+      "to_head": [
+        0.02,
+        -0.1,
+        0.12
+      ],
+      "pole": [
+        0.35,
+        0.9,
+        -0.25
+      ]
+    }
+  ]
 }

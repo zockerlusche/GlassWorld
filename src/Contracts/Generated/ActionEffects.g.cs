@@ -110,6 +110,13 @@ namespace GlassWorld.Contracts
         public int MaxOptions { get; set; } = default!;
 
         /// <summary>
+        /// Offered only with things the inhabitant already believes something about, the target and each partner (spec R39: the inhabitant can come to it from what it knows, B2578; GW2 D979). Its own beliefs, never the truth. Omitted = false (every thing in reach).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("known_only")]
+        public bool? KnownOnly { get; set; } = default!;
+
+        /// <summary>
         /// The partner is fuel for the target (A1379): offered only on a burning thing whose type takes fuel; at the end the partner is used up and the target burns its fuel_minutes longer, at most burn_max_minutes from now. A partner without fuel_minutes gives nothing (offered by reach, not by truth). Omitted = false (combine).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -150,12 +157,15 @@ namespace GlassWorld.Contracts
     public partial class Effect
     {
 
+        /// <summary>
+        /// trait (D1086, B2728): a trait of the inhabitant, at most its start range's max - used by event_effects (success strengthens).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EffectKind>))]
         public EffectKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// Need or mood id; ignored for will_to_live.
+        /// Need, mood or trait id; ignored for will_to_live.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
@@ -229,6 +239,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("will_to_live")]
         Will_to_live = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("trait")]
+        Trait = 3,
 
 
     }

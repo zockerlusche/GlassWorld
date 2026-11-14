@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -281,6 +281,50 @@ class KnowledgeReview(BaseModel):
         max_length=32,
         min_length=1,
     )
+    idea_grow_by_trait: common_schema.TraitCurve | None = Field(
+        None,
+        description='D1086: idea_grow is multiplied by this trait factor (ideas ripen faster). Omitted = the same for all.',
+    )
+
+
+type DecayPerDay = Annotated[float, Field(..., ge=0.0, le=1.0)]
+
+
+class FloorAfterItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: str = Field(
+        ...,
+        description='Memory kind (knowledge memory events: kind, or the action as kind).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    floor: float = Field(..., ge=0.0, le=1.0)
+
+
+class KnowledgeForgetting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    decay_per_day: dict[str, DecayPerDay] = Field(
+        ...,
+        description='Strength lost per game day without use, by knowledge source (vocabulary knowledge_source).',
+    )
+    forgotten_below: float = Field(
+        ..., description='Below this strength a belief is forgotten.', ge=0.0, le=1.0
+    )
+    floor_after: list[FloorAfterItem] | None = Field(
+        None,
+        description='D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.',
+        max_length=16,
+    )
+    unsure_below: float | None = Field(
+        None,
+        description="D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class KnowledgeMemoryEvent(BaseModel):
@@ -345,6 +389,10 @@ class KnowledgeMemoryEvent(BaseModel):
 class KnowledgeNightQuestions(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
+    )
+    ask_without_notice: bool | None = Field(
+        None,
+        description="D971: also ask about a thing the inhabitant believes nothing about (the day question unknown_object exists only for such things). The perception is then what it noticed by seeing the thing: the looking data's visible properties the thing has (never more than looking shows, not stored as a belief). Absent or false = such a question waits until the inhabitant has looked or tried.",
     )
     job_priority: int = Field(
         ...,
@@ -572,3 +620,4 @@ class KnowledgeSettings(BaseModel):
         None,
         description='The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.',
     )
+    forgetting: KnowledgeForgetting | None = None

@@ -53,6 +53,10 @@ public sealed class InventionTests : IDisposable
         Assert.Equal(NearbyTypes.Order(StringComparer.Ordinal), payload.Materials.Select(m => m.Type).Order(StringComparer.Ordinal));
         Assert.Equal(["burnable"], payload.Materials.Single(m => m.Type == "flint").Observed);
         Assert.Empty(payload.Materials.Single(m => m.Type == "pyrite").Observed);
+
+        // R8 (A1582): the inventor knows what it believes about what it sees - its own beliefs, never the truth.
+        Assert.Contains(payload.Inhabitant.Knowledge, k => k.Subject.Id == "flint" && k.Property == "burnable");
+        Assert.All(payload.Inhabitant.Knowledge, k => Assert.True(inhabitant.Beliefs.TryGet(k.Subject.Id, k.Property, out var b) && b.Value == k.Value));
         Assert.Contains(host.Inhabitants.EventsSince(0), e => e.Event.Kind == InventionSystem.Wanted && e.Event.Action == Need);
         Assert.Single(host.Inventions.Wants);
     }
@@ -301,6 +305,42 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void ABaseFunctionGivesItsPropertiesToTheNewTypeAndNothingElse()
+    {
+        // D827 R31: the effect comes only through granted properties; a function without fitting properties is only recorded.
+        var rules = Content.Value.Inventions;
+        var invention = Result([]).Invention!;
+        invention.BaseFunction = "shelter";
+        Assert.Contains("sheltering", rules.PropertiesOf(invention));
+        Assert.Superset(rules.Settings.ImpliedProperties.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(invention).ToHashSet(StringComparer.Ordinal));
+        invention.BaseFunction = "tool";
+        Assert.Equal(rules.Settings.ImpliedProperties.Order(StringComparer.Ordinal), rules.PropertiesOf(invention).Order(StringComparer.Ordinal));
+
+        // Every function has its name in both languages.
+        foreach (var language in new[] { "de", "en" })
+        {
+            var catalogue = File.ReadAllText(Path.Combine(TestData.Root, "content", "i18n", language + ".json"));
+            Assert.All(rules.BaseFunctions.Keys, id => Assert.Contains($"\"vocab.base_function.{id}\"", catalogue, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void AnInventionMappedToAShelterShelters()
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 16);
+        RunUntilJob(host, port);
+        var job = port.Submitted.Single();
+        var answer = Approved(job, []);
+        answer.Result!.Invention!.Invention!.BaseFunction = "shelter";
+        port.Answer(job, answer);
+        host.World.Run(30);
+        var type = InventionSystem.TypeIdFor(job.RequestId);
+        Assert.True(host.Types.HasProperty(type, "sheltering"));
+        Assert.Equal("shelter", host.Inventions.Invention(type)?.BaseFunction);
+    }
+
+    [Fact]
     public void TheFinalCheckRefusesWhatTheDataForbid()
     {
         var rules = Content.Value.Inventions;
@@ -329,6 +369,13 @@ public sealed class InventionTests : IDisposable
         // B2531: a property the data mark as one of living beings is refused.
         var living = rules with { Settings = Copy(rules.Settings, s => s.LivingProperties = ["container"]) };
         Assert.Contains(InventionCheck.LivingProperty, InventionCheck.Check(Result(["container"]), perceived, living));
+
+        // Point 11 (D827 R31): a base function from the list passes, one outside it never; a missing one only while the data allow it.
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, rules));
+        Assert.Contains(InventionCheck.UnknownBaseFunction, InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "no_such_function"), perceived, rules));
+        var strict = rules with { Settings = Copy(rules.Settings, s => s.RequireBaseFunction = true) };
+        Assert.Contains(InventionCheck.MissingBaseFunction, InventionCheck.Check(Result(["container"]), perceived, strict));
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, strict));
 
         InventionResult Mutate(Action<InventionResult> change)
         {
@@ -466,7 +513,7 @@ public sealed class InventionTests : IDisposable
         public void Submit(string requestId, string jobJson)
         {
             var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
-            if (job.Kind is JobKind.Memory or JobKind.Dream)
+            if (job.Kind is JobKind.Memory or JobKind.Dream or JobKind.Review)
             {
                 // The night's memory and dream jobs of the thirsty test inhabitant are not what these tests are
                 // about (B2681: kept awake by thirst it sleeps later and remembers more, so they can come first).

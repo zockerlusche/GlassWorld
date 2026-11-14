@@ -32,7 +32,7 @@
     },
     {
       "id": "sparks",
-      "description": "Throws sparks when struck against a suitable stone."
+      "description": "Throws sparks."
     },
     {
       "id": "sticky",
@@ -104,19 +104,19 @@
     },
     {
       "id": "fine_grained",
-      "description": "Made of tiny grains or powder (sand, flour, ash)."
+      "description": "Made of tiny grains or powder."
     },
     {
       "id": "alkaline",
-      "description": "Like ash or lye: cleans and helps sand melt into glass."
+      "description": "Feels soapy and bitter; cleans."
     },
     {
       "id": "smoulders",
-      "description": "Glows hot and long without a big flame (charcoal)."
+      "description": "Glows hot and long without a big flame."
     },
     {
       "id": "transparent",
-      "description": "You can see through it (glass)."
+      "description": "You can see through it."
     },
     {
       "id": "cooked",
@@ -124,11 +124,11 @@
     },
     {
       "id": "milky",
-      "description": "A white, creamy drink from grains, nuts or seeds."
+      "description": "White and creamy."
     },
     {
       "id": "fatty",
-      "description": "Rich and greasy, like butter or oil."
+      "description": "Rich and greasy."
     },
     {
       "id": "waterproof",
@@ -137,6 +137,10 @@
     {
       "id": "fruit",
       "description": "Looks like a fruit, nut or berry; seen by looking."
+    },
+    {
+      "id": "firm",
+      "description": "Firm flesh that keeps a little longer than soft fruit."
     },
     {
       "id": "mushroom",

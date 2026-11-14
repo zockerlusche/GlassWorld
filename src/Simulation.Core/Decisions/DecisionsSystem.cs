@@ -620,9 +620,11 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private void AskAtLeisure(World world, LeisureSettings leisure)
     {
-        var every = (long)(leisure.EveryHours * world.Calendar.Settings.TicksPerHour);
         foreach (var inhabitant in _inhabitants.Ordered)
         {
+            // D1086 (B2728): drive makes free moments come more often and with less strength - how often, never what.
+            var every = (long)(leisure.EveryHours / Math.Max(0.01, TraitFactor.Of(leisure.EveryHoursByTrait, inhabitant.Traits)) * world.Calendar.Settings.TicksPerHour);
+            var needsAtLeast = leisure.NeedsAtLeast * TraitFactor.Of(leisure.NeedsAtLeastByTrait, inhabitant.Traits);
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
             if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
@@ -637,7 +639,7 @@ public sealed class DecisionsSystem : IWorldSystem
             var presses = false;
             foreach (var (need, value) in inhabitant.Needs)
             {
-                if (value < leisure.NeedsAtLeast && PressingNeeds.Contains(need))
+                if (value < needsAtLeast && PressingNeeds.Contains(need))
                 {
                     presses = true;
                     break;
@@ -1005,10 +1007,11 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool MayAsk(World world, Inhabitant inhabitant, string subject, string kind)
     {
+        // A free moment keeps its own every_hours (scaled by drive, D1086); ask_cooldown_hours would hold it to at least that.
         var questions = _openOf.GetValueOrDefault(inhabitant.Id);
         return HasRoom(inhabitant, kind)
             && !(questions is not null && HasSubject(questions, string.Empty, subject))
-            && !CoolingDown(world, inhabitant, subject);
+            && (kind == Leisure || !CoolingDown(world, inhabitant, subject));
     }
 
     /// <summary>Whether the inhabitant asked about the subject less than ask_cooldown_hours ago.</summary>
@@ -1179,7 +1182,7 @@ public sealed class DecisionsSystem : IWorldSystem
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? [.. stuck(inhabitant.Id, subject).Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))]
-            : BuildOptions(inhabitant, target, world.Tick, others, things, out partners);
+            : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
@@ -1221,7 +1224,8 @@ public sealed class DecisionsSystem : IWorldSystem
     {
         _counter++;
         WorldObject? target = null;
-        var targetId = question.Options.Select(o => o.TargetId).FirstOrDefault(id => id is not null);
+        // The subject is the first target in the data's order (D1025: the sent order is shuffled from the request id).
+        var targetId = InDataOrder(question, world.Seed).Select(o => o.TargetId).FirstOrDefault(id => id is not null);
         if (targetId is not null && _objects.TryGet(targetId, out var found))
         {
             target = found;
@@ -1266,7 +1270,7 @@ public sealed class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
         var raw = new List<(string Action, string? TargetId, string? Partner)>();
@@ -1279,7 +1283,8 @@ public sealed class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
-            var isIntended = action == intended;
+            // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
+            var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
@@ -1302,7 +1307,13 @@ public sealed class DecisionsSystem : IWorldSystem
                         // B2687: an action that uses a second thing (combine) once per thing within reach of the
                         // subject, nearest first - never by whether a rule fits (R39): what comes of it is the
                         // world's truth, whether one tries is the inhabitant's. Nothing near, no option.
-                        foreach (var partner in PartnersNear(target, things, withOthers))
+                        // R39 (GW2 D979): with known_only only things the asker already believes something about.
+                        if (withOthers.KnownOnly && !asker.Beliefs.About(target.TypeId).Any())
+                        {
+                            break;
+                        }
+
+                        foreach (var partner in PartnersNear(target, things, withOthers, withOthers.KnownOnly ? asker : null))
                         {
                             (isIntended ? first : raw).Add((action, target.Id, partner));
                         }
@@ -1344,6 +1355,42 @@ public sealed class DecisionsSystem : IWorldSystem
                     }
 
                     break;
+                case VocabularyEntryTarget.Object when target is null && _actions.Timing(action) is { PartnerOptions: > 0, KnownOnly: true, Feeds: false } free:
+                    // R39, GW2 D979, TL TH142: without a subject (a free moment) pairs of things the asker already
+                    // believes something about, nearest to it first, each with its partners nearest to it - so
+                    // putting known things together comes up when there is time, not only at an unknown thing.
+                    // A pair counts once: B with A is not offered again after A with B (review GW1 #365).
+                    var offered = new HashSet<(string, string)>();
+                    foreach (var subject in things.Where(o => asker.Beliefs.About(o.TypeId).Any()))
+                    {
+                        if (offered.Count >= free.PartnerOptions || Rests(asker, action, subject.Id, tick))
+                        {
+                            continue;
+                        }
+
+                        foreach (var partner in PartnersNear(subject, things, free, asker))
+                        {
+                            if (offered.Count >= free.PartnerOptions || offered.Contains((partner, subject.Id)))
+                            {
+                                continue;
+                            }
+
+                            offered.Add((subject.Id, partner));
+                            (isIntended ? first : raw).Add((action, subject.Id, partner));
+                        }
+                    }
+
+                    break;
+                case VocabularyEntryTarget.Object when target is null && _brain.IsAboutMadeThings(action):
+                    // D999 (TL TH143): in a free moment, the made things in sight the asker knows are made (#358), nearest
+                    // first - so what was built can be used when there is time, not only when a need is low. Whether it
+                    // helps is the world's matter (the effect rules of its true properties).
+                    foreach (var made in things.Where(o => _brain.BelievesMadeFor(asker, action, o.TypeId) && !Rests(asker, action, o.Id, tick)))
+                    {
+                        (isIntended ? first : raw).Add((action, made.Id, null));
+                    }
+
+                    break;
                 default:
                     // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
@@ -1358,11 +1405,58 @@ public sealed class DecisionsSystem : IWorldSystem
 
         // Meeting actions (B4a R8) are no knowledge passed on: they follow with the room that is left.
         raw.AddRange(meeting);
-        var kept = raw.Take(MaxOptions).Select((o, i) => (OptionId: string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId, o.Partner)).ToList();
+        // D1025: the cut keeps the intended option and the data's order of importance; what is sent is shuffled per
+        // question (from the world seed and the question id, the same when it is sent again), so the position in the
+        // list says nothing - a model tends to take the first option.
+        var cut = raw.Take(MaxOptions).ToList();
+        Shuffle(cut, orderSeed);
+        var kept = cut.Select((o, i) => (OptionId: string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId, o.Partner)).ToList();
         partners = kept.Any(o => o.Partner is not null)
             ? kept.Where(o => o.Partner is not null).ToDictionary(o => o.OptionId, o => (IReadOnlyList<string>)[o.Partner!], StringComparer.Ordinal)
             : null;
         return [.. kept.Select(o => (o.OptionId, o.Action, o.TargetId))];
+    }
+
+    /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> undone (D1025).</summary>
+    private static IReadOnlyList<(string OptionId, string Action, string? TargetId)> InDataOrder(OpenQuestion question, ulong worldSeed)
+    {
+        if (question.Kind == BuildStuck)
+        {
+            return question.Options; // the stuck options are never shuffled
+        }
+
+        var positions = Enumerable.Range(0, question.Options.Count).ToList();
+        Shuffle(positions, OrderSeed(worldSeed, question.Id));
+        var original = new (string OptionId, string Action, string? TargetId)[question.Options.Count];
+        for (var sent = 0; sent < positions.Count; sent++)
+        {
+            original[positions[sent]] = question.Options[sent];
+        }
+
+        return original;
+    }
+
+    /// <summary>The seed of a question's option order (D1025): its world and its id, not the request (resends keep it).</summary>
+    internal static int OrderSeed(ulong worldSeed, string questionId) =>
+        DecisionIds.SeedOf(string.Create(CultureInfo.InvariantCulture, $"options/{worldSeed}/{questionId}"));
+
+    /// <summary>
+    /// D1025: a deterministic Fisher-Yates shuffle from a seed (SplitMix64) - no random stream of the world, so the
+    /// order is the same in a replay and costs nothing in the hash.
+    /// </summary>
+    internal static void Shuffle<T>(List<T> items, int seed)
+    {
+        var state = (ulong)(uint)seed;
+        for (var i = items.Count - 1; i > 0; i--)
+        {
+            state += 0x9E3779B97F4A7C15UL;
+            var z = state;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            z ^= z >> 31;
+            var j = (int)(z % (ulong)(i + 1));
+            (items[i], items[j]) = (items[j], items[i]);
+        }
     }
 
     /// <summary>
@@ -1372,8 +1466,8 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
 
-    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing) =>
-        things.Where(o => o.Id != target.Id)
+    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing, Inhabitant? knower = null) =>
+        things.Where(o => o.Id != target.Id && (knower is null || knower.Beliefs.About(o.TypeId).Any()))
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
             .Where(o => o.Distance <= timing.PartnerReachM)
             .OrderBy(o => o.Distance).ThenBy(o => o.Id, StringComparer.Ordinal)
@@ -1395,7 +1489,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),

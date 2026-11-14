@@ -123,6 +123,22 @@
       "schema": "climate-settings"
     },
     {
+      "pattern": "nature/*.json",
+      "schema": "nature-settings"
+    },
+    {
+      "pattern": "durability/*.json",
+      "schema": "durability-settings"
+    },
+    {
+      "pattern": "body/*.json",
+      "schema": "body-settings"
+    },
+    {
+      "pattern": "fire/*.json",
+      "schema": "fire-settings"
+    },
+    {
       "pattern": "look/palette.json",
       "schema": "look-palette"
     },
@@ -197,6 +213,10 @@
     {
       "pattern": "invention/settings.json",
       "schema": "invention-settings"
+    },
+    {
+      "pattern": "invention/base_functions.json",
+      "schema": "invention-base-functions"
     },
     {
       "pattern": "build/settings.json",
@@ -285,6 +305,10 @@
     {
       "pattern": "ai/mock-weights.json",
       "schema": "mock-weights"
+    },
+    {
+      "pattern": "learning/log.json",
+      "schema": "learning-log-settings"
     }
   ]
 }

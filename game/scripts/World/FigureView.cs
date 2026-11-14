@@ -71,6 +71,9 @@ public partial class FigureView : Node3D
     private LookAtModifier _lookAt = null!;
     private FaceDriver _face = null!;
     private KneeStraightenModifier _knees = null!;
+    private GestureLayer? _gestures;
+    private FigureGesture? _gestureWanted;
+    private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
     private SeatPose? _seat;
     private SeatPose _lastSeat;
@@ -138,6 +141,9 @@ public partial class FigureView : Node3D
         view._knees.Watch(figures.Lying.BodyPoints.Select(p => p.Bone));
         var skeleton = figure.Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single();
         skeleton.AddChild(view._knees);
+
+        // Eating and drinking as arm gestures over the clip (D958 D2), after the clip and the knees.
+        view._gestures = new GestureLayer(skeleton, view, spec.Scale);
         for (Node node = skeleton; node != figure.Root; node = node.GetParent())
         {
             // Where the skeleton is in the figure: the watched bones are read in the skeleton's space.
@@ -199,7 +205,12 @@ public partial class FigureView : Node3D
         // What the core state asks for; the cadence shows it calmly, in real seconds (W1697, pose_cadence).
         var target = all is null ? null : InhabitantActivity.TargetKind(inhabitant, all);
         var conversation = all is not null && InhabitantActivity.InConversation(inhabitant, all);
-        _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0);
+        // A1632: how high the thing is - crouch at the ground, reach at a bush (look data, through the variant's root).
+        var reach = target == AnimationMappingTarget.Object && inhabitant.TargetId is { } aim && objects?.FirstOrDefault(o => o.Id == aim) is { } thing
+            ? _shared.ReachOf?.Invoke(thing.TypeId)
+            : null;
+        _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
+        _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
         _gait = inhabitant.Gait;
         _to = to;
@@ -222,6 +233,8 @@ public partial class FigureView : Node3D
         var figures = _shared.Figures;
         _shownPose = PoseCadence.PoseKey(clip, figures.Lying);
         var lying = !clip.Walking && LyingPose.IsLying(figures.Lying, clip.Clip.ClipId);
+        // The gesture shows only with the action's own clip: not on the way there, not lying, not idling.
+        _actionShown = !clip.Walking && !lying && !chooser.IsIdleClip(clip.Clip.ClipId);
         if (clip.Missing is { } missing)
         {
             Report(missing);
@@ -422,6 +435,7 @@ public partial class FigureView : Node3D
         _knees.HipShare = (float)hips;
 
         HearAndAnswer(delta, figures.Greeting);
+        _gestures?.Update(delta, _actionShown && !_lying && _lieSeconds <= 0 ? _gestureWanted : null);
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {

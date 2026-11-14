@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -406,7 +407,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(review.KnowledgeMax)
-            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf))
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf, _inhabitants.UnsureOf))
             .ToList();
         var job = NewJob(world, inhabitant, JobKind.Review, "/review", review.JobPriority);
         job.Payload = new JobPayload
@@ -478,7 +479,9 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var kept = inhabitant.Ideas.Take(grows, idea.Text.Trim(), roots, world.Tick, review.IdeaStart, review.IdeaGrow, review.MaxIdeas);
+            // D1086 (B2728): with more drive an idea ripens faster - how fast, never which.
+            var grow = review.IdeaGrow * TraitFactor.Of(review.IdeaGrowByTrait, inhabitant.Traits);
+            var kept = inhabitant.Ideas.Take(grows, idea.Text.Trim(), roots, world.Tick, review.IdeaStart, grow, review.MaxIdeas);
             _inhabitants.Report(new WorldEvent(IdeaEvent, world.Tick, inhabitant.Id, null, kept.Id) { Detail = grows is null ? "new" : "grew" });
             if (idea.Thought is { } thought && _guard.Check(thought.Text).Allowed)
             {
@@ -532,6 +535,15 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
     /// inhabitant has looked at the thing or tried it; a guess from nothing would only echo other memories.
     /// How many were asked and how many wait is reported as one event per inhabitant.
     /// </summary>
+    /// <summary>The world's type truth (runtime types included); only for what a thing shows at a glance (D971).</summary>
+    public ITypeTruth? Truth { get; set; }
+
+    /// <summary>What a thing shows at a glance (D971): the looking data's visible properties it truly has, in data order.</summary>
+    private IEnumerable<string> Glance(KnowledgeSettings knowledge, string typeId) =>
+        Truth is { } truth && knowledge.Looking is { } looking
+            ? looking.VisibleProperties.Where(p => truth.HasProperty(typeId, p)).Take(MaxPerception)
+            : [];
+
     private void SubmitQuestions(World world, Inhabitant inhabitant)
     {
         if (_knowledge is not { NightQuestions: { } night } knowledge)
@@ -550,9 +562,12 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             }
 
             var typeId = question.Subject[TypeSubject.Length..];
-            if (!inhabitant.Beliefs.About(typeId).Any())
+            var noticedNothing = !inhabitant.Beliefs.About(typeId).Any();
+            if (noticedNothing && (night.AskWithoutNotice != true || !Glance(knowledge, typeId).Any()))
             {
                 // What it notices about the thing is among its beliefs (seen by looking): none at all = nothing to guess from.
+                // D999: asked without a notice, the thing must at least show something at a glance - otherwise the model
+                // guesses from memories of other things (#227).
                 skipped++;
                 continue;
             }
@@ -570,8 +585,10 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                     Label = _inhabitants.TypeLabelOf(inhabitant, typeId),
                     Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
 
-                    // What it has seen of the thing by looking (source seen), never the truth: without a look it notices nothing.
-                    Perception = [.. inhabitant.Beliefs.About(typeId)
+                    // What it has seen of the thing by looking (source seen). D971: one it knows nothing about at all
+                    // it still saw when it wondered - what that shows at a glance (the visible properties of the looking
+                    // data the thing has), never more than a look would show.
+                    Perception = noticedNothing ? [.. Glance(knowledge, typeId)] : [.. inhabitant.Beliefs.About(typeId)
                         .Where(b => b.Belief.Value && b.Belief.Source == KnowledgeSources.Seen)
                         .Select(b => b.PropertyId)
                         .Take(MaxPerception)],

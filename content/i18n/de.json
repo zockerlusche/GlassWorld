@@ -55,6 +55,10 @@
       "text": "Gedanke"
     },
     {
+      "key": "msg.world.faulted",
+      "text": "Es gab ein Problem, die Welt ist angehalten. Dein letzter Spielstand ist sicher; der Stand von eben liegt als Rettungsdatei daneben."
+    },
+    {
       "key": "msg.save.failed",
       "text": "Speichern hat nicht geklappt. Die Welt bleibt offen, damit nichts verloren geht."
     },
@@ -851,6 +855,38 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.base_function.container",
+      "text": "Behälter"
+    },
+    {
+      "key": "vocab.base_function.seat_bed",
+      "text": "Sitz oder Lager"
+    },
+    {
+      "key": "vocab.base_function.heat_source",
+      "text": "Wärmequelle"
+    },
+    {
+      "key": "vocab.base_function.light_source",
+      "text": "Lichtquelle"
+    },
+    {
+      "key": "vocab.base_function.sound_source",
+      "text": "Klangquelle"
+    },
+    {
+      "key": "vocab.base_function.shelter",
+      "text": "Schutz und Raum"
+    },
+    {
+      "key": "vocab.base_function.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.base_function.closure",
+      "text": "Verschluss"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },
@@ -1009,6 +1045,10 @@
     {
       "key": "vocab.trait.diligence",
       "text": "Fleiß"
+    },
+    {
+      "key": "vocab.trait.drive",
+      "text": "Tatendrang"
     },
     {
       "key": "vocab.trait.kindness",
@@ -1397,6 +1437,10 @@
     {
       "key": "vocab.object.red_mushroom",
       "text": "Roter Pilz"
+    },
+    {
+      "key": "vocab.object.ash",
+      "text": "Asche"
     },
     {
       "key": "vocab.object.fieldstone",
@@ -2067,6 +2111,14 @@
       "text": "Feuer vom Regen gelöscht"
     },
     {
+      "key": "vocab.event.caught_fire",
+      "text": "Etwas hat Feuer gefangen"
+    },
+    {
+      "key": "vocab.sensation.near_fire",
+      "text": "Brand in der Nähe"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },
@@ -2101,6 +2153,10 @@
     {
       "key": "vocab.property.fruit",
       "text": "Fruchtartig"
+    },
+    {
+      "key": "vocab.property.firm",
+      "text": "Fest"
     },
     {
       "key": "vocab.property.mushroom",
@@ -2973,6 +3029,158 @@
     {
       "key": "vocab.property.waterproof",
       "text": "Wasserdicht"
+    },
+    {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Baut auf etwas, das der Bewohner nicht weiß"
+    },
+    {
+      "key": "msg.learnlog.title",
+      "text": "Lern-Protokoll – Tag {day}"
+    },
+    {
+      "key": "msg.learnlog.nothing",
+      "text": "(nichts Neues)"
+    },
+    {
+      "key": "msg.learnlog.is.true",
+      "text": "ist"
+    },
+    {
+      "key": "msg.learnlog.is.false",
+      "text": "ist nicht"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.true",
+      "text": "ist Baumaterial"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.false",
+      "text": "ist kein Baumaterial"
+    },
+    {
+      "key": "msg.learnlog.fact.container.true",
+      "text": "ist ein Behälter"
+    },
+    {
+      "key": "msg.learnlog.fact.container.false",
+      "text": "ist kein Behälter"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.true",
+      "text": "härtet im Feuer"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.false",
+      "text": "härtet nicht im Feuer"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.true",
+      "text": "schlägt Funken"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.false",
+      "text": "schlägt keine Funken"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.true",
+      "text": "glüht lange"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.false",
+      "text": "glüht nicht lange"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.true",
+      "text": "ist ein Pilz"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.false",
+      "text": "ist kein Pilz"
+    },
+    {
+      "key": "msg.learnlog.fact.water.true",
+      "text": "ist Wasser"
+    },
+    {
+      "key": "msg.learnlog.fact.water.false",
+      "text": "ist kein Wasser"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.true",
+      "text": "ist Stein"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.false",
+      "text": "ist kein Stein"
+    },
+    {
+      "key": "msg.learnlog.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.seen",
+      "text": "{time} sieht: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.experienced",
+      "text": "{time} erfährt selbst: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.heard",
+      "text": "{time} hört von {from}: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.guessed",
+      "text": "{time} vermutet: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.name_learned",
+      "text": "{time} kennt jetzt den Namen von {other}"
+    },
+    {
+      "key": "msg.learnlog.first_meeting",
+      "text": "{time} trifft {other} zum ersten Mal"
+    },
+    {
+      "key": "msg.learnlog.invention_wanted",
+      "text": "{time} wünscht sich etwas für: {need}"
+    },
+    {
+      "key": "msg.learnlog.invented",
+      "text": "{time} erfindet: {thing}"
+    },
+    {
+      "key": "msg.learnlog.built",
+      "text": "{time} baut fertig: {thing}"
+    },
+    {
+      "key": "msg.learnlog.first_use",
+      "text": "{time} benutzt zum ersten Mal: {thing}"
+    },
+    {
+      "key": "msg.learnlog.combined",
+      "text": "{time} bringt Dinge zusammen und bekommt: {thing}"
+    },
+    {
+      "key": "msg.learnlog.discovered_process",
+      "text": "{time} entdeckt einen Arbeitsschritt: {action}"
+    },
+    {
+      "key": "msg.learnlog.idea",
+      "text": "{time} hat eine Idee"
+    },
+    {
+      "key": "msg.learnlog.dreamed",
+      "text": "{time} träumt"
+    },
+    {
+      "key": "msg.learnlog.praised",
+      "text": "{time} wird von dir gelobt"
+    },
+    {
+      "key": "msg.learnlog.word_heard",
+      "text": "{time} hört von dir das Wort „{word}“ für {thing}"
     }
   ]
 }

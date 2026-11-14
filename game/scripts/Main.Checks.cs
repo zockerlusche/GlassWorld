@@ -115,6 +115,67 @@ public partial class Main
     }
 
     /// <summary>
+    /// Smoke run only (B2712, TL #24690): an artificial exception in a world step. The world stops, the save game
+    /// stays byte for byte (a save after the fault writes nothing), the rescue file next to it holds the state, and
+    /// the Faulted signal came with its path.
+    /// </summary>
+    private void CheckFault(string content)
+    {
+        var folder = ProjectSettings.GlobalizePath("user://smoke");
+        System.IO.Directory.CreateDirectory(folder);
+        var path = System.IO.Path.Combine(folder, "fault.sqlite");
+        Simulation.Data.SaveGameStore.Save(path, Simulation.State.StateCodec.Capture(_world!.Host!));
+        var before = System.Security.Cryptography.SHA256.HashData(System.IO.File.ReadAllBytes(path));
+        var presenter = new WorldPresenter { Name = "FaultCheck", QuietFaults = true };
+        try
+        {
+            presenter.Load(content, path, new Simulation.Decisions.MockDecisionPort());
+            var rescue = presenter.RescuePath!;
+            System.IO.File.Delete(rescue);
+            string? signalled = null;
+            presenter.Faulted += (_, at) => signalled = at;
+            presenter.Host!.World.Add(new FailingSystem());
+            presenter.RunGuarded(3);
+            presenter.Save();
+            var after = System.Security.Cryptography.SHA256.HashData(System.IO.File.ReadAllBytes(path));
+            var problem = !presenter.IsFaulted ? "world not faulted"
+                : presenter.Speed != 0 ? "world not stopped"
+                : !before.AsSpan().SequenceEqual(after) ? "save game changed"
+                : !System.IO.File.Exists(rescue) ? "no rescue file"
+                : signalled != rescue ? "no signal with the rescue path"
+                : string.Empty;
+            if (problem.Length > 0)
+            {
+                GD.PushError($"FAULT_FAIL {problem}");
+                return;
+            }
+
+            System.IO.File.Delete(rescue);
+            GD.Print("FAULT_OK");
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"FAULT_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            presenter.Free();
+        }
+    }
+
+    /// <summary>A world system that fails in its step (the fault check only).</summary>
+    private sealed class FailingSystem : Simulation.IWorldSystem
+    {
+        public string Name => "fault_check";
+
+        public void Advance(Simulation.World world) => throw new InvalidOperationException("fault check");
+
+        public void WriteState(Simulation.State.StateHasher hasher)
+        {
+        }
+    }
+
+    /// <summary>
     /// Smoke run only (B6 acceptance 7 and 11): main menu, new world form, world list, settings and
     /// pause menu open in DE and EN without a raw key and inside the safe area; settings survive a
     /// restart (written, read back, equal).
@@ -673,6 +734,11 @@ public partial class Main
                 settings.Close();
             }
 
+            if (_tourFull)
+            {
+                await FullTourAsync(first, Take);
+            }
+
             ok = failed == 0 && count > 0;
         }
         catch (Exception e) when (e is not OutOfMemoryException)
@@ -926,6 +992,7 @@ public partial class Main
             button.Free();
             slider.Free();
             CheckSave(_contentDirectory);
+            CheckFault(_contentDirectory);
 
             // After the save check: placing a gift runs more ticks (A1340).
             var gift = _screen is null ? "game screen missing" : await _screen.CheckGiftAsync();

@@ -71,6 +71,15 @@ def subject_name(subject: Any, settings: dict[str, Any]) -> str:
     return f"{kinds.get(kind, kind)} '{humanize(plain_id(subject.id))}'"
 
 
+# D1017 G1: what a fading belief (sure: false) says in every prompt that lists beliefs.
+UNSURE = "you think so, but are no longer sure"
+
+
+def unsure(entry: Any) -> bool:
+    """D1017 G1 (GW1 D1077): a fading belief comes with sure: false; absent means sure."""
+    return getattr(entry, "sure", None) is False
+
+
 def knowledge_line(entry: Any, settings: dict[str, Any]) -> str:
     """One belief with its source: what, sure how much, from where (and from whom)."""
     sources = table(settings, "source_words")
@@ -78,9 +87,10 @@ def knowledge_line(entry: Any, settings: dict[str, Any]) -> str:
     source = plain_id(entry.source)
     how = sources.get(source, source)
     teller = f" ({plain_id(entry.told_by)})" if entry.told_by is not None else ""
+    fading = f"{UNSURE}; " if unsure(entry) else ""
     return (
         f"- {subject_name(entry.subject, settings)} {belief} {humanize(plain_id(entry.property))} "
-        f"(sure {entry.confidence:.1f}; {how}{teller})"
+        f"({fading}sure {entry.confidence:.1f}; {how}{teller})"
     )
 
 

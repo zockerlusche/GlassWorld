@@ -24,6 +24,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Inhabitant, string, IReadOnlyList<WorldObject>, bool>? Processing { get; set; }
 
     /// <summary>
+    /// B5 R45: whether a thing lacks one of its true properties right now (wet fuel does not burn); set by the
+    /// host from the fire data. Null = things always have their true properties.
+    /// </summary>
+    public Func<World, WorldObject, string, bool>? Lacks { get; set; }
+
+    /// <summary>
     /// Feeding a fire (A1379): the target, the fuel; returns whether it burns longer now. Set by the host
     /// from the fires; null = feeding does nothing.
     /// </summary>
@@ -60,7 +66,7 @@ public sealed partial class InhabitantsSystem
     /// <summary>
     /// Applies the first combination rule (rule-id order) that fits the action and the things - the target
     /// and its partners in entity-id order, so the same things give the same assignment in every run and in
-    /// replays. The new things lie where the actor stands; the rule's consumed inputs are used up. The actor
+    /// replays. The new things lie at the target's place (beside the actor, GW3 D990); the rule's consumed inputs are used up. The actor
     /// experiences the true properties of what came of it, and the world reports it (memory, chronicle).
     /// Returns whether anything came of it; nothing fitting is an outcome too (without effect, so the
     /// repetition guard lets the same try rest, W1696).
@@ -82,7 +88,15 @@ public sealed partial class InhabitantsSystem
         }
 
         things.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
-        var matches = rules.Match(activity.Action, [.. things.Select(t => t.TypeId)]);
+        var types = things.Select(t => t.TypeId).ToList();
+        var matches = Lacks is { } lacks ? rules.Match(activity.Action, types, (i, p) => lacks(world, things[i], p)) : rules.Match(activity.Action, types);
+        if (matches.Count == 0 && Lacks is not null && rules.Match(activity.Action, types).Count > 0)
+        {
+            // A known rule that needs what the things lack right now (wet grass and a spark): nothing comes of it,
+            // and it is no unknown try for the judge either.
+            return false;
+        }
+
         if (matches.Count == 0)
         {
             // No combination: maybe a processing (the target first, as the inhabitant chose it).
@@ -98,7 +112,8 @@ public sealed partial class InhabitantsSystem
 
         foreach (var typeId in rule.Creates)
         {
-            var made = _objects.Spawn(typeId, inhabitant.Position);
+            // Where the things were put together (the target's place), not under the actor's feet (GW3 D990).
+            var made = _objects.Spawn(typeId, target.Position);
             Experience(world.Tick, inhabitant, activity.Action, made.TypeId, _objects.Catalog.TrueProperties(made.TypeId));
             Report(new WorldEvent(Combined, world.Tick, inhabitant.Id, activity.Action, made.Id) { TargetType = made.TypeId, Detail = rule.Id });
         }

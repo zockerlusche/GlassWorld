@@ -38,6 +38,7 @@ class Kind(StrEnum):
     outline_size = 'outline_size'
     vital = 'vital'
     condition = 'condition'
+    sensation = 'sensation'
 
 
 class Target(StrEnum):
@@ -70,6 +71,10 @@ class VocabularyEntry(BaseModel):
         description="Actions and guard reasons: the entry exists only in one situation the core or a prompt names (e.g. build_stuck, A1373 step 2; want_check, B2668) and is offered or listed only there. A prompt that lists actions in general leaves it out; it is never an invention's purpose. Absent = an action like any other.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    spoken: bool | None = Field(
+        None,
+        description="Actions only (A1510, W1728): the inhabitant's thought with this action is said aloud to the one it turns to (introducing, talking, warning, showing, teaching), so the log shows 'says' instead of 'thinks'. Absent = false (a thought).",
     )
 
 

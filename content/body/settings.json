@@ -1,0 +1,483 @@
+{
+  "contract_version": "0.2",
+  "wetness": {
+    "rain_per_hour": 3000,
+    "drying": [
+      {
+        "below_tenth_c": 50,
+        "per_hour": 250
+      },
+      {
+        "below_tenth_c": 150,
+        "per_hour": 500
+      },
+      {
+        "below_tenth_c": 250,
+        "per_hour": 1000
+      },
+      {
+        "below_tenth_c": null,
+        "per_hour": 2000
+      }
+    ],
+    "wind_drying_permille": 1000,
+    "cool_tenth_c": 50,
+    "shelter_property": "sheltering",
+    "shelter_radius_cm": 300
+  },
+  "sun": {
+    "warm_tenth_c": 30,
+    "positions": [
+      {
+        "season": "spring",
+        "hour": 6,
+        "toward_x_permille": -993,
+        "toward_z_permille": -121,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "spring",
+        "hour": 7,
+        "toward_x_permille": -935,
+        "toward_z_permille": -355,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "spring",
+        "hour": 8,
+        "toward_x_permille": -823,
+        "toward_z_permille": -568,
+        "shadow_permille": 2091
+      },
+      {
+        "season": "spring",
+        "hour": 9,
+        "toward_x_permille": -663,
+        "toward_z_permille": -749,
+        "shadow_permille": 1500
+      },
+      {
+        "season": "spring",
+        "hour": 10,
+        "toward_x_permille": -465,
+        "toward_z_permille": -885,
+        "shadow_permille": 1198
+      },
+      {
+        "season": "spring",
+        "hour": 11,
+        "toward_x_permille": -239,
+        "toward_z_permille": -971,
+        "shadow_permille": 1047
+      },
+      {
+        "season": "spring",
+        "hour": 12,
+        "toward_x_permille": 0,
+        "toward_z_permille": -1000,
+        "shadow_permille": 1000
+      },
+      {
+        "season": "spring",
+        "hour": 13,
+        "toward_x_permille": 239,
+        "toward_z_permille": -971,
+        "shadow_permille": 1047
+      },
+      {
+        "season": "spring",
+        "hour": 14,
+        "toward_x_permille": 465,
+        "toward_z_permille": -885,
+        "shadow_permille": 1198
+      },
+      {
+        "season": "spring",
+        "hour": 15,
+        "toward_x_permille": 663,
+        "toward_z_permille": -749,
+        "shadow_permille": 1500
+      },
+      {
+        "season": "spring",
+        "hour": 16,
+        "toward_x_permille": 823,
+        "toward_z_permille": -568,
+        "shadow_permille": 2091
+      },
+      {
+        "season": "spring",
+        "hour": 17,
+        "toward_x_permille": 935,
+        "toward_z_permille": -355,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "spring",
+        "hour": 18,
+        "toward_x_permille": 993,
+        "toward_z_permille": -121,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "spring",
+        "hour": 19,
+        "toward_x_permille": null,
+        "toward_z_permille": null,
+        "shadow_permille": 0
+      },
+      {
+        "season": "summer",
+        "hour": 5,
+        "toward_x_permille": -995,
+        "toward_z_permille": -98,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "summer",
+        "hour": 6,
+        "toward_x_permille": -957,
+        "toward_z_permille": -290,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "summer",
+        "hour": 7,
+        "toward_x_permille": -882,
+        "toward_z_permille": -471,
+        "shadow_permille": 1787
+      },
+      {
+        "season": "summer",
+        "hour": 8,
+        "toward_x_permille": -773,
+        "toward_z_permille": -634,
+        "shadow_permille": 1220
+      },
+      {
+        "season": "summer",
+        "hour": 9,
+        "toward_x_permille": -634,
+        "toward_z_permille": -773,
+        "shadow_permille": 903
+      },
+      {
+        "season": "summer",
+        "hour": 10,
+        "toward_x_permille": -471,
+        "toward_z_permille": -882,
+        "shadow_permille": 709
+      },
+      {
+        "season": "summer",
+        "hour": 11,
+        "toward_x_permille": -290,
+        "toward_z_permille": -957,
+        "shadow_permille": 593
+      },
+      {
+        "season": "summer",
+        "hour": 12,
+        "toward_x_permille": -98,
+        "toward_z_permille": -995,
+        "shadow_permille": 538
+      },
+      {
+        "season": "summer",
+        "hour": 13,
+        "toward_x_permille": 98,
+        "toward_z_permille": -995,
+        "shadow_permille": 538
+      },
+      {
+        "season": "summer",
+        "hour": 14,
+        "toward_x_permille": 290,
+        "toward_z_permille": -957,
+        "shadow_permille": 593
+      },
+      {
+        "season": "summer",
+        "hour": 15,
+        "toward_x_permille": 471,
+        "toward_z_permille": -882,
+        "shadow_permille": 709
+      },
+      {
+        "season": "summer",
+        "hour": 16,
+        "toward_x_permille": 634,
+        "toward_z_permille": -773,
+        "shadow_permille": 903
+      },
+      {
+        "season": "summer",
+        "hour": 17,
+        "toward_x_permille": 773,
+        "toward_z_permille": -634,
+        "shadow_permille": 1220
+      },
+      {
+        "season": "summer",
+        "hour": 18,
+        "toward_x_permille": 882,
+        "toward_z_permille": -471,
+        "shadow_permille": 1787
+      },
+      {
+        "season": "summer",
+        "hour": 19,
+        "toward_x_permille": 957,
+        "toward_z_permille": -290,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "summer",
+        "hour": 20,
+        "toward_x_permille": 995,
+        "toward_z_permille": -98,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "summer",
+        "hour": 21,
+        "toward_x_permille": null,
+        "toward_z_permille": null,
+        "shadow_permille": 0
+      },
+      {
+        "season": "autumn",
+        "hour": 7,
+        "toward_x_permille": -990,
+        "toward_z_permille": -142,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "autumn",
+        "hour": 8,
+        "toward_x_permille": -910,
+        "toward_z_permille": -415,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "autumn",
+        "hour": 9,
+        "toward_x_permille": -756,
+        "toward_z_permille": -655,
+        "shadow_permille": 2365
+      },
+      {
+        "season": "autumn",
+        "hour": 10,
+        "toward_x_permille": -541,
+        "toward_z_permille": -841,
+        "shadow_permille": 1772
+      },
+      {
+        "season": "autumn",
+        "hour": 11,
+        "toward_x_permille": -282,
+        "toward_z_permille": -959,
+        "shadow_permille": 1506
+      },
+      {
+        "season": "autumn",
+        "hour": 12,
+        "toward_x_permille": 0,
+        "toward_z_permille": -1000,
+        "shadow_permille": 1428
+      },
+      {
+        "season": "autumn",
+        "hour": 13,
+        "toward_x_permille": 282,
+        "toward_z_permille": -959,
+        "shadow_permille": 1506
+      },
+      {
+        "season": "autumn",
+        "hour": 14,
+        "toward_x_permille": 541,
+        "toward_z_permille": -841,
+        "shadow_permille": 1772
+      },
+      {
+        "season": "autumn",
+        "hour": 15,
+        "toward_x_permille": 756,
+        "toward_z_permille": -655,
+        "shadow_permille": 2365
+      },
+      {
+        "season": "autumn",
+        "hour": 16,
+        "toward_x_permille": 910,
+        "toward_z_permille": -415,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "autumn",
+        "hour": 17,
+        "toward_x_permille": 990,
+        "toward_z_permille": -142,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "autumn",
+        "hour": 18,
+        "toward_x_permille": null,
+        "toward_z_permille": null,
+        "shadow_permille": 0
+      },
+      {
+        "season": "winter",
+        "hour": 8,
+        "toward_x_permille": -981,
+        "toward_z_permille": -195,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 9,
+        "toward_x_permille": -831,
+        "toward_z_permille": -556,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 10,
+        "toward_x_permille": -556,
+        "toward_z_permille": -831,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 11,
+        "toward_x_permille": -195,
+        "toward_z_permille": -981,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 12,
+        "toward_x_permille": 195,
+        "toward_z_permille": -981,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 13,
+        "toward_x_permille": 556,
+        "toward_z_permille": -831,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 14,
+        "toward_x_permille": 831,
+        "toward_z_permille": -556,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 15,
+        "toward_x_permille": 981,
+        "toward_z_permille": -195,
+        "shadow_permille": 3000
+      },
+      {
+        "season": "winter",
+        "hour": 16,
+        "toward_x_permille": null,
+        "toward_z_permille": null,
+        "shadow_permille": 0
+      }
+    ]
+  },
+  "cover": [
+    {
+      "type": "deciduous_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 700
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 600
+        },
+        {
+          "season": "winter",
+          "permille": 200
+        }
+      ]
+    },
+    {
+      "type": "fruit_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 600
+        },
+        {
+          "season": "summer",
+          "permille": 900
+        },
+        {
+          "season": "autumn",
+          "permille": 500
+        },
+        {
+          "season": "winter",
+          "permille": 150
+        }
+      ]
+    },
+    {
+      "type": "conifer_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 900
+        },
+        {
+          "season": "summer",
+          "permille": 900
+        },
+        {
+          "season": "autumn",
+          "permille": 900
+        },
+        {
+          "season": "winter",
+          "permille": 900
+        }
+      ]
+    },
+    {
+      "type": "palm_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 700
+        },
+        {
+          "season": "summer",
+          "permille": 700
+        },
+        {
+          "season": "autumn",
+          "permille": 700
+        },
+        {
+          "season": "winter",
+          "permille": 700
+        }
+      ]
+    }
+  ]
+}

@@ -176,6 +176,15 @@ public sealed class CatalogTests
             }
         }
 
+        // Base functions are named like the vocabulary (D827 R31, content/invention/base_functions.json).
+        using (var functions = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root, "content", "invention", "base_functions.json"))))
+        {
+            foreach (var function in functions.RootElement.GetProperty("functions").EnumerateArray())
+            {
+                yield return $"vocab.base_function.{function.GetProperty("id").GetString()}";
+            }
+        }
+
         // Object types are catalog ids like the vocabulary (names for gifts, A1340).
         foreach (var path in Directory.GetFiles(Path.Combine(RepoPaths.Root, "content", "objects"), "*.json").Order(StringComparer.Ordinal))
         {

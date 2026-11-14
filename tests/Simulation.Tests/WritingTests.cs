@@ -161,7 +161,9 @@ public sealed class WritingTests : IDisposable
     private static (SimulationHost Host, WritingSystem Writing, string Sand, string Stone) WorldWithTexts(IWeather? weather)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");
-        var type = host.Content.Objects.TypeIds.First();
+
+        // A stone (it lasts): an apple, the first type, now spoils within days (durability, D711 section 5).
+        var type = host.Content.Objects.TypeIds.First(t => host.Content.Objects.TrueProperties(t).Contains("stone"));
         var sand = host.Objects.Spawn(type, new Position(1, 1)).Id;
         var stone = host.Objects.Spawn(type, new Position(2, 1)).Id;
         var writing = new WritingSystem(host.Content.Writing, host.Objects, weather, host.World.Calendar.Settings.TicksPerHour, host.World.Calendar.TicksPerDay);

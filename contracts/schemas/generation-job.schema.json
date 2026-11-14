@@ -107,6 +107,9 @@
         },
         "review": {
           "$ref": "#/$defs/ReviewPayload"
+        },
+        "milestone": {
+          "$ref": "#/$defs/MilestonePayload"
         }
       },
       "minProperties": 1,
@@ -350,10 +353,10 @@
           "$ref": "common.schema.json#/$defs/ProcessSignature"
         },
         "candidates": {
-          "description": "Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.",
+          "description": "Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise. Up to 16 since D1025 (GW2 #25006): the core sends every process physics allows, at most physics.max_candidates, so our data rules' ranking never decides which ones the judge sees.",
           "type": "array",
           "minItems": 1,
-          "maxItems": 8,
+          "maxItems": 16,
           "uniqueItems": true,
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
@@ -803,6 +806,90 @@
           "items": {
             "$ref": "common.schema.json#/$defs/Subject"
           }
+        }
+      }
+    },
+    "MilestonePayload": {
+      "description": "R35 (B2598, A1583, D962): a milestone was reached - the chronicle gets one calm sentence for it, written once, in the player's language. The milestone's text key names it in both languages (the base line stays the truth); null sentence = none (content guard or grounding, R24/B2644); a late or failed job leaves the milestone without a sentence.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "milestone",
+        "text_key",
+        "made",
+        "inhabitants",
+        "day",
+        "max_chars"
+      ],
+      "properties": {
+        "milestone": {
+          "description": "Milestone id (content/milestones/catalog.json).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "text_key": {
+          "description": "The milestone's text key (DE/EN).",
+          "type": "string",
+          "pattern": "^msg\\.milestone\\.[a-z0-9_]+$",
+          "maxLength": 64
+        },
+        "made": {
+          "description": "The thing made, by the maker's name for it, or null (a rule without a thing).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MilestoneName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inhabitants": {
+          "description": "Who reached it, the maker first, by the names they have.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/MilestoneName"
+          }
+        },
+        "day": {
+          "description": "Game day it was reached (1 = the first).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "max_chars": {
+          "description": "Longest sentence (data).",
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 280
+        },
+        "things": {
+          "description": "Other things that took part (a rule's inputs, e.g. spark and dry grass for a fire), by the maker's names for them; the sentence may name these too. Optional; absent = none.",
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/MilestoneName"
+          }
+        }
+      }
+    },
+    "MilestoneName": {
+      "description": "Something the sentence may name, by the name the maker knows it by (its label from its beliefs, never the truth id), with the id it stands for.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
         }
       }
     }

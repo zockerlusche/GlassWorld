@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
@@ -21,9 +22,10 @@ public sealed class NightReviewTests
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(OwnContent.Value));
 
     [Fact]
-    public void TheShippedDataKeepTheLookBackOff()
+    public void TheShippedDataHaveTheLookBackOn()
     {
-        Assert.False(ContentSet.Load(ShippedContent).Knowledge.Review!.Enabled);
+        // B2698 (TL, D971): switched on with the night questions that ask without a notice.
+        Assert.True(ContentSet.Load(ShippedContent).Knowledge.Review!.Enabled);
     }
 
     [Fact]
@@ -80,6 +82,34 @@ public sealed class NightReviewTests
         var intention = Assert.Single(a.Ideas.Intentions);
         Assert.Equal(("show", "type", "hazelnut"), (intention.Action, intention.AboutKind, intention.AboutId));
         Assert.Contains(host.Inventions.Log.Entries, e => e.RequestId == job.RequestId && e.Note is { } n && n.Contains("idea", StringComparison.Ordinal) && n.Contains("intention", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WithMoreDriveAnIdeaRipensFaster()
+    {
+        // A1694 (D1086): idea_grow x the data's drive factor - how fast, never which idea.
+        var review = Content.Value.Knowledge.Review!;
+        var curve = review.IdeaGrowByTrait!;
+        var (host, a, port) = World();
+        a.Traits[curve.Trait] = 0.9;
+        var idea = a.Ideas.Take(null, "The sharp stone might open a nut.", [new IdeaRoot("type", "flint")], 10, review.IdeaStart, review.IdeaGrow, review.MaxIdeas);
+        RunIntoTheNight(host);
+        var job = Assert.Single(port.Submitted);
+        var formative = job.Payload.Review!.Events.Where(e => e.Formative).Select(e => e.Tick).ToList();
+        port.Answer(job, Status(job, new ReviewResult
+        {
+            Summary = "A day by the stones.",
+            Kept = formative,
+            Dream = new DreamResult { Text = new GeneratedText { Locale = Locale.De, Text = "Ich träume von Steinen." }, Tone = "calm", About = null },
+            Ideas = [new ReviewIdeaResult { Id = idea.Id, Text = "The sharp stone might open a nut.", Roots = [Type("flint")], Thought = null }],
+            Intentions = [],
+            MorningMood = "joy",
+        }));
+        host.World.Step();
+
+        var factor = TraitFactor.Of(curve, a.Traits);
+        Assert.True(factor > 1);
+        Assert.Equal(review.IdeaStart + (review.IdeaGrow * factor), a.Ideas.Ideas.Single(i => i.Id == idea.Id).Strength, 9);
     }
 
     [Fact]

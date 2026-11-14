@@ -30,7 +30,6 @@
 
     { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:embers)." },
     { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:embers)." },
-    { "gap": "property:alkaline", "reason": "Only made by burn_to_ash, which needs heat (see heat:open_fire)." },
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
     { "gap": "property:insulating", "reason": "No object type carries it and no rule makes it: no clothing rule, no wool (D643 question 1)." },
 

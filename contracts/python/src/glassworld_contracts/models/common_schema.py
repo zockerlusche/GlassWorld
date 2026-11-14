@@ -186,6 +186,7 @@ class JobKind(StrEnum):
     sound = 'sound'
     model3d = 'model3d'
     review = 'review'
+    milestone = 'milestone'
 
 
 class JobState(StrEnum):
@@ -451,6 +452,30 @@ type ProperName = Annotated[
 ]
 
 
+type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=4.0)]
+
+
+type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
+
+
+class TraitCurve(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    trait: str = Field(
+        ...,
+        description='Trait id (vocabulary trait).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    curve: list[CurveItem] = Field(
+        ...,
+        description='Points [trait value, factor] with ascending trait value in 0..1.',
+        max_length=16,
+        min_length=2,
+    )
+
+
 class LevelEntry(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -497,6 +522,10 @@ class KnowledgeEntry(BaseModel):
     label: LocalizedName | None = Field(
         None,
         description="What THIS inhabitant calls the kind of thing the belief is about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
+    sure: bool | None = Field(
+        None,
+        description="D1017 G1: false while the belief fades - the inhabitant is no longer sure of it; the prompt says 'you think so'. Absent (or true): sure. A forgotten belief is not sent at all. Optional (absent also from an older core).",
     )
 
 
@@ -701,6 +730,12 @@ class Invention(BaseModel):
     tech_level: str = Field(
         ...,
         description='Tech level the invention needs (vocabulary tech_level).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    base_function: str | None = Field(
+        None,
+        description="The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

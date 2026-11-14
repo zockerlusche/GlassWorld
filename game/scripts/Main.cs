@@ -207,6 +207,12 @@ public partial class Main : Node3D
                 continue;
             }
 
+            // The full tour (TL #24631): after the normal tour, one step deeper into every window.
+            if (ReadTourFullArgument(arg))
+            {
+                continue;
+            }
+
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
             if (arg.StartsWith(TourArgument, StringComparison.Ordinal))
             {
@@ -456,6 +462,7 @@ public partial class Main : Node3D
             _screen.ApplySettings(_settings, _style);
             _screen.SetupChronicle(ContractSerializer.Deserialize<ChronicleKinds>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "chronicle", "kinds.json"))));
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
+            _world.Faulted += (_, _) => _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
             _screen.PauseRequested += OpenPause;
         }
 
@@ -482,7 +489,7 @@ public partial class Main : Node3D
                     _world.Speed = _speedBeforePause;
                 }
             },
-            Save: () => TrySave(),
+            Save: () => SaveAsked(),
             Settings: () => OpenSettings(window => _screen?.ShowWindow(window)),
             MainMenu: () =>
             {
@@ -498,7 +505,7 @@ public partial class Main : Node3D
             Share = _meta is null || _library is null ? null : ShareWorld,
 
             // A world without a save place (screenshot runs) never claims "saved" (W1689b).
-            SaveNow = () => _world?.SavePath is not null && TrySave(),
+            SaveNow = () => _world?.SavePath is not null && SaveAsked(),
             Load = _library is null ? null : () =>
             {
                 _pause = null;
@@ -608,6 +615,21 @@ public partial class Main : Node3D
             _screen?.ShowHint(SaveFailedHint());
             return false;
         }
+    }
+
+    /// <summary>
+    /// A save the player asks for (pause menu). After a failed world step (B2712) nothing is written into the save
+    /// game, so it never claims "saved": false, with the faulted notice again.
+    /// </summary>
+    private bool SaveAsked()
+    {
+        if (_world?.IsFaulted == true)
+        {
+            _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
+            return false;
+        }
+
+        return TrySave();
     }
 
     /// <summary>Quitting saves on every path (menu, window close, Alt+F4); a failed save keeps the game open.</summary>

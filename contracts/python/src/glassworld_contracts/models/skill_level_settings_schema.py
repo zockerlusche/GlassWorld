@@ -3,9 +3,34 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+type FloorShareByDayItem = Annotated[float, Field(..., ge=0.0, le=10000.0)]
+
+
+type FloorShareByDay = Annotated[
+    list[FloorShareByDayItem], Field(..., max_length=2, min_length=2)
+]
+
+
+class Retention(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    floor_share_by_days: list[FloorShareByDay] = Field(
+        ...,
+        description='Points [days practised, share of the peak kept] with ascending days; linear in between, constant outside.',
+        max_length=16,
+        min_length=2,
+    )
+    relearn_factor: float = Field(
+        ...,
+        description='Practice gain factor while the gain is below its peak (at least 1).',
+        ge=1.0,
+        le=10.0,
+    )
 
 
 class SkillLevelSettings(BaseModel):
@@ -33,4 +58,8 @@ class SkillLevelSettings(BaseModel):
     )
     max_level: float = Field(
         ..., description='Highest level a skill can reach.', ge=0.0, le=1.0
+    )
+    retention: Retention | None = Field(
+        None,
+        description='D1017 G2 (D1077): what long practice leaves. The highest gain ever reached (peak) and the number of game days practised are kept; forgetting never takes the gain below peak x floor_share_by_days(days), and practice while below the peak counts relearn_factor times (relearning is faster). Absent = no floor, no relearning bonus (as before).',
     )
