@@ -9,6 +9,22 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class Wind(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cool_tenth_c: int = Field(..., ge=0, le=300)
+    block_radius_cm: int = Field(..., ge=0, le=2000)
+
+
+class OthersWarmth(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tenth_c: int = Field(..., ge=0, le=100)
+    radius_cm: int = Field(..., ge=0, le=1000)
+
+
 class BodyDryingBand(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -260,6 +276,14 @@ class BodySettings(BaseModel):
     )
     wetness: BodyWetness
     sun: BodySun
+    wind: Wind | None = Field(
+        None,
+        description='B5 R4: wind feels colder (at full wind cool_tenth_c), less where a thing with wind_block_permille stands within block_radius_cm. Absent = wind is not felt.',
+    )
+    others_warmth: OthersWarmth | None = Field(
+        None,
+        description='B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.',
+    )
     experiences: list[BodyExperience] | None = Field(
         None,
         description="B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -> seek fire': only what was felt near what.",

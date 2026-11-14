@@ -154,6 +154,12 @@ class Speaker(BaseModel):
         description="The speaker's own names for kinds of things in sees that the data do not name (inventions it believes anything about), sorted by type, each type once. A type of sees without an entry here has no such name for the speaker. Optional (absent when it has none, and from an older core).",
         max_length=16,
     )
+    life_stage: str | None = Field(
+        None,
+        description="B9 R1/R27 (D1049): the speaker's life phase, an id of the vocabulary 'life_stage' (child, youth, adult, elder), so the conversation knows when it talks with a minor (youth protection). Optional; absent = not stated (a world without aging, an older core).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class ConversationRequest(BaseModel):
