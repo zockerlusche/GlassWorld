@@ -25,3 +25,7 @@
 # Other binaries (not in LFS)
 *.db      binary
 *.sqlite  binary
+
+# Every PR adds its line at the top of the same CHANGELOG section: merge both sides instead of a conflict
+# (TL #25716, B2720). Local merges only - GitHub's 'update branch' ignores merge drivers.
+CHANGELOG.md merge=union
