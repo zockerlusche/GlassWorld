@@ -62,6 +62,9 @@ public partial class GameScreen : CanvasLayer
     private ActivityDiary? _diary;
     private ConversationLog? _log;
     private long _logShown = -1;
+
+    // The theme of the parts on the world without a box (S1b): light text with a dark outline; built per style.
+    private Theme? _worldTheme;
     private string _questionShape = "-";
     private readonly VBoxContainer _chronicleList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private ChronicleBook? _chronicle;
@@ -303,6 +306,8 @@ public partial class GameScreen : CanvasLayer
         {
             panel.ThemeTypeVariation = frame;
         }
+
+        ApplyWorldTheme();
 
         // The card changes its home with the layout: close it, the next click opens it in the right place.
         _card?.Close();
@@ -736,6 +741,8 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
+        _worldTheme = UiTheme.BuildWorld(style);
+        ApplyWorldTheme();
         _portraits.Setup(style);
         if (style.ContentScaleFactor != _portraitScale)
         {

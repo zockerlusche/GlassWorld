@@ -301,7 +301,11 @@
         "diary_lines",
         "field_min_width",
         "settings_label_width",
-        "field_max_share"
+        "field_max_share",
+        "shadow_px",
+        "shadow_alpha",
+        "button_radius",
+        "world_outline_px"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -460,6 +464,30 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 1
+        },
+        "shadow_px": {
+          "description": "Soft shadow around windows (S1b, D1076 section 6: lifted from the world instead of a hard box).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "shadow_alpha": {
+          "description": "Opacity of that shadow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "button_radius": {
+          "description": "Corner radius of buttons and fields: a shape of their own, apart from the rounder windows.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "world_outline_px": {
+          "description": "Outline of text that stands on the world without a box (the corners top left and bottom left, D795).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
         }
       }
     },
@@ -670,7 +698,12 @@
             "positive",
             "attention",
             "bubble_inhabitant",
-            "bubble_player"
+            "bubble_player",
+            "field",
+            "world_text",
+            "world_outline",
+            "bar_fill",
+            "bar_bad"
           ]
         },
         "rgba": {

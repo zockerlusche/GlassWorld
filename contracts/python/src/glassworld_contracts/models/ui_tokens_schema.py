@@ -175,6 +175,27 @@ class UiWindowTokens(BaseModel):
         gt=0.0,
         le=1.0,
     )
+    shadow_px: int = Field(
+        ...,
+        description='Soft shadow around windows (S1b, D1076 section 6: lifted from the world instead of a hard box).',
+        ge=0,
+        le=64,
+    )
+    shadow_alpha: float = Field(
+        ..., description='Opacity of that shadow.', ge=0.0, le=1.0
+    )
+    button_radius: int = Field(
+        ...,
+        description='Corner radius of buttons and fields: a shape of their own, apart from the rounder windows.',
+        ge=0,
+        le=64,
+    )
+    world_outline_px: int = Field(
+        ...,
+        description='Outline of text that stands on the world without a box (the corners top left and bottom left, D795).',
+        ge=0,
+        le=32,
+    )
 
 
 class UiButtonTokens(BaseModel):
@@ -299,6 +320,11 @@ class Id4(StrEnum):
     attention = 'attention'
     bubble_inhabitant = 'bubble_inhabitant'
     bubble_player = 'bubble_player'
+    field = 'field'
+    world_text = 'world_text'
+    world_outline = 'world_outline'
+    bar_fill = 'bar_fill'
+    bar_bad = 'bar_bad'
 
 
 class UiColor(BaseModel):
