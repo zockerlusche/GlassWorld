@@ -155,23 +155,18 @@ public static class SaveGameStore
             throw;
         }
 
-        // The checksum goes beside the file in three steps, so that a crash at any point leaves a file whose
-        // checksum is known: the new one waits as .new until the swap is done; the old one goes with the old file.
+        // The checksums go beside the files in steps, so that a crash at any point never leaves a whole file with a
+        // wrong sum: the new sum waits as .new until the swap is done; the last good state's sum is dropped before the
+        // swap (a file without one counts as whole) and written from the file really there after it (review GW3 #413).
         var sum = SumPath(path);
         File.WriteAllText(sum + ".new", Sha256Of(temp));
         if (File.Exists(path))
         {
             var previous = PreviousPath(path);
-            if (File.Exists(sum))
-            {
-                File.Copy(sum, SumPath(previous), overwrite: true);
-            }
-            else
-            {
-                File.Delete(SumPath(previous));
-            }
-
+            File.Delete(SumPath(previous));
             File.Replace(temp, path, previous);
+            File.WriteAllText(SumPath(previous) + ".new", Sha256Of(previous));
+            File.Move(SumPath(previous) + ".new", SumPath(previous), overwrite: true);
         }
         else
         {
@@ -228,10 +223,13 @@ public static class SaveGameStore
         // good state (Data[PreviousKey], when there is one).
         if (!SumMatches(path))
         {
-            var damaged = new InvalidDataException($"'{Path.GetFileName(path)}' was damaged after it was saved.");
-            if (File.Exists(PreviousPath(path)))
+            var previous = File.Exists(PreviousPath(path)) ? PreviousPath(path) : null;
+            var damaged = new InvalidDataException(previous is null
+                ? $"'{Path.GetFileName(path)}' was damaged after it was saved."
+                : $"'{Path.GetFileName(path)}' was damaged after it was saved; the last good state is '{Path.GetFileName(previous)}'.");
+            if (previous is not null)
             {
-                damaged.Data[PreviousKey] = PreviousPath(path);
+                damaged.Data[PreviousKey] = previous;
             }
 
             throw damaged;
