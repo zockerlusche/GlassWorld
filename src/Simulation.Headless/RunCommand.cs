@@ -78,6 +78,7 @@ internal sealed class RunCommand
         SimulationHost? host = null;
         var finalPrinted = false;
         JsonLogWriter? json = null;
+        GlassWorld.Simulation.Data.RunTraceWriter? trace = null;
         try
         {
             var created = options.Preset is null
@@ -88,6 +89,7 @@ internal sealed class RunCommand
             // From here on the run counts: FINAL is printed even if it ends with an exception.
             host = created;
             json = options.LogJsonPath is null ? null : new JsonLogWriter(options.LogJsonPath);
+            trace = options.RunTraceFolder is null ? null : GlassWorld.Simulation.Data.RunTraceWriter.Start(host, options.RunTraceFolder, options.ContentDirectory, force: true);
             var result = Loop(options, host, connection, json, output, stop);
             json?.WriteNew(host.Decisions.Log, host.Inventions.Log);
             output.WriteLine(Final(host));
@@ -96,6 +98,7 @@ internal sealed class RunCommand
         }
         finally
         {
+            trace?.Dispose();
             json?.Dispose();
             connection.Dispose();
             if (host is not null && !finalPrinted)

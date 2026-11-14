@@ -29,6 +29,12 @@ public partial class WorldPresenter : Node3D
     private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
+
+    // A1719 (B2767): the technical run trace next to the save, or null (data switched off, no save path).
+    private RunTraceWriter? _trace;
+
+    /// <summary>A1719: the run trace of the shown world, or null (e.g. for the sound director's sound lines, Note).</summary>
+    public RunTraceWriter? Trace => _trace;
     private HttpConversationPort? _conversationPort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
@@ -280,6 +286,19 @@ public partial class WorldPresenter : Node3D
         // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
         // (R16, review GW1 #131) - never made-up mock words in front of the player.
         host.Conversation.Port = _conversationPort;
+        // A1719 (B2767): the run trace reads along; one that cannot start is no reason to stop the game.
+        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 } traceFolder)
+        {
+            try
+            {
+                _trace = RunTraceWriter.Start(host, traceFolder, _contentDirectory);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                GD.PushWarning($"RUN_TRACE_FAILED {e.GetType().Name}: {e.Message}");
+            }
+        }
+
         if (savePath is not null)
         {
             // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
@@ -421,6 +440,8 @@ public partial class WorldPresenter : Node3D
     public override void _ExitTree()
     {
         RestoreScene();
+        _trace?.Dispose();
+        _trace = null;
         _livePort?.Dispose();
         _conversationPort?.Dispose();
         _jobPort?.Dispose();

@@ -315,6 +315,10 @@
       "schema": "mock-weights"
     },
     {
+      "pattern": "trace/settings.json",
+      "schema": "trace-settings"
+    },
+    {
       "pattern": "learning/log.json",
       "schema": "learning-log-settings"
     }
