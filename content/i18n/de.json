@@ -2135,6 +2135,14 @@
       "text": "Brand in der Nähe"
     },
     {
+      "key": "vocab.sensation.too_cold",
+      "text": "Zu kalt"
+    },
+    {
+      "key": "vocab.sensation.too_warm",
+      "text": "Zu warm"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },

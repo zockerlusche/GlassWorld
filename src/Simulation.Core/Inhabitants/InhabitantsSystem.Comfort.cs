@@ -70,6 +70,22 @@ public sealed partial class InhabitantsSystem
     }
 
     /// <summary>
+    /// B5 R31: whether an inhabitant feels a comfort sensation of the data now (too cold at the cold level, ...):
+    /// its comfort level is one of the sensation's levels. Unknown sensations: false.
+    /// </summary>
+    public bool FeelsComfort(World world, Inhabitant inhabitant, string sensation)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_model.ComfortZone?.Felt?.FirstOrDefault(f => string.Equals(f.Sensation, sensation, StringComparison.Ordinal)) is not { } felt)
+        {
+            return false;
+        }
+
+        return ComfortLevelOf(world, inhabitant) is { } level && felt.Levels.Contains(level, StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// The felt temperature of an inhabitant: the air plus the heat of things around it, plus the sun and minus
     /// the cooling of being wet (B5-11), in tenths of a degree.
     /// </summary>

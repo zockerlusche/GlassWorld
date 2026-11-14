@@ -35,6 +35,13 @@ namespace GlassWorld.Contracts
         public int WindDryingPermille { get; set; } = default!;
 
         /// <summary>
+        /// From this wetness on an inhabitant counts as wet in its request to the AI (environment.wet). Omitted = 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wet_from_permille")]
+        public int? WetFromPermille { get; set; } = default!;
+
+        /// <summary>
         /// How much colder it feels when fully wet, in tenths of a degree (linear with the wetness).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cool_tenth_c")]
@@ -66,6 +73,32 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
         public int PerHour { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyExperience
+    {
+
+        /// <summary>
+        /// warmth: a thing near warms the inhabitant by at least min_tenth_c; kept_dry: in the rain a thing near keeps it dry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("felt")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<BodyExperienceFelt>))]
+        public BodyExperienceFelt Felt { get; set; } = default!;
+
+        /// <summary>
+        /// The property it finds out about the thing (its truth, as the world has it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        /// <summary>
+        /// warmth: how much warmer at least, in tenths of a degree.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_tenth_c")]
+        public int? MinTenthC { get; set; } = default!;
 
     }
 
@@ -149,11 +182,39 @@ namespace GlassWorld.Contracts
         public BodySun Sun { get; set; } = new BodySun();
 
         /// <summary>
+        /// B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -&gt; seek fire': only what was felt near what.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("experiences")]
+        public System.Collections.Generic.ICollection<BodyExperience>? Experiences { get; set; } = default!;
+
+        /// <summary>
+        /// How often, in game minutes, what is felt near things is taken in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("experience_every_minutes")]
+        public int? ExperienceEveryMinutes { get; set; } = default!;
+
+        /// <summary>
         /// How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("cover")]
         public System.Collections.Generic.ICollection<BodyCover>? Cover { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum BodyExperienceFelt
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("warmth")]
+        Warmth = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("kept_dry")]
+        Kept_dry = 1,
+
 
     }
 

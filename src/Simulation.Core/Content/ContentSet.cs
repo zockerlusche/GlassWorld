@@ -915,6 +915,7 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.Select(d => d.Mood).Where(id => !moods.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
+            .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

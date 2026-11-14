@@ -29,6 +29,7 @@ public sealed class BodyTests
         weather.Force("rain", host.World.Tick);
         host.World.Run(hour);
         Assert.Equal(1000, body.WetPermille(inhabitant.Id));
+        Assert.True(host.Decisions.IsWet!(inhabitant));
         var cool = Content.Value.Body!.Wetness.CoolTenthC;
         Assert.Equal(body.SunTenthC(host.World, inhabitant.Position) - cool, body.FeltTenthC(host.World, inhabitant));
 
@@ -115,6 +116,50 @@ public sealed class BodyTests
         var cover = host.Body!.CoverOf("conifer_tree", host.World.Now.SeasonId);
         var open = Content.Value.Body!.Wetness.RainPerHour * 10 / host.World.Calendar.Settings.TicksPerHour;
         Assert.InRange(host.Body.WetPermille(inhabitant.Id), 1, Math.Max(1, open * (1000 - cover) / 1000) + 1);
+    }
+
+    [Fact]
+    public void NearAFireAnInhabitantFindsOutThatItIsHot()
+    {
+        // B5 R37: what it felt near what becomes a belief with source experienced (no rule what to do about it).
+        var (host, inhabitant) = Island();
+        host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 0.5, inhabitant.Position.Z));
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        Assert.True(inhabitant.Beliefs.TryGet("fire", "hot", out var hot));
+        Assert.True(hot.Value);
+        Assert.Equal(KnowledgeSources.Experienced, hot.Source);
+    }
+
+    [Fact]
+    public void InTheRainAnInhabitantFindsOutThatARockNicheKeepsItDry()
+    {
+        var (host, inhabitant) = Island();
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        Assert.True(inhabitant.Beliefs.TryGet("rock_niche", "sheltering", out var sheltering));
+        Assert.True(sheltering.Value);
+        Assert.Equal(KnowledgeSources.Experienced, sheltering.Source);
+    }
+
+    [Fact]
+    public void TooColdAndTooWarmFollowTheComfortLevel()
+    {
+        // B5 R31: the comfort sensations of the data are felt exactly at their levels.
+        var (host, inhabitant) = Island();
+        var felt = Content.Value.InhabitantModel.ComfortZone!.Felt!;
+        for (var hour = 0; hour < 24; hour++)
+        {
+            var level = host.Inhabitants.ComfortLevelOf(host.World, inhabitant);
+            foreach (var sensation in felt)
+            {
+                Assert.Equal(level is not null && sensation.Levels.Contains(level), host.Inhabitants.FeelsComfort(host.World, inhabitant, sensation.Sensation));
+            }
+
+            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+        }
     }
 
     [Fact]

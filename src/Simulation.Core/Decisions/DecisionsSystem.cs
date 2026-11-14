@@ -1472,6 +1472,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
 
+    /// <summary>B5 R30: whether an inhabitant is wet (environment.wet); null = not stated. Set by the host.</summary>
+    public Func<Inhabitant, bool>? IsWet { get; set; }
+
     private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing, Inhabitant? knower = null) =>
         things.Where(o => o.Id != target.Id && (knower is null || knower.Beliefs.About(o.TypeId).Any()))
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
@@ -1507,6 +1510,9 @@ public sealed class DecisionsSystem : IWorldSystem
 
                 // A1379: how warm it feels to this inhabitant, the same felt value its warmth need uses.
                 Comfort = _inhabitants.ComfortLevelOf(world, inhabitant),
+
+                // B5 R30 (GW2 #25455): whether it is wet; the prompt says it in words (v15), without a hint what to do.
+                Wet = IsWet?.Invoke(inhabitant),
             },
             Perception = new Perception
             {
