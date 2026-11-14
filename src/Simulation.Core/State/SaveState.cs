@@ -54,6 +54,7 @@ public sealed record SavedInhabitant(
     SavedMemory? Memory = null,
     SavedIdeas? Ideas = null,
     IReadOnlyList<SavedFeltPlace>? FeltPlaces = null,
+    string? Held = null,
     long? BornTick = null);
 
 /// <summary>An inhabitant's ideas and intentions as saved (A1584): the running number and both lists.</summary>
@@ -231,6 +232,7 @@ public static class StateCodec
                 i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
                 i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null,
                 i.FeltPlaces.Count > 0 ? [.. i.FeltPlaces.Select(p => new SavedFeltPlace(p.Key, p.Value.Felt, p.Value.Tick))] : null,
+                i.Held,
                 i.BornTick))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId, q.PartnersOf(o.OptionId) is { Count: > 0 } p ? p : null))], q.RetryAtTick))],
@@ -363,6 +365,12 @@ public static class StateCodec
 
             inhabitant.Repeat = saved.Repeat;
             inhabitant.BornTick = saved.BornTick;
+            inhabitant.Held = saved.Held;
+            if (saved.Held is { } held)
+            {
+                host.Objects.SetHeld(held, inhabitant.Id);
+            }
+
             inhabitant.Resting.AddRange(saved.Resting ?? []);
 
             foreach (var place in saved.Places ?? [])
