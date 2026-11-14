@@ -114,7 +114,7 @@ namespace GlassWorld.Contracts
         public int EmbersPermille { get; set; } = default!;
 
         /// <summary>
-        /// The heat level the embers give for processing (B2700), e.g. embers.
+        /// The heat level the embers give for processing (B2700), e.g. glowing.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("embers_heat_level")]
         public string EmbersHeatLevel { get; set; } = default!;

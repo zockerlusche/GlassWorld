@@ -111,7 +111,7 @@ class FireCourse(BaseModel):
     )
     embers_heat_level: str = Field(
         ...,
-        description='The heat level the embers give for processing (B2700), e.g. embers.',
+        description='The heat level the embers give for processing (B2700), e.g. glowing.',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
