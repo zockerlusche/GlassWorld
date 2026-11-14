@@ -47,6 +47,7 @@ class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
     will_to_live = 'will_to_live'
+    trait = 'trait'
 
 
 class ActionTiming(BaseModel):
@@ -94,10 +95,13 @@ class Effect(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    kind: Kind
+    kind: Kind = Field(
+        ...,
+        description="trait (D1086, B2728): a trait of the inhabitant, at most its start range's max - used by event_effects (success strengthens).",
+    )
     id: str = Field(
         ...,
-        description='Need or mood id; ignored for will_to_live.',
+        description='Need, mood or trait id; ignored for will_to_live.',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

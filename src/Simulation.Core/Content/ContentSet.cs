@@ -177,7 +177,8 @@ public sealed class ContentSet
             needs,
             moods,
             calendar.Settings.TicksPerHour,
-            Ids(vocabularies, VocabularyKind.Event));
+            Ids(vocabularies, VocabularyKind.Event),
+            model.Start.Traits.Select(t => t.Id).ToHashSet(StringComparer.Ordinal));
         var knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model);
         var brain = new UtilityBrain(
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
@@ -483,6 +484,10 @@ public sealed class ContentSet
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
         problems.AddRange(MemoryProblems(data, actions, Ids(vocabularies, VocabularyKind.Event), model));
+        if (data.Review?.IdeaGrowByTrait is { } ideaCurve && !model.Start.Traits.Any(t => t.Id == ideaCurve.Trait))
+        {
+            problems.Add($"review idea_grow_by_trait names trait '{ideaCurve.Trait}' the inhabitants do not have");
+        }
 
         if (problems.Count > 0)
         {

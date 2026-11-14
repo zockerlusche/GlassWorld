@@ -640,6 +640,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("intention_actions")]
         public System.Collections.Generic.ICollection<string> IntentionActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// D1086: idea_grow is multiplied by this trait factor (ideas ripen faster). Omitted = the same for all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("idea_grow_by_trait")]
+        public TraitCurve? IdeaGrowByTrait { get; set; } = default!;
+
     }
 
     /// <summary>
