@@ -293,6 +293,10 @@
     {
       "pattern": "ai/mock-weights.json",
       "schema": "mock-weights"
+    },
+    {
+      "pattern": "learning/log.json",
+      "schema": "learning-log-settings"
     }
   ]
 }

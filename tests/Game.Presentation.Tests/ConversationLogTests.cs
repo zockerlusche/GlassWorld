@@ -83,4 +83,19 @@ public sealed class ConversationLogTests
         log.Add([Event("not_understood", "i-1", "Was meinst du?")]);
         Assert.Equal("Was meinst du?", Assert.Single(log.Newest()).Text);
     }
+
+    [Fact]
+    public void AThoughtWithASpokenActionIsSaidAloud()
+    {
+        // A1510 (W1728): introducing, talking, warning, showing and teaching are said to the other one - "sagt", not "denkt".
+        var log = new ConversationLog(5, new HashSet<string>(["warn"], StringComparer.Ordinal));
+        log.Add([
+            new WorldEvent("thought", 1, "inh-000001", "warn", "inh-000002") { Text = "Pass auf, die Beere!" },
+            new WorldEvent("thought", 2, "inh-000001", "inspect", "obj-000001") { Text = "Hm, komisch." },
+        ]);
+
+        var lines = log.Newest();
+        Assert.Equal(LogLineKind.Thought, lines[0].Kind);
+        Assert.Equal(LogLineKind.Said, lines[1].Kind);
+    }
 }

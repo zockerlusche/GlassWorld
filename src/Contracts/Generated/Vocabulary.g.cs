@@ -40,6 +40,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("only_when")]
         public string? OnlyWhen { get; set; } = default!;
 
+        /// <summary>
+        /// Actions only (A1510, W1728): the inhabitant's thought with this action is said aloud to the one it turns to (introducing, talking, warning, showing, teaching), so the log shows 'says' instead of 'thinks'. Absent = false (a thought).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("spoken")]
+        public bool? Spoken { get; set; } = default!;
+
     }
 
     /// <summary>
