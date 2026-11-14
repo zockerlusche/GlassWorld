@@ -1,0 +1,23 @@
+{
+  "contract_version": "0.2",
+  "fuel_property": "burnable",
+  "drying": [
+    { "below_tenth_c": 50, "hours": 12 },
+    { "below_tenth_c": 150, "hours": 6 },
+    { "below_tenth_c": 250, "hours": 3 },
+    { "below_tenth_c": null, "hours": 1 }
+  ],
+  "spread": {
+    "every_minutes": 10,
+    "radius_cm": 250,
+    "chance_permille": 60,
+    "wind_permille": 1500,
+    "max_new": 1,
+    "max_burning": 4,
+    "becomes": "fire",
+    "spares": ["crafted"]
+  },
+  "remains": [
+    { "burnt": "fire", "left": "ash" }
+  ]
+}

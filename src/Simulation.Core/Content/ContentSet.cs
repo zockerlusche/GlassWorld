@@ -103,6 +103,9 @@ public sealed class ContentSet
     /// <summary>Invention settings, vocabularies and content guard for the core's final check (D471 D5).</summary>
     public InventionRules Inventions { get; }
 
+    /// <summary>The learning log per game day (content/learning/log.json, A1620), or null without the file.</summary>
+    public LearningLogSettings? LearningLog { get; init; }
+
     /// <summary>Which core events become chronicle entries (content/chronicle/kinds.json).</summary>
     public ChronicleKinds Chronicle { get; }
 
@@ -123,6 +126,9 @@ public sealed class ContentSet
 
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
+
+    /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
+    public FireSettings? Fire { get; init; }
 
     /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
     public MilestoneCatalog? Milestones { get; init; }
@@ -252,9 +258,13 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
+            LearningLog = LoadLearningLog(contentDirectory, events),
             Conversation = conversation,
             Processes = processes,
             Milestones = milestones,
+            Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
+                ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
+                : null,
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
@@ -284,6 +294,24 @@ public sealed class ContentSet
     /// Reads the look epochs: at least one, every id once and in the vocabulary <c>epoch</c>, and a
     /// <c>tech_level</c> that is a position in the vocabulary <c>tech_level</c> (first = 0).
     /// </summary>
+    private static LearningLogSettings? LoadLearningLog(string contentDirectory, HashSet<string> events)
+    {
+        var path = Path.Combine(contentDirectory, "learning", "log.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var settings = ContractSerializer.Deserialize<LearningLogSettings>(File.ReadAllText(path));
+        var unknown = settings.Kinds.Where(k => !events.Contains(k.Event)).Select(k => k.Event).ToList();
+        if (unknown.Count > 0)
+        {
+            throw new InvalidDataException("Learning log names unknown events: " + string.Join(", ", unknown) + ".");
+        }
+
+        return settings;
+    }
+
     private static LookEpochs LoadLookEpochs(string contentDirectory, HashSet<string> epochs, int techLevels)
     {
         var data = ContractSerializer.Deserialize<LookEpochs>(File.ReadAllText(Path.Combine(contentDirectory, "look", "epochs.json")));

@@ -64,6 +64,7 @@ from glassworld_ai.llm.ollama import (
     OllamaUnavailableError,
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
+from glassworld_ai.milestone import MockMilestones, OllamaMilestones, ReplayMilestones
 from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
 from glassworld_ai.model_setup import ModelSetup, load_catalog
 from glassworld_ai.ollama_setup import OllamaSetup, load_runtime
@@ -182,6 +183,7 @@ def create_app(
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
+                app.state.jobs.register("milestone", _ollama_milestones(settings, ollama, app))
                 app.state.jobs.register("review", _ollama_reviews(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
@@ -1099,6 +1101,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
             "dream": MockDreams(),
+            "milestone": MockMilestones(),
             "review": MockReviews(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
@@ -1112,6 +1115,16 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
             "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
+            "milestone": ReplayMilestones(
+                _milestone_log(settings),
+                _text_guard(settings),
+                _texts(settings),
+                load_prompt(
+                    settings.prompts_dir,
+                    settings.milestone_prompt,
+                    settings.milestone_prompt_version,
+                ),
+            ),
             "review": ReplayReviews(
                 _review_log(settings),
                 _text_guard(settings),
@@ -1178,6 +1191,7 @@ def _judge_context(settings: Settings) -> JudgeContext:
         guard_settings(template),
         combine=template.settings.get("combine") is True,
         physics_from_data=template.settings.get("physics_from_data") is True,
+        neutral_order=template.settings.get("neutral_order") is True,
     )
 
 
@@ -1208,6 +1222,24 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
         settings=_call_settings(settings),
         log=_dream_log(settings),
         guard=_text_guard(settings),
+    )
+
+
+def _milestone_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "milestones.jsonl")
+
+
+def _ollama_milestones(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaMilestones:
+    return OllamaMilestones(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.milestone_prompt, settings.milestone_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_milestone_log(settings),
+        guard=_text_guard(settings),
+        texts=_texts(settings),
     )
 
 

@@ -131,6 +131,10 @@
       "schema": "durability-settings"
     },
     {
+      "pattern": "fire/*.json",
+      "schema": "fire-settings"
+    },
+    {
       "pattern": "look/palette.json",
       "schema": "look-palette"
     },
@@ -293,6 +297,10 @@
     {
       "pattern": "ai/mock-weights.json",
       "schema": "mock-weights"
+    },
+    {
+      "pattern": "learning/log.json",
+      "schema": "learning-log-settings"
     }
   ]
 }

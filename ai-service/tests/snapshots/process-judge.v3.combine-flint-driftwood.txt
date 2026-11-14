@@ -12,13 +12,13 @@ Rules:
 - Be strict. Answer feasible = true ONLY if people really do exactly this with such things and
   the change is clear and common. When in doubt: false. Most odd tries do nothing.
   Tries that work:
-  - Heating water in a vessel over a fire makes it hot.
-  - Drying cut grass makes it burnable.
-  - Striking a hard stone with another hard stone gives it a sharp edge.
+  - Leaving wet laundry in the wind makes it dry.
+  - Beating egg white for a long time turns it into stiff foam.
+  - Rubbing a leather strap with fat makes it supple.
   Tries that do not:
-  - Wood never melts (it burns or chars).
-  - Stones cannot be braided (only long fibres can).
-  - Soaking a stone changes nothing.
+  - Soaking a coin changes nothing.
+  - Heating a feather does not turn it into a tool.
+  - Grinding a dry leaf does not make it food.
 - Only properties that really follow from the process. Never invent food or drink: drying,
   striking or heating does not make something edible or drinkable unless it already was.
 - If feasible: changes = the number of the input that is worked on and changes. It gains
@@ -37,7 +37,7 @@ Answer only with the JSON object requested.
 ## Process
 The inhabitant puts these things together and chooses no process. Which ONE of these happens, if any (answer its id as process):
 - strike: Hit one hard thing against another.
-- split: Break something along its grain or layers into flat pieces.
+- split: Break something apart along its grain or layers.
 
 ## Inputs (true properties, numbered)
 1. burnable, splittable

@@ -643,6 +643,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// D1017 G1 (B2707): knowledge fades when it is not used. Once a game day every belief's strength is 1 - decay_per_day[its source] x days since it was last used (learned, acted on); the inhabitant is then as sure as before times the strength (a fading belief reaches the AI as a weaker one), below forgotten_below the belief leaves its mind and is kept as forgotten (nothing is deleted). A source not listed never fades. Absent = nothing fades.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeForgetting
+    {
+
+        /// <summary>
+        /// Strength lost per game day without use, by knowledge source (vocabulary knowledge_source).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decay_per_day")]
+        public System.Collections.Generic.IDictionary<string, double> DecayPerDay { get; set; } = new System.Collections.Generic.Dictionary<string, double>();
+
+        /// <summary>
+        /// Below this strength a belief is forgotten.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forgotten_below")]
+        public double ForgottenBelow { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/knowledge/settings.json: how knowledge with its source behaves in the core (B4a R3, R4, R7, W1595): confidence by source, trust between inhabitants, which actions pass on what, what the routine leaves alone while a question is open, and how much goes to the decider. Values are placeholders (F5262: placeholders count as start values).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -750,6 +771,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("review")]
         public KnowledgeReview? Review { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("forgetting")]
+        public KnowledgeForgetting? Forgetting { get; set; } = default!;
 
     }
 

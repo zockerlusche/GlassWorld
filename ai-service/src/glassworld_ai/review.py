@@ -50,7 +50,15 @@ from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.texts import TextCatalog
-from glassworld_ai.words import ContextError, humanize, plain_id, quote, subject_name
+from glassworld_ai.words import (
+    UNSURE,
+    ContextError,
+    humanize,
+    plain_id,
+    quote,
+    subject_name,
+    unsure,
+)
 from glassworld_contracts import GenerationJob
 
 ROLE = "review"
@@ -176,7 +184,8 @@ def build_values(
         pair = {"kind": plain_id(entry.subject.kind), "id": plain_id(entry.subject.id)}
         key = next(k for k, s in keys.items() if s == pair)
         word = "is" if entry.value else "is not"
-        beliefs.setdefault(key, []).append(f"{word} {humanize(plain_id(entry.property))}")
+        fading = f" ({UNSURE})" if unsure(entry) else ""
+        beliefs.setdefault(key, []).append(f"{word} {humanize(plain_id(entry.property))}{fading}")
     knowledge = [f"- {key}: {', '.join(beliefs.get(key, []))}" for key in keys]
     own = [
         f"- {key}: {idea.text} (grown {float(idea.strength):.1f})"

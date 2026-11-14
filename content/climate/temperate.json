@@ -607,6 +607,62 @@
         }
       ],
       "season_transition_hours": 24
+    },
+    "extremes": {
+      "cooldown_days": 3,
+      "weather": [
+        {
+          "season": "spring",
+          "weather": "storm",
+          "chance_permille": 30,
+          "hours_min": 2,
+          "hours_max": 6
+        },
+        {
+          "season": "summer",
+          "weather": "storm",
+          "chance_permille": 40,
+          "hours_min": 2,
+          "hours_max": 6
+        },
+        {
+          "season": "autumn",
+          "weather": "storm",
+          "chance_permille": 60,
+          "hours_min": 2,
+          "hours_max": 6
+        },
+        {
+          "season": "winter",
+          "weather": "storm",
+          "chance_permille": 40,
+          "hours_min": 2,
+          "hours_max": 6
+        },
+        {
+          "season": "spring",
+          "weather": "rain",
+          "chance_permille": 60,
+          "hours_min": 3,
+          "hours_max": 8
+        },
+        {
+          "season": "autumn",
+          "weather": "rain",
+          "chance_permille": 80,
+          "hours_min": 3,
+          "hours_max": 8
+        }
+      ],
+      "heat_waves": [
+        {
+          "season": "summer",
+          "chance_permille": 50,
+          "days_min": 1,
+          "days_max": 3,
+          "offset_tenth_c": 50
+        }
+      ]
     }
   }
 }

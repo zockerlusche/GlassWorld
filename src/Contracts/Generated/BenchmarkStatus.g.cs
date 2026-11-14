@@ -192,6 +192,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public LocalizedName? Label { get; set; } = default!;
 
+        /// <summary>
+        /// D1017 G1: false while the belief fades - the inhabitant is no longer sure of it; the prompt says 'you think so'. Absent (or true): sure. A forgotten belief is not sent at all. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sure")]
+        public bool? Sure { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -558,6 +565,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("review")]
         Review = 10,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("milestone")]
+        Milestone = 11,
 
 
     }

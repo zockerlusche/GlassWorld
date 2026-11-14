@@ -211,6 +211,10 @@
       "description": "Rain put out a fire the inhabitant could see (A1379): target type = the fire's type, the thing is gone."
     },
     {
+      "id": "caught_fire",
+      "description": "A dry burnable thing the inhabitant could see caught fire from a fire near it (B5 R46): target = the new fire, target type = the type that burns now, detail = the type that caught fire."
+    },
+    {
       "id": "discovered_process",
       "description": "An inhabitant discovered a new way of working, a process (B4b; action = the process; reported by the core once processes are discovered). The chronicle kind of the same name waited for it."
     },

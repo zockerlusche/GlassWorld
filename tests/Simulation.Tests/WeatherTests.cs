@@ -178,6 +178,7 @@ public sealed class WeatherTests : IDisposable
     public void PrecipitationBelowTheSnowTemperatureFallsAsSnow()
     {
         var climate = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Climate()));
+        climate.Weather.Extremes = null; // rough days (A1382) are tested in WeatherExtremesTests
         foreach (var row in climate.Weather.Seasons.SelectMany(s => s.Transitions))
         {
             row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
@@ -240,6 +241,7 @@ public sealed class WeatherTests : IDisposable
     public void DryDaysAddTheDroughtConditionFromTheData()
     {
         var climate = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Climate()));
+        climate.Weather.Extremes = null; // rough days (A1382) are tested in WeatherExtremesTests
         var dry = climate.Weather.States.First(s => s.PrecipitationPermille == 0 && s.Weather != climate.Weather.DroughtWeather).Weather;
         foreach (var row in climate.Weather.Seasons.SelectMany(s => s.Transitions))
         {

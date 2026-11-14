@@ -186,6 +186,7 @@ class JobKind(StrEnum):
     sound = 'sound'
     model3d = 'model3d'
     review = 'review'
+    milestone = 'milestone'
 
 
 class JobState(StrEnum):
@@ -497,6 +498,10 @@ class KnowledgeEntry(BaseModel):
     label: LocalizedName | None = Field(
         None,
         description="What THIS inhabitant calls the kind of thing the belief is about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
+    sure: bool | None = Field(
+        None,
+        description="D1017 G1: false while the belief fades - the inhabitant is no longer sure of it; the prompt says 'you think so'. Absent (or true): sure. A forgotten belief is not sent at all. Optional (absent also from an older core).",
     )
 
 

@@ -84,6 +84,9 @@ public sealed class SimulationHost
     /// </summary>
     public InhabitantDiary Diary { get; private init; } = null!;
 
+    /// <summary>The learning log per game day (A1620), or null when the data switch it off.</summary>
+    public LearningLog? LearningLog { get; private init; }
+
     /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
     public Writing.WritingSystem Writing { get; }
 
@@ -392,7 +395,14 @@ public sealed class SimulationHost
         milestones.TechLevelRaised += level => lookEpoch.ReachedTechLevel = level;
 
         // B2687 K3: burning things burn down or go out in the rain, and warm the air around them.
-        var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
+        // B5-10: wet things do not burn, fire takes hold of dry fuel near it, ash remains (island worlds: drying needs the nature takt).
+        var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour)
+        {
+            AirAt = AirAt,
+            Settings = map is null ? null : content.Fire,
+            Nature = nature,
+            WindAt = weather is null ? null : weather.WindAt,
+        };
         inhabitants.HeatAt = fire.HeatAt;
 
         // D711 section 5 (plan D1008 H1): things wear away by material class; the island's things are there
@@ -428,6 +438,19 @@ public sealed class SimulationHost
                 }
             }
         };
+        fire.Caught = (w, thing, burning) =>
+        {
+            var sight = inhabitants.SightRadiusM;
+            foreach (var seer in inhabitants.All.ToList())
+            {
+                var dx = seer.Position.X - burning.Position.X;
+                var dz = seer.Position.Z - burning.Position.Z;
+                if ((dx * dx) + (dz * dz) <= sight * sight)
+                {
+                    inhabitants.Report(new WorldEvent(FireSystem.CaughtFire, w.Tick, seer.Id, null, burning.Id) { TargetType = burning.TypeId, Detail = thing.TypeId });
+                }
+            }
+        };
 
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests, Truth = types };
         var chronicle = new ChronicleSystem(content.Chronicle);
@@ -436,6 +459,13 @@ public sealed class SimulationHost
         // Each inhabitant's diary (TL #20472): presentation-only history, saved but not a world system (not hashed).
         var diary = new InhabitantDiary(content.InhabitantModel.Diary, inhabitants, objects);
         inhabitants.Reported += diary.Observe;
+
+        // The learning log per game day (A1620, B2685): reads along like the diary; no world state.
+        var learningLog = content.LearningLog is { Enabled: true } log ? new LearningLog(log.Kinds.Select(k => k.Event), inhabitants, objects) : null;
+        if (learningLog is not null)
+        {
+            inhabitants.Reported += learningLog.Observe;
+        }
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
 
         // Skill levels per inhabitant (B5 part): finished actions practise their skills.
@@ -529,6 +559,10 @@ public sealed class SimulationHost
 
         // Out of the hash while nothing burns.
         world.Add(fire);
+
+        // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
+        var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
+        world.Add(forgetting);
         if (durability is not null)
         {
             // Out of the hash while only things of the world start exist.
@@ -550,11 +584,13 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Forgetting = forgetting,
             Durability = durability,
             Milestones = milestones,
             Nature = nature,
             Conversation = conversation,
             Diary = diary,
+            LearningLog = learningLog,
             Favourites = favourites,
         };
 
@@ -848,6 +884,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>Knowledge that fades when not used (D1017 G1).</summary>
+    public ForgettingSystem Forgetting { get; private init; } = null!;
 
     /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
     public DurabilitySystem? Durability { get; private init; }

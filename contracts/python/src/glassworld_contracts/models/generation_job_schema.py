@@ -209,6 +209,19 @@ class InventionIdea(BaseModel):
     roots: list[common_schema.Subject] = Field(..., max_length=8, min_length=1)
 
 
+class MilestoneName(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    label: str = Field(..., max_length=64, min_length=1)
+
+
 class QuestionPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -310,8 +323,8 @@ class ProcessPayload(BaseModel):
     )
     candidates: list[common_schema.VocabId] | None = Field(
         None,
-        description="Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.",
-        max_length=8,
+        description="Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise. Up to 16 since D1025 (GW2 #25006): the core sends every process physics allows, at most physics.max_candidates, so our data rules' ranking never decides which ones the judge sees.",
+        max_length=16,
         min_length=1,
     )
 
@@ -388,6 +401,43 @@ class ReviewPayload(BaseModel):
     max_intentions: int = Field(..., ge=0, le=3)
 
 
+class MilestonePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    milestone: str = Field(
+        ...,
+        description='Milestone id (content/milestones/catalog.json).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    text_key: str = Field(
+        ...,
+        description="The milestone's text key (DE/EN).",
+        max_length=64,
+        pattern='^msg\\.milestone\\.[a-z0-9_]+$',
+    )
+    made: MilestoneName | None = Field(
+        ...,
+        description="The thing made, by the maker's name for it, or null (a rule without a thing).",
+    )
+    inhabitants: list[MilestoneName] = Field(
+        ...,
+        description='Who reached it, the maker first, by the names they have.',
+        max_length=4,
+        min_length=1,
+    )
+    day: int = Field(
+        ..., description='Game day it was reached (1 = the first).', ge=1, le=1000000
+    )
+    max_chars: int = Field(..., description='Longest sentence (data).', ge=40, le=280)
+    things: list[MilestoneName] | None = Field(
+        None,
+        description="Other things that took part (a rule's inputs, e.g. spark and dry grass for a fire), by the maker's names for them; the sentence may name these too. Optional; absent = none.",
+        max_length=4,
+    )
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -402,6 +452,7 @@ class JobPayload(BaseModel):
     dream: DreamPayload | None = None
     model3d: Model3dPayload | None = None
     review: ReviewPayload | None = None
+    milestone: MilestonePayload | None = None
 
 
 class GenerationJob(BaseModel):

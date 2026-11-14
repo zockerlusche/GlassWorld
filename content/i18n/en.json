@@ -1403,6 +1403,10 @@
       "text": "Red mushroom"
     },
     {
+      "key": "vocab.object.ash",
+      "text": "Ash"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Fieldstone"
     },
@@ -2069,6 +2073,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
+    },
+    {
+      "key": "vocab.event.caught_fire",
+      "text": "Something caught fire"
     },
     {
       "key": "vocab.soil.loam",
@@ -2977,6 +2985,158 @@
     {
       "key": "ui.card.musing.male",
       "text": "What occupies them"
+    },
+    {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Builds on something the inhabitant does not know"
+    },
+    {
+      "key": "msg.learnlog.title",
+      "text": "Learning log – day {day}"
+    },
+    {
+      "key": "msg.learnlog.nothing",
+      "text": "(nothing new)"
+    },
+    {
+      "key": "msg.learnlog.is.true",
+      "text": "is"
+    },
+    {
+      "key": "msg.learnlog.is.false",
+      "text": "is not"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.true",
+      "text": "is building material"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.false",
+      "text": "is not building material"
+    },
+    {
+      "key": "msg.learnlog.fact.container.true",
+      "text": "is a container"
+    },
+    {
+      "key": "msg.learnlog.fact.container.false",
+      "text": "is not a container"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.true",
+      "text": "hardens in fire"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.false",
+      "text": "does not harden in fire"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.true",
+      "text": "makes sparks"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.false",
+      "text": "makes no sparks"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.true",
+      "text": "smoulders"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.false",
+      "text": "does not smoulder"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.true",
+      "text": "is a mushroom"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.false",
+      "text": "is not a mushroom"
+    },
+    {
+      "key": "msg.learnlog.fact.water.true",
+      "text": "is water"
+    },
+    {
+      "key": "msg.learnlog.fact.water.false",
+      "text": "is not water"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.true",
+      "text": "is stone"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.false",
+      "text": "is not stone"
+    },
+    {
+      "key": "msg.learnlog.night",
+      "text": "Night"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.seen",
+      "text": "{time} sees: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.experienced",
+      "text": "{time} finds out: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.heard",
+      "text": "{time} hears from {from}: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.guessed",
+      "text": "{time} guesses: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.name_learned",
+      "text": "{time} now knows {other}'s name"
+    },
+    {
+      "key": "msg.learnlog.first_meeting",
+      "text": "{time} meets {other} for the first time"
+    },
+    {
+      "key": "msg.learnlog.invention_wanted",
+      "text": "{time} wishes for something for: {need}"
+    },
+    {
+      "key": "msg.learnlog.invented",
+      "text": "{time} invents: {thing}"
+    },
+    {
+      "key": "msg.learnlog.built",
+      "text": "{time} finishes building: {thing}"
+    },
+    {
+      "key": "msg.learnlog.first_use",
+      "text": "{time} uses for the first time: {thing}"
+    },
+    {
+      "key": "msg.learnlog.combined",
+      "text": "{time} puts things together and gets: {thing}"
+    },
+    {
+      "key": "msg.learnlog.discovered_process",
+      "text": "{time} discovers a process: {action}"
+    },
+    {
+      "key": "msg.learnlog.idea",
+      "text": "{time} has an idea"
+    },
+    {
+      "key": "msg.learnlog.dreamed",
+      "text": "{time} dreams"
+    },
+    {
+      "key": "msg.learnlog.praised",
+      "text": "{time} is praised by you"
+    },
+    {
+      "key": "msg.learnlog.word_heard",
+      "text": "{time} hears the word \"{word}\" from you for {thing}"
     }
   ]
 }

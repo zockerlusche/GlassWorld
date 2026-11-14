@@ -256,6 +256,22 @@
       "footprint_m": 0.35
     },
     {
+      "id": "ash", "reach": "low",
+      "types": [
+        "ash"
+      ],
+      "shape": "stone",
+      "colors": [
+        "ash"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.2,
+      "lift_m": -0.06,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.3
+    },
+    {
       "id": "clay", "reach": "low",
       "types": [
         "clay"
