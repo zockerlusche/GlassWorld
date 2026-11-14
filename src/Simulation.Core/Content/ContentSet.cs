@@ -239,9 +239,22 @@ public sealed class ContentSet
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         var names = LoadNames(contentDirectory);
-        var processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+        var processData = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+            ? ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json")))
+            : null;
+        if (processData?.Physics is { } physics)
+        {
+            // D1096 #1: the process physics' no_new / never_remove hold for inventions too.
+            inventions = inventions with
+            {
+                NoNew = physics.NoNew.ToFrozenSet(StringComparer.Ordinal),
+                NeverRemove = physics.NeverRemove.ToFrozenSet(StringComparer.Ordinal),
+            };
+        }
+
+        var processes = processData is not null
             ? ProcessRuleSet.Create(
-                ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                processData,
                 objects,
                 inventions.Processes,
                 inventions.TechLevels,
