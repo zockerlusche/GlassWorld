@@ -84,9 +84,15 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
             var room = Math.Max(0, _settings.MaxLevel - start);
             var was = _gains.GetValueOrDefault(key);
 
-            // D1017 G2: below what it once could, practice counts more (relearning is faster).
-            var factor = _settings.Retention is { } retention && was.Gain < was.Peak ? retention.RelearnFactor : 1.0;
-            var gain = Math.Min(room, was.Gain + (rule.Gain * talent * factor));
+            // D1017 G2: below what it once could, practice counts more (relearning is faster) - only for the part of
+            // the step that brings it back up to its peak; beyond the peak it counts as usual (review GW2 #407).
+            var step = rule.Gain * talent;
+            var gap = Math.Max(0, was.Peak - was.Gain);
+            var factor = _settings.Retention?.RelearnFactor ?? 1.0;
+            var added = gap <= 0 || factor <= 1 ? step
+                : step * factor <= gap ? step * factor
+                : gap + (step - (gap / factor));
+            var gain = Math.Min(room, was.Gain + added);
             if (gain > 0)
             {
                 var newDay = was.Days == 0 || (worldEvent.Tick / _ticksPerDay) != (was.PractisedTick / _ticksPerDay);

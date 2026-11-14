@@ -158,15 +158,40 @@ public sealed class SkillLevelsTests : IDisposable
     [Fact]
     public void RelearningWhatOneCouldOnceDoGoesFaster()
     {
+        // Far below its peak: one practice counts relearn_factor times.
         var (world, levels, skill, perDay, settings) = Bare();
         const string Who = "inh-999999";
+        var start = levels.StartLevel(Who, skill);
         levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
-        var first = levels.Level(Who, skill) - levels.StartLevel(Who, skill);
-        world.Run(perDay * 3);
+        var step = levels.Level(Who, skill) - start;
+        for (var i = 1; i < 10; i++)
+        {
+            levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
+        }
+
+        var factor = settings.Retention!.RelearnFactor;
+        world.Run(perDay * ((int)Math.Ceiling(step * factor / settings.ForgetPerDay) + 3));
         var faded = levels.Level(Who, skill);
+        levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
+        Assert.Equal(step * factor, levels.Level(Who, skill) - faded, 9);
+    }
+
+    [Fact]
+    public void JustBelowItsPeakPracticeCountsAsUsualBeyondIt()
+    {
+        // Review GW2 #407: a day off costs a little; the bonus gives back only that, then practice counts as usual.
+        var (world, levels, skill, perDay, settings) = Bare();
+        const string Who = "inh-999999";
+        var start = levels.StartLevel(Who, skill);
+        levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
+        var step = levels.Level(Who, skill) - start;
+        world.Run((perDay * 3) + 1);
+        var peak = start + step;
+        var gap = peak - levels.Level(Who, skill);
+        Assert.True(gap > 0 && gap < step);
 
         levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
-        Assert.Equal(first * settings.Retention!.RelearnFactor, levels.Level(Who, skill) - faded, 9);
+        Assert.Equal(peak + step - (gap / settings.Retention!.RelearnFactor), levels.Level(Who, skill), 9);
     }
 
     /// <summary>The skill levels alone in an empty world: nobody else practises, days pass fast.</summary>
