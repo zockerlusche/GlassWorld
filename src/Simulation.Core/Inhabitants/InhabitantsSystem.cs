@@ -621,6 +621,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
+
+            // B5 R5/R6: how warm it feels now, for this tick's need rates and pace (derived from the state, no lag).
+            _levelNow = (inhabitant.Id, ComfortLevelOf(world, inhabitant));
             DecayNeeds(inhabitant);
             FeelTheAir(world, inhabitant);
             if (together.Contains(inhabitant.Id))
@@ -931,7 +934,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             if (inhabitant.Needs.TryGetValue(need.Id, out var value))
             {
-                inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour), 0.0, 1.0);
+                inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0);
             }
         }
 
@@ -1912,7 +1915,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>Metres the inhabitant walks this tick on flat ground, by its gait (data, F5264).</summary>
-    private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait);
+    private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait) * PaceFactor(inhabitant);
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 

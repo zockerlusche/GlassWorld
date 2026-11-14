@@ -66,6 +66,16 @@
     "recover_per_hour": 0.05,
     "floor": 0.3,
     "precipitation_cold_factor": 1.5,
+    "need_modifiers": [
+      { "level": "cold", "need": "hunger", "factor": 1.3 },
+      { "level": "cold", "need": "sleep", "factor": 1.2 },
+      { "level": "hot", "need": "thirst", "factor": 1.5 },
+      { "level": "hot", "need": "sleep", "factor": 1.2 }
+    ],
+    "pace_factors": [
+      { "level": "cold", "factor": 0.85 },
+      { "level": "hot", "factor": 0.9 }
+    ],
     "felt": [
       { "sensation": "too_cold", "levels": ["cold"] },
       { "sensation": "too_warm", "levels": ["hot"] }

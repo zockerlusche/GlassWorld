@@ -10,6 +10,22 @@
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "wetness": { "$ref": "#/$defs/BodyWetness" },
     "sun": { "$ref": "#/$defs/BodySun" },
+    "wind": {
+      "description": "B5 R4: wind feels colder (at full wind cool_tenth_c), less where a thing with wind_block_permille stands within block_radius_cm. Absent = wind is not felt.",
+      "type": "object", "additionalProperties": false, "required": ["cool_tenth_c", "block_radius_cm"],
+      "properties": {
+        "cool_tenth_c": { "type": "integer", "minimum": 0, "maximum": 300 },
+        "block_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000 }
+      }
+    },
+    "others_warmth": {
+      "description": "B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.",
+      "type": "object", "additionalProperties": false, "required": ["tenth_c", "radius_cm"],
+      "properties": {
+        "tenth_c": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "radius_cm": { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
     "experiences": {
       "description": "B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -> seek fire': only what was felt near what.",
       "type": "array",

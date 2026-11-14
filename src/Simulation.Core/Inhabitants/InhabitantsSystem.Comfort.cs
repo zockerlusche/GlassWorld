@@ -1,3 +1,4 @@
+using GlassWorld.Contracts;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 
@@ -67,6 +68,64 @@ public sealed partial class InhabitantsSystem
         return below > 0 ? levels[below <= band ? 1 : 0]
             : above > 0 ? levels[above <= band ? 3 : 4]
             : levels[2];
+    }
+
+    // B5 R5/R6: the comfort level of the inhabitant being updated in this tick (derived, set before its needs fall).
+    private (string Id, string? Level) _levelNow;
+
+    /// <summary>B5 R5/R6: the factor on a need's decay at the inhabitant's comfort level now (data need_modifiers).</summary>
+    private double NeedFactor(Inhabitant inhabitant, string need)
+    {
+        if (_model.ComfortZone?.NeedModifiers is not { Count: > 0 } modifiers || !string.Equals(_levelNow.Id, inhabitant.Id, StringComparison.Ordinal)
+            || _levelNow.Level is not { } level)
+        {
+            return 1.0;
+        }
+
+        var factor = 1.0;
+        foreach (var modifier in modifiers)
+        {
+            if (string.Equals(modifier.Level, level, StringComparison.Ordinal) && string.Equals(modifier.Need, need, StringComparison.Ordinal))
+            {
+                factor *= modifier.Factor;
+            }
+        }
+
+        return factor;
+    }
+
+    /// <summary>B5 R6: the factor on the walking pace at the inhabitant's comfort level in this tick (data pace_factors).</summary>
+    private double PaceFactor(Inhabitant inhabitant)
+    {
+        if (_model.ComfortZone?.PaceFactors is not { Count: > 0 } factors || !string.Equals(_levelNow.Id, inhabitant.Id, StringComparison.Ordinal)
+            || _levelNow.Level is not { } level)
+        {
+            return 1.0;
+        }
+
+        return factors.FirstOrDefault(f => string.Equals(f.Level, level, StringComparison.Ordinal))?.Factor ?? 1.0;
+    }
+
+    /// <summary>B5 R5: the loss per hour from a table over whole degrees outside the zone (linear between points).</summary>
+    private static double FromTable(ICollection<ComfortLossPoint> table, double degrees)
+    {
+        var points = table.OrderBy(p => p.Degrees).ToList();
+        if (degrees <= points[0].Degrees)
+        {
+            return points[0].PerHour * (points[0].Degrees == 0 ? 1 : degrees / points[0].Degrees);
+        }
+
+        for (var i = 1; i < points.Count; i++)
+        {
+            if (degrees <= points[i].Degrees)
+            {
+                var a = points[i - 1];
+                var b = points[i];
+                return a.PerHour + ((b.PerHour - a.PerHour) * (degrees - a.Degrees) / (b.Degrees - a.Degrees));
+            }
+        }
+
+        return points[^1].PerHour;
     }
 
     /// <summary>
@@ -142,9 +201,12 @@ public sealed partial class InhabitantsSystem
         var running = inhabitant.Activity is { RemainingTicks: not null } activity
             ? comfort.ActionFactors?.FirstOrDefault(f => string.Equals(f.Action, activity.Action, StringComparison.Ordinal))
             : null;
+        // B5 R5: from the data's table over the degrees outside, where given; else per degree as before.
+        var coldBase = comfort.ColdLossTable is { Count: > 0 } coldTable ? FromTable(coldTable, below / 10.0) : comfort.ColdLossPerHourPerDegree * (below / 10.0);
+        var heatBase = comfort.HeatLossTable is { Count: > 0 } heatTable ? FromTable(heatTable, above / 10.0) : comfort.HeatLossPerHourPerDegree * (above / 10.0);
         var perHour = below > 0
-            ? comfort.ColdLossPerHourPerDegree * (below / 10.0) * (running?.ColdFactor ?? 1.0) * (air.Precipitation ? comfort.PrecipitationColdFactor ?? 1.0 : 1.0)
-            : comfort.HeatLossPerHourPerDegree * (above / 10.0) * (running?.HeatFactor ?? 1.0);
+            ? coldBase * (running?.ColdFactor ?? 1.0) * (air.Precipitation ? comfort.PrecipitationColdFactor ?? 1.0 : 1.0)
+            : heatBase * (running?.HeatFactor ?? 1.0);
         var floor = comfort.Floor ?? 0.0;
         if (value > floor)
         {
