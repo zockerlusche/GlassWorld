@@ -667,6 +667,14 @@
       "text": "Explore"
     },
     {
+      "key": "vocab.action.put_on",
+      "text": "Put on"
+    },
+    {
+      "key": "vocab.action.take_off",
+      "text": "Take off"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -855,6 +863,10 @@
       "text": "Warmth"
     },
     {
+      "key": "vocab.base_function.worn",
+      "text": "Worn on the body"
+    },
+    {
       "key": "vocab.base_function.container",
       "text": "Container"
     },
@@ -953,6 +965,10 @@
     {
       "key": "vocab.property.poisonous",
       "text": "Poisonous"
+    },
+    {
+      "key": "vocab.property.wearable",
+      "text": "Wearable"
     },
     {
       "key": "vocab.property.portable",

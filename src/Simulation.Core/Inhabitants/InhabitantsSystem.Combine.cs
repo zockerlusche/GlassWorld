@@ -36,6 +36,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Inhabitant, string, string, bool>? Feeding { get; set; }
 
     /// <summary>
+    /// K4 (B2752): an effects rule with <c>wear</c> finished - put the target on (on) or lay down what is worn (off, target
+    /// null); true when something changed. Set by the host (<see cref="WearSystem"/>).
+    /// </summary>
+    public Func<World, Inhabitant, WorldObject?, bool>? Wearing { get; set; }
+
+    /// <summary>
     /// Whether every partner thing of the activity is still there, is not the target itself, appears once
     /// and lies within the action's partner reach of the target. True for activities without partners.
     /// </summary>

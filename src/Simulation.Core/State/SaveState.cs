@@ -179,6 +179,9 @@ public sealed record SaveState(
     /// <summary>The animal stocks (B4b K4); null = none.</summary>
     public Nature.AnimalStockState? Animals { get; init; }
 
+    /// <summary>What the inhabitants wear (B4b K4, B2752); null = nothing worn.</summary>
+    public Inhabitants.WearState? Worn { get; init; }
+
     /// <summary>Things that came after the world start, with the tick they came (D711 section 5); null = none.</summary>
     public IReadOnlyList<Objects.PlacedThing>? Placed { get; init; }
 
@@ -267,6 +270,7 @@ public static class StateCodec
             Forgetting = host.Forgetting.HasState ? host.Forgetting.Capture() : null,
             Nature = host.Nature is { HasState: true } nature ? nature.Capture() : null,
             Animals = host.Animals is { HasState: true } animals ? animals.Capture() : null,
+            Worn = host.Wear.HasState ? host.Wear.Capture() : null,
             Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
@@ -440,6 +444,7 @@ public static class StateCodec
         host.Forgetting.Restore(state.Forgetting);
         host.Nature?.Restore(state.Nature);
         host.Animals?.Restore(state.Animals);
+        host.Wear.Restore(state.Worn);
         host.Durability?.Restore(state.Placed, state.Tick);
         host.Body?.Restore(state.Wet);
         host.Milestones.Restore(state.Milestones);

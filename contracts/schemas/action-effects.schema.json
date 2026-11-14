@@ -67,6 +67,7 @@
         },
         "requires_also": { "description": "B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "consumes_target": { "type": "boolean" },
+        "wear": { "description": "K4 (B2752): on = the target is put on and worn (it leaves the ground, one thing at a time); off = what the inhabitant wears is laid down at its feet. Omitted = neither.", "type": "string", "enum": ["on", "off"] },
         "effects": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/Effect" } }
       }
     },

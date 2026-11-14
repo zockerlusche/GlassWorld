@@ -1998,6 +1998,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
         }
 
+        // K4 (B2752): putting on takes the thing off the ground, taking off lays it down - the wear system decides.
+        if (applying.Select(r => r.Wear).FirstOrDefault(w => w is not null) is { } wear)
+        {
+            changed |= Wearing?.Invoke(world, inhabitant, wear == EffectRuleWear.On ? target : null) ?? false;
+        }
+
         return changed;
     }
 

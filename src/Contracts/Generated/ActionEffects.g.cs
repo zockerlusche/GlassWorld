@@ -162,6 +162,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("consumes_target")]
         public bool ConsumesTarget { get; set; } = default!;
 
+        /// <summary>
+        /// K4 (B2752): on = the target is put on and worn (it leaves the ground, one thing at a time); off = what the inhabitant wears is laid down at its feet. Omitted = neither.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wear")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EffectRuleWear>))]
+        public EffectRuleWear? Wear { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("effects")]
         public System.Collections.Generic.ICollection<Effect> Effects { get; set; } = new System.Collections.ObjectModel.Collection<Effect>();
 
@@ -235,6 +243,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("frontier")]
         Frontier = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum EffectRuleWear
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("on")]
+        On = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("off")]
+        Off = 1,
 
 
     }

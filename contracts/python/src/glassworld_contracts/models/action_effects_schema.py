@@ -43,6 +43,11 @@ class ActionPartners(BaseModel):
     )
 
 
+class Wear(StrEnum):
+    on = 'on'
+    off = 'off'
+
+
 class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
@@ -165,6 +170,10 @@ class EffectRule(BaseModel):
         description='B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.',
     )
     consumes_target: bool
+    wear: Wear | None = Field(
+        None,
+        description='K4 (B2752): on = the target is put on and worn (it leaves the ground, one thing at a time); off = what the inhabitant wears is laid down at its feet. Omitted = neither.',
+    )
     effects: list[Effect] = Field(..., max_length=16)
 
 
