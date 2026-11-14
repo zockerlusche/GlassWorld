@@ -222,7 +222,7 @@ public static class UiLayoutCheck
         var longName = TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = "12" }) + " Maximiliane-Friederike";
         var ask = TextFill.Fill(host.Tr(QuestionKeys.CardAsk("unknown_object")), new Dictionary<string, string> { ["thing"] = host.Tr("vocab.object.dry_wood") });
         var talkLine = TextFill.Fill(host.Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = longName, ["text"] = host.Tr("ui.question.reason.unknown_inhabitant.female") });
-        var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, host.Tr("ui.card.talk_hint"), [.. CardBarKeys]);
+        var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, new[] { host.Tr("ui.card.talk_hint"), host.Tr("ui.card.whisper_hint") }.MaxBy(h => h.Length)!, [.. CardBarKeys]);
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);

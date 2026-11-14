@@ -2048,7 +2048,11 @@
     },
     {
       "key": "ui.card.talk_hint",
-      "text": "What would you like to say?"
+      "text": "Say something …"
+    },
+    {
+      "key": "ui.card.whisper_hint",
+      "text": "Whisper …"
     },
     {
       "key": "ui.card.talk_send",

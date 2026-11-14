@@ -141,6 +141,12 @@ public partial class Main
         screen.ShowCardForShots(ids[^1], expand: true);
         await take("30_karte_letzte_aufgeklappt");
 
+        // D957 v4 (table 1): a button's window takes the card's place; its '×' leads back to the card.
+        screen.OpenPanelForShots("mailbox");
+        await take("30_postfach_statt_karte");
+        GD.Print($"UI_TOUR_FULL close leads to {screen.PressCloseForShots() ?? "nothing"}");
+        await take("30_kreuz_zurueck_zur_karte");
+
         // S2 (A1683): 'whisper' at the question on top turns the one talk field to it.
         foreach (var id in ids)
         {

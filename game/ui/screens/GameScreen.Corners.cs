@@ -443,7 +443,9 @@ public partial class GameScreen
 
         foreach (var (panel, contentPx, card) in windows)
         {
-            panel.Dock(area, style, 0, below, widthPx: card ? zones.CardWidth : zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom, fitContent: true);
+            // The card grows with the text size as the portrait list does (D1060 find 7), never past the room on the right.
+            var width = card ? (float)(zones.CardWidth * Math.Max(1, style.Settings.TextScale)) : zones.SidePanelWidth;
+            panel.Dock(area, style, 0, below, widthPx: width, contentPx: contentPx, maxWidth: rightRoom, fitContent: true);
         }
 
         // The log at the bottom left, below the portraits (it gets its own corner shape in step 3).
@@ -529,11 +531,11 @@ public partial class GameScreen
         content.AddChild(new Button { Text = "ui.question.answer", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin });
         content.AddChild(new Label { Text = "ui.card.talk", ThemeTypeVariation = UiTheme.SubheaderLabel });
         content.AddChild(new Label { Text = line, ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
-        var talkRow = new HBoxContainer();
+        var talkRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         var field = new LineEdit { PlaceholderText = talkHint, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-        talkRow.AddChild(field);
         talkRow.AddChild(new Button { Text = "ui.card.point" });
         talkRow.AddChild(new Button { Text = "ui.card.talk_send" });
+        content.AddChild(field);
         content.AddChild(talkRow);
         content.AddChild(new Label { Text = "ui.card.diary", ThemeTypeVariation = UiTheme.SubheaderLabel });
         for (var i = 0; i < style.Tokens.Window.CardDiaryLines; i++)

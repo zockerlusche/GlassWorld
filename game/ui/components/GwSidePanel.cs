@@ -10,7 +10,9 @@ namespace GlassWorld.Game.Ui.Components;
 /// </summary>
 public partial class GwSidePanel : PanelContainer
 {
-    private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel };
+    private const string CloseSymbol = "×";
+    private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    private readonly Button _close = new() { Name = "Close", Text = CloseSymbol, Flat = true, TooltipText = "ui.common.close", SizeFlagsVertical = SizeFlags.ShrinkBegin };
 
     // Docks again in one frame at most this often: a layout that does not settle stops instead of filling the call
     // queue (S2 tour: millions of deferred calls, then a crash).
@@ -27,6 +29,12 @@ public partial class GwSidePanel : PanelContainer
     /// <summary>Tabs of the panel's theme in the zones layout (W1717); hidden while empty.</summary>
     public HFlowContainer Tabs { get; } = new() { Visible = false };
 
+    /// <summary>The '×' in the title row was pressed (D957 v4: back to the card, or closed).</summary>
+    public event Action? CloseRequested;
+
+    /// <summary>The '×' of the title row (for checks and the tour).</summary>
+    public Button CloseButton => _close;
+
     /// <summary>Content container (inside the scroll area).</summary>
     public VBoxContainer Content { get; } = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 
@@ -38,7 +46,11 @@ public partial class GwSidePanel : PanelContainer
         var scroll = _scroll;
         scroll.AddChild(Content);
         column.AddChild(Tabs);
-        column.AddChild(_title);
+        var titleRow = new HBoxContainer { Name = "TitleRow" };
+        titleRow.AddChild(_title);
+        titleRow.AddChild(_close);
+        _close.Pressed += () => CloseRequested?.Invoke();
+        column.AddChild(titleRow);
         column.AddChild(scroll);
         AddChild(column);
 
@@ -179,6 +191,7 @@ public partial class GwSideBar : VBoxContainer
         panel.Setup(titleKey);
         var button = new Button { Text = titleKey, ToggleMode = true };
         button.Pressed += () => Toggle(key);
+        panel.CloseRequested += () => CloseRequested?.Invoke(key);
         AddChild(button);
         _entries[key] = (button, panel);
         return panel;
@@ -201,6 +214,9 @@ public partial class GwSideBar : VBoxContainer
 
     /// <summary>All panels (for placing them in the UI layer).</summary>
     public IEnumerable<GwSidePanel> Panels => _entries.Values.Select(e => e.Panel);
+
+    /// <summary>The '×' of a panel was pressed (its key); the screen decides where it leads.</summary>
+    public event Action<string>? CloseRequested;
 
     /// <summary>Raised after a panel opened or closed (e.g. to move the card beside it).</summary>
     public event Action? Toggled;

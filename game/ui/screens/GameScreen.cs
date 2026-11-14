@@ -247,6 +247,22 @@ public partial class GameScreen : CanvasLayer
 
         _sideBar.Add(ScreenZones.Card, ScreenZones.TitleKey(ScreenZones.Card));
         _sideBar.ButtonOf(ScreenZones.Card).Visible = false;
+
+        // D957 v4 (table 1): what a button opens replaces the card; its '×' leads back to the card, the card's own '×'
+        // closes it.
+        _sideBar.CloseRequested += key =>
+        {
+            if (key == ScreenZones.Card)
+            {
+                CloseCard();
+            }
+            else
+            {
+                _sideBar.Open(_zones && _cardId is not null ? ScreenZones.Card : null);
+            }
+
+            Layout();
+        };
         _root.AddChild(_sideBar.PanelOf(ScreenZones.Card));
 
         // The timeline over seasons and years as its own tab of the world theme (D642 step 3); the layout so
@@ -421,6 +437,17 @@ public partial class GameScreen : CanvasLayer
     /// <summary>UI tour only (B2749): rows the inhabitants window shows now.</summary>
     public int InhabitantRowsForShots => InhabitantListModel.Filter(
         _inhabitantRows, _inhabitantSearch.Text, (InhabitantFilter)Math.Max(0, _inhabitantFilter.GetSelectedId()), Knocking(), _style!.Tokens.Bars, ListName).Count;
+
+    /// <summary>UI tour only (D957 v4): presses the '×' of the open side window; the window open after it.</summary>
+    public string? PressCloseForShots()
+    {
+        if (_sideBar.OpenKey is { } key)
+        {
+            _sideBar.PanelOf(key).CloseButton.EmitSignal(BaseButton.SignalName.Pressed);
+        }
+
+        return _sideBar.OpenKey;
+    }
 
     /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
     public void OpenPanelForShots(string? key)
@@ -2979,7 +3006,8 @@ public partial class GameScreen : CanvasLayer
 
         if (_talkInput is not null)
         {
-            var hint = _whisperFor is not null ? TrFor("ui.question.answer_hint", _feed?.SexOf(inhabitantId)) : Tr("ui.card.talk_hint");
+            // Short hints (D1060 find 7): the field must show them whole even in a narrow card at UI 200 %.
+            var hint = Tr(_whisperFor is not null ? "ui.card.whisper_hint" : "ui.card.talk_hint");
             if (_talkInput.PlaceholderText != hint)
             {
                 _talkInput.PlaceholderText = hint;
@@ -3097,9 +3125,12 @@ public partial class GameScreen : CanvasLayer
             _pointingFor = _pointingFor is null ? inhabitantId : null;
             UpdatePointing();
         };
-        talkRow.AddChild(input);
+        // The field takes the card's whole width, so its hint shows in full at every size (D1060 find 7); 'show'
+        // and 'say' stand below it at the right.
+        talkRow.Alignment = BoxContainer.AlignmentMode.End;
         talkRow.AddChild(_pointButton);
         talkRow.AddChild(send);
+        content.AddChild(input);
         content.AddChild(talkRow);
         _pointedChip = new HBoxContainer { Visible = false };
         _pointedLabel = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutowrapMode = TextServer.AutowrapMode.WordSmart };
