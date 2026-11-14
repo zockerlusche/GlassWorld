@@ -685,7 +685,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<InventionStep> Steps { get; set; } = new System.Collections.ObjectModel.Collection<InventionStep>();
 
         /// <summary>
-        /// True properties of the new thing (property vocabulary only).
+        /// What the inventor expects the new thing to be (property vocabulary only). Not the truth: the core derives the true properties from the materials and the steps (D1096 #1, D1097); the builder gets these as guesses.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("introduces")]
         public System.Collections.Generic.ICollection<string> Introduces { get; set; } = new System.Collections.ObjectModel.Collection<string>();
