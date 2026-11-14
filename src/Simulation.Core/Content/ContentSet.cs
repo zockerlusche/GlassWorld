@@ -260,6 +260,8 @@ public sealed class ContentSet
                 inventions.TechLevels,
                 inventions.Settings.TechLevel)
             : null;
+        // D1097: what a plan's steps make of its materials, by the same rules as everywhere.
+        inventions = inventions with { StepRules = processes };
         var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
         return new ContentSet(
             calendar,

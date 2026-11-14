@@ -49,6 +49,43 @@ public sealed class ProcessRuleSet
     /// <summary>The heat levels, lowest first (B2700).</summary>
     public IReadOnlyList<string> HeatLevels { get; }
 
+    /// <summary>
+    /// What a step of a plan makes of its materials by the data's rules (D1097): the most specific rule of the step's process
+    /// that fits them - two materials as a pair, or one alone - at the given tech level and any heat (a plan does not say how
+    /// hot; the tech level bounds what it can reach). The result is the target's properties with the rule's additions and
+    /// removals, or null when no rule fits.
+    /// </summary>
+    public FrozenSet<string>? StepResult(string process, IReadOnlyList<FrozenSet<string>> materials, int? worldTech)
+    {
+        ArgumentNullException.ThrowIfNull(materials);
+        var hottest = HeatLevels.Count - 1;
+        foreach (var rule in _rules)
+        {
+            if (!string.Equals(rule.Process, process, StringComparison.Ordinal) || !Applies(rule, worldTech, hottest))
+            {
+                continue;
+            }
+
+            FrozenSet<string>? target = null;
+            if (materials.Count >= 2 && Fit(rule, [materials[0], materials[1]]) is { } pair)
+            {
+                target = materials[pair.Inputs[0]];
+            }
+            else if (materials.Count >= 1 && rule.Inputs.Count == 1 && rule.Tool is null && FitsOne(rule, materials[0]))
+            {
+                target = materials[0];
+            }
+
+            if (target is not null)
+            {
+                return target.Union(rule.Result.AddProperties, StringComparer.Ordinal).Except(rule.Result.RemoveProperties, StringComparer.Ordinal)
+                    .ToFrozenSet(StringComparer.Ordinal);
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Rule ids in specificity order.</summary>
     public IEnumerable<string> RuleIds => _rules.Select(r => r.Id);
 

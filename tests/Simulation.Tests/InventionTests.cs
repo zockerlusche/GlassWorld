@@ -116,8 +116,9 @@ public sealed class InventionTests : IDisposable
 
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
         Assert.True(host.Types.Contains(typeId));
-        // Its own properties plus those every invention has (implied_properties, data).
-        var expected = introduces.Concat(Content.Value.Inventions.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        // What the core derives (D1097): implied, its base function, what its materials pass on - never just the claim.
+        var approved = Approved(job, introduces).Result!.Invention!.Invention!;
+        var expected = Content.Value.Inventions.PropertiesOf(approved, t => host.Types.Contains(t) ? host.Types.TrueProperties(t) : []).Order(StringComparer.Ordinal);
         Assert.Equal(expected, host.Types.TrueProperties(typeId).Order(StringComparer.Ordinal));
         var info = Assert.IsType<InventionInfo>(host.Inventions.Invention(typeId));
         Assert.Equal(host.Inhabitants.All.Single().Id, info.InhabitantId);
@@ -347,6 +348,31 @@ public sealed class InventionTests : IDisposable
         var made = Result([], [source, plain[0]]).Invention!;
         Assert.Contains(keep, rules.PropertiesOf(made, Truth));
         Assert.DoesNotContain(keep, rules.PropertiesOf(made));
+    }
+
+    [Fact]
+    public void AMadeThingIsWhatItsMaterialsAndStepsMakeItWhatTheInventorClaimsIsItsGuess()
+    {
+        // D1097 (D1096 #1, B2746): the truth comes from the core; introduces is only what the inventor expects.
+        var rules = Content.Value.Inventions;
+        Assert.True(rules.Derives);
+        var objects = Content.Value.Objects;
+        IEnumerable<string> Truth(string type) => objects.Contains(type) ? objects.TrueProperties(type) : [];
+        var transfer = rules.Settings.MaterialTransfer!.ToHashSet(StringComparer.Ordinal);
+
+        // A claim no material and no step backs is not the truth.
+        var claim = transfer.First(p => !NearbyTypes.Any(t => objects.TrueProperties(t).Contains(p)));
+        var invention = Result([claim]).Invention!;
+        invention.Steps.Clear();
+        Assert.DoesNotContain(claim, rules.PropertiesOf(invention, Truth));
+
+        // What a material has and the list passes on, the thing has; what the list does not pass on, it has not.
+        var material = objects.TypeIds.First(t => objects.TrueProperties(t).Any(transfer.Contains));
+        var made = Result([], [material, material]).Invention!;
+        made.Steps.Clear();
+        var expected = objects.TrueProperties(material).Where(transfer.Contains);
+        Assert.Superset(expected.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(made, Truth).ToHashSet(StringComparer.Ordinal));
+        Assert.DoesNotContain(rules.PropertiesOf(made, Truth), p => objects.TrueProperties(material).Contains(p) && !transfer.Contains(p) && !rules.NeverRemove.Contains(p) && !rules.Settings.ImpliedProperties.Contains(p));
     }
 
     [Fact]
