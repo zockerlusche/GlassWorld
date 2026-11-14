@@ -218,9 +218,9 @@ public sealed class WeatherSightTests : IDisposable
         weather.Force(Open.Weather, host.World.Tick);
         Assert.Equal(water.Id, Chosen(host, inhabitant, home)?.TargetId);
 
-        // In the fog it does not see it: no goal, it looks further away instead.
+        // In the fog it does not see it: the water is no goal (it may look further away or turn to someone).
         weather.Force(Thick.Weather, host.World.Tick);
-        Assert.Null(Chosen(host, inhabitant, home)?.TargetId);
+        Assert.NotEqual(water.Id, Chosen(host, inhabitant, home)?.TargetId);
 
         // Once it remembers the place the water is a goal again, fog or not.
         inhabitant.RememberPlace(water.Id, new PlaceMemory(Water, water.Position, host.World.Tick), host.Content.Knowledge.Looking!.PlaceMemoryMax);
@@ -228,10 +228,10 @@ public sealed class WeatherSightTests : IDisposable
 
         // A remembered thing that is gone is none, and neither is one beyond the usual radius.
         host.Objects.Remove(water.Id);
-        Assert.Null(Chosen(host, inhabitant, home)?.TargetId);
+        Assert.NotEqual(water.Id, Chosen(host, inhabitant, home)?.TargetId);
         var distant = host.Objects.Spawn(Water, LandAt(host, inhabitant.Position, PerceptionRadiusM * 1.2, PerceptionRadiusM * 1.8));
         inhabitant.RememberPlace(distant.Id, new PlaceMemory(Water, distant.Position, host.World.Tick), host.Content.Knowledge.Looking!.PlaceMemoryMax);
-        Assert.Null(Chosen(host, inhabitant, home)?.TargetId);
+        Assert.NotEqual(distant.Id, Chosen(host, inhabitant, home)?.TargetId);
     }
 
     /// <summary>

@@ -226,6 +226,15 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
+        // A1380 N1: the nature takt - growth by season and drought, influence sums for durability (R51).
+        Nature.NatureSystem? nature = null;
+        if (content.Nature is { } natureData && map is not null)
+        {
+            nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
+            map.Grown = nature.Grown;
+            world.Add(nature);
+        }
+
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
@@ -386,6 +395,13 @@ public sealed class SimulationHost
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
         inhabitants.HeatAt = fire.HeatAt;
 
+        // D711 section 5 (plan D1008 H1): things wear away by material class; the island's things are there
+        // already, so they get their seeded age; what comes later is watched from its spawn.
+        // Only on islands, like the nature takt: a placeholder world has no regrowth to make up for what spoils.
+        var durability = content.Durability is { } durabilityData && map is not null
+            ? new DurabilitySystem(durabilityData, objects, world.Calendar.Settings.TicksPerHour, world.Seed, nature) { GrowsInPlace = map is null ? null : map.GrowsInPlace }
+            : null;
+
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
         if (processes is not null && content.Processes is { } heatTable)
         {
@@ -513,6 +529,11 @@ public sealed class SimulationHost
 
         // Out of the hash while nothing burns.
         world.Add(fire);
+        if (durability is not null)
+        {
+            // Out of the hash while only things of the world start exist.
+            world.Add(durability);
+        }
 
         // Out of the hash while no milestone is reached.
         world.Add(milestones);
@@ -529,7 +550,9 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Durability = durability,
             Milestones = milestones,
+            Nature = nature,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -826,8 +849,14 @@ public sealed class SimulationHost
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
 
+    /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
+    public DurabilitySystem? Durability { get; private init; }
+
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
+
+    /// <summary>The nature takt (A1380); null on worlds without an island or nature data.</summary>
+    public Nature.NatureSystem? Nature { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

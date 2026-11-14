@@ -163,6 +163,23 @@ public sealed class LeisureTests
         Assert.Single(a.Ideas.Intentions); // not offered, so not used up
     }
 
+    [Fact]
+    public void AFreeMomentOffersUsingAThingTheInhabitantKnowsIsMadeButNotAFoundOne()
+    {
+        // D999 (TL TH143): a built thing was never offered for use; a free moment offers it to who knows it is made.
+        var (host, port, a) = Alone();
+        var made = host.Objects.Spawn("shell", new Position(2, 0));
+        var found = host.Objects.Spawn("flint", new Position(-2, 0));
+        a.Beliefs.Set("shell", "crafted", true, 1.0, KnowledgeSources.Experienced, null, 0);
+        a.Beliefs.Set("flint", "sharp", true, 0.8, KnowledgeSources.Seen, null, 0);
+
+        host.World.Step();
+
+        var request = Assert.Single(port.Requests);
+        Assert.Contains(request.Options, o => o.Action == "use" && o.Target == made.Id);
+        Assert.DoesNotContain(request.Options, o => o.Action == "use" && o.Target == found.Id);
+    }
+
     private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone()
     {
         var port = new CountingPort();

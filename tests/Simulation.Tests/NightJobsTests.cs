@@ -702,6 +702,24 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
+    public void AQuestionAboutAThingThatShowsNothingAtAGlanceWaitsUntilTheInhabitantHasLookedOrTried()
+    {
+        // GW2 D999: a conifer shows none of the visible properties; asked with an empty perception the model guessed
+        // from memories of other things. Such a question waits, as before ask_without_notice.
+        var looking = Content.Value.Knowledge.Looking!;
+        var blank = Content.Value.Objects.TypeIds.First(t => !looking.VisibleProperties.Any(p => Content.Value.Objects.HasProperty(t, p)));
+        var (host, a, port) = World(question: false);
+        host.Objects.Spawn(blank, new Position(1, 0));
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        RunIntoTheNight(host);
+
+        Assert.Contains(host.Decisions.Open, q => q.InhabitantId == a.Id && q.Subject == "type:" + blank);
+        Assert.DoesNotContain(port.Submitted, j => j.Kind == JobKind.Question && j.Payload.Question!.Subject.Id == blank);
+        Assert.Contains(events, e => e.Kind == NightJobsSystem.NightQuestions && e.Detail!.Contains("skipped=1", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TheMemoryJobSaysHowOftenWhatCameOfItAndWhatTheInhabitantCallsTheSubjectNow()
     {
         var (host, a, port) = World(question: false);

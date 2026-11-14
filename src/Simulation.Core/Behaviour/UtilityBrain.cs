@@ -204,6 +204,17 @@ public sealed class UtilityBrain
         new[] { c.TargetProperty, c.RequiresAlso }.All(p => p is null || !MadeProperties.Contains(p)
             || (inhabitant.Beliefs.TryGet(typeId, p, out var belief) && belief.Value));
 
+    /// <summary>
+    /// Whether an action is about made things (D999): it has considerations and every one asks for a made property
+    /// (target_property or requires_also among <see cref="MadeProperties"/>) - 'use' in the shipped data.
+    /// </summary>
+    public bool IsAboutMadeThings(string action)
+    {
+        var of = _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal)).ToList();
+        return MadeProperties.Count > 0 && of.Count > 0
+            && of.All(c => (c.Data.TargetProperty is { } p && MadeProperties.Contains(p)) || (c.Data.RequiresAlso is { } q && MadeProperties.Contains(q)));
+    }
+
     /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
     public bool Serves(string action, string need) =>
         _considerations.Any(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal) && string.Equals(c.Data.Need, need, StringComparison.Ordinal));

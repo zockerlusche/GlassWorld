@@ -74,6 +74,10 @@ if ! grep -Eq '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*
   echo "SMOKE_FAIL: save and load in the game failed (marker 'SAVE_OK' missing)" >&2
   exit 1
 fi
+if ! grep -q '^FAULT_OK$' "$LOG"; then
+  echo "SMOKE_FAIL: a failed world step did not stop the world safely (marker 'FAULT_OK' missing, B2712)" >&2
+  exit 1
+fi
 if ! grep -Eq '^MENU_OK screens=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: menus, settings or pause menu show a raw key or leave the screen (marker 'MENU_OK' missing)" >&2
   exit 1

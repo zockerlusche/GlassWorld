@@ -106,4 +106,17 @@ if [[ -n "$WORLD" ]]; then
 fi
 printf '@echo off\r\nrem GlassWorld mit lokaler KI starten (Testpaket). Der KI-Dienst laeuft aus dem Repository.\r\nset GLASSWORLD_AI=live\r\nset GLASSWORLD_AI_ROOT=%s\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$ROOT" "$WORLD_LINE" > "$OUT/Start-mit-KI.cmd"
 printf '@echo off\r\nrem GlassWorld ohne KI starten (Routine-Modus, zum Vergleich).\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$WORLD_LINE" > "$OUT/Start-ohne-KI.cmd"
+# The AI service's environment is made now, not at the first start (TL #24536): uv would build it there in
+# minutes while the game waits 60 s, and the first start "with AI" would run without AI. SKIP_UV_SYNC=1 skips it.
+if [[ "${SKIP_UV_SYNC:-}" != "1" ]]; then
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "EXPORT_FAIL: uv not found - the AI service environment cannot be prepared (set SKIP_UV_SYNC=1 to skip)" >&2
+    exit 1
+  fi
+  if ! (cd "$ROOT" && uv sync --frozen); then
+    echo "EXPORT_FAIL: uv sync --frozen failed in $ROOT" >&2
+    exit 1
+  fi
+  echo "UV_SYNC_OK $ROOT"
+fi
 echo "EXPORT_OK $OUT/GlassWorld.exe"

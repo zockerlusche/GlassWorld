@@ -560,9 +560,11 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
 
             var typeId = question.Subject[TypeSubject.Length..];
             var noticedNothing = !inhabitant.Beliefs.About(typeId).Any();
-            if (noticedNothing && night.AskWithoutNotice != true)
+            if (noticedNothing && (night.AskWithoutNotice != true || !Glance(knowledge, typeId).Any()))
             {
                 // What it notices about the thing is among its beliefs (seen by looking): none at all = nothing to guess from.
+                // D999: asked without a notice, the thing must at least show something at a glance - otherwise the model
+                // guesses from memories of other things (#227).
                 skipped++;
                 continue;
             }
