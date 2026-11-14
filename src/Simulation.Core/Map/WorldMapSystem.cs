@@ -73,6 +73,9 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// <summary>Whether an object stands at a regrowth place of the island now (a berry on its bush: it does not spoil there).</summary>
     public bool GrowsInPlace(string objectId) => _growing.Contains(objectId);
 
+    /// <summary>A thing that grew in its place was taken from it (picked, AK1a): its id and the tick. It ages from now on.</summary>
+    public event Action<string, long>? LeftPlace;
+
     /// <summary>Restores the places that grow back (save games).</summary>
     public void Restore(IEnumerable<Occurrence> occurrences)
     {
@@ -271,7 +274,10 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 if (!_objects.TryGet(place.ObjectId, out _) || _objects.HeldBy(place.ObjectId) is not null)
                 {
                     _occurrences[i] = place with { GoneSinceTick = world.Tick };
-                    _growing.Remove(place.ObjectId);
+                    if (_growing.Remove(place.ObjectId) && _objects.TryGet(place.ObjectId, out _))
+                    {
+                        LeftPlace?.Invoke(place.ObjectId, world.Tick);
+                    }
                 }
 
                 continue;

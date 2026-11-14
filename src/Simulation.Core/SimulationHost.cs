@@ -420,6 +420,11 @@ public sealed class SimulationHost
         var durability = content.Durability is { } durabilityData && map is not null
             ? new DurabilitySystem(durabilityData, objects, world.Calendar.Settings.TicksPerHour, world.Seed, nature) { GrowsInPlace = map is null ? null : map.GrowsInPlace }
             : null;
+        if (durability is not null && map is not null)
+        {
+            // AK1a: a picked fruit ages from the pick, the same in a loaded world.
+            map.LeftPlace += durability.LeftPlace;
+        }
 
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
         if (processes is not null && content.Processes is { } heatTable)
