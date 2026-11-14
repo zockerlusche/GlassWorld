@@ -1223,8 +1223,8 @@
       "text": "Ring"
     },
     {
-      "key": "vocab.shape.bowl",
-      "text": "Schale"
+      "key": "vocab.shape.hemisphere_open",
+      "text": "Offene Halbkugel"
     },
     {
       "key": "vocab.tech_level.wilderness",
@@ -2545,10 +2545,6 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Gerade aus – diese Klänge werden neu gemacht."
-    },
-    {
-      "key": "msg.converse.no_answer",
-      "text": "Hm ... da muss ich erst nachdenken."
     },
     {
       "key": "ui.setup.model_image",

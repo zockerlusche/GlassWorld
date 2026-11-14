@@ -34,7 +34,7 @@ x from -0.125 to 0.125; y from 0 to 0.12; z from -0.125 to 0.125
 Step numbers that each need at least one part: 1, 2
 
 ## Shapes you can use
-bowl, cylinder, ring
+hemisphere_open, cylinder, ring
 
 ## Colours you can use
 clay_brown, ash_grey

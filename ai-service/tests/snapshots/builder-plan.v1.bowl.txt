@@ -24,7 +24,7 @@ width x 0.25, height y 0.12, depth z 0.25
 2. fire (clay_lump)
 
 ## Shapes you can use
-bowl, cylinder, ring
+hemisphere_open, cylinder, ring
 
 ## Colours you can use
 clay_brown, ash_grey
