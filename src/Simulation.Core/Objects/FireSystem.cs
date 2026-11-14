@@ -142,6 +142,47 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         return (int)Math.Round(total, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>The heat level a burning thing gives for processing (B2700): position of its type's heat_level in <paramref name="levels"/>, or null.</summary>
+    public int? HeatLevelOf(WorldObject thing, IReadOnlyList<string> levels)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        ArgumentNullException.ThrowIfNull(levels);
+        if (!_until.ContainsKey(thing.Id) || ParamsOf(thing.TypeId)?.HeatLevel is not { } level)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < levels.Count; i++)
+        {
+            if (string.Equals(levels[i], level, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The highest heat level of burning things within <paramref name="reachM"/> of a place (B2700), or null.</summary>
+    public int? HeatLevelNear(Position at, double reachM, IReadOnlyList<string> levels)
+    {
+        int? best = null;
+        foreach (var id in _until.Keys)
+        {
+            if (_objects.TryGet(id, out var thing) && HeatLevelOf(thing, levels) is { } level)
+            {
+                var dx = thing.Position.X - at.X;
+                var dz = thing.Position.Z - at.Z;
+                if ((dx * dx) + (dz * dz) <= reachM * reachM)
+                {
+                    best = Math.Max(best ?? level, level);
+                }
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>Whether the thing is burning now and its type takes fuel (A1379).</summary>
     public bool TakesFuel(WorldObject thing)
     {

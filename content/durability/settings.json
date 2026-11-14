@@ -1,0 +1,72 @@
+{
+  "contract_version": "0.2",
+  "classes": [
+    {
+      "id": "firm_fruit",
+      "properties_all": [
+        "edible",
+        "firm",
+        "portable"
+      ],
+      "properties_none": [
+        "long_lasting",
+        "cooked"
+      ],
+      "base_hours": 216,
+      "wet_permille": 1000,
+      "heat_permille": 1000
+    },
+    {
+      "id": "fresh_food",
+      "properties_all": [
+        "edible",
+        "portable"
+      ],
+      "properties_none": [
+        "long_lasting",
+        "cooked"
+      ],
+      "base_hours": 72,
+      "wet_permille": 1000,
+      "heat_permille": 1000
+    },
+    {
+      "id": "lasting_food",
+      "properties_all": [
+        "edible",
+        "long_lasting",
+        "portable"
+      ],
+      "properties_none": [],
+      "base_hours": 672
+    },
+    {
+      "id": "fibre",
+      "properties_all": [
+        "fibrous",
+        "portable"
+      ],
+      "properties_none": [],
+      "base_hours": 1008,
+      "wet_permille": 1000
+    },
+    {
+      "id": "wood",
+      "properties_all": [
+        "burnable",
+        "building_material",
+        "portable"
+      ],
+      "properties_none": [],
+      "base_hours": 4704
+    },
+    {
+      "id": "stone",
+      "properties_all": [
+        "stone"
+      ],
+      "properties_none": [],
+      "base_hours": null
+    }
+  ]
+}

@@ -141,6 +141,12 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// </summary>
     public bool ValidateRequests { get; init; } = true;
 
+    /// <summary>
+    /// Knowledge data (B4a): with it the inventor's job carries what the inhabitant believes about the materials it
+    /// sees (R8, A1582) - its own beliefs with source and confidence, never the truth; null = needs, moods and memory only.
+    /// </summary>
+    public KnowledgeSettings? Knowledge { get; set; }
+
     /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
     public string DisplayLocale
     {
@@ -485,7 +491,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                     },
                     Want = want,
                     Subject = null,
-                    Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
+                    Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, [.. materials.Select(m => m.Type).Distinct(StringComparer.Ordinal)], [], _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf),
                     Materials = materials,
                     TechLevel = Milestones?.TechLevel ?? settings.TechLevel,
                     Limits = new InventionLimits { MaxSizeM = settings.Limits.MaxSizeM, MaxParts = settings.Limits.MaxParts, MaxRounds = settings.Limits.MaxRounds },

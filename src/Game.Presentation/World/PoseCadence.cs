@@ -79,10 +79,10 @@ public sealed class PoseCadence
     /// shows). <paramref name="nowS"/> is the scene's real clock in seconds; <paramref name="conversation"/> is
     /// true while the inhabitant speaks to another or is spoken to (<see cref="InhabitantActivity.InConversation"/>).
     /// </summary>
-    public void Want(AnimationChooser chooser, string? action, bool moving, IReadOnlyDictionary<string, double> values, AnimationMappingTarget? target, bool conversation, double nowS)
+    public void Want(AnimationChooser chooser, string? action, bool moving, IReadOnlyDictionary<string, double> values, AnimationMappingTarget? target, bool conversation, double nowS, AnimationMappingReach? reach = null)
     {
         ArgumentNullException.ThrowIfNull(chooser);
-        var wanted = chooser.ForInhabitant(action, moving, _inhabitantId, 0, values, target);
+        var wanted = chooser.ForInhabitant(action, moving, _inhabitantId, 0, values, target, reach);
         if (!wanted.Walking && chooser.StandsIdle(action))
         {
             _idleSince = double.IsNaN(_idleSince) ? nowS : _idleSince;

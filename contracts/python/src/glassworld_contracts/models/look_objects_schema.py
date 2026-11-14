@@ -28,6 +28,7 @@ class ObjectLookShape(StrEnum):
     fruit = 'fruit'
     shell = 'shell'
     reeds = 'reeds'
+    flame = 'flame'
     marker = 'marker'
     none = 'none'
 
@@ -52,6 +53,12 @@ class ObjectLookFallback(BaseModel):
 
 
 type Type = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class Reach(StrEnum):
+    low = 'low'
+    mid = 'mid'
+    high = 'high'
 
 
 class ObjectNiche(BaseModel):
@@ -168,6 +175,48 @@ class ObjectStreamSources(BaseModel):
     )
 
 
+class ObjectGlow(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    light_color: str = Field(
+        ...,
+        description='Palette colour id of the light.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    light_energy: float = Field(
+        ...,
+        description='Strength of the light (0 = no light, the body still glows).',
+        ge=0.0,
+        le=8.0,
+    )
+    light_range_m: float = Field(
+        ...,
+        description='How far the light reaches, in metres at size factor 1.',
+        ge=0.0,
+        le=20.0,
+    )
+    light_height_m: float = Field(
+        ...,
+        description="Height of the light above the object's foot, in metres at size factor 1.",
+        ge=0.0,
+        le=4.0,
+    )
+    flicker: float = Field(
+        ...,
+        description='Share of the strength that wavers (0 = steady; at most half, a calm waver, never a blink).',
+        ge=0.0,
+        le=0.5,
+    )
+    flicker_hz: float = Field(
+        ...,
+        description='How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).',
+        ge=0.0,
+        le=3.0,
+    )
+
+
 class ObjectVisual(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -215,6 +264,10 @@ class ObjectVisual(BaseModel):
         ge=0.0,
         le=10.0,
     )
+    reach: Reach | None = Field(
+        None,
+        description="A1632 (D958 D1): where a hand meets this thing when someone acts on it - low (on the ground: crouch), mid (hip to chest: bushes, trunks, reeds), high (above the head). The animation mappings choose by it; absent = the action's general clip.",
+    )
     sway_m: float | None = Field(
         None,
         description='How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.',
@@ -222,6 +275,7 @@ class ObjectVisual(BaseModel):
         le=2.0,
     )
     niche: ObjectNiche | None = None
+    glow: ObjectGlow | None = None
 
 
 class ObjectDecor(BaseModel):
@@ -313,3 +367,9 @@ class LookObjects(BaseModel):
         max_length=32,
     )
     stream_sources: ObjectStreamSources | None = None
+    max_lights: int | None = Field(
+        None,
+        description='At most this many glowing objects carry a light at once (the first in the drawing order); the others still glow. Keeps a row of fires cheap.',
+        ge=0,
+        le=64,
+    )

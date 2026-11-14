@@ -408,6 +408,18 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("burning", JsonSerializer.Serialize(s.Burning, Json)));
         }
 
+        if (s.Nature is not null)
+        {
+            // The nature takt's sums (A1380); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("nature", JsonSerializer.Serialize(s.Nature, Json)));
+        }
+
+        if (s.Placed is not null)
+        {
+            // Things that came after the world start (durability, D711 section 5); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("placed", JsonSerializer.Serialize(s.Placed, Json)));
+        }
+
         if (s.Milestones is not null)
         {
             // Reached milestones (B2598); no entry = none.
@@ -682,6 +694,8 @@ public static class SaveGameStore
             NightJobs = meta.TryGetValue("night_jobs", out var nightJobs) ? JsonSerializer.Deserialize<Simulation.Night.NightJobsState>(nightJobs, Json) : null,
             Processes = meta.TryGetValue("processes", out var processes) ? JsonSerializer.Deserialize<Simulation.Objects.ProcessState>(processes, Json) : null,
             Burning = meta.TryGetValue("burning", out var burning) ? JsonSerializer.Deserialize<List<Simulation.Objects.BurningThing>>(burning, Json) : null,
+            Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
+            Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",

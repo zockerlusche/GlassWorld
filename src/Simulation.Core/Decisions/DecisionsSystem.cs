@@ -1179,7 +1179,7 @@ public sealed class DecisionsSystem : IWorldSystem
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? [.. stuck(inhabitant.Id, subject).Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))]
-            : BuildOptions(inhabitant, target, world.Tick, others, things, out partners);
+            : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
@@ -1221,7 +1221,8 @@ public sealed class DecisionsSystem : IWorldSystem
     {
         _counter++;
         WorldObject? target = null;
-        var targetId = question.Options.Select(o => o.TargetId).FirstOrDefault(id => id is not null);
+        // The subject is the first target in the data's order (D1025: the sent order is shuffled from the request id).
+        var targetId = InDataOrder(question, world.Seed).Select(o => o.TargetId).FirstOrDefault(id => id is not null);
         if (targetId is not null && _objects.TryGet(targetId, out var found))
         {
             target = found;
@@ -1266,7 +1267,7 @@ public sealed class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
         var raw = new List<(string Action, string? TargetId, string? Partner)>();
@@ -1279,7 +1280,8 @@ public sealed class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
-            var isIntended = action == intended;
+            // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
+            var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
@@ -1376,6 +1378,16 @@ public sealed class DecisionsSystem : IWorldSystem
                     }
 
                     break;
+                case VocabularyEntryTarget.Object when target is null && _brain.IsAboutMadeThings(action):
+                    // D999 (TL TH143): in a free moment, the made things in sight the asker knows are made (#358), nearest
+                    // first - so what was built can be used when there is time, not only when a need is low. Whether it
+                    // helps is the world's matter (the effect rules of its true properties).
+                    foreach (var made in things.Where(o => _brain.BelievesMadeFor(asker, action, o.TypeId) && !Rests(asker, action, o.Id, tick)))
+                    {
+                        (isIntended ? first : raw).Add((action, made.Id, null));
+                    }
+
+                    break;
                 default:
                     // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
@@ -1390,11 +1402,58 @@ public sealed class DecisionsSystem : IWorldSystem
 
         // Meeting actions (B4a R8) are no knowledge passed on: they follow with the room that is left.
         raw.AddRange(meeting);
-        var kept = raw.Take(MaxOptions).Select((o, i) => (OptionId: string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId, o.Partner)).ToList();
+        // D1025: the cut keeps the intended option and the data's order of importance; what is sent is shuffled per
+        // question (from the world seed and the question id, the same when it is sent again), so the position in the
+        // list says nothing - a model tends to take the first option.
+        var cut = raw.Take(MaxOptions).ToList();
+        Shuffle(cut, orderSeed);
+        var kept = cut.Select((o, i) => (OptionId: string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId, o.Partner)).ToList();
         partners = kept.Any(o => o.Partner is not null)
             ? kept.Where(o => o.Partner is not null).ToDictionary(o => o.OptionId, o => (IReadOnlyList<string>)[o.Partner!], StringComparer.Ordinal)
             : null;
         return [.. kept.Select(o => (o.OptionId, o.Action, o.TargetId))];
+    }
+
+    /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> undone (D1025).</summary>
+    private static IReadOnlyList<(string OptionId, string Action, string? TargetId)> InDataOrder(OpenQuestion question, ulong worldSeed)
+    {
+        if (question.Kind == BuildStuck)
+        {
+            return question.Options; // the stuck options are never shuffled
+        }
+
+        var positions = Enumerable.Range(0, question.Options.Count).ToList();
+        Shuffle(positions, OrderSeed(worldSeed, question.Id));
+        var original = new (string OptionId, string Action, string? TargetId)[question.Options.Count];
+        for (var sent = 0; sent < positions.Count; sent++)
+        {
+            original[positions[sent]] = question.Options[sent];
+        }
+
+        return original;
+    }
+
+    /// <summary>The seed of a question's option order (D1025): its world and its id, not the request (resends keep it).</summary>
+    internal static int OrderSeed(ulong worldSeed, string questionId) =>
+        DecisionIds.SeedOf(string.Create(CultureInfo.InvariantCulture, $"options/{worldSeed}/{questionId}"));
+
+    /// <summary>
+    /// D1025: a deterministic Fisher-Yates shuffle from a seed (SplitMix64) - no random stream of the world, so the
+    /// order is the same in a replay and costs nothing in the hash.
+    /// </summary>
+    internal static void Shuffle<T>(List<T> items, int seed)
+    {
+        var state = (ulong)(uint)seed;
+        for (var i = items.Count - 1; i > 0; i--)
+        {
+            state += 0x9E3779B97F4A7C15UL;
+            var z = state;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            z ^= z >> 31;
+            var j = (int)(z % (ulong)(i + 1));
+            (items[i], items[j]) = (items[j], items[i]);
+        }
     }
 
     /// <summary>

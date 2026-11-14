@@ -40,23 +40,23 @@ You need something: thirst. Nothing you have helps.
 hut
 
 ## Basic processes you know
-- bind (Tie things firmly together with fibres or cord.)
-- braid (Weave or braid fibres into cord, mats or baskets.)
-- char (Heat wood with little air until it turns to charcoal.)
+- bind (Tie things firmly together.)
+- braid (Twist or weave strands over and under each other.)
+- char (Heat something for long with little air.)
 - cut (Cut something with a sharp edge.)
 - dry (Leave something in sun or wind until the water is gone.)
 - fire (Burn a shaped soft mass in strong heat until it is hard.)
-- grind (Rub or crush something into small pieces or powder.)
-- heat (Make something hot over a fire.)
+- grind (Rub or crush something.)
+- heat (Make something hot.)
 - melt (Heat something until it becomes liquid.)
-- mix (Put several things together into one mass.)
+- mix (Stir several things together.)
 - shape (Form a soft mass by hand.)
 - soak (Leave something in water for a while.)
-- split (Break something along its grain or layers into flat pieces.)
+- split (Break something apart along its grain or layers.)
 - strike (Hit one hard thing against another.)
 
 ## Properties a thing can have
-alkaline, braidable, building_material, burnable, container, cooked, cooling, crafted, drinkable, edible, fatty, fibrous, fine_grained, fruit, hard, hardens_in_fire, healing, hot, insulating, long_lasting, malleable, milky, mushroom, poisonous, portable, salty, scratchable, sharp, sheltering, smoulders, sparks, splittable, sticky, stone, transparent, water
+alkaline, braidable, building_material, burnable, container, cooked, cooling, crafted, drinkable, edible, fatty, fibrous, fine_grained, firm, fruit, hard, hardens_in_fire, healing, hot, insulating, long_lasting, malleable, milky, mushroom, poisonous, portable, salty, scratchable, sharp, sheltering, smoulders, sparks, splittable, sticky, stone, transparent, water
 
 ## Actions a thing can be used for
 add_fuel, approach, build_step, combine, drink, drop, eat, explore, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn

@@ -226,6 +226,15 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
+        // A1380 N1: the nature takt - growth by season and drought, influence sums for durability (R51).
+        Nature.NatureSystem? nature = null;
+        if (content.Nature is { } natureData && map is not null)
+        {
+            nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
+            map.Grown = nature.Grown;
+            world.Add(nature);
+        }
+
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
@@ -349,7 +358,7 @@ public sealed class SimulationHost
         // One job port for all job systems: each receives only the outcomes of its own jobs (the invention
         // system takes the rest), and all write the world's one job log.
         var jobs = jobPort is null ? null : new JobRouter(jobPort);
-        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests };
+        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests, Knowledge = content.Knowledge };
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
 
@@ -360,7 +369,11 @@ public sealed class SimulationHost
         // B2687 K2: what comes of things put together beyond the combination rules; its jobs go through the
         // same router and into the same job log as the inventions'.
         var processes = content.Processes is { } processRules
-            ? new ProcessSystem(processRules, types, objects, inhabitants, jobs, inventions.Log, content.Inventions.Settings.JobPriority, displayLocale) { ValidateRequests = options.ValidateRequests }
+            ? new ProcessSystem(processRules, types, objects, inhabitants, jobs, inventions.Log, content.Inventions.Settings.JobPriority, displayLocale)
+            {
+                ValidateRequests = options.ValidateRequests,
+                Implied = [.. content.Inventions.Settings.ImpliedProperties],
+            }
             : null;
         if (processes is not null)
         {
@@ -382,6 +395,20 @@ public sealed class SimulationHost
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
         inhabitants.HeatAt = fire.HeatAt;
 
+        // D711 section 5 (plan D1008 H1): things wear away by material class; the island's things are there
+        // already, so they get their seeded age; what comes later is watched from its spawn.
+        // Only on islands, like the nature takt: a placeholder world has no regrowth to make up for what spoils.
+        var durability = content.Durability is { } durabilityData && map is not null
+            ? new DurabilitySystem(durabilityData, objects, world.Calendar.Settings.TicksPerHour, world.Seed, nature) { GrowsInPlace = map is null ? null : map.GrowsInPlace }
+            : null;
+
+        // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
+        if (processes is not null && content.Processes is { } heatTable)
+        {
+            processes.HeatOf = thing => fire.HeatLevelOf(thing, heatTable.HeatLevels);
+            processes.HeatNear = (at, action) => fire.HeatLevelNear(at, actions.HasTiming(action) ? actions.Timing(action).PartnerReachM : 0, heatTable.HeatLevels);
+        }
+
         // A1379: fuel into a fire; how warm it feels goes into the request; a fire's end is seen by those near.
         decisions.TakesFuel = fire.TakesFuel;
         inhabitants.Feeding = (w, _, fireId, fuelId) => fire.Feed(w, fireId, fuelId);
@@ -402,7 +429,7 @@ public sealed class SimulationHost
             }
         };
 
-        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
+        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests, Truth = types };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
@@ -502,6 +529,11 @@ public sealed class SimulationHost
 
         // Out of the hash while nothing burns.
         world.Add(fire);
+        if (durability is not null)
+        {
+            // Out of the hash while only things of the world start exist.
+            world.Add(durability);
+        }
 
         // Out of the hash while no milestone is reached.
         world.Add(milestones);
@@ -518,7 +550,9 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Durability = durability,
             Milestones = milestones,
+            Nature = nature,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -815,8 +849,14 @@ public sealed class SimulationHost
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
 
+    /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
+    public DurabilitySystem? Durability { get; private init; }
+
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
+
+    /// <summary>The nature takt (A1380); null on worlds without an island or nature data.</summary>
+    public Nature.NatureSystem? Nature { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

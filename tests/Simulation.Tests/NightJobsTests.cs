@@ -56,8 +56,10 @@ public sealed class NightJobsTests : IDisposable
 
             RunIntoTheNight(host);
 
-            Assert.Equal(jobs, port.Submitted.Count);
-            Assert.All(port.Submitted, j => Assert.Equal(entries, j.Payload.Memory!.Events.Count));
+            // With the look back on (B2698) the night's memory goes out as a look back with the same events.
+            var condensing = port.Json.Values.Select(ContractSerializer.Deserialize<GenerationJob>).Where(j => j.Kind is JobKind.Memory or JobKind.Review).ToList();
+            Assert.Equal(jobs, condensing.Count);
+            Assert.All(condensing, j => Assert.Equal(entries, (j.Payload.Memory?.Events ?? j.Payload.Review!.Events).Count));
         }
     }
 
@@ -676,32 +678,45 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
-    public void AQuestionWithNothingToGuessFromWaitsUntilTheInhabitantHasLookedOrTried()
+    public void AQuestionAboutAThingItKnowsNothingAboutIsAskedWithWhatTheThingShowsAtAGlance()
     {
-        // GW2 #227: asked about a thing it had never looked at, the model guessed from memories of other things.
+        // D971: the day question unknown_object exists only for a thing the inhabitant believes nothing about. GW2 #227
+        // had the night skip those (the model guessed from memories of other things), so it never asked. With
+        // ask_without_notice it asks, and the perception is what the thing shows at a glance (the looking data's
+        // visible properties it has) - not stored as a belief, never more than a look shows.
+        Assert.True(Content.Value.Knowledge.NightQuestions!.AskWithoutNotice);
         var (host, a, port) = World(looked: false);
         a.Beliefs.Set("apple", "edible", true, 1.0, KnowledgeSources.Experienced, null, 0);
         var events = new List<WorldEvent>();
         host.Inhabitants.Reported += events.Add;
         RunIntoTheNight(host);
 
-        // No job, the question stays open, and the night says so.
-        Assert.Empty(port.Submitted);
-        Assert.False(host.NightJobs.HasState);
+        var job = Assert.Single(port.Submitted);
         var question = Assert.Single(host.Decisions.Open);
-        var skipped = Assert.Single(events, e => e.Kind == NightJobsSystem.NightQuestions);
-        Assert.Equal((a.Id, "asked=0,skipped=1"), (skipped.InhabitantId, skipped.Detail));
+        Assert.Equal(question.Id, host.NightJobs.QuestionJobs.Single().QuestionId);
+        var visible = Content.Value.Knowledge.Looking!.VisibleProperties.Where(p => Content.Value.Objects.HasProperty(Thing, p)).ToList();
+        Assert.NotEmpty(visible);
+        Assert.Equal(visible, job.Payload.Question!.Perception);
+        Assert.False(a.Beliefs.Knows(Thing));
+        Assert.Equal("asked=1,skipped=0", Assert.Single(events, e => e.Kind == NightJobsSystem.NightQuestions).Detail);
+    }
 
-        // It looks at the thing the next day (what it sees is not a fruit: no perception, but a belief
-        // about the kind): the next night asks.
-        a.Beliefs.Set(Thing, "fruit", false, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
-        events.Clear();
+    [Fact]
+    public void AQuestionAboutAThingThatShowsNothingAtAGlanceWaitsUntilTheInhabitantHasLookedOrTried()
+    {
+        // GW2 D999: a conifer shows none of the visible properties; asked with an empty perception the model guessed
+        // from memories of other things. Such a question waits, as before ask_without_notice.
+        var looking = Content.Value.Knowledge.Looking!;
+        var blank = Content.Value.Objects.TypeIds.First(t => !looking.VisibleProperties.Any(p => Content.Value.Objects.HasProperty(t, p)));
+        var (host, a, port) = World(question: false);
+        host.Objects.Spawn(blank, new Position(1, 0));
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
         RunIntoTheNight(host);
 
-        var job = Assert.Single(port.Submitted);
-        Assert.Equal(question.Id, host.NightJobs.QuestionJobs.Single().QuestionId);
-        Assert.Empty(job.Payload.Question!.Perception);
-        Assert.Equal("asked=1,skipped=0", Assert.Single(events, e => e.Kind == NightJobsSystem.NightQuestions).Detail);
+        Assert.Contains(host.Decisions.Open, q => q.InhabitantId == a.Id && q.Subject == "type:" + blank);
+        Assert.DoesNotContain(port.Submitted, j => j.Kind == JobKind.Question && j.Payload.Question!.Subject.Id == blank);
+        Assert.Contains(events, e => e.Kind == NightJobsSystem.NightQuestions && e.Detail!.Contains("skipped=1", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1054,6 +1069,9 @@ public sealed class NightJobsTests : IDisposable
         memory.JobMaxFormative = 12;
         memory.MaxChars = 600;
         memory.MaxEvents = 64;
+
+        // These tests are about the memory job; the look back that replaces it (B2698) has its own tests (NightReviewTests).
+        settings.Review!.Enabled = false;
         File.WriteAllText(path, ContractSerializer.Serialize(settings));
         return target;
     }
