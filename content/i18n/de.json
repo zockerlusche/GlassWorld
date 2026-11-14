@@ -3237,6 +3237,26 @@
     {
       "key": "msg.milestone.first_melting",
       "text": "Erstes Schmelzen"
+    },
+    {
+      "key": "vocab.life_stage.child",
+      "text": "Kind"
+    },
+    {
+      "key": "vocab.life_stage.youth",
+      "text": "Jugend"
+    },
+    {
+      "key": "vocab.life_stage.adult",
+      "text": "Erwachsen"
+    },
+    {
+      "key": "vocab.life_stage.elder",
+      "text": "Alter"
+    },
+    {
+      "key": "vocab.event.stage_changed",
+      "text": "Neue Lebensphase"
     }
   ]
 }

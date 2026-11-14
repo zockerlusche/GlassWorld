@@ -161,6 +161,15 @@ public sealed class Inhabitant
     /// <summary>The thing it holds in its hand (AK1a, D1046 v2), or null. The thing stays in the world and follows it.</summary>
     public string? Held { get; internal set; }
 
+    /// <summary>Tick of birth (B9 R1); null until the aging data gave it one. Start inhabitants were born before tick 0.</summary>
+    public long? BornTick { get; internal set; }
+
+    /// <summary>Its life phase now (vocabulary life_stage), from its tick of birth; null without aging. Not state: it follows.</summary>
+    public string? LifeStage { get; internal set; }
+
+    /// <summary>Its age in life years now; null without aging. Not state: it follows from the tick of birth.</summary>
+    public int? AgeYears { get; internal set; }
+
     /// <summary>
     /// Actions that rest after too many repeats without effect (W1696), each for its target or, without a
     /// target, for its place (content/behaviour/utility.json: repetition), in the order they began to rest.
@@ -321,6 +330,12 @@ public sealed class Inhabitant
             {
                 hasher.Write(place).Write(felt.Felt).Write(felt.Tick);
             }
+        }
+
+        // The tick of birth only once there is one (B9 R1), so worlds without aging keep their hashes.
+        if (BornTick is { } born)
+        {
+            hasher.Write("born").Write(born);
         }
 
         // Repeats without effect only while there are any, so states without them keep their hashes.

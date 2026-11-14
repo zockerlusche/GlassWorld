@@ -54,7 +54,8 @@ public sealed record SavedInhabitant(
     SavedMemory? Memory = null,
     SavedIdeas? Ideas = null,
     IReadOnlyList<SavedFeltPlace>? FeltPlaces = null,
-    string? Held = null);
+    string? Held = null,
+    long? BornTick = null);
 
 /// <summary>An inhabitant's ideas and intentions as saved (A1584): the running number and both lists.</summary>
 public sealed record SavedIdeas(long Counter, IReadOnlyList<Idea> Ideas, IReadOnlyList<Intention> Intentions);
@@ -231,7 +232,8 @@ public static class StateCodec
                 i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
                 i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null,
                 i.FeltPlaces.Count > 0 ? [.. i.FeltPlaces.Select(p => new SavedFeltPlace(p.Key, p.Value.Felt, p.Value.Tick))] : null,
-                i.Held))],
+                i.Held,
+                i.BornTick))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId, q.PartnersOf(o.OptionId) is { Count: > 0 } p ? p : null))], q.RetryAtTick))],
             lastAsked,
@@ -362,6 +364,7 @@ public static class StateCodec
             }
 
             inhabitant.Repeat = saved.Repeat;
+            inhabitant.BornTick = saved.BornTick;
             inhabitant.Held = saved.Held;
             if (saved.Held is { } held)
             {
@@ -386,6 +389,9 @@ public static class StateCodec
         // B4a R8: the members of a start group have always met, also where a state carries no meetings
         // (review GW3 #207), so loading never makes partners meet a second time.
         host.Inhabitants.RememberStartGroups();
+
+        // B9 R1 (review GW3 #437): age and phase follow from the ticks of birth - set at once, not at the first step.
+        host.Aging?.Refresh(state.Tick);
 
         // Save games from before names (W1698): everyone gets an own name from the seed, nobody knows another's.
         if (!state.NamesSaved)

@@ -63,6 +63,12 @@ public sealed record InhabitantSnapshot(
 
     /// <summary>The thing it holds in its hand (AK1a), or null - for the look (hand point, carrying while walking).</summary>
     public string? Held { get; init; }
+
+    /// <summary>Its life phase (B9 R1, vocabulary life_stage), or null.</summary>
+    public string? LifeStage { get; init; }
+
+    /// <summary>Its age in life years (B9 R1), or null.</summary>
+    public int? AgeYears { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -138,6 +144,8 @@ public static class WorldView
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
                 Name = i.Name,
                 Held = i.Held,
+                LifeStage = i.LifeStage,
+                AgeYears = i.AgeYears,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);
