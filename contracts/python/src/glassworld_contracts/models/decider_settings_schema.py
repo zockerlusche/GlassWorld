@@ -35,7 +35,7 @@ class LeisureSettings(BaseModel):
     mood_at_least: float | None = Field(None, ge=0.0, le=1.0)
     every_hours: float = Field(
         ...,
-        description='Least game hours between two leisure questions of one inhabitant.',
+        description="Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.",
         gt=0.0,
         le=240.0,
     )

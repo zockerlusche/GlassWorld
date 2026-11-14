@@ -37,7 +37,7 @@ namespace GlassWorld.Contracts
         public double? MoodAtLeast { get; set; } = default!;
 
         /// <summary>
-        /// Least game hours between two leisure questions of one inhabitant.
+        /// Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("every_hours")]
         public double EveryHours { get; set; } = default!;

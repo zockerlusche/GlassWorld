@@ -1007,11 +1007,10 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool MayAsk(World world, Inhabitant inhabitant, string subject, string kind)
     {
+        // A free moment keeps its own every_hours (scaled by drive, D1086); ask_cooldown_hours would hold it to at least that.
         var questions = _openOf.GetValueOrDefault(inhabitant.Id);
         return HasRoom(inhabitant, kind)
             && !(questions is not null && HasSubject(questions, string.Empty, subject))
-
-            // A free moment keeps its own every_hours (scaled by drive, D1086); ask_cooldown_hours would hold it to at least that.
             && (kind == Leisure || !CoolingDown(world, inhabitant, subject));
     }
 
