@@ -529,5 +529,10 @@
   "others_warmth": {
     "tenth_c": 15,
     "radius_cm": 150
+  },
+  "worn": {
+    "property": "insulating",
+    "warm_tenth_c": 60,
+    "up_to_tenth_c": 200
   }
 }

@@ -133,6 +133,9 @@ public sealed class ContentSet
     /// <summary>Rain, drying and sun on the body (B5-11, D1084); null = only the air is felt.</summary>
     public BodySettings? Body { get; init; }
 
+    /// <summary>How inhabitants age (B9 R1, content/life/aging.json); null = they do not.</summary>
+    public LifeAging? Aging { get; init; }
+
     /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
     public FireSettings? Fire { get; init; }
 
@@ -292,6 +295,7 @@ public sealed class ContentSet
                 ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
                 : null,
             Body = LoadBody(contentDirectory, vocabularies),
+            Aging = LoadAging(contentDirectory, vocabularies),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
@@ -852,6 +856,38 @@ public sealed class ContentSet
     }
 
     /// <summary>The body data (B5-11/B5-12), if the file exists: the feelings of felt_places are in the vocabulary felt.</summary>
+    private static LifeAging? LoadAging(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies)
+    {
+        var path = Path.Combine(contentDirectory, "life", "aging.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var aging = ContractSerializer.Deserialize<LifeAging>(File.ReadAllText(path));
+        var stages = Ids(vocabularies, VocabularyKind.Life_stage);
+        var actions = Ids(vocabularies, VocabularyKind.Action);
+        var problems = aging.Phases.Where(p => !stages.Contains(p.Id)).Select(p => $"unknown life stage '{p.Id}'")
+            .Concat(aging.Phases.SelectMany(p => p.Actions.Where(a => a != "*" && !actions.Contains(a)).Select(a => $"phase '{p.Id}' allows unknown action '{a}'")))
+            .ToList();
+        if (aging.Phases.Min(p => p.FromYears) != 0)
+        {
+            problems.Add("the first phase must start at 0 years");
+        }
+
+        if (aging.StartAgeYears.Min > aging.StartAgeYears.Max)
+        {
+            problems.Add("start_age_years min above max");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Aging: " + string.Join("; ", problems) + ".");
+        }
+
+        return aging;
+    }
+
     private static BodySettings? LoadBody(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies)
     {
         var path = Path.Combine(contentDirectory, "body", "settings.json");

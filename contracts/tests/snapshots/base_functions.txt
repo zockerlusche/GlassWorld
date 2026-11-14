@@ -1,0 +1,27 @@
+container | Holds or carries something inside it.
+container | Behälter
+container | Container
+seat_bed | Something to sit or lie on.
+seat_bed | Sitz oder Lager
+seat_bed | Seat or bed
+heat_source | Can hold a fire or embers, or keep their warmth; warmth itself comes only from fire.
+heat_source | Wärmequelle
+heat_source | Heat source
+light_source | Gives light.
+light_source | Lichtquelle
+light_source | Light source
+sound_source | Makes a sound or music.
+sound_source | Klangquelle
+sound_source | Sound source
+shelter | Protects from weather or gives a room.
+shelter | Schutz und Raum
+shelter | Shelter and room
+tool | Is used on other things to change them (cut, dig, scrape, pound).
+tool | Werkzeug
+tool | Tool
+closure | Closes or covers an opening or a container.
+closure | Verschluss
+closure | Closure
+worn | Worn on the body.
+worn | Am Körper getragen
+worn | Worn on the body

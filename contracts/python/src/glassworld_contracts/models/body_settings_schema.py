@@ -43,6 +43,27 @@ class Felt(StrEnum):
     kept_dry = 'kept_dry'
 
 
+class BodyWorn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    property: str = Field(
+        ...,
+        description='True property of the worn thing that keeps warm.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    warm_tenth_c: int = Field(
+        ..., description='Tenths of a degree the wearer feels warmer.', ge=0, le=300
+    )
+    up_to_tenth_c: int | None = Field(
+        None,
+        description='Review GW1 #436: the worn thing keeps warm only while the air and sun its wearer feels without it are below this (tenths of a degree) - on a hot day it adds nothing. Omitted = always.',
+        ge=-500,
+        le=600,
+    )
+
+
 class BodyWetness(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -277,6 +298,10 @@ class BodySettings(BaseModel):
         description='How often, in game minutes, what is felt near things is taken in.',
         ge=1,
         le=1440,
+    )
+    worn: BodyWorn | None = Field(
+        None,
+        description='K4 (B2752): a worn thing with this true property adds warmth to the air its wearer feels (tenths of a degree). Warmth only through the material, never through the function.',
     )
     cover: list[BodyCover] | None = Field(
         None,

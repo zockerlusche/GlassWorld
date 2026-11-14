@@ -667,6 +667,14 @@
       "text": "Erkunden"
     },
     {
+      "key": "vocab.action.put_on",
+      "text": "Anziehen"
+    },
+    {
+      "key": "vocab.action.take_off",
+      "text": "Ablegen"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Benutzen"
     },
@@ -855,6 +863,10 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.base_function.worn",
+      "text": "Am Körper getragen"
+    },
+    {
       "key": "vocab.base_function.container",
       "text": "Behälter"
     },
@@ -953,6 +965,10 @@
     {
       "key": "vocab.property.poisonous",
       "text": "Giftig"
+    },
+    {
+      "key": "vocab.property.wearable",
+      "text": "Am Körper tragbar"
     },
     {
       "key": "vocab.property.portable",
@@ -1913,6 +1929,22 @@
     {
       "key": "ui.chronicle.someone",
       "text": "jemand"
+    },
+    {
+      "key": "vocab.event.picked_up",
+      "text": "Aufgehoben"
+    },
+    {
+      "key": "vocab.event.dropped",
+      "text": "Abgelegt"
+    },
+    {
+      "key": "vocab.event.worn",
+      "text": "Angelegt"
+    },
+    {
+      "key": "vocab.event.taken_off",
+      "text": "Abgenommen"
     },
     {
       "key": "vocab.event.combined",
@@ -3229,6 +3261,26 @@
     {
       "key": "msg.milestone.first_melting",
       "text": "Erstes Schmelzen"
+    },
+    {
+      "key": "vocab.life_stage.child",
+      "text": "Kind"
+    },
+    {
+      "key": "vocab.life_stage.youth",
+      "text": "Jugend"
+    },
+    {
+      "key": "vocab.life_stage.adult",
+      "text": "Erwachsen"
+    },
+    {
+      "key": "vocab.life_stage.elder",
+      "text": "Alter"
+    },
+    {
+      "key": "vocab.event.stage_changed",
+      "text": "Neue Lebensphase"
     }
   ]
 }

@@ -420,6 +420,11 @@ public sealed class SimulationHost
         var durability = content.Durability is { } durabilityData && map is not null
             ? new DurabilitySystem(durabilityData, objects, world.Calendar.Settings.TicksPerHour, world.Seed, nature) { GrowsInPlace = map is null ? null : map.GrowsInPlace }
             : null;
+        if (durability is not null && map is not null)
+        {
+            // AK1a: a picked fruit ages from the pick, the same in a loaded world.
+            map.LeftPlace += durability.LeftPlace;
+        }
 
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
         if (processes is not null && content.Processes is { } heatTable)
@@ -607,6 +612,17 @@ public sealed class SimulationHost
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
+
+        AgingSystem? agingSystem = null;
+        // B9 R1: inhabitants age (data: life/aging.json) - after the core systems; the phase decides which actions the
+        // decider may offer.
+        if (content.Aging is { } agingData)
+        {
+            var aging = new AgingSystem(agingData, inhabitants, world.Seed, world.Calendar.TicksPerDay, world.Calendar.TicksPerSeason * world.Calendar.Settings.Seasons.Count / (double)world.Calendar.TicksPerDay);
+            world.Add(aging);
+            agingSystem = aging;
+            decisions.ActionAllowed = aging.Allows;
+        }
         memory.Remembered = forgetting.Remembered;
         inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
@@ -631,6 +647,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Aging = agingSystem,
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
@@ -936,6 +953,9 @@ public sealed class SimulationHost
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
 
+    /// <summary>How inhabitants age (B9 R1), or null without aging data.</summary>
+    public AgingSystem? Aging { get; private init; }
+
     /// <summary>
     /// The snow on the ground at a place in millimetres (TL #25357, #25397): the island's cover of the nature
     /// takt, none where a heat source warms the place (it melts there, B2700). 0 without a nature takt.
@@ -959,6 +979,7 @@ public sealed class SimulationHost
 
     /// <summary>The animal stocks (B4b K4); null without animal data or nature takt.</summary>
     public Nature.AnimalStockSystem? Animals { get; private init; }
+
 
     /// <summary>The biomes the island really has (a stock of a species lives only there).</summary>
     private static HashSet<string> BiomesOn(Map.WorldMap map)

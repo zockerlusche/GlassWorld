@@ -44,6 +44,13 @@
       "id": "closure",
       "description": "Closes or covers an opening or a container.",
       "grants_properties": []
+    },
+    {
+      "id": "worn",
+      "description": "Worn on the body.",
+      "grants_properties": [
+        "wearable"
+      ]
     }
   ]
 }

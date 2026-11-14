@@ -9,6 +9,7 @@
     { "id": "light", "any_of": [] }
   ],
   "known_gaps": [
+    { "gap": "property:wearable", "reason": "Only an invention with the base function worn has it (B2752, base_functions.json); the analysis does not model inventions." },
     { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
 
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },

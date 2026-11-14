@@ -237,6 +237,12 @@ public sealed class UtilityBrain
     /// </summary>
     public sealed class Scratch
     {
+        /// <summary>
+        /// Whether an inhabitant feels a sensation now, for considerations with <c>when_felt</c> (K4); null = it feels
+        /// nothing, so such considerations are not offered. Set by the caller that owns this scratch.
+        /// </summary>
+        public Func<Inhabitant, string, bool>? Feels { get; set; }
+
         internal List<Candidate> Options { get; } = [];
 
         internal Dictionary<string, int> Types { get; } = new(StringComparer.Ordinal);
@@ -357,6 +363,12 @@ public sealed class UtilityBrain
         var perType = scratch.PerType;
         foreach (var (c, curve, novelty) in _considerations)
         {
+            // K4 (review GW1 #436): only while the inhabitant feels the data's sensation (put on only when too cold).
+            if (c.WhenFelt is { } felt && scratch.Feels?.Invoke(inhabitant, felt) != true)
+            {
+                continue;
+            }
+
             if (novelty is not null)
             {
                 // Exploring (TL #19921): every thing in sight, by how little the inhabitant knows of its kind.

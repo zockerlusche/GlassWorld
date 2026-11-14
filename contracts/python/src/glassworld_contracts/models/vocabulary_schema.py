@@ -40,6 +40,7 @@ class Kind(StrEnum):
     condition = 'condition'
     sensation = 'sensation'
     felt = 'felt'
+    life_stage = 'life_stage'
 
 
 class Target(StrEnum):

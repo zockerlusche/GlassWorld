@@ -13,6 +13,31 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyWorn
+    {
+
+        /// <summary>
+        /// True property of the worn thing that keeps warm.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        /// <summary>
+        /// Tenths of a degree the wearer feels warmer.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("warm_tenth_c")]
+        public int WarmTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Review GW1 #436: the worn thing keeps warm only while the air and sun its wearer feels without it are below this (tenths of a degree) - on a hot day it adds nothing. Omitted = always.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("up_to_tenth_c")]
+        public int? UpToTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BodyWetness
     {
 
@@ -259,6 +284,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("experience_every_minutes")]
         public int? ExperienceEveryMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// K4 (B2752): a worn thing with this true property adds warmth to the air its wearer feels (tenths of a degree). Warmth only through the material, never through the function.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("worn")]
+        public BodyWorn? Worn { get; set; } = default!;
 
         /// <summary>
         /// How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).

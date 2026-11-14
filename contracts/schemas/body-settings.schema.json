@@ -37,6 +37,10 @@
       "$ref": "#/$defs/BodyFeltPlaces"
     },
     "experience_every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "How often, in game minutes, what is felt near things is taken in." },
+    "worn": {
+      "description": "K4 (B2752): a worn thing with this true property adds warmth to the air its wearer feels (tenths of a degree). Warmth only through the material, never through the function.",
+      "$ref": "#/$defs/BodyWorn"
+    },
     "cover": {
       "description": "How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).",
       "type": "array",
@@ -45,6 +49,32 @@
     }
   },
   "$defs": {
+    "BodyWorn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "warm_tenth_c"
+      ],
+      "properties": {
+        "property": {
+          "description": "True property of the worn thing that keeps warm.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "warm_tenth_c": {
+          "description": "Tenths of a degree the wearer feels warmer.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300
+        },
+        "up_to_tenth_c": {
+          "description": "Review GW1 #436: the worn thing keeps warm only while the air and sun its wearer feels without it are below this (tenths of a degree) - on a hot day it adds nothing. Omitted = always.",
+          "type": "integer",
+          "minimum": -500,
+          "maximum": 600
+        }
+      }
+    },
     "BodyWetness": {
       "type": "object",
       "additionalProperties": false,
