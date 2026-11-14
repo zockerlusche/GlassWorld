@@ -2987,6 +2987,10 @@
       "text": "What occupies them"
     },
     {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Builds on something the inhabitant does not know"
+    },
+    {
       "key": "msg.learnlog.title",
       "text": "Learning log – day {day}"
     },
