@@ -46,13 +46,14 @@
       }
     },
     "MoodDriver": {
-      "description": "While a need is below a threshold, a feeling changes per hour (may be negative).",
+      "description": "While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["need", "below", "mood", "delta_per_hour"],
+      "required": ["mood", "delta_per_hour"],
       "properties": {
         "need": { "$ref": "common.schema.json#/$defs/VocabId" },
         "below": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by." },
         "mood": { "$ref": "common.schema.json#/$defs/VocabId" },
         "delta_per_hour": { "type": "number", "minimum": -1, "maximum": 1 }
       }

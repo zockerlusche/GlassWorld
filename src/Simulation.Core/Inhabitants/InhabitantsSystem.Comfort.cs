@@ -25,6 +25,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Position, Air?>? AirAt { get; init; }
 
     /// <summary>
+    /// B5 R47: whether an inhabitant feels a sensation of the vocabulary now (set by the host from the world's
+    /// systems, e.g. a big fire close by); null = no sensations, sensation mood drivers never act.
+    /// </summary>
+    public Func<Inhabitant, string, bool>? Feels { get; set; }
+
+    /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
     /// the air the inhabitant feels; null = none. Set by the host.
     /// </summary>

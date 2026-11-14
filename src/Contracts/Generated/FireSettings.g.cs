@@ -86,6 +86,30 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FireFelt
+    {
+
+        /// <summary>
+        /// Sensation of the vocabulary.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sensation")]
+        public string Sensation { get; set; } = default!;
+
+        /// <summary>
+        /// How near the burning things are.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cm")]
+        public int RadiusCm { get; set; } = default!;
+
+        /// <summary>
+        /// How many burning things at least.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_burning")]
+        public int MinBurning { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FireRemains
     {
 
@@ -131,6 +155,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("spread")]
         public FireSpread? Spread { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("felt")]
+        public System.Collections.Generic.ICollection<FireFelt>? Felt { get; set; } = default!;
 
         /// <summary>
         /// What a fire leaves where it burnt down (not when rain put it out): the burnt type and what is left.

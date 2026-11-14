@@ -207,6 +207,12 @@ public partial class Main : Node3D
                 continue;
             }
 
+            // The full tour (TL #24631): after the normal tour, one step deeper into every window.
+            if (ReadTourFullArgument(arg))
+            {
+                continue;
+            }
+
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
             if (arg.StartsWith(TourArgument, StringComparison.Ordinal))
             {

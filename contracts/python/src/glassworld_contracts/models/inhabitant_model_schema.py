@@ -50,13 +50,19 @@ class MoodDriver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    need: str = Field(
-        ...,
+    need: str | None = Field(
+        None,
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    below: float = Field(..., ge=0.0, le=1.0)
+    below: float | None = Field(None, ge=0.0, le=1.0)
+    sensation: str | None = Field(
+        None,
+        description="A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     mood: str = Field(
         ...,
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',

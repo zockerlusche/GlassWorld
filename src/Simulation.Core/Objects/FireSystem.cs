@@ -176,6 +176,35 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         return Settings is { } data && string.Equals(property, data.FuelProperty, StringComparison.Ordinal) && IsWet(world, thing.Position);
     }
 
+    /// <summary>
+    /// B5 R47: whether a sensation of the fire data is felt at a place - at least min_burning burning things
+    /// within its radius (a campfire alone is not a big fire). Unknown sensations: false.
+    /// </summary>
+    public bool Feels(Position at, string sensation)
+    {
+        if (Settings?.Felt is not { Count: > 0 } felt || felt.FirstOrDefault(f => string.Equals(f.Sensation, sensation, StringComparison.Ordinal)) is not { } rule)
+        {
+            return false;
+        }
+
+        var radius = rule.RadiusCm / 100.0;
+        var count = 0;
+        foreach (var id in _until.Keys)
+        {
+            if (_objects.TryGet(id, out var burning))
+            {
+                var dx = burning.Position.X - at.X;
+                var dz = burning.Position.Z - at.Z;
+                if ((dx * dx) + (dz * dz) <= radius * radius && ++count >= rule.MinBurning)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Whether a thing feeds a fire and can catch one: its type has the fuel property (TRUE properties).</summary>
     private bool IsFuel(string typeId) =>
         Settings is { } data && _objects.Catalog.Contains(typeId) && _objects.Catalog.TrueProperties(typeId).Contains(data.FuelProperty);

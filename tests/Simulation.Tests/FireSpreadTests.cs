@@ -109,6 +109,35 @@ public sealed class FireSpreadTests
     }
 
     [Fact]
+    public void ABigFireCloseByMakesAnInhabitantAfraidButACampfireAloneDoesNot()
+    {
+        // B5 R47: the sensation near_fire (data: several burning things within the radius) drives fear by the model.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        var inhabitant = host.Inhabitants.All.First();
+        var felt = Content.Value.Fire!.Felt!.First();
+        Assert.False(host.Fire.Feels(inhabitant.Position, felt.Sensation));
+
+        // One campfire next to the inhabitant: warm, not frightening.
+        host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.World.Run(1);
+        Assert.False(host.Fire.Feels(inhabitant.Position, felt.Sensation));
+        var calm = inhabitant.Moods["fear"];
+
+        // Enough burning things close by: a big fire - fear rises while it is felt.
+        for (var i = 1; i < felt.MinBurning; i++)
+        {
+            host.Objects.Spawn("fire", new Position(inhabitant.Position.X - i, inhabitant.Position.Z));
+        }
+
+        host.World.Run(1);
+        Assert.True(host.Fire.Feels(inhabitant.Position, felt.Sensation));
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour / 4);
+        Assert.True(inhabitant.Moods["fear"] > calm, $"{inhabitant.Moods["fear"]} <= {calm}");
+    }
+
+    [Fact]
     public void ThePlaceholderWorldKeepsItsFiresToThemselves()
     {
         // Spreading, drying and remains need an island (weather, nature takt), like the other B5 systems.
