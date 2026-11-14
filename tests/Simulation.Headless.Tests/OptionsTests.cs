@@ -112,4 +112,12 @@ public sealed class OptionsTests
         Assert.Equal(TimeSpan.FromMilliseconds(10), fixedPace.IntervalFor(busy: false));
         Assert.Equal(TimeSpan.FromMilliseconds(10), fixedPace.IntervalFor(busy: true));
     }
+
+    [Fact]
+    public void TheLearningLogFolderIsTaken()
+    {
+        // A1620: the headless runner writes the learning log's day files where it is told.
+        Assert.Equal("learn", Parse("--learning-log", "learn").LearningLogFolder);
+        Assert.Null(Parse().LearningLogFolder);
+    }
 }
