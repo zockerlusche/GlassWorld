@@ -16,6 +16,10 @@
       "maxItems": 16,
       "items": { "$ref": "#/$defs/BodyExperience" }
     },
+    "felt_places": {
+      "description": "B5 R32 (D1099): the inhabitant remembers how a place felt - the latest feeling per grid square, a few places, forgotten after a while. Absent = no such memory.",
+      "$ref": "#/$defs/BodyFeltPlaces"
+    },
     "experience_every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "How often, in game minutes, what is felt near things is taken in." },
     "cover": {
       "description": "How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).",
@@ -52,6 +56,26 @@
       "properties": {
         "below_tenth_c": { "type": ["integer", "null"], "minimum": -500, "maximum": 600 },
         "per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "Permille of fully wet that dries per game hour." }
+      }
+    },
+    "BodyFeltPlaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cell_m", "max", "forget_hours", "from_comfort"],
+      "properties": {
+        "cell_m": { "type": "integer", "minimum": 1, "maximum": 200, "description": "Size of a place: a grid square of this many metres (floor of the position)." },
+        "max": { "type": "integer", "minimum": 0, "maximum": 256, "description": "Places remembered per inhabitant; beyond it the oldest is forgotten (ties by place)." },
+        "forget_hours": { "type": "integer", "minimum": 1, "maximum": 100000, "description": "A remembered feeling is forgotten after this many game hours." },
+        "from_comfort": {
+          "description": "Which feeling (vocabulary felt) a comfort level gives.",
+          "type": "array", "maxItems": 8,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["level", "felt"],
+            "properties": { "level": { "$ref": "common.schema.json#/$defs/VocabId" }, "felt": { "$ref": "common.schema.json#/$defs/VocabId" } }
+          }
+        },
+        "wet": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The feeling while it is wet there (before the comfort level); omitted = none." },
+        "kept_dry": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The feeling when a thing there kept it dry in the rain (before everything else); omitted = none." }
       }
     },
     "BodyExperience": {

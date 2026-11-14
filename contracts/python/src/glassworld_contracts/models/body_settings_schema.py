@@ -72,6 +72,65 @@ class BodyWetness(BaseModel):
     )
 
 
+class FromComfortItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    felt: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class BodyFeltPlaces(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cell_m: int = Field(
+        ...,
+        description='Size of a place: a grid square of this many metres (floor of the position).',
+        ge=1,
+        le=200,
+    )
+    max: int = Field(
+        ...,
+        description='Places remembered per inhabitant; beyond it the oldest is forgotten (ties by place).',
+        ge=0,
+        le=256,
+    )
+    forget_hours: int = Field(
+        ...,
+        description='A remembered feeling is forgotten after this many game hours.',
+        ge=1,
+        le=100000,
+    )
+    from_comfort: list[FromComfortItem] = Field(
+        ...,
+        description='Which feeling (vocabulary felt) a comfort level gives.',
+        max_length=8,
+    )
+    wet: str | None = Field(
+        None,
+        description='The feeling while it is wet there (before the comfort level); omitted = none.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    kept_dry: str | None = Field(
+        None,
+        description='The feeling when a thing there kept it dry in the rain (before everything else); omitted = none.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class BodyExperience(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -184,6 +243,10 @@ class BodySettings(BaseModel):
         None,
         description="B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -> seek fire': only what was felt near what.",
         max_length=16,
+    )
+    felt_places: BodyFeltPlaces | None = Field(
+        None,
+        description='B5 R32 (D1099): the inhabitant remembers how a place felt - the latest feeling per grid square, a few places, forgotten after a while. Absent = no such memory.',
     )
     experience_every_minutes: int | None = Field(
         None,

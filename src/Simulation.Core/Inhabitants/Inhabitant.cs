@@ -43,6 +43,11 @@ public sealed record RestingAction(string Action, string? TargetId, Position Pla
 /// <param name="Tick">When the inhabitant saw it there.</param>
 public readonly record struct PlaceMemory(string TypeId, Position Position, long Tick);
 
+/// <summary>How a place felt to an inhabitant the last time (B5 R32, D1099): a feeling of the vocabulary felt, when.</summary>
+/// <param name="Felt">Feeling id (vocabulary felt).</param>
+/// <param name="Tick">When it felt so.</param>
+public readonly record struct FeltPlace(string Felt, long Tick);
+
 /// <summary>
 /// What an imprinting counter counts (B4a R6): an action, what it was about (kind <c>type</c> or
 /// <c>inhabitant</c> and its id; both empty for an action without a target) and the time of day it began.
@@ -198,6 +203,37 @@ public sealed class Inhabitant
         }
     }
 
+    /// <summary>
+    /// How places felt the last time (B5 R32, D1099): grid square "x/z" (in units of the data's cell size) to the
+    /// latest feeling there; at most the data's max, forgotten after the data's time.
+    /// </summary>
+    public SortedDictionary<string, FeltPlace> FeltPlaces { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Remembers how a place felt (R32): the newest feeling replaces the old one; feelings older than
+    /// <paramref name="forgetTicks"/> are forgotten, and beyond <paramref name="max"/> places the oldest (ties by place).
+    /// </summary>
+    public void RememberFelt(string place, FeltPlace felt, int max, long forgetTicks)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(place);
+        foreach (var old in FeltPlaces.Where(p => felt.Tick - p.Value.Tick >= forgetTicks).Select(p => p.Key).ToList())
+        {
+            FeltPlaces.Remove(old);
+        }
+
+        if (max <= 0)
+        {
+            return;
+        }
+
+        FeltPlaces[place] = felt;
+        while (FeltPlaces.Count > max)
+        {
+            var oldest = FeltPlaces.MinBy(p => (p.Value.Tick, p.Key), PlaceOrder.Instance).Key;
+            FeltPlaces.Remove(oldest);
+        }
+    }
+
     /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
     public Appearance? Appearance { get; set; }
 
@@ -265,6 +301,16 @@ public sealed class Inhabitant
             foreach (var (objectId, place) in Places)
             {
                 hasher.Write(objectId).Write(place.TypeId).Write(place.Position.X).Write(place.Position.Z).Write(place.Tick);
+            }
+        }
+
+        // Felt places only once there are any (B5 R32), so states without them keep their hashes.
+        if (FeltPlaces.Count > 0)
+        {
+            hasher.Write("felt_places").Write(FeltPlaces.Count);
+            foreach (var (place, felt) in FeltPlaces)
+            {
+                hasher.Write(place).Write(felt.Felt).Write(felt.Tick);
             }
         }
 
