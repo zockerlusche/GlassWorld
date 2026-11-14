@@ -2079,6 +2079,10 @@
       "text": "Etwas hat Feuer gefangen"
     },
     {
+      "key": "vocab.sensation.near_fire",
+      "text": "Brand in der Nähe"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },

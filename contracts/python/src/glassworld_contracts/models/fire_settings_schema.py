@@ -81,6 +81,24 @@ class FireSpread(BaseModel):
     )
 
 
+class FireFelt(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sensation: str = Field(
+        ...,
+        description='Sensation of the vocabulary.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    radius_cm: int = Field(
+        ..., description='How near the burning things are.', ge=1, le=10000
+    )
+    min_burning: int = Field(
+        ..., description='How many burning things at least.', ge=1, le=64
+    )
+
+
 class FireRemains(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -122,6 +140,11 @@ class FireSettings(BaseModel):
     spread: FireSpread | None = Field(
         None,
         description='A fire takes hold of dry burnable things near it. Absent = fires never spread.',
+    )
+    felt: list[FireFelt] | None = Field(
+        None,
+        description='B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).',
+        max_length=8,
     )
     remains: list[FireRemains] | None = Field(
         None,
