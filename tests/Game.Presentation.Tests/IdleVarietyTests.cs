@@ -170,6 +170,7 @@ public sealed class IdleVarietyTests
         var look = Figures().ThinkingDots;
         Assert.False(ThinkingDots.Shown(0));
         Assert.True(ThinkingDots.Shown(1) && ThinkingDots.Shown(3));
+        Assert.False(ThinkingDots.Shown(2, lying: true)); // D1112 #8: never over a figure lying asleep
         Assert.True(look.PeriodS >= 1.5, "a calm wave, not a blink");
         Assert.InRange(look.AlphaMin, 0, look.AlphaMax);
 
