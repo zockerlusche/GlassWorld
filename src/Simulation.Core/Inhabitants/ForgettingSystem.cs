@@ -24,10 +24,20 @@ public sealed record FadingBelief(string InhabitantId, string TypeId, string Pro
 /// <param name="Forgotten">Tick it was forgotten.</param>
 public sealed record ForgottenBelief(string InhabitantId, string TypeId, string PropertyId, bool Value, double Confidence, string Source, string? ToldBy, long Learned, long Forgotten);
 
+/// <summary>A floor under an inhabitant's beliefs about a kind of thing, raised by a formative memory (D1017 G1b).</summary>
+/// <param name="InhabitantId">Whose beliefs.</param>
+/// <param name="TypeId">The kind of thing.</param>
+/// <param name="Floor">The strength they never fall below.</param>
+public sealed record FormativeFloor(string InhabitantId, string TypeId, double Floor);
+
 /// <summary>What forgetting holds (saved; hashed only when not empty).</summary>
 /// <param name="Fading">Beliefs that have faded or were used since they were learned, in key order.</param>
 /// <param name="Forgotten">Forgotten beliefs, oldest first.</param>
-public sealed record ForgettingState(IReadOnlyList<FadingBelief> Fading, IReadOnlyList<ForgottenBelief> Forgotten);
+public sealed record ForgettingState(IReadOnlyList<FadingBelief> Fading, IReadOnlyList<ForgottenBelief> Forgotten)
+{
+    /// <summary>Floors from formative memories (D1017 G1b), in key order; null = none (older saves).</summary>
+    public IReadOnlyList<FormativeFloor>? Floors { get; init; }
+}
 
 /// <summary>
 /// D1017 G1 (B2707): knowledge fades when it is not used. Once a game day, at its start, every belief's strength is
@@ -46,6 +56,7 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
     private readonly long _ticksPerDay;
     private readonly SortedDictionary<(string Inhabitant, string Type, string Property), (double Original, long Used)> _fading = new(KeyOrder.Instance);
     private readonly List<ForgottenBelief> _forgotten = [];
+    private readonly SortedDictionary<(string Inhabitant, string Type), double> _floors = new(PairOrder.Instance);
 
     /// <summary>Creates the system; it listens to the inhabitants' events.</summary>
     /// <param name="settings">The knowledge data's <c>forgetting</c>, or null for none.</param>
@@ -68,7 +79,7 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
     public string Name => "forgetting";
 
     /// <inheritdoc/>
-    public bool HasState => _fading.Count > 0 || _forgotten.Count > 0;
+    public bool HasState => _fading.Count > 0 || _forgotten.Count > 0 || _floors.Count > 0;
 
     /// <summary>The forgotten beliefs, oldest first.</summary>
     public IReadOnlyList<ForgottenBelief> Forgotten => _forgotten;
@@ -107,11 +118,24 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
             hasher.Write(f.InhabitantId).Write(f.TypeId).Write(f.PropertyId).Write(f.Value).Write(f.Confidence).Write(f.Source)
                 .Write(f.ToldBy ?? string.Empty).Write(f.Learned).Write(f.Forgotten);
         }
+
+        // Floors only when there are any: states without them hash as before.
+        if (_floors.Count > 0)
+        {
+            hasher.Write(_floors.Count);
+            foreach (var ((inhabitant, type), floor) in _floors)
+            {
+                hasher.Write(inhabitant).Write(type).Write(floor);
+            }
+        }
     }
 
     /// <summary>The state to save.</summary>
     public ForgettingState Capture() =>
-        new([.. _fading.Select(f => new FadingBelief(f.Key.Inhabitant, f.Key.Type, f.Key.Property, f.Value.Original, f.Value.Used))], [.. _forgotten]);
+        new([.. _fading.Select(f => new FadingBelief(f.Key.Inhabitant, f.Key.Type, f.Key.Property, f.Value.Original, f.Value.Used))], [.. _forgotten])
+        {
+            Floors = _floors.Count > 0 ? [.. _floors.Select(f => new FormativeFloor(f.Key.Inhabitant, f.Key.Type, f.Value))] : null,
+        };
 
     /// <summary>Restores a saved state (the beliefs themselves come back with the inhabitants).</summary>
     public void Restore(ForgettingState? state)
@@ -124,6 +148,29 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
         }
 
         _forgotten.AddRange(state?.Forgotten ?? []);
+        _floors.Clear();
+        foreach (var f in state?.Floors ?? [])
+        {
+            _floors[(f.InhabitantId, f.TypeId)] = f.Floor;
+        }
+    }
+
+    /// <summary>
+    /// A memory was recorded (<see cref="MemoryRecorder.Remembered"/>): a formative one of a kind the data name
+    /// (<c>floor_after</c>), about a kind of thing, raises the floor of everything the inhabitant believes about that
+    /// kind - now and later learned. The highest floor stays.
+    /// </summary>
+    public void Remembered(Inhabitant inhabitant, string kind, string? aboutKind, string? aboutId, bool formative)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var floor = _settings?.FloorAfter?.Where(f => string.Equals(f.Kind, kind, StringComparison.Ordinal)).Select(f => f.Floor).DefaultIfEmpty(0).Max() ?? 0;
+        if (!formative || aboutKind != InhabitantsSystem.AboutType || aboutId is null || floor <= 0)
+        {
+            return;
+        }
+
+        var key = (inhabitant.Id, aboutId);
+        _floors[key] = Math.Max(floor, _floors.GetValueOrDefault(key));
     }
 
     /// <summary>
@@ -149,7 +196,9 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
     {
         var key = (inhabitant.Id, typeId, propertyId);
         var (original, used) = _fading.TryGetValue(key, out var known) ? known : (belief.Confidence, belief.Tick);
-        var strength = StrengthOf(belief, used, tick);
+
+        // What hurt is never forgotten (D1077): never below the floor a formative memory set.
+        var strength = Math.Max(StrengthOf(belief, used, tick), _floors.GetValueOrDefault((inhabitant.Id, typeId)));
         if (strength < settings.ForgottenBelow)
         {
             // Forgotten: out of its mind, kept as it was.
@@ -231,6 +280,17 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
         }
 
         _fading[key] = (original, tick);
+    }
+
+    private sealed class PairOrder : IComparer<(string Inhabitant, string Type)>
+    {
+        public static readonly PairOrder Instance = new();
+
+        public int Compare((string Inhabitant, string Type) x, (string Inhabitant, string Type) y)
+        {
+            var c = string.CompareOrdinal(x.Inhabitant, y.Inhabitant);
+            return c != 0 ? c : string.CompareOrdinal(x.Type, y.Type);
+        }
     }
 
     private sealed class KeyOrder : IComparer<(string Inhabitant, string Type, string Property)>

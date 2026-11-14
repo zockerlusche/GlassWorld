@@ -60,6 +60,27 @@ public sealed class ForgettingTests
     }
 
     [Fact]
+    public void WhatHurtIsNeverForgottenOtherKnowledgeStillIs()
+    {
+        // D1077: a formative memory of a kind the data name (felt_bad) sets a floor under beliefs about that kind of thing.
+        var (host, a) = World();
+        var after = Assert.Single(Content.Value.Knowledge.Forgetting!.FloorAfter!);
+        a.Beliefs.Set(Thing, Property, true, 0.8, KnowledgeSources.Heard, null, 0);
+        a.Beliefs.Set("flint", Property, true, 0.8, KnowledgeSources.Heard, null, 0);
+        host.Forgetting.Remembered(a, after.Kind, InhabitantsSystem.AboutType, Thing, formative: true);
+        host.Forgetting.Remembered(a, after.Kind, InhabitantsSystem.AboutType, "flint", formative: false);
+
+        host.World.Run((host.World.Calendar.TicksPerDay * 60) + 1);
+        Assert.True(a.Beliefs.TryGet(Thing, Property, out var kept));
+        Assert.Equal(0.8 * after.Floor, kept.Confidence, 9);
+        Assert.False(a.Beliefs.TryGet("flint", Property, out _));
+
+        // The floor is saved with the rest.
+        var restored = StateCodec.Restore(Factory(), StateCodec.Capture(host));
+        Assert.Equal(host.World.StateHash(), restored.World.StateHash());
+    }
+
+    [Fact]
     public void AFadedBeliefGoesToTheAiAsNoLongerSureAFreshOneAsBefore()
     {
         // GW2 #395: below unsure_below it carries sure: false; above it, sure stays absent (requests unchanged).
