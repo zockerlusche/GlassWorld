@@ -721,6 +721,9 @@ public partial class GameScreen : CanvasLayer
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
         SetZones(settings.ZonesPreview);
+
+        // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
+        _logShown = -1;
         Layout();
     }
 
@@ -2729,7 +2732,11 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        _sideBar.Position = new Vector2(area.X - margin - _sideBar.GetCombinedMinimumSize().X, margin);
+        // A container never shrinks by itself: after a smaller UI or text size, or shorter labels in another language,
+        // the column kept its old width while it was placed by its new minimum and reached past the right edge
+        // (D1060 finds 1 and 3, measured: size 274 px, minimum 146/196 px). It takes its minimum size again first.
+        _sideBar.Size = _sideBar.GetCombinedMinimumSize();
+        _sideBar.Position = new Vector2(area.X - margin - _sideBar.Size.X, margin);
         _topBar.Position = new Vector2(margin, margin);
         _topBar.Size = new Vector2(area.X - (2 * margin) - _sideBar.GetCombinedMinimumSize().X - gap, 0);
         var list = _sideBar.PanelOf("inhabitants");
