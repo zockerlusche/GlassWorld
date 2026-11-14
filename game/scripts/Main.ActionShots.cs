@@ -16,11 +16,15 @@ public partial class Main
     private const string ActionShotsCountArgument = "--action-shots-count=";
     private const string ActionShotsActionsArgument = "--action-shots-actions=";
     private const string ActionShotsMaxArgument = "--action-shots-max-s=";
+    private const string ActionShotsWaitArgument = "--action-shots-wait-frames=";
 
     private bool _actionShots;
     private int _actionShotsCount = 10;
     private string[] _actionShotsActions = ["inspect", "eat"];
     private double _actionShotsMaxS = 900;
+
+    /// <summary>Frames between the start of the action and the picture (gestures need their time, D958 D2).</summary>
+    private int _actionShotsWaitFrames = 45;
 
     /// <summary>Camera distance for a picture (metres): close enough to recognise a fruit, wide enough for the figure.</summary>
     private const double ActionShotDistanceM = 7;
@@ -44,6 +48,12 @@ public partial class Main
         if (arg.StartsWith(ActionShotsActionsArgument, StringComparison.Ordinal))
         {
             _actionShotsActions = arg[ActionShotsActionsArgument.Length..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return true;
+        }
+
+        if (arg.StartsWith(ActionShotsWaitArgument, StringComparison.Ordinal) && int.TryParse(arg.AsSpan(ActionShotsWaitArgument.Length), out var wait) && wait > 0)
+        {
+            _actionShotsWaitFrames = wait;
             return true;
         }
 
@@ -113,7 +123,7 @@ public partial class Main
                     _world.ChooseFigure(hit.Id);
                 }
 
-                await Frames(45);
+                await Frames(_actionShotsWaitFrames);
 
                 // The moment may have passed while the camera turned; take it only if the action still runs.
                 var now = _world.Host.Snapshot();

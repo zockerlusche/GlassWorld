@@ -181,7 +181,9 @@ public sealed class AnimationChooserTests
         // A1632 (D958 D1): the mapping by the thing's reach wins over the target kind alone; without a reach the general clip.
         var library = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "animation", "library.json")));
         var chooser = new AnimationChooser(library);
-        Assert.Equal("crouch_inspect", chooser.ForAction("inspect", AnimationMappingTarget.Object, AnimationMappingReach.Low).ClipId);
+        Assert.Equal("crouch_act", chooser.ForAction("inspect", AnimationMappingTarget.Object, AnimationMappingReach.Low).ClipId);
+        // An action at the ground is an action, not idle variety: it shows at once and is not held min_pose_s (D958 D2).
+        Assert.False(chooser.IsIdleClip("crouch_act"));
         Assert.Equal("handle", chooser.ForAction("inspect", AnimationMappingTarget.Object, AnimationMappingReach.Mid).ClipId);
         Assert.Equal("handle", chooser.ForAction("inspect", AnimationMappingTarget.Object).ClipId);
         Assert.Equal("talk", chooser.ForAction("show", AnimationMappingTarget.Inhabitant, AnimationMappingReach.Low).ClipId);
