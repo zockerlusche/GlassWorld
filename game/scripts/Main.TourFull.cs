@@ -62,15 +62,13 @@ public partial class Main
             return false;
         }
 
+        // A click on a toggle flips it (toggled) and then presses it: handlers that listen to Pressed run too.
         if (button.ToggleMode)
         {
             button.ButtonPressed = !button.ButtonPressed;
         }
-        else
-        {
-            button.EmitSignal(BaseButton.SignalName.Pressed);
-        }
 
+        button.EmitSignal(BaseButton.SignalName.Pressed);
         return true;
     }
 
@@ -112,16 +110,21 @@ public partial class Main
             await take("32_chronik_spaeter");
         }
 
+        // The mailbox shows its history below the open messages (a heading, nothing to press).
         screen.OpenPanelForShots("mailbox");
-        if (Press(screen, "ui.mailbox.history"))
-        {
-            await take("32_postfach_verlauf");
-        }
+        await take("32_postfach_verlauf");
 
+        // A gift button's text is filled in (thing and cost): it is found by its name. Pressing it only starts
+        // placing; nothing is placed without a click into the world.
         screen.OpenPanelForShots("help");
-        if (Press(screen, "ui.help.give"))
+        if (screen.FindChildren($"*{GameScreen.HelpGiveName}*", nameof(Button), true, false).OfType<Button>().FirstOrDefault(b => b.IsVisibleInTree() && !b.Disabled) is { } give)
         {
+            give.EmitSignal(BaseButton.SignalName.Pressed);
             await take("32_hilfe_gabe");
+        }
+        else
+        {
+            GD.Print($"UI_TOUR_FULL no button {GameScreen.HelpGiveName}");
         }
 
         screen.OpenPanelForShots(null);
