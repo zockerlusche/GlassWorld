@@ -12,6 +12,10 @@ public partial class GwSidePanel : PanelContainer
 {
     private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel };
 
+    // The last dock that fits the content (S1b): done again once the content's height settles at the new width.
+    private Action? _redock;
+    private bool _redockQueued;
+
     /// <summary>Tabs of the panel's theme in the zones layout (W1717); hidden while empty.</summary>
     public HFlowContainer Tabs { get; } = new() { Visible = false };
 
@@ -29,6 +33,21 @@ public partial class GwSidePanel : PanelContainer
         column.AddChild(_title);
         column.AddChild(scroll);
         AddChild(column);
+
+        // A wrapping label reports its height for the width it had; after the panel took its new width the content's
+        // minimum changes once more - then the fitting dock runs again (review GW3 #25694; else one sentence scrolled).
+        Content.MinimumSizeChanged += () =>
+        {
+            if (_redock is not null && !_redockQueued)
+            {
+                _redockQueued = true;
+                Callable.From(() =>
+                {
+                    _redockQueued = false;
+                    _redock?.Invoke();
+                }).CallDeferred();
+            }
+        };
     }
 
     /// <summary>Sets the title key.</summary>
@@ -55,7 +74,8 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="widthPx">Width at the reference size; 0 = the side panel width of the window tokens.</param>
     /// <param name="contentPx">Width the content asks for in pixels as measured (a table's headers), without the panel's frame; 0 = no wish. Capped at the room like the token width.</param>
     /// <param name="maxWidth">Widest the panel may be (corner layout: never into the free middle, A1682); 0 = no cap but the room.</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0)
+    /// <param name="fitContent">True: no higher than its content needs (S1b: no full-height window for one sentence); more scrolls.</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0, bool fitContent = false)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
@@ -95,8 +115,16 @@ public partial class GwSidePanel : PanelContainer
             _title.CustomMinimumSize = new Vector2(width - padding, 0);
         }
 
+        _redock = fitContent ? () => Dock(area, style, rightOffset, top, left, heightShare, widthPx, contentPx, maxWidth, fitContent: true) : null;
         var y = top > 0 ? top : margin;
-        Size = new Vector2(width, (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1));
+        var height = (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1);
+        if (fitContent)
+        {
+            // Frame, tabs and title (the panel's own minimum, the scroll area asks for nothing) plus what the content needs.
+            height = Math.Min(height, GetCombinedMinimumSize().Y + Content.GetCombinedMinimumSize().Y);
+        }
+
+        Size = new Vector2(width, height);
 
         // The size is the asked one or, if the content needs more, its minimum: placed by what it really is,
         // a panel on the right grows to the left instead of under the buttons beside it (D747 A2: the
