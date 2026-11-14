@@ -15,7 +15,7 @@
     },
     {
       "id": "heat_source",
-      "description": "Gives warmth (a hearth, an oven, a warming object).",
+      "description": "Can hold a fire or embers, or keep their warmth (a hearth, an oven, a fire pit); warmth itself comes only from fire (B2735).",
       "grants_properties": []
     },
     {
