@@ -81,6 +81,29 @@ public sealed class RunTraceTests : IDisposable
         Assert.Contains("\"t\":\"sound\"", reader.ReadToEnd(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void AWriteErrorSwitchesTheTraceOffAndTheWorldGoesOn()
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
+        var without = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
+        using var trace = RunTraceWriter.Start(host, _folder, ContentDirectory, force: true)!;
+        Exception? reported = null;
+        trace.Failed += e => reported = e;
+
+        // Day 2's file is a folder: opening it fails at midnight, like a file another program holds.
+        Directory.CreateDirectory(Path.Combine(trace.Folder, "day-0002.jsonl"));
+        var ticks = host.World.Calendar.TicksPerDay + 10;
+        for (var i = 0; i < ticks; i++)
+        {
+            host.World.Step();
+            without.World.Step();
+        }
+
+        Assert.NotNull(reported);
+        Assert.Same(reported, trace.Failure);
+        Assert.Equal(without.World.StateHash(), host.World.StateHash());
+    }
+
     private static List<JsonElement> ReadDay(string path) =>
         [.. File.ReadAllLines(path).Where(l => l.Length > 0).Select(l => JsonDocument.Parse(l).RootElement.Clone())];
 }

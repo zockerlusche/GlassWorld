@@ -26,7 +26,7 @@ dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N
 | `--until KIND[:COUNT]` | Stop after the tick in which the COUNT-th (default first) core event of KIND happened. A tick is never cut short, so the line `UNTIL kind=.. count=n/COUNT ..` may show more than COUNT. |
 | `--events KIND,...` or `all` | One line per core event of those kinds, plus one line per new chronicle entry. |
 | `--log-json FILE` | Decision log and job log as JSON lines, written as the entries appear. |
-| `--run-trace DIR` | A1719: the run trace (JSON lines per game day, hourly snapshots) under DIR/trace, whatever the data switch says. Ask it with `tools/trace/query.py`. |
+| `--run-trace DIR` | A1719: the run trace (JSON lines per game day, hourly snapshots), whatever the data switch says. DIR is the world folder: the day files go to DIR/trace/ (the folder of `content/trace/settings.json`), as in the game next to the save. Ask it with `tools/trace/query.py DIR ...` (DIR or DIR/trace). |
 
 Kinds are the ids of `content/vocabulary/events.json`; unknown kinds are refused.
 

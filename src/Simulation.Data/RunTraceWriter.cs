@@ -41,6 +41,7 @@ public sealed class RunTraceWriter : IDisposable
     private int _jobsWritten;
     private long _lastSnapshotHour = -1;
     private bool _disposed;
+    private Task _packing = Task.CompletedTask;
 
     private RunTraceWriter(SimulationHost host, TraceSettings settings, string folder)
     {
@@ -57,6 +58,15 @@ public sealed class RunTraceWriter : IDisposable
         host.Inhabitants.Reported += OnEvent;
         host.World.BoundaryReached += OnBoundary;
     }
+
+    /// <summary>
+    /// Raised once when writing failed (full disk, a file held by another program): the trace switched itself off,
+    /// the world goes on (GW3 #25998, B2712). The game shows it as a warning.
+    /// </summary>
+    public event Action<Exception>? Failed;
+
+    /// <summary>Why the trace switched itself off, or null while it writes.</summary>
+    public Exception? Failure { get; private set; }
 
     /// <summary>The folder the day files go to.</summary>
     public string Folder => _folder;
@@ -112,8 +122,11 @@ public sealed class RunTraceWriter : IDisposable
             return;
         }
 
-        WriteLogs();
-        _writer?.Flush();
+        Guarded(() =>
+        {
+            WriteLogs();
+            _writer?.Flush();
+        });
     }
 
     /// <inheritdoc/>
@@ -127,12 +140,59 @@ public sealed class RunTraceWriter : IDisposable
         Flush();
         _host.Inhabitants.Reported -= OnEvent;
         _host.World.BoundaryReached -= OnBoundary;
-        _writer?.Dispose();
+        try
+        {
+            _writer?.Dispose();
+            _packing.Wait();
+        }
+        catch (Exception e) when (IsWriteFailure(e))
+        {
+            // Closing a trace that could not write: nothing more to lose.
+        }
+
         _writer = null;
         _disposed = true;
     }
 
-    private void OnEvent(WorldEvent e)
+    // The handlers run inside World.Step: a write error must never reach it (GW3 #25998). The first one switches the
+    // trace off for the rest of the run and is reported once.
+    private void Guarded(Action write)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            write();
+        }
+        catch (Exception e) when (IsWriteFailure(e))
+        {
+            Failure = e;
+            _host.Inhabitants.Reported -= OnEvent;
+            _host.World.BoundaryReached -= OnBoundary;
+            try
+            {
+                _writer?.Dispose();
+            }
+            catch (Exception again) when (IsWriteFailure(again))
+            {
+                // The file is gone with the disk; the trace is off anyway.
+            }
+
+            _writer = null;
+            _disposed = true;
+            Failed?.Invoke(e);
+        }
+    }
+
+    private static bool IsWriteFailure(Exception e) =>
+        e is IOException or UnauthorizedAccessException or System.Security.SecurityException or AggregateException;
+
+    private void OnEvent(WorldEvent e) => Guarded(() => WriteEvent(e));
+
+    private void WriteEvent(WorldEvent e)
     {
         // The AI lines of this tick come first: the request that led to an event is older than the event.
         WriteLogs();
@@ -157,11 +217,14 @@ public sealed class RunTraceWriter : IDisposable
 
     private void OnBoundary(World world, TimeBoundary boundary)
     {
-        if (boundary != TimeBoundary.Hour)
+        if (boundary == TimeBoundary.Hour)
         {
-            return;
+            Guarded(() => WriteHour(world));
         }
+    }
 
+    private void WriteHour(World world)
+    {
         WriteLogs();
         var hour = world.Tick / _ticksPerHour;
         if (_lastSnapshotHour < 0 || hour - _lastSnapshotHour >= Math.Max(1, _settings.SnapshotEveryHours))
@@ -344,7 +407,12 @@ public sealed class RunTraceWriter : IDisposable
         // Shared for reading: the query tool may read today's file while the game writes it.
         var stream = new FileStream(DayPath(day), FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
         _writer = new StreamWriter(stream, new UTF8Encoding(false)) { NewLine = "\n" };
-        PackBefore(day - 1);
+        // Packing reads only finished files: off the game thread, so midnight shows no hitch (GW3 #25998).
+        if (_settings.PackOldDays && _packing.IsCompleted)
+        {
+            var keep = day - 1;
+            _packing = Task.Run(() => PackBefore(keep));
+        }
         return _writer;
     }
 
@@ -353,11 +421,6 @@ public sealed class RunTraceWriter : IDisposable
     // Days before 'keep' are packed (B2767: old days packed); a failure leaves the plain file.
     private void PackBefore(long keep)
     {
-        if (!_settings.PackOldDays)
-        {
-            return;
-        }
-
         foreach (var path in Directory.EnumerateFiles(_folder, "day-*.jsonl"))
         {
             var name = Path.GetFileNameWithoutExtension(path);
@@ -378,7 +441,7 @@ public sealed class RunTraceWriter : IDisposable
 
                 File.Delete(path);
             }
-            catch (IOException)
+            catch (Exception e) when (IsWriteFailure(e))
             {
                 // Kept plain; the next day tries again.
             }

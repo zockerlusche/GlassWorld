@@ -292,6 +292,10 @@ public partial class WorldPresenter : Node3D
             try
             {
                 _trace = RunTraceWriter.Start(host, traceFolder, _contentDirectory);
+                if (_trace is not null)
+                {
+                    _trace.Failed += e => GD.PushWarning($"RUN_TRACE_OFF {e.GetType().Name}: {e.Message}");
+                }
             }
             catch (Exception e) when (e is not OutOfMemoryException)
             {

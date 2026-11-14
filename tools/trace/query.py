@@ -42,12 +42,16 @@ SERVICE_FIELDS = (
 
 
 def default_service_logs() -> Path | None:
-    """The game's service log folder (GW2 #25922: <userdata>/ai-service/logs), if there is one."""
-    appdata = os.environ.get("APPDATA")
-    if not appdata:
-        return None
-    folder = Path(appdata) / "Godot" / "app_userdata" / "GlassWorld" / "ai-service" / "logs"
-    return folder if folder.is_dir() else None
+    """The service's call logs (GW2 #25922/#25989): a headless run's GLASSWORLD_HEADLESS_DATA/logs
+    when that is set, else the game's <userdata>/ai-service/logs; None if neither exists."""
+    candidates: list[Path] = []
+    if headless := os.environ.get("GLASSWORLD_HEADLESS_DATA"):
+        candidates.append(Path(headless) / "logs")
+    if appdata := os.environ.get("APPDATA"):
+        candidates.append(
+            Path(appdata) / "Godot" / "app_userdata" / "GlassWorld" / "ai-service" / "logs"
+        )
+    return next((folder for folder in candidates if folder.is_dir()), None)
 
 
 def service_calls(logs: Path, request_id: str) -> Iterator[dict[str, Any]]:
@@ -205,7 +209,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--service-logs",
         type=Path,
-        help="the AI service's call logs (default: the game's <userdata>/ai-service/logs)",
+        help="the AI service's call logs (default: GLASSWORLD_HEADLESS_DATA/logs, else the game's"
+        " <userdata>/ai-service/logs)",
     )
     args = parser.parse_args(argv)
     folder = trace_folder(args.folder)
