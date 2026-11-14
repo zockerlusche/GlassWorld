@@ -1947,7 +1947,7 @@ public partial class GameScreen : CanvasLayer
             var thing = line.Kind == LogLineKind.Built
                 ? _feed?.InventionNameOf(line.Text) is { } built
                     ? TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? built.En : built.De
-                    : Tr("ui.chronicle.something").ToString()
+                    : Tr("ui.chronicle.something")
                 : string.Empty;
             var text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text, ["thing"] = thing });
             if (line.Count > 1)
