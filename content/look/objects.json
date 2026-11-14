@@ -16,7 +16,7 @@
   },
   "visuals": [
     {
-      "id": "broadleaf",
+      "id": "broadleaf", "reach": "mid",
       "types": [
         "deciduous_tree"
       ],
@@ -35,7 +35,7 @@
       "sway_m": 0.22
     },
     {
-      "id": "conifer",
+      "id": "conifer", "reach": "mid",
       "types": [
         "conifer_tree"
       ],
@@ -54,7 +54,7 @@
       "sway_m": 0.16
     },
     {
-      "id": "fruit_tree",
+      "id": "fruit_tree", "reach": "mid",
       "types": [
         "fruit_tree"
       ],
@@ -73,7 +73,7 @@
       "sway_m": 0.18
     },
     {
-      "id": "palm",
+      "id": "palm", "reach": "mid",
       "types": [
         "palm_tree"
       ],
@@ -91,7 +91,7 @@
       "sway_m": 0.3
     },
     {
-      "id": "berry_bush",
+      "id": "berry_bush", "reach": "mid",
       "types": [
         "berry_bush"
       ],
@@ -109,7 +109,7 @@
       "sway_m": 0.05
     },
     {
-      "id": "hazel_bush",
+      "id": "hazel_bush", "reach": "mid",
       "types": [
         "hazel_bush"
       ],
@@ -127,7 +127,7 @@
       "sway_m": 0.05
     },
     {
-      "id": "thorn_bush",
+      "id": "thorn_bush", "reach": "mid",
       "types": [
         "thorn_bush"
       ],
@@ -144,7 +144,7 @@
       "sway_m": 0.05
     },
     {
-      "id": "cave_rock",
+      "id": "cave_rock", "reach": "mid",
       "types": [
         "rock_niche"
       ],
@@ -176,7 +176,7 @@
       }
     },
     {
-      "id": "fieldstone",
+      "id": "fieldstone", "reach": "low",
       "types": [
         "fieldstone"
       ],
@@ -192,7 +192,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "slate",
+      "id": "slate", "reach": "low",
       "types": [
         "slate"
       ],
@@ -208,7 +208,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "sandstone",
+      "id": "sandstone", "reach": "low",
       "types": [
         "sandstone"
       ],
@@ -224,7 +224,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "flint",
+      "id": "flint", "reach": "low",
       "types": [
         "flint"
       ],
@@ -240,7 +240,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "pyrite",
+      "id": "pyrite", "reach": "low",
       "types": [
         "pyrite"
       ],
@@ -256,7 +256,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "clay",
+      "id": "clay", "reach": "low",
       "types": [
         "clay"
       ],
@@ -272,7 +272,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "peat",
+      "id": "peat", "reach": "low",
       "types": [
         "peat"
       ],
@@ -288,7 +288,7 @@
       "footprint_m": 0.35
     },
     {
-      "id": "spring",
+      "id": "spring", "reach": "low",
       "types": [
         "spring_water"
       ],
@@ -307,7 +307,7 @@
       "footprint_m": 0.75
     },
     {
-      "id": "spring_source",
+      "id": "spring_source", "reach": "low",
       "types": [
         "spring_source"
       ],
@@ -325,7 +325,7 @@
       "footprint_m": 0.6
     },
     {
-      "id": "sea_water",
+      "id": "sea_water", "reach": "low",
       "types": [
         "sea_water"
       ],
@@ -341,7 +341,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "dry_wood",
+      "id": "dry_wood", "reach": "low",
       "types": [
         "dry_wood"
       ],
@@ -359,7 +359,7 @@
       "footprint_width_m": 0.13
     },
     {
-      "id": "bark",
+      "id": "bark", "reach": "low",
       "types": [
         "bark"
       ],
@@ -377,7 +377,7 @@
       "footprint_width_m": 0.13
     },
     {
-      "id": "driftwood",
+      "id": "driftwood", "reach": "low",
       "types": [
         "driftwood"
       ],
@@ -395,7 +395,7 @@
       "footprint_width_m": 0.13
     },
     {
-      "id": "dry_grass",
+      "id": "dry_grass", "reach": "low",
       "types": [
         "dry_grass"
       ],
@@ -412,7 +412,7 @@
       "sway_m": 0.07
     },
     {
-      "id": "nettle",
+      "id": "nettle", "reach": "low",
       "types": [
         "nettle"
       ],
@@ -429,7 +429,7 @@
       "sway_m": 0.07
     },
     {
-      "id": "reed",
+      "id": "reed", "reach": "mid",
       "types": [
         "reed"
       ],
@@ -447,7 +447,7 @@
       "sway_m": 0.16
     },
     {
-      "id": "wild_grain",
+      "id": "wild_grain", "reach": "mid",
       "types": [
         "wild_grain"
       ],
@@ -465,7 +465,7 @@
       "sway_m": 0.16
     },
     {
-      "id": "flax",
+      "id": "flax", "reach": "low",
       "types": [
         "flax"
       ],
@@ -483,7 +483,7 @@
       "sway_m": 0.06
     },
     {
-      "id": "healing_herb",
+      "id": "healing_herb", "reach": "low",
       "types": [
         "healing_herb"
       ],
@@ -501,7 +501,7 @@
       "sway_m": 0.06
     },
     {
-      "id": "brown_mushroom",
+      "id": "brown_mushroom", "reach": "low",
       "types": [
         "brown_mushroom"
       ],
@@ -518,7 +518,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "red_mushroom",
+      "id": "red_mushroom", "reach": "low",
       "types": [
         "red_mushroom"
       ],
@@ -535,7 +535,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "apple",
+      "id": "apple", "reach": "low",
       "types": [
         "apple"
       ],
@@ -551,7 +551,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "red_berry",
+      "id": "red_berry", "reach": "low",
       "types": [
         "red_berry"
       ],
@@ -567,7 +567,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "blue_berry",
+      "id": "blue_berry", "reach": "low",
       "types": [
         "blue_berry"
       ],
@@ -583,7 +583,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "hazelnut",
+      "id": "hazelnut", "reach": "low",
       "types": [
         "hazelnut"
       ],
@@ -599,7 +599,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "resin",
+      "id": "resin", "reach": "mid",
       "types": [
         "resin"
       ],
@@ -615,7 +615,7 @@
       "footprint_m": 0.0
     },
     {
-      "id": "spark",
+      "id": "spark", "reach": "low",
       "types": [
         "spark"
       ],
@@ -668,7 +668,7 @@
       }
     },
     {
-      "id": "shell",
+      "id": "shell", "reach": "low",
       "types": [
         "shell"
       ],
