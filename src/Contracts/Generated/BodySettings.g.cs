@@ -70,6 +70,21 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyCover
+    {
+
+        /// <summary>
+        /// A shade-casting object type.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("seasons")]
+        public System.Collections.Generic.ICollection<Seasons> Seasons { get; set; } = new System.Collections.ObjectModel.Collection<Seasons>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BodySun
     {
 
@@ -132,6 +147,28 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("sun")]
         public BodySun Sun { get; set; } = new BodySun();
+
+        /// <summary>
+        /// How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cover")]
+        public System.Collections.Generic.ICollection<BodyCover>? Cover { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Seasons
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string Season { get; set; } = default!;
+
+        /// <summary>
+        /// 0 = lets everything through, 1000 = full cover.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("permille")]
+        public int Permille { get; set; } = default!;
 
     }
 }

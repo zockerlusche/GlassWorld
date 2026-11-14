@@ -37,6 +37,61 @@ public sealed class SaveGameTests : IDisposable
     }
 
     [Fact]
+    public void ASaveKeepsTheStateItReplacesAsTheLastGoodOne()
+    {
+        // B2712: one generation back, with its own checksum.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 21, new MockDecisionPort(), "de");
+        var path = Path.Combine(_directory, "world.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var first = host.World.Tick;
+        Assert.False(File.Exists(SaveGameStore.PreviousPath(path)));
+
+        host.World.Run(50);
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        Assert.Equal(host.World.Tick, SaveGameStore.Load(path).Tick);
+        Assert.Equal(first, SaveGameStore.Load(SaveGameStore.PreviousPath(path)).Tick);
+        Assert.True(SaveGameStore.IsIntact(path));
+        Assert.True(SaveGameStore.IsIntact(SaveGameStore.PreviousPath(path)));
+        Assert.False(File.Exists(path + ".tmp"));
+    }
+
+    [Fact]
+    public void ADamagedSaveIsRefusedAndTheLastGoodOneOffered()
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 21, new MockDecisionPort(), "de");
+        var path = Path.Combine(_directory, "world.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        host.World.Run(50);
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+
+        // A few bytes changed in the middle of the file after it was written.
+        var bytes = File.ReadAllBytes(path);
+        for (var i = bytes.Length / 2; i < (bytes.Length / 2) + 16; i++)
+        {
+            bytes[i] ^= 0x5A;
+        }
+
+        File.WriteAllBytes(path, bytes);
+        Assert.False(SaveGameStore.IsIntact(path));
+        var damaged = Assert.Throws<InvalidDataException>(() => SaveGameStore.Load(path));
+        var previous = Assert.IsType<string>(damaged.Data[SaveGameStore.PreviousKey]);
+        Assert.Equal(SaveGameStore.PreviousPath(path), previous);
+        Assert.Equal(0, SaveGameStore.Load(previous).Tick);
+    }
+
+    [Fact]
+    public void ASaveWithoutAChecksumLoadsAsBefore()
+    {
+        // Saves from before B2712 and imported worlds have no checksum beside them.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 21, new MockDecisionPort(), "de");
+        var path = Path.Combine(_directory, "world.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        File.Delete(path + ".sha256");
+        Assert.True(SaveGameStore.IsIntact(path));
+        Assert.Equal(host.World.Tick, SaveGameStore.Load(path).Tick);
+    }
+
+    [Fact]
     public void RepeatsWithoutEffectAndRestingActionsAreHashedAndSurviveSaveAndLoad()
     {
         // W1696: the run without effect and the resting actions are state like any other.
@@ -102,6 +157,7 @@ public sealed class SaveGameTests : IDisposable
                 File.WriteAllText(path, "not a database");
                 break;
             default:
+                File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
                 using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
                 {
                     c.Open();
@@ -122,6 +178,7 @@ public sealed class SaveGameTests : IDisposable
     public void NewerSchemaIsRefused()
     {
         var path = Path.Combine(_directory, "future.db");
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             c.Open();
@@ -188,6 +245,7 @@ public sealed class SaveGameTests : IDisposable
         var path = Path.Combine(_directory, "v4.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
         string[] oldHair = ["curly", "braided", "tied", "short"];
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             c.Open();

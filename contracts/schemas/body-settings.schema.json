@@ -9,7 +9,13 @@
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "wetness": { "$ref": "#/$defs/BodyWetness" },
-    "sun": { "$ref": "#/$defs/BodySun" }
+    "sun": { "$ref": "#/$defs/BodySun" },
+    "cover": {
+      "description": "How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).",
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/BodyCover" }
+    }
   },
   "$defs": {
     "BodyWetness": {
@@ -38,6 +44,28 @@
       "properties": {
         "below_tenth_c": { "type": ["integer", "null"], "minimum": -500, "maximum": 600 },
         "per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "Permille of fully wet that dries per game hour." }
+      }
+    },
+    "BodyCover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seasons"],
+      "properties": {
+        "type": { "$ref": "common.schema.json#/$defs/VocabId", "description": "A shade-casting object type." },
+        "seasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["season", "permille"],
+            "properties": {
+              "season": { "$ref": "common.schema.json#/$defs/VocabId" },
+              "permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "0 = lets everything through, 1000 = full cover." }
+            }
+          }
+        }
       }
     },
     "BodySun": {

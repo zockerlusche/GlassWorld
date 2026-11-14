@@ -168,6 +168,7 @@ public sealed class IslandWalkTests : IDisposable
         Assert.Equal(state.IslandData, SaveGameStore.Load(path).IslandData);
 
         // A stand written by an earlier B2-4 build: the island as base64 in meta, no blob row.
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
@@ -195,6 +196,7 @@ public sealed class IslandWalkTests : IDisposable
         var island = host.Map!.Island;
         var bare = new GeneratedIsland(island.PresetId, island.GeneratorVersion, island.Seed, island.Attempts, island.Passed, HydrologyTests.WithoutLayers(island.Map), island.Objects, island.Starts, island.Neighbours, island.Check, island.CliffCells);
         SaveGameStore.Save(path, state with { IslandData = HydrologyTests.EncodeFormatOne(bare, 100), IslandHash = bare.Hash() });
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
@@ -230,6 +232,7 @@ public sealed class IslandWalkTests : IDisposable
         var bare = new GeneratedIsland(island.PresetId, island.GeneratorVersion, island.Seed, island.Attempts, island.Passed, HydrologyTests.WithoutLayers(island.Map), island.Objects, island.Starts, island.Neighbours, island.Check, island.CliffCells);
         var formatOne = HydrologyTests.EncodeFormatOne(bare, 100);
         SaveGameStore.Save(path, StateCodec.Capture(host) with { IslandData = formatOne, IslandHash = bare.Hash() });
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
