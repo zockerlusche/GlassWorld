@@ -127,6 +127,9 @@ public sealed class ContentSet
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
 
+    /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
+    public FireSettings? Fire { get; init; }
+
     /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
     public MilestoneCatalog? Milestones { get; init; }
 
@@ -260,6 +263,9 @@ public sealed class ContentSet
             Conversation = conversation,
             Processes = processes,
             Milestones = milestones,
+            Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
+                ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
+                : null,
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
