@@ -406,7 +406,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(review.KnowledgeMax)
-            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf))
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf, _inhabitants.UnsureOf))
             .ToList();
         var job = NewJob(world, inhabitant, JobKind.Review, "/review", review.JobPriority);
         job.Payload = new JobPayload

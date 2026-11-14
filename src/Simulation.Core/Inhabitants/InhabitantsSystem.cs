@@ -486,6 +486,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return entry.AboutKind == AboutType ? TypeLabelOf(inhabitant, id) : null;
     }
 
+    /// <summary>Whether the inhabitant is no longer sure of a belief (fading knowledge, D1017 G1); null = always sure.</summary>
+    public Func<Inhabitant, string, string, bool>? UnsureOf { get; set; }
+
     /// <summary>
     /// What an inhabitant calls a kind of thing, by its own knowledge only: the inhabitants' name of an
     /// invented type it knows (<see cref="InventionNameKnownTo"/>: its inventor, or whoever believes anything

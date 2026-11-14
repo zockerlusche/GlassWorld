@@ -297,6 +297,12 @@ class KnowledgeForgetting(BaseModel):
     forgotten_below: float = Field(
         ..., description='Below this strength a belief is forgotten.', ge=0.0, le=1.0
     )
+    unsure_below: float | None = Field(
+        None,
+        description="D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class KnowledgeMemoryEvent(BaseModel):
