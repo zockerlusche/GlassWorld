@@ -37,11 +37,13 @@ from glassworld_ai.queue import ModelQueue
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import (
     RUNTIME_TYPE,
+    UNSURE,
     ContextError,
     bands,
     humanize,
     own_names,
     plain_id,
+    unsure,
     vocab_line,
     word,
 )
@@ -298,7 +300,8 @@ def _knowledge_text(payload: Any, settings: dict[str, Any], locale: str = "en") 
         type_id = plain_id(entry.subject.id)
         name = own_names([(type_id, getattr(entry, "label", None))], locale).get(type_id)
         said = f'{type_id} (you call it "{name}")' if name else type_id
-        lines.append(f"- {said} {verb} {humanize(plain_id(entry.property))} ({how})")
+        fading = f"{UNSURE}; " if unsure(entry) else ""
+        lines.append(f"- {said} {verb} {humanize(plain_id(entry.property))} ({fading}{how})")
     return "\n".join(lines) or "- (nothing yet)"
 
 
