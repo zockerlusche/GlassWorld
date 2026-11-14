@@ -2079,6 +2079,10 @@
       "text": "Something caught fire"
     },
     {
+      "key": "vocab.sensation.near_fire",
+      "text": "Fire close by"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Loam"
     },

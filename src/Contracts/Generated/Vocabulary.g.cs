@@ -202,5 +202,9 @@ namespace GlassWorld.Contracts
         Condition = 27,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("sensation")]
+        Sensation = 28,
+
+
     }
 }
