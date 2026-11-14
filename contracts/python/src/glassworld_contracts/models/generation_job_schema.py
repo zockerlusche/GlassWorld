@@ -323,8 +323,8 @@ class ProcessPayload(BaseModel):
     )
     candidates: list[common_schema.VocabId] | None = Field(
         None,
-        description="Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.",
-        max_length=8,
+        description="Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise. Up to 16 since D1025 (GW2 #25006): the core sends every process physics allows, at most physics.max_candidates, so our data rules' ranking never decides which ones the judge sees.",
+        max_length=16,
         min_length=1,
     )
 

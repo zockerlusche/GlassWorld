@@ -199,7 +199,20 @@ public sealed class ProcessTests
         Assert.Contains("mix", candidates);
         Assert.Contains("soak", candidates);
         Assert.DoesNotContain("heat", candidates);
-        Assert.InRange(candidates.Count, 1, ProcessRuleSet.MaxCandidates);
+        Assert.InRange(candidates.Count, 1, ProcessRuleSet.ContractMaxCandidates);
+        // D1025 (GW2 #25006): nothing was cut - the ranking by our data rules only orders, it never chooses.
+        Assert.True(candidates.Count < ContentSet.Load(Path.Combine(TestData.Root, "content")).Processes!.MaxCandidates, string.Join(",", candidates));
+    }
+
+    [Fact]
+    public void TheCutOfTheCandidatesLeavesRoomForEveryProcessOfTheVocabulary()
+    {
+        // D1025: with the cut above the number of processes, physics alone decides which ones the judge sees.
+        var content = ContentSet.Load(Path.Combine(TestData.Root, "content"));
+        var processes = content.Vocabularies[VocabularyKind.Process].Entries.Count;
+        var cut = content.Processes!.MaxCandidates;
+        Assert.True(cut >= processes, $"{cut} < {processes}");
+        Assert.True(cut <= ProcessRuleSet.ContractMaxCandidates);
     }
 
     [Fact]

@@ -141,6 +141,7 @@
       ],
       "grind": []
     },
+    "max_candidates": 16,
     "examples": {
       "works": [
         "Heating water in a vessel over a fire makes it hot.",
