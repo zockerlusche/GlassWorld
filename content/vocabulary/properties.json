@@ -91,6 +91,10 @@
       "description": "Small and light enough to be carried."
     },
     {
+      "id": "wearable",
+      "description": "Can be worn on the body."
+    },
+    {
       "id": "hot",
       "description": "Is hot to the touch."
     },

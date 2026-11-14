@@ -135,6 +135,10 @@
       "schema": "durability-settings"
     },
     {
+      "pattern": "life/*.json",
+      "schema": "life-aging"
+    },
+    {
       "pattern": "body/*.json",
       "schema": "body-settings"
     },

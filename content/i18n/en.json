@@ -667,6 +667,14 @@
       "text": "Explore"
     },
     {
+      "key": "vocab.action.put_on",
+      "text": "Put on"
+    },
+    {
+      "key": "vocab.action.take_off",
+      "text": "Take off"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -855,6 +863,10 @@
       "text": "Warmth"
     },
     {
+      "key": "vocab.base_function.worn",
+      "text": "Worn on the body"
+    },
+    {
       "key": "vocab.base_function.container",
       "text": "Container"
     },
@@ -953,6 +965,10 @@
     {
       "key": "vocab.property.poisonous",
       "text": "Poisonous"
+    },
+    {
+      "key": "vocab.property.wearable",
+      "text": "Wearable"
     },
     {
       "key": "vocab.property.portable",
@@ -1913,6 +1929,22 @@
     {
       "key": "ui.chronicle.someone",
       "text": "someone"
+    },
+    {
+      "key": "vocab.event.picked_up",
+      "text": "Picked up"
+    },
+    {
+      "key": "vocab.event.dropped",
+      "text": "Put down"
+    },
+    {
+      "key": "vocab.event.worn",
+      "text": "Put on"
+    },
+    {
+      "key": "vocab.event.taken_off",
+      "text": "Taken off"
     },
     {
       "key": "vocab.event.combined",
@@ -3229,6 +3261,26 @@
     {
       "key": "msg.milestone.first_melting",
       "text": "First melting"
+    },
+    {
+      "key": "vocab.life_stage.child",
+      "text": "Child"
+    },
+    {
+      "key": "vocab.life_stage.youth",
+      "text": "Youth"
+    },
+    {
+      "key": "vocab.life_stage.adult",
+      "text": "Adult"
+    },
+    {
+      "key": "vocab.life_stage.elder",
+      "text": "Elder"
+    },
+    {
+      "key": "vocab.event.stage_changed",
+      "text": "New stage of life"
     }
   ]
 }

@@ -210,5 +210,9 @@ namespace GlassWorld.Contracts
         Felt = 29,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("life_stage")]
+        Life_stage = 30,
+
+
     }
 }

@@ -155,6 +155,26 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
         }
     }
 
+    /// <summary>
+    /// A thing that grew in its place was taken from it at <paramref name="tick"/> (picked, AK1a): fresh from the plant, it
+    /// ages from now on, and it is looked at again by that - a load and the running world then agree on when it spoils.
+    /// </summary>
+    public void LeftPlace(string id, long tick)
+    {
+        if (!_objects.TryGet(id, out var thing) || ClassOf(thing.TypeId) is not { BaseHours: not null })
+        {
+            return;
+        }
+
+        _placedAt[id] = tick;
+        if (_dueOf.Remove(id, out var due))
+        {
+            _queue.Remove((due, id));
+        }
+
+        Enqueue(thing, tick, 0);
+    }
+
     /// <summary>The things placed after the start, for a save game.</summary>
     public IReadOnlyList<PlacedThing> Capture() => [.. _placedAt.Select(p => new PlacedThing(p.Key, p.Value))];
 

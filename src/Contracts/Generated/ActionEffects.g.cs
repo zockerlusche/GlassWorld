@@ -75,6 +75,34 @@ namespace GlassWorld.Contracts
         public bool? Gradual { get; set; } = default!;
 
         /// <summary>
+        /// AK1a (D1046 v2): when the action ends, the inhabitant holds its target in its hand - only with a free hand and a thing nobody holds; the thing stays in the world and follows it. Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("holds")]
+        public bool? Holds { get; set; } = default!;
+
+        /// <summary>
+        /// K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wears")]
+        public bool? Wears { get; set; } = default!;
+
+        /// <summary>
+        /// K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unwears")]
+        public bool? Unwears { get; set; } = default!;
+
+        /// <summary>
+        /// AK1a: when the action ends, the inhabitant puts down what it holds (its target) at its feet. Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("releases")]
+        public bool? Releases { get; set; } = default!;
+
+        /// <summary>
         /// B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

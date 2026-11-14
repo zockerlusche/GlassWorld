@@ -152,6 +152,10 @@ public static class InhabitantStates
             Traits = [.. inhabitant.Traits.Select(t => new LevelEntry { Id = t.Key, Value = t.Value })],
             WillToLive = inhabitant.WillToLive,
 
+            // B9 R1: life phase and age, when the world ages (absent otherwise).
+            LifeStage = inhabitant.LifeStage,
+            AgeYears = inhabitant.AgeYears,
+
             // W1698: its own name, so it can introduce itself; absent while it has none.
             Name = inhabitant.Name,
 

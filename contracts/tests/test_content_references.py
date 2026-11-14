@@ -55,6 +55,7 @@ def _values(node: Any, path: str) -> list[Any]:
 # (data file under content/, path to the ids, vocabulary kind)
 REFERENCES = [
     ("invention/base_functions.json", "functions[].grants_properties[]", "property"),
+    ("behaviour/utility.json", "considerations[].when_felt", "sensation"),
     ("world/biomes.json", "biomes[].id", "biome"),
     ("world/biomes.json", "fallback_biome", "biome"),
     ("world/biomes.json", "rules[].biome", "biome"),

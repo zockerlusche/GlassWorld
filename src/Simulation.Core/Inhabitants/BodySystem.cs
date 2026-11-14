@@ -84,14 +84,21 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>
     /// What the body adds to the air an inhabitant feels, in tenths of a degree: the sun's warmth where no shade
-    /// falls (less with clouds), minus the cooling of being wet.
+    /// falls (less with clouds), minus the cooling of being wet, plus what a worn thing keeps warm when it truly has the
+    /// data's property (K4, B2752: through the material, never through the function) - only while it is not warm already
+    /// (the data's up_to, review GW1 #436).
     /// </summary>
     public int FeltTenthC(World world, Inhabitant inhabitant)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(inhabitant);
         var cool = (int)((long)_data.Wetness.CoolTenthC * WetPermille(inhabitant.Id) / 1000);
-        return SunTenthC(world, inhabitant.Position) - cool;
+        var bare = SunTenthC(world, inhabitant.Position) - cool;
+        var worn = _data.Worn is { } keeps && inhabitant.Worn is { } id && _objects.TryGet(id, out var thing) && _objects.Catalog.HasProperty(thing.TypeId, keeps.Property)
+            && (keeps.UpToTenthC is not { } upTo || (AirAt?.Invoke(world, inhabitant.Position)?.TemperatureTenthC ?? 0) + bare < upTo)
+            ? keeps.WarmTenthC
+            : 0;
+        return bare + worn;
     }
 
     /// <summary>
