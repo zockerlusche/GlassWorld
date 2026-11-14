@@ -1,0 +1,49 @@
+{
+  "contract_version": "0.2",
+  "functions": [
+    {
+      "id": "container",
+      "description": "Holds or carries something inside it (a vessel, basket, bag, box).",
+      "grants_properties": [
+        "container"
+      ]
+    },
+    {
+      "id": "seat_bed",
+      "description": "Something to sit or lie on (a seat, bench, bed, mat).",
+      "grants_properties": []
+    },
+    {
+      "id": "heat_source",
+      "description": "Gives warmth (a hearth, an oven, a warming object).",
+      "grants_properties": []
+    },
+    {
+      "id": "light_source",
+      "description": "Gives light (a lamp, a torch holder).",
+      "grants_properties": []
+    },
+    {
+      "id": "sound_source",
+      "description": "Makes a sound or music (a drum, a rattle, a flute).",
+      "grants_properties": []
+    },
+    {
+      "id": "shelter",
+      "description": "Protects from weather or gives a room (a roof, a hut, a screen).",
+      "grants_properties": [
+        "sheltering"
+      ]
+    },
+    {
+      "id": "tool",
+      "description": "Is used on other things to change them (cut, dig, scrape, pound).",
+      "grants_properties": []
+    },
+    {
+      "id": "closure",
+      "description": "Closes or covers something (a lid, a door, a stopper).",
+      "grants_properties": []
+    }
+  ]
+}

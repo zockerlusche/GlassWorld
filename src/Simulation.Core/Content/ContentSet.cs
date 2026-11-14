@@ -127,6 +127,9 @@ public sealed class ContentSet
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
 
+    /// <summary>Rain, drying and sun on the body (B5-11, D1084); null = only the air is felt.</summary>
+    public BodySettings? Body { get; init; }
+
     /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
     public FireSettings? Fire { get; init; }
 
@@ -215,7 +218,10 @@ public sealed class ContentSet
                 jobPhases.NightDayPhases.ToFrozenSet(StringComparer.Ordinal),
                 ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json"))),
                 ContractSerializer.Deserialize<ImageGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "image", "generation.json"))),
-                jobPhases.WaitForSleepersHours));
+                jobPhases.WaitForSleepersHours))
+        {
+            BaseFunctions = LoadBaseFunctions(contentDirectory, objects.PropertyVocabulary),
+        };
         // GW2 D971: what a thing is by being made is not assumed for a found thing.
         brain.MadeProperties = inventions.Settings.ImpliedProperties.ToFrozenSet(StringComparer.Ordinal);
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
@@ -266,6 +272,9 @@ public sealed class ContentSet
             Milestones = milestones,
             Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
                 ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
+                : null,
+            Body = File.Exists(Path.Combine(contentDirectory, "body", "settings.json"))
+                ? ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(Path.Combine(contentDirectory, "body", "settings.json")))
                 : null,
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
@@ -478,7 +487,9 @@ public sealed class ContentSet
         if (data.Looking is { } looking)
         {
             // What a thing is by being made (the invention data's implied properties) is seen: a made thing looks made (TL #23489).
-            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties;
+            // So is what its base function grants (D827 R31): a made container looks like a container.
+            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties
+                .Concat(LoadBaseFunctions(contentDirectory, objects.PropertyVocabulary).Values.SelectMany(p => p)).ToHashSet(StringComparer.Ordinal);
             problems.AddRange(LookingProblems(looking, data, actions, objects, effects, made));
         }
 
@@ -616,10 +627,34 @@ public sealed class ContentSet
     }
 
     /// <summary>
+    /// The base functions (D827 R31, content/invention/base_functions.json; none without the file): every id once, every
+    /// granted property in the property vocabulary.
+    /// </summary>
+    private static FrozenDictionary<string, FrozenSet<string>> LoadBaseFunctions(string contentDirectory, FrozenSet<string> properties)
+    {
+        var path = Path.Combine(contentDirectory, "invention", "base_functions.json");
+        if (!File.Exists(path))
+        {
+            return FrozenDictionary<string, FrozenSet<string>>.Empty;
+        }
+
+        var functions = ContractSerializer.Deserialize<InventionBaseFunctions>(File.ReadAllText(path)).Functions;
+        var problems = functions.GroupBy(f => f.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"base function '{g.Key}' twice")
+            .Concat(functions.SelectMany(f => f.GrantsProperties.Where(p => !properties.Contains(p)).Select(p => $"base function '{f.Id}' grants unknown property '{p}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Base functions: " + string.Join("; ", problems) + ".");
+        }
+
+        return functions.ToFrozenDictionary(f => f.Id, f => f.GrantsProperties.ToFrozenSet(StringComparer.Ordinal), StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// Looking (TL #19921) teaches what can be seen, never an effect: no visible property may be one an
     /// action's effect depends on - except what a thing is by being made (implied properties): a made thing looks made; what is seen is less sure than what is tried, a guess at most guessed_cap.
     /// </summary>
-    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, ICollection<string> made)
+    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, HashSet<string> made)
     {
         if (!actions.TryGetValue(looking.Action, out var action) || action.Target != VocabularyEntryTarget.Object)
         {

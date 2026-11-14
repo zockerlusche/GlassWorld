@@ -745,6 +745,10 @@
           "description": "Tech level the invention needs (vocabulary tech_level).",
           "$ref": "#/$defs/VocabId"
         },
+        "base_function": {
+          "description": "The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.",
+          "$ref": "#/$defs/VocabId"
+        },
         "introduces_needs": {
           "description": "Optional (B4b R11).",
           "type": "array",

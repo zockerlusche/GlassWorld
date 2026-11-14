@@ -107,6 +107,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("min_burning")]
         public int MinBurning { get; set; } = default!;
 
+        /// <summary>
+        /// Count only things that took hold from a fire near them, not fires the inhabitants made (review GW2 #398: two campfires at the camp are no big fire). Absent = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("caught_only")]
+        public bool? CaughtOnly { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

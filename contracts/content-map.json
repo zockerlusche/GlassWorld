@@ -131,6 +131,10 @@
       "schema": "durability-settings"
     },
     {
+      "pattern": "body/*.json",
+      "schema": "body-settings"
+    },
+    {
       "pattern": "fire/*.json",
       "schema": "fire-settings"
     },
@@ -209,6 +213,10 @@
     {
       "pattern": "invention/settings.json",
       "schema": "invention-settings"
+    },
+    {
+      "pattern": "invention/base_functions.json",
+      "schema": "invention-base-functions"
     },
     {
       "pattern": "build/settings.json",
