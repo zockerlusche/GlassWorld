@@ -21,6 +21,7 @@
       }
     ],
     "wind_drying_permille": 1000,
+    "wet_from_permille": 200,
     "cool_tenth_c": 50,
     "shelter_property": "sheltering",
     "shelter_radius_cm": 300
@@ -479,5 +480,17 @@
         }
       ]
     }
-  ]
+  ],
+  "experiences": [
+    {
+      "felt": "warmth",
+      "property": "hot",
+      "min_tenth_c": 20
+    },
+    {
+      "felt": "kept_dry",
+      "property": "sheltering"
+    }
+  ],
+  "experience_every_minutes": 10
 }

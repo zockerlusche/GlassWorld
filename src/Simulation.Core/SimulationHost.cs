@@ -443,7 +443,8 @@ public sealed class SimulationHost
         inhabitants.Lacks = fire.Lacks;
 
         // B5 R47: what the inhabitants feel near fire (a big fire close by) drives their mood by the data.
-        inhabitants.Feels = (inhabitant, sensation) => fire.Feels(inhabitant.Position, sensation);
+        // B5 R31: too cold / too warm from the comfort level, by the data.
+        inhabitants.Feels = (inhabitant, sensation) => fire.Feels(inhabitant.Position, sensation) || inhabitants.FeelsComfort(world, inhabitant, sensation);
         fire.Caught = (w, thing, burning) =>
         {
             var sight = inhabitants.SightRadiusM;
@@ -576,8 +577,12 @@ public sealed class SimulationHost
                 AirAt = AirAt,
                 CloudPermille = w => bodyWeather.Read(w).CloudPermille,
                 WindAt = bodyWeather.WindAt,
+                HeatFrom = fire.HeatFrom,
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
+            var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
+            var wetBody = body;
+            decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
             world.Add(body);
         }
 

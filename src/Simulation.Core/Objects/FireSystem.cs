@@ -334,6 +334,36 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         return (int)Math.Round(total, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>
+    /// B5 R37: each thing that warms a place and by how much, in tenths of a degree (the parts of
+    /// <see cref="HeatAt"/>), in id order.
+    /// </summary>
+    public IEnumerable<(WorldObject Thing, int TenthC)> HeatFrom(Position at)
+    {
+        var parts = new List<(WorldObject, int)>();
+        foreach (var ofType in _objects.ByType)
+        {
+            if (ofType.Objects.Count == 0 || ParamsOf(ofType.TypeId) is not { HeatTenthC: { } heat, HeatRadiusCm: { } radiusCm } || radiusCm <= 0)
+            {
+                continue;
+            }
+
+            var radius = radiusCm / 100.0;
+            foreach (var thing in ofType.Objects)
+            {
+                var dx = thing.Position.X - at.X;
+                var dz = thing.Position.Z - at.Z;
+                var distance = Math.Sqrt((dx * dx) + (dz * dz));
+                if (distance < radius)
+                {
+                    parts.Add((thing, (int)Math.Round(heat * (1.0 - (distance / radius)), MidpointRounding.AwayFromZero)));
+                }
+            }
+        }
+
+        return parts.OrderBy(p => p.Item1.Id, StringComparer.Ordinal);
+    }
+
     /// <summary>The heat level a burning thing gives for processing (B2700): position of its type's heat_level in <paramref name="levels"/>, or null.</summary>
     public int? HeatLevelOf(WorldObject thing, IReadOnlyList<string> levels)
     {

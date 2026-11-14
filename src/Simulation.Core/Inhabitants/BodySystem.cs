@@ -70,6 +70,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     /// <summary>Wind 0..1 at a tick (dries faster); null = calm.</summary>
     public Func<long, double>? WindAt { get; init; }
 
+    /// <summary>B5 R37: the things that warm a place and by how much (the fire); null = none.</summary>
+    public Func<Position, IEnumerable<(WorldObject Thing, int TenthC)>>? HeatFrom { get; init; }
+
     /// <inheritdoc/>
     public string Name => "body";
 
@@ -164,6 +167,45 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
                 _wet.Remove(inhabitant.Id);
             }
         }
+
+        TakeIn(world);
+    }
+
+    /// <summary>
+    /// B5 R37: every few minutes each inhabitant takes in what it feels near things - a thing that warms it
+    /// enough, a thing that keeps it dry in the rain - as a belief about the thing's true property (source
+    /// experienced, the same path as finding out by eating). Only what was felt near what; no rule what to do.
+    /// </summary>
+    private void TakeIn(World world)
+    {
+        var every = Math.Max(1L, (long)(_data.ExperienceEveryMinutes ?? 10) * _ticksPerHour / 60);
+        if (_data.Experiences is not { Count: > 0 } experiences || world.Tick % every != 0)
+        {
+            return;
+        }
+
+        foreach (var inhabitant in _inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal))
+        {
+            var action = inhabitant.Activity?.Action;
+            foreach (var experience in experiences)
+            {
+                if (experience.Felt == BodyExperienceFelt.Warmth && HeatFrom is { } heatFrom)
+                {
+                    foreach (var (thing, tenth) in heatFrom(inhabitant.Position))
+                    {
+                        if (tenth >= (experience.MinTenthC ?? 0))
+                        {
+                            _inhabitants.Experience(world.Tick, inhabitant, action, thing.TypeId, [experience.Property]);
+                        }
+                    }
+                }
+                else if (experience.Felt == BodyExperienceFelt.Kept_dry && AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true }
+                    && ShelterOf(inhabitant.Position) is { } shelter)
+                {
+                    _inhabitants.Experience(world.Tick, inhabitant, action, shelter.TypeId, [experience.Property]);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -201,11 +243,18 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
-    private bool Sheltered(Position at)
+    private bool Sheltered(Position at) => ShelterOf(at) is not null;
+
+    /// <summary>The nearest thing with the shelter property within the shelter radius (ties by id), or null.</summary>
+    private WorldObject? ShelterOf(Position at)
     {
         _near.Clear();
         _objects.Within(at, _data.Wetness.ShelterRadiusCm / 100.0, _near);
-        return _near.Any(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty));
+        return _near
+            .Where(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty))
+            .OrderBy(o => ((o.Position.X - at.X) * (o.Position.X - at.X)) + ((o.Position.Z - at.Z) * (o.Position.Z - at.Z)))
+            .ThenBy(o => o.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     /// <summary>How much the crowns over a place cover it now (the most covering one), 0 = open sky.</summary>
