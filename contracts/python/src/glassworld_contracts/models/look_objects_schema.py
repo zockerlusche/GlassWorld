@@ -31,7 +31,7 @@ class LookFocus(BaseModel):
     width_m: float = Field(..., description='Width of the ring.', gt=0.0, le=1.0)
     color: str = Field(
         ...,
-        description='Palette colour id of the ring.',
+        description='Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

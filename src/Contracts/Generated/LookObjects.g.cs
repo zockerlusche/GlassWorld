@@ -41,7 +41,7 @@ namespace GlassWorld.Contracts
         public double WidthM { get; set; } = default!;
 
         /// <summary>
-        /// Palette colour id of the ring.
+        /// Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         public string Color { get; set; } = default!;

@@ -278,7 +278,10 @@ public partial class WorldPresenter
                 _focusRing = null;
             }
 
-            ring.QueueFree();
+            if (IsInstanceValid(ring))
+            {
+                ring.QueueFree();
+            }
         }));
         return true;
     }
