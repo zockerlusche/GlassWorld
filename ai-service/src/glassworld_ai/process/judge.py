@@ -14,6 +14,7 @@ without a model call. Not feasible is a result too; the core stores it and never
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -80,11 +81,14 @@ class JudgeContext:
         guard: dict[str, Any] | None = None,
         combine: bool = False,
         physics_from_data: bool = False,
+        neutral_order: bool = False,
     ) -> None:
         self.guard = validate_guard(guard or {}, vocab)
         self.vocab = vocab
         # v2 (B2687 K2): the prompt answers a combine trial (process null + candidates).
         self.combine = combine
+        # v4 (D1025): the candidates in an order from the try, not ranked by our rules.
+        self.neutral_order = neutral_order
         settings = json.loads((content_dir / "invention/settings.json").read_text(encoding="utf-8"))
         self.living = set(cast(list[str], settings.get("living_properties", [])))
         self.properties = [p for p in vocab.ids("property") if p not in self.living]
@@ -96,7 +100,9 @@ class JudgeContext:
             if not physics:
                 raise GuardError("the prompt reads physics from the data, but rules.json has none")
             self.guard = validate_guard(
-                {k: v for k, v in physics.items() if k != "examples"}, vocab
+                # max_candidates (D1025) is the core's cut of the candidates, no guard rule.
+                {k: v for k, v in physics.items() if k not in ("examples", "max_candidates")},
+                vocab,
             )
         self.heat_levels = [str(h) for h in rules["heat_levels"]]  # lowest first (order matters)
         self.tech_levels = tech_levels(content_dir)
@@ -124,6 +130,14 @@ def _combining(payload: Any) -> bool:
     return payload.process is None
 
 
+def _neutral(payload: Any, processes: list[str]) -> list[str]:
+    """D1025: the processes in an order that follows from the try alone (its rule id), the same in
+    every replay - the core ranks them by how close our data rules come, and a model reads the
+    first entries as the expected ones."""
+    key = world_rule_id(*_signature(payload))
+    return sorted(processes, key=lambda p: hashlib.sha256(f"{key}/{p}".encode()).hexdigest())
+
+
 def _choices(payload: Any, ctx: JudgeContext) -> tuple[list[str], list[str]]:
     """The processes that may happen (physics allows them) and why the others cannot."""
     _, inputs, _, heat = _signature(payload)
@@ -132,6 +146,8 @@ def _choices(payload: Any, ctx: JudgeContext) -> tuple[list[str], list[str]]:
         if _combining(payload)
         else [plain_id(payload.process)]
     )
+    if ctx.neutral_order and _combining(payload):
+        asked = _neutral(payload, asked)
     possible: list[str] = []
     reasons: list[str] = []
     for process in asked:
