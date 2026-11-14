@@ -452,6 +452,30 @@ type ProperName = Annotated[
 ]
 
 
+type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=4.0)]
+
+
+type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
+
+
+class TraitCurve(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    trait: str = Field(
+        ...,
+        description='Trait id (vocabulary trait).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    curve: list[CurveItem] = Field(
+        ...,
+        description='Points [trait value, factor] with ascending trait value in 0..1.',
+        max_length=16,
+        min_length=2,
+    )
+
+
 class LevelEntry(BaseModel):
     model_config = ConfigDict(
         extra='forbid',

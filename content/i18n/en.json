@@ -1047,6 +1047,10 @@
       "text": "Diligence"
     },
     {
+      "key": "vocab.trait.drive",
+      "text": "Drive"
+    },
+    {
       "key": "vocab.trait.kindness",
       "text": "Kindness"
     },
@@ -2109,6 +2113,10 @@
     {
       "key": "vocab.event.caught_fire",
       "text": "Something caught fire"
+    },
+    {
+      "key": "vocab.sensation.near_fire",
+      "text": "Fire close by"
     },
     {
       "key": "vocab.soil.loam",

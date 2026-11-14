@@ -33,6 +33,10 @@
     {
       "id": "kindness",
       "description": "Is good-natured and helpful to others."
+    },
+    {
+      "id": "drive",
+      "description": "How readily one starts something on one's own."
     }
   ]
 }

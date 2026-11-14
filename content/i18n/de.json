@@ -1047,6 +1047,10 @@
       "text": "Fleiß"
     },
     {
+      "key": "vocab.trait.drive",
+      "text": "Tatendrang"
+    },
+    {
       "key": "vocab.trait.kindness",
       "text": "Gutmütigkeit"
     },
@@ -2109,6 +2113,10 @@
     {
       "key": "vocab.event.caught_fire",
       "text": "Etwas hat Feuer gefangen"
+    },
+    {
+      "key": "vocab.sensation.near_fire",
+      "text": "Brand in der Nähe"
     },
     {
       "key": "vocab.soil.loam",

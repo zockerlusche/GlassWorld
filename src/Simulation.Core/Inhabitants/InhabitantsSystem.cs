@@ -993,7 +993,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         foreach (var driver in _moodDrivers)
         {
-            if (inhabitant.Needs.TryGetValue(driver.Need, out var need) && need < driver.Below && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
+            var acts = driver.Sensation is { } sensation
+                ? Feels?.Invoke(inhabitant, sensation) == true
+                : driver.Need is { } needId && inhabitant.Needs.TryGetValue(needId, out var need) && need < (driver.Below ?? 0);
+            if (acts && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
             {
                 inhabitant.Moods[driver.Mood] = Math.Clamp(mood + PerTick(driver.DeltaPerHour), 0.0, 1.0);
             }
@@ -1960,7 +1963,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>
     /// Applies one effect with the given delta (clamped to 0..1) and returns how much the value changed.
     /// </summary>
-    private static double Apply(Inhabitant inhabitant, Effect effect, double delta)
+    private double Apply(Inhabitant inhabitant, Effect effect, double delta)
     {
         switch (effect.Kind)
         {
@@ -1970,6 +1973,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             case EffectKind.Mood when inhabitant.Moods.TryGetValue(effect.Id, out var mood):
                 inhabitant.Moods[effect.Id] = Math.Clamp(mood + delta, 0.0, 1.0);
                 return Math.Abs(inhabitant.Moods[effect.Id] - mood);
+            case EffectKind.Trait when inhabitant.Traits.TryGetValue(effect.Id, out var trait):
+                // D1086 (B2728): success strengthens a trait, never beyond its start range's max.
+                var most = _model.Start.Traits.FirstOrDefault(t => t.Id == effect.Id)?.Max ?? 1.0;
+                inhabitant.Traits[effect.Id] = Math.Clamp(trait + delta, 0.0, Math.Max(most, trait));
+                return Math.Abs(inhabitant.Traits[effect.Id] - trait);
             case EffectKind.Will_to_live:
                 var will = inhabitant.WillToLive;
                 inhabitant.WillToLive = Math.Clamp(will + delta, 0.0, 1.0);

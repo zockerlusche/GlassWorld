@@ -154,6 +154,7 @@
     ],
     "idea_start": 0.3,
     "idea_grow": 0.2,
+    "idea_grow_by_trait": { "trait": "drive", "curve": [[0.2, 0.75], [0.55, 1.0], [0.9, 1.5]] },
     "intention_actions": ["inspect", "show", "teach", "explore", "use", "talk_to"]
   }
 }

@@ -35,9 +35,17 @@ class LeisureSettings(BaseModel):
     mood_at_least: float | None = Field(None, ge=0.0, le=1.0)
     every_hours: float = Field(
         ...,
-        description='Least game hours between two leisure questions of one inhabitant.',
+        description="Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.",
         gt=0.0,
         le=240.0,
+    )
+    every_hours_by_trait: common_schema.TraitCurve | None = Field(
+        None,
+        description='D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.',
+    )
+    needs_at_least_by_trait: common_schema.TraitCurve | None = Field(
+        None,
+        description='D1086: needs_at_least is multiplied by this trait factor (a lower factor = a free moment already with less strength). Omitted = the same for all.',
     )
 
 

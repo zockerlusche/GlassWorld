@@ -1092,6 +1092,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// D1086 (B2728): how a trait of the inhabitant scales a value - a factor read from a point table over the trait's value (linear in between, constant outside). Only how often or how readily, never what (PR2). An inhabitant without the trait gets factor 1.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TraitCurve
+    {
+
+        /// <summary>
+        /// Trait id (vocabulary trait).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("trait")]
+        public string Trait { get; set; } = default!;
+
+        /// <summary>
+        /// Points [trait value, factor] with ascending trait value in 0..1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("curve")]
+        public System.Collections.Generic.ICollection<System.Collections.Generic.ICollection<double>> Curve { get; set; } = new System.Collections.ObjectModel.Collection<System.Collections.Generic.ICollection<double>>();
+
+    }
+
+    /// <summary>
     /// Result of the measurement run (B7 R6): what this PC needs per model. Saved and used by the planner (a night job starts only if it still fits into the night budget).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

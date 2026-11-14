@@ -52,7 +52,8 @@ public sealed class ActionRules
     /// <param name="moods">Mood ids.</param>
     /// <param name="ticksPerHour">Ticks per game hour.</param>
     /// <param name="events">Event kinds for <c>event_effects</c>; null = the kinds are not checked (rules built without the event vocabulary).</param>
-    public static ActionRules Create(IEnumerable<ActionEffects> files, ObjectCatalog catalog, Vocabulary actions, IReadOnlySet<string> needs, IReadOnlySet<string> moods, int ticksPerHour, IReadOnlySet<string>? events = null)
+    /// <param name="traits">Trait ids an inhabitant has (effects of kind trait, D1086); null = not checked.</param>
+    public static ActionRules Create(IEnumerable<ActionEffects> files, ObjectCatalog catalog, Vocabulary actions, IReadOnlySet<string> needs, IReadOnlySet<string> moods, int ticksPerHour, IReadOnlySet<string>? events = null, IReadOnlySet<string>? traits = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -97,6 +98,7 @@ public sealed class ActionRules
         {
             EffectKind.Need => needs.Contains(effect.Id),
             EffectKind.Mood => moods.Contains(effect.Id),
+            EffectKind.Trait => traits is null || traits.Contains(effect.Id),
             _ => true,
         };
 
