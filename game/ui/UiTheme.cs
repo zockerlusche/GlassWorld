@@ -245,6 +245,13 @@ public static class UiTheme
             theme.SetColor(name, "Button", text);
         }
 
+        // Every button on the world is drawn without a fill, so its light text never stands on a light button (review GW3
+        // #25694: a later non-flat button there would have been unreadable); the focus ring stays from the main theme.
+        foreach (var state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled" })
+        {
+            theme.SetStylebox(state, "Button", new StyleBoxEmpty());
+        }
+
         // A scroll bar on the world: no track, a thin grip in the outline colour (S1b tour: a dark bar stood beside the log).
         var thin = Math.Max(2, style.Tokens.Window.WorldOutlinePx / 2);
         StyleBoxFlat Grip(float alpha)
