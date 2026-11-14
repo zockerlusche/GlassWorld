@@ -10,6 +10,13 @@
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "wetness": { "$ref": "#/$defs/BodyWetness" },
     "sun": { "$ref": "#/$defs/BodySun" },
+    "experiences": {
+      "description": "B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -> seek fire': only what was felt near what.",
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/BodyExperience" }
+    },
+    "experience_every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "How often, in game minutes, what is felt near things is taken in." },
     "cover": {
       "description": "How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).",
       "type": "array",
@@ -32,6 +39,7 @@
           "items": { "$ref": "#/$defs/BodyDryingBand" }
         },
         "wind_drying_permille": { "type": "integer", "minimum": 0, "maximum": 5000, "description": "Extra drying at full wind, in permille of the band's rate." },
+        "wet_from_permille": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "From this wetness on an inhabitant counts as wet in its request to the AI (environment.wet). Omitted = 1." },
         "cool_tenth_c": { "type": "integer", "minimum": 0, "maximum": 300, "description": "How much colder it feels when fully wet, in tenths of a degree (linear with the wetness)." },
         "shelter_property": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The TRUE property of things that keep the rain off whoever stands at them." },
         "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." }
@@ -44,6 +52,16 @@
       "properties": {
         "below_tenth_c": { "type": ["integer", "null"], "minimum": -500, "maximum": 600 },
         "per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "Permille of fully wet that dries per game hour." }
+      }
+    },
+    "BodyExperience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["felt", "property"],
+      "properties": {
+        "felt": { "type": "string", "enum": ["warmth", "kept_dry"], "description": "warmth: a thing near warms the inhabitant by at least min_tenth_c; kept_dry: in the rain a thing near keeps it dry." },
+        "property": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The property it finds out about the thing (its truth, as the world has it)." },
+        "min_tenth_c": { "type": "integer", "minimum": 0, "maximum": 500, "description": "warmth: how much warmer at least, in tenths of a degree." }
       }
     },
     "BodyCover": {

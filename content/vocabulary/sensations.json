@@ -5,6 +5,14 @@
     {
       "id": "near_fire",
       "description": "A big fire burns close by: fire has spread to several things near the inhabitant."
+    },
+    {
+      "id": "too_cold",
+      "description": "It feels too cold: colder than this inhabitant likes."
+    },
+    {
+      "id": "too_warm",
+      "description": "It feels too warm: warmer than this inhabitant likes."
     }
   ]
 }
