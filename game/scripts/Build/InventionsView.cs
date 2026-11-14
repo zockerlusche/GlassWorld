@@ -16,6 +16,7 @@ public partial class InventionsView : Node3D
     private BuildKit _kit = null!;
     private Func<double, double, double> _ground = null!;
     private string _signature = string.Empty;
+    private double? _minShownM;
 
     /// <summary>Things and sites drawn now.</summary>
     public int Drawn => _drawn.Count;
@@ -23,9 +24,12 @@ public partial class InventionsView : Node3D
     /// <summary>Parts visible now, over all drawings.</summary>
     public int VisibleParts => _drawn.Values.Sum(d => d.Node.VisibleParts);
 
-    /// <summary>Creates the view with the construction kit and the drawn ground height (x, z) in metres.</summary>
-    public static InventionsView Create(BuildKit kit, Func<double, double, double> ground) =>
-        new() { Name = "Inventions", _kit = kit ?? throw new ArgumentNullException(nameof(kit)), _ground = ground ?? throw new ArgumentNullException(nameof(ground)) };
+    /// <summary>
+    /// Creates the view with the construction kit and the drawn ground height (x, z) in metres; a finished thing smaller
+    /// than <paramref name="minShownM"/> is drawn larger (A1715, look data; null = true size).
+    /// </summary>
+    public static InventionsView Create(BuildKit kit, Func<double, double, double> ground, double? minShownM = null) =>
+        new() { Name = "Inventions", _kit = kit ?? throw new ArgumentNullException(nameof(kit)), _ground = ground ?? throw new ArgumentNullException(nameof(ground)), _minShownM = minShownM };
 
     /// <summary>Redraws when what is shown changed since the last call; returns whether it did.</summary>
     public bool Refresh(IReadOnlyList<InventionShown> shown)
@@ -58,6 +62,8 @@ public partial class InventionsView : Node3D
             }
 
             drawn.Node.Position = new Vector3((float)s.X, (float)_ground(s.X, s.Z), (float)s.Z);
+            // A1715: a tiny finished thing is drawn larger so it can be seen at all (from its ground point up).
+            drawn.Node.Scale = Vector3.One * (float)(s.Finished ? InventionLooks.ShownScale(LargestExtent(drawn.Node), _minShownM) : 1.0);
             // Up to the step the model says: a whole thing says int.MaxValue, one finished smaller its last step (review GW3 #295).
             drawn.Node.ShowUpToStep(Math.Min(s.Step, drawn.Node.LastStep));
         }
@@ -76,5 +82,24 @@ public partial class InventionsView : Node3D
         }
 
         return true;
+    }
+
+    /// <summary>The largest extent of all parts of a drawing in its own space (not its scale), in metres.</summary>
+    private static double LargestExtent(BuildPlanNode node)
+    {
+        Aabb? box = null;
+        foreach (var mesh in node.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var place = mesh.Transform;
+            for (var parent = mesh.GetParent(); parent is Node3D up && parent != node; parent = parent.GetParent())
+            {
+                place = up.Transform * place;
+            }
+
+            var part = place * mesh.GetAabb();
+            box = box is { } known ? known.Merge(part) : part;
+        }
+
+        return box is { } all ? Math.Max(all.Size.X, Math.Max(all.Size.Y, all.Size.Z)) : 0;
     }
 }

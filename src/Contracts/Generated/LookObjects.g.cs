@@ -533,6 +533,13 @@ namespace GlassWorld.Contracts
         public int TurnTries { get; set; } = default!;
 
         /// <summary>
+        /// A1715 (D1112 #6): a built invention whose largest extent is below this is drawn uniformly larger up to it, so a cup of 8 cm can be seen at all. Look only - the core keeps its true size. Omitted = true size. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention_min_shown_m")]
+        public double? InventionMinShownM { get; set; } = default!;
+
+        /// <summary>
         /// Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_footprint_m")]
