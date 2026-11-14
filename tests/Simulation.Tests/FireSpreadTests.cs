@@ -178,7 +178,7 @@ public sealed class FireSpreadTests
         host.World.Run(10);
         var caught = Assert.Single(host.Fire.Capture(), b => b.Caught);
         var restored = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
-        restored.Fire.Restore(host.Fire.Capture());
+        restored.Fire.Restore(host.Fire.Capture(), host.World.Tick);
         Assert.Contains(restored.Fire.Capture(), b => b.Id == caught.Id && b.Caught);
     }
 

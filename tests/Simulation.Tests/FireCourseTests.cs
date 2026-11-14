@@ -1,6 +1,10 @@
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Tests;
 
@@ -61,6 +65,32 @@ public sealed class FireCourseTests
         host.World.Run(1);
         Assert.False(host.Fire.IsEmbers(fire.Id));
         Assert.True(host.Fire.StrengthPermille(fire.Id) < 1000, "kindling again rises from the embers");
+    }
+
+    [Fact]
+    public void AfterLoadingAFireIsAsStrongAsInTheRunningWorld()
+    {
+        // Review GW3 #423: the strength reads the save's tick at once, not 0 until the fire's first step.
+        var (host, at) = Island();
+        var fire = host.Objects.Spawn("fire", at);
+        host.World.Run(2);
+        var path = Path.Combine(Path.GetTempPath(), "gw-fire-course-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            Assert.Equal(host.Fire.StrengthPermille(fire.Id), loaded.Fire.StrengthPermille(fire.Id));
+            Assert.Equal(host.Fire.HeatAt(at), loaded.Fire.HeatAt(at));
+            Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+            host.World.Run(3);
+            loaded.World.Run(3);
+            Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

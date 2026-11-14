@@ -522,9 +522,14 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     public IReadOnlyList<BurningThing> Capture() =>
         [.. _until.Select(b => new BurningThing(b.Key, b.Value, _caught.Contains(b.Key), _since.TryGetValue(b.Key, out var since) ? since : null))];
 
-    /// <summary>Restores the burning things of a save game.</summary>
-    public void Restore(IReadOnlyList<BurningThing>? burning)
+    /// <summary>
+    /// Restores the burning things of a save game (review GW3 #423): the strength reads the tick of the last step at
+    /// once - a world steps its systems at a tick and counts on after, so a save at <paramref name="tick"/> last
+    /// stepped at the tick before.
+    /// </summary>
+    public void Restore(IReadOnlyList<BurningThing>? burning, long tick)
     {
+        _now = Math.Max(0, tick - 1);
         foreach (var thing in burning ?? [])
         {
             _until[thing.Id] = thing.Until;
