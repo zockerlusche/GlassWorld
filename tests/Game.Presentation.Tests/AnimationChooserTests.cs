@@ -174,4 +174,16 @@ public sealed class AnimationChooserTests
         Assert.Equal(AnimationChooser.Unit("inh-000001", 7), AnimationChooser.Unit("inh-000001", 7));
         Assert.All(Enumerable.Range(0, 1000), s => Assert.InRange(AnimationChooser.Unit("inh-000009", s), 0.0, 0.9999999));
     }
+
+    [Fact]
+    public void AnActionOnAThingOnTheGroundCrouchesOnABushItReachesForward()
+    {
+        // A1632 (D958 D1): the mapping by the thing's reach wins over the target kind alone; without a reach the general clip.
+        var library = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "animation", "library.json")));
+        var chooser = new AnimationChooser(library);
+        Assert.Equal("crouch_inspect", chooser.ForAction("inspect", AnimationMappingTarget.Object, AnimationMappingReach.Low).ClipId);
+        Assert.Equal("handle", chooser.ForAction("inspect", AnimationMappingTarget.Object, AnimationMappingReach.Mid).ClipId);
+        Assert.Equal("handle", chooser.ForAction("inspect", AnimationMappingTarget.Object).ClipId);
+        Assert.Equal("talk", chooser.ForAction("show", AnimationMappingTarget.Inhabitant, AnimationMappingReach.Low).ClipId);
+    }
 }

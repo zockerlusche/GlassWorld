@@ -118,6 +118,12 @@ public sealed class ContentSet
     /// <summary>The basic processing rules (content/processes/rules.json, B2537) as a combine trial applies them (B2687 K2); null without the file.</summary>
     public ProcessRuleSet? Processes { get; init; }
 
+    /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
+    public NatureSettings? Nature { get; init; }
+
+    /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
+    public DurabilitySettings? Durability { get; init; }
+
     /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
     public MilestoneCatalog? Milestones { get; init; }
 
@@ -249,6 +255,12 @@ public sealed class ContentSet
             Conversation = conversation,
             Processes = processes,
             Milestones = milestones,
+            Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
+                ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
+                : null,
+            Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
+                ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
+                : null,
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],

@@ -196,6 +196,14 @@ namespace GlassWorld.Contracts
         public double? FootprintWidthM { get; set; } = default!;
 
         /// <summary>
+        /// A1632 (D958 D1): where a hand meets this thing when someone acts on it - low (on the ground: crouch), mid (hip to chest: bushes, trunks, reeds), high (above the head). The animation mappings choose by it; absent = the action's general clip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reach")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ObjectVisualReach>))]
+        public ObjectVisualReach? Reach { get; set; } = default!;
+
+        /// <summary>
         /// How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -553,6 +561,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("max_lights")]
         public int? MaxLights { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ObjectVisualReach
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("low")]
+        Low = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("mid")]
+        Mid = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("high")]
+        High = 2,
+
 
     }
 }

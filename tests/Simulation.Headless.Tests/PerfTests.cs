@@ -129,7 +129,7 @@ public sealed class PerfTests
 
         // Every system of the world has its line, in the order the systems run; the inhabitants name their parts.
         var systems = lines.Where(l => l.StartsWith("SYSTEM ", StringComparison.Ordinal)).Select(l => l.Split(' ')[1]["name=".Length..]).ToList();
-        Assert.Equal(["worldmap", "weather", "objects", "decisions", "inhabitants"], systems.Take(5));
+        Assert.Equal(["worldmap", "weather", "nature", "objects", "decisions", "inhabitants"], systems.Take(6));
         Assert.Equal(World.BoundariesPart, systems[^1]);
         var act = Assert.Single(lines, l => l.StartsWith("PART name=inhabitants/act ", StringComparison.Ordinal));
 

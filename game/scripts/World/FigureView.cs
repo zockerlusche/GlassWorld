@@ -199,7 +199,11 @@ public partial class FigureView : Node3D
         // What the core state asks for; the cadence shows it calmly, in real seconds (W1697, pose_cadence).
         var target = all is null ? null : InhabitantActivity.TargetKind(inhabitant, all);
         var conversation = all is not null && InhabitantActivity.InConversation(inhabitant, all);
-        _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0);
+        // A1632: how high the thing is - crouch at the ground, reach at a bush (look data, through the variant's root).
+        var reach = target == AnimationMappingTarget.Object && inhabitant.TargetId is { } aim && objects?.FirstOrDefault(o => o.Id == aim) is { } thing
+            ? _shared.ReachOf?.Invoke(thing.TypeId)
+            : null;
+        _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
         _gait = inhabitant.Gait;
         _to = to;
