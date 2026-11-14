@@ -18,8 +18,10 @@ public static class ThinkingDots
 
     private const ulong SaltPhase = 5;
 
-    /// <summary>Whether the dots show: while the core reports an open question of the inhabitant.</summary>
-    public static bool Shown(int openQuestions) => openQuestions > 0;
+    /// <summary>
+    /// Whether the dots show: while the core reports an open question of the inhabitant - never while its figure lies
+    /// asleep (D1112 #8: Marcel saw "thinks" over sleepers).</summary>
+    public static bool Shown(int openQuestions, bool lying = false) => openQuestions > 0 && !lying;
 
     /// <summary>The inhabitant's phase of the wave in [0, 1), from its id.</summary>
     public static double Phase(string inhabitantId) => AnimationChooser.Unit(inhabitantId, 0, SaltPhase);

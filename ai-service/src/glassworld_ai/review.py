@@ -12,6 +12,9 @@ The model never sees an id: it names the things it knows and the day's things by
 prompt lists them (measurement L1287: with neutral keys k1, k2 ... it mixed them up), its ideas by
 keys i1, i2, .... The service maps names back and checks before anything goes out:
 - the summary keeps the budget and names every formative event (as memory; else ask again);
+- from review v2 on (A1721, Marcel's test 14.11.: "Tick 8453 showed me an egg", "Driftwood t2 and
+  t3") the prompt shows no tick, the service keeps the formative events itself, and the summary,
+  the dream and the thoughts may name no tick, no number and no key (else ask again, saying why);
 - roots of an idea and the subject of an intention come only from the input - only its own
   knowledge, its own ideas (R29 "can it come up with it"); an idea or intention that names
   anything else is dropped, the rest stays;
@@ -63,6 +66,22 @@ from glassworld_contracts import GenerationJob
 
 ROLE = "review"
 _ID_LIKE = re.compile(r"[a-z0-9]+(?:[_-][a-z0-9]+)+")
+# A1721: what a plain text never holds - a tick ('Tick 8453', 'ticks 1, 2'), a key of the prompt
+# ('t2', 'k1', 'i3') or a long number (a tick written without the word). Any number of 3+ digits
+# counts, also an innocent '100' - an island day needs none (review GW1 #445).
+_NOT_PLAIN = re.compile(r"\bticks?\b\s*\d|\b[tki]\d{1,3}\b|\d{3,}", re.IGNORECASE)
+
+
+def _flag(settings: dict[str, Any] | None, key: str, default: bool) -> bool:
+    """A switch of the prompt version (A1721): v1 keeps its ticks and its 'kept'."""
+    value = (settings or {}).get(key, default)
+    return value if isinstance(value, bool) else default
+
+
+def not_plain(text: str) -> str | None:
+    """The first tick, key or long number in a text, or None (A1721)."""
+    found = _NOT_PLAIN.search(text)
+    return found.group(0) if found else None
 
 
 @dataclass(frozen=True)
@@ -177,7 +196,8 @@ def build_values(
         outcome = getattr(event, "outcome", None)
         came = f", {humanize(plain_id(outcome))}" if outcome is not None else ""
         mark = " - FORMATIVE, keep it" if event.formative else ""
-        events.append(f"- [tick {event.tick}] {humanize(plain_id(event.kind))}{about}{came}{mark}")
+        when = f"[tick {event.tick}] " if _flag(settings, "event_ticks", True) else ""
+        events.append(f"- {when}{humanize(plain_id(event.kind))}{about}{came}{mark}")
     keys = known(job, texts, settings)
     beliefs: dict[str, list[str]] = {}
     for entry in payload.knowledge:
@@ -250,17 +270,22 @@ def output_schema(
     root_items: dict[str, Any] = (
         {"type": "string", "enum": roots} if roots else {"type": "string", "enum": ["none"]}
     )
+    by_service = _flag(settings, "kept_by_service", False)
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["summary", "kept", "dream", "ideas", "intentions", "morning_mood"],
+        "required": [
+            k
+            for k in ["summary", "kept", "dream", "ideas", "intentions", "morning_mood"]
+            if not (by_service and k == "kept")
+        ],
         "properties": {
             "summary": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": int(payload.memory_max_chars),
             },
-            "kept": kept,
+            **({} if by_service else {"kept": kept}),
             "dream": {
                 "type": "object",
                 "additionalProperties": False,
@@ -331,6 +356,7 @@ class Shown:
         settings: dict[str, Any],
     ) -> None:
         self._job, self._guard = job, guard
+        self._plain = _flag(settings, "plain_texts", False)
         self._locale = plain_id(job.display_locale)
         self._ids = {s["id"] for s in known(job).values()} | {
             s["id"] for s in day_things(job).values()
@@ -351,6 +377,8 @@ class Shown:
             return "content guard"
         if any(_ID_LIKE.fullmatch(i) and i in text.lower() for i in self._ids):
             return "raw id"
+        if self._plain and (found := not_plain(text)) is not None:
+            return f"a number or key ({found})"
         if self._words is not None:
             unknown = unknown_nouns(text, self._words, heads=True, only=self._world)
             if unknown:
@@ -386,9 +414,16 @@ def parse_review(
         raise InvalidOutputError("summary is empty")
     payload = review_payload(job)
     formative = sorted({e.tick for e in payload.events if e.formative})
-    kept = sorted(int(t) for t in values["kept"])
-    if kept != formative:
-        raise InvalidOutputError(f"kept {kept} must name all formative events {formative}")
+    if _flag(settings, "kept_by_service", False):
+        kept = formative
+    else:
+        kept = sorted(int(t) for t in values["kept"])
+        if kept != formative:
+            raise InvalidOutputError(f"kept {kept} must name all formative events {formative}")
+    if _flag(settings, "plain_texts", False) and (found := not_plain(summary)) is not None:
+        raise InvalidOutputError(
+            f"the summary names a tick, a number or a key ('{found}') - use names and words only"
+        )
     locale = plain_id(job.display_locale)
     shown = Shown(job, guard, texts, settings or {})
     notes: list[str] = []
@@ -461,6 +496,15 @@ def parse_review(
     return result, notes
 
 
+def _feedback(settings: dict[str, Any]) -> str | None:
+    """The prompt's sentence for a refused answer (A1721), or None (v1: ask again, other seed)."""
+    retry: object = settings.get("retry")
+    if not isinstance(retry, dict):
+        return None
+    value: object = cast(dict[str, object], retry).get("feedback")
+    return value if isinstance(value, str) else None
+
+
 class OllamaReviews:
     """The nightly look back with the language model (night kind, background priority)."""
 
@@ -495,6 +539,7 @@ class OllamaReviews:
             queue=self._queue,
             settings=self._settings,
             log=self._log,
+            feedback=_feedback(settings),
         )
         result, _ = answer.value
         return JobOutcome(

@@ -542,6 +542,10 @@ public partial class WorldPresenter : Node3D
         });
     }
 
+    /// <summary>Whether an inhabitant's figure lies now (island figures; the placeholder world has none lying).</summary>
+    private bool LiesNow(string inhabitantId) =>
+        _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView { Lying: true };
+
     private void ShowThoughts()
     {
         if (_host is null)
@@ -553,6 +557,12 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            if (LiesNow(e.InhabitantId))
+            {
+                // D1112 #8: a figure lying asleep neither speaks nor thinks on screen (the core keeps sleepers quiet too, A1710).
+                continue;
+            }
+
             if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
             {
                 // Talking (B6 R13): "..." while it thinks, then the answer or a question mark; the figures
