@@ -52,6 +52,7 @@ public partial class Main : Node3D
     // fastest speed before it quits saved (0 = until the window is closed).
     private NewWorldChoice? _newWorld;
     private double _runS;
+    private bool _quitting;
     private bool _tour;
     private double _tourRunS;
     private bool _nightShots;
@@ -431,8 +432,9 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// <c>--new-world=SEED[,SIZE[,CLIMATE[,FAVOR]]]</c> (defaults small, temperate, 50 - the form's usual choice);
-    /// null with a warning when the seed is no number.
+    /// <c>--new-world=SEED[,SIZE[,CLIMATE[,FAVOR]]]</c>; a missing size or climate is the data's default (empty here,
+    /// filled and checked in <see cref="StartNewWorldRun"/>), a missing favour 50. Null with a warning when the seed is
+    /// no number.
     /// </summary>
     private static NewWorldChoice? ParseNewWorld(string value)
     {
@@ -445,10 +447,10 @@ public partial class Main : Node3D
 
         var favor = parts.Length > 3 && int.TryParse(parts[3], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 50;
         return new NewWorldChoice(
-            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Lauf {seed}"),
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"run-{seed}"),
             seed,
-            parts.Length > 1 ? parts[1] : "small",
-            parts.Length > 2 ? parts[2] : "temperate",
+            parts.Length > 1 ? parts[1] : string.Empty,
+            parts.Length > 2 ? parts[2] : string.Empty,
             favor);
     }
 
@@ -464,6 +466,22 @@ public partial class Main : Node3D
             GD.PushError("NEW_WORLD_FAIL no world list");
             GetTree().Quit(1);
             return;
+        }
+
+        // Size and climate are options of the data (review GW3 #442): a typo fails here, clearly, not mid-start.
+        if (_menuData?.Options is { } options)
+        {
+            choice = choice with
+            {
+                Size = choice.Size.Length > 0 ? choice.Size : options.DefaultSize,
+                Climate = choice.Climate.Length > 0 ? choice.Climate : options.DefaultClimate,
+            };
+            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate))
+            {
+                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}' or climate '{choice.Climate}' is not an option of content/player/world_options.json");
+                GetTree().Quit(1);
+                return;
+            }
         }
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
@@ -488,7 +506,7 @@ public partial class Main : Node3D
         _world.Speed = fastest;
         GD.Print($"RUN_START speed={fastest.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
-        while (Time.GetTicksMsec() < until && _world is not null)
+        while (Time.GetTicksMsec() < until && _world is not null && !_quitting)
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
@@ -736,9 +754,16 @@ public partial class Main : Node3D
     /// <summary>Quitting saves on every path (menu, window close, Alt+F4); a failed save keeps the game open.</summary>
     private void SaveAndQuit()
     {
+        // Once is enough (review GW3 #442): a run that ends while the window is being closed must not save twice.
+        if (_quitting)
+        {
+            return;
+        }
+
         SaveSettings();
         if (TrySave())
         {
+            _quitting = true;
             // Like the smoke: silence all sounds and quit a moment later, so the audio server lets go of
             // every playback first (no stream left at exit, #142).
             _audio?.Silence();
