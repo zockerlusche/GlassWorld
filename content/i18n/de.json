@@ -1223,8 +1223,8 @@
       "text": "Ring"
     },
     {
-      "key": "vocab.shape.bowl",
-      "text": "Schale"
+      "key": "vocab.shape.hemisphere_open",
+      "text": "Offene Halbkugel"
     },
     {
       "key": "vocab.tech_level.wilderness",
@@ -1465,6 +1465,22 @@
     {
       "key": "vocab.object.driftwood",
       "text": "Treibholz"
+    },
+    {
+      "key": "vocab.object.egg",
+      "text": "Ei"
+    },
+    {
+      "key": "vocab.object.wool",
+      "text": "Wolle"
+    },
+    {
+      "key": "vocab.object.feather",
+      "text": "Feder"
+    },
+    {
+      "key": "vocab.object.dung",
+      "text": "Dung"
     },
     {
       "key": "vocab.object.shell",
@@ -2531,10 +2547,6 @@
       "text": "Gerade aus – diese Klänge werden neu gemacht."
     },
     {
-      "key": "msg.converse.no_answer",
-      "text": "Hm ... da muss ich erst nachdenken."
-    },
-    {
       "key": "ui.setup.model_image",
       "text": "Bild-KI: zeichnet Bilder neuer Dinge in der Rechennacht (in deinem ComfyUI)"
     },
@@ -2811,20 +2823,40 @@
       "text": "{name} hat nicht geantwortet."
     },
     {
-      "key": "ui.settings.zones_preview",
-      "text": "Neuer Bildschirmaufbau (Vorschau)"
+      "key": "ui.settings.classic_layout",
+      "text": "Alter Bildschirmaufbau (Rückfall)"
     },
     {
       "key": "ui.zone.people",
       "text": "Bewohner"
     },
     {
-      "key": "ui.zone.world",
-      "text": "Welt"
+      "key": "ui.zone.chronicle",
+      "text": "Chronik"
     },
     {
-      "key": "ui.zone.contact",
-      "text": "Kontakt"
+      "key": "ui.zone.questions",
+      "text": "Was sie beschäftigt"
+    },
+    {
+      "key": "ui.zone.mailbox",
+      "text": "Postfach"
+    },
+    {
+      "key": "ui.pause.help",
+      "text": "Hilfe und Gaben"
+    },
+    {
+      "key": "ui.corner.brooding",
+      "text": "Grübelt über eine Frage"
+    },
+    {
+      "key": "ui.corner.portrait_tip",
+      "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.weather",
+      "text": "Wetter: {weather}"
     },
     {
       "key": "ui.card.title",
@@ -2953,18 +2985,6 @@
     {
       "key": "ui.zone.tab.timeline",
       "text": "Zeitleiste"
-    },
-    {
-      "key": "ui.zone.tab.questions",
-      "text": "Was sie beschäftigt"
-    },
-    {
-      "key": "ui.zone.tab.help",
-      "text": "Hilfe"
-    },
-    {
-      "key": "ui.zone.tab.mailbox",
-      "text": "Postfach"
     },
     {
       "key": "msg.hint.questions_many",

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text.Json;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
@@ -12,7 +13,9 @@ namespace GlassWorld.Simulation.Data;
 
 /// <summary>
 /// One SQLite file per world (ADR-0003). Saving is crash-safe: the state is written into a fresh copy
-/// next to the target and then swapped in. Every file carries a schema version; older files are migrated
+/// next to the target, read back and checked, and then swapped in; the file it replaces stays as the last good
+/// state (<see cref="PreviousPath"/>), and a SHA-256 beside the file lets loading tell a damaged file (B2712,
+/// D1056). Every file carries a schema version; older files are migrated
 /// on load, newer ones are refused. Doubles are stored as SQLite REAL (IEEE 754), so a reload is exact.
 /// </summary>
 public static class SaveGameStore
@@ -122,7 +125,12 @@ public static class SaveGameStore
         """,
     ];
 
-    /// <summary>Saves a state (write into a copy, then swap).</summary>
+    /// <summary>
+    /// Saves a state (B2712): written into a copy, read back and checked (SQLite quick_check, schema version, the
+    /// state reads and is the one written); only then swapped in. The file it replaces stays as the last good state
+    /// (<see cref="PreviousPath"/>, one generation), and the SHA-256 of the new file is kept beside it. A copy
+    /// that fails the check never replaces anything (<see cref="InvalidDataException"/>).
+    /// </summary>
     public static void Save(string path, SaveState state)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -137,7 +145,64 @@ public static class SaveGameStore
             tx.Commit();
         }
 
-        File.Move(temp, path, overwrite: true);
+        try
+        {
+            ReadBack(temp, state);
+        }
+        catch
+        {
+            File.Delete(temp);
+            throw;
+        }
+
+        // The checksums go beside the files in steps, so that a crash at any point never leaves a whole file with a
+        // wrong sum: the new sum waits as .new until the swap is done; the last good state's sum is dropped before the
+        // swap (a file without one counts as whole) and written from the file really there after it (review GW3 #413).
+        var sum = SumPath(path);
+        File.WriteAllText(sum + ".new", Sha256Of(temp));
+        if (File.Exists(path))
+        {
+            var previous = PreviousPath(path);
+            File.Delete(SumPath(previous));
+            File.Replace(temp, path, previous);
+            File.WriteAllText(SumPath(previous) + ".new", Sha256Of(previous));
+            File.Move(SumPath(previous) + ".new", SumPath(previous), overwrite: true);
+        }
+        else
+        {
+            File.Move(temp, path);
+        }
+
+        File.Move(sum + ".new", sum, overwrite: true);
+    }
+
+    /// <summary>Key in <see cref="Exception.Data"/> of a damaged save's exception: the path of the last good state.</summary>
+    public const string PreviousKey = "previous";
+
+    /// <summary>The last good state kept beside a save game (the file the latest save replaced).</summary>
+    public static string PreviousPath(string path) => path + ".prev";
+
+    /// <summary>
+    /// Whether a save game is whole (B2712): its SHA-256 matches the one kept beside it (a file without one, e.g.
+    /// from before or imported, counts as whole), and SQLite's quick_check passes. Never changes the file.
+    /// </summary>
+    public static bool IsIntact(string path)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        if (!File.Exists(path) || !SumMatches(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var connection = Open(path, readOnly: true);
+            return QuickCheck(connection);
+        }
+        catch (SqliteException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -152,6 +217,22 @@ public static class SaveGameStore
         if (!File.Exists(path))
         {
             throw new FileNotFoundException("Save game not found.", path);
+        }
+
+        // B2712: a file whose checksum does not match was damaged after it was written; the game can offer the last
+        // good state (Data[PreviousKey], when there is one).
+        if (!SumMatches(path))
+        {
+            var previous = File.Exists(PreviousPath(path)) ? PreviousPath(path) : null;
+            var damaged = new InvalidDataException(previous is null
+                ? $"'{Path.GetFileName(path)}' was damaged after it was saved."
+                : $"'{Path.GetFileName(path)}' was damaged after it was saved; the last good state is '{Path.GetFileName(previous)}'.");
+            if (previous is not null)
+            {
+                damaged.Data[PreviousKey] = previous;
+            }
+
+            throw damaged;
         }
 
         int version;
@@ -206,6 +287,51 @@ public static class SaveGameStore
     {
         using var connection = Open(path, readOnly: true);
         return UserVersion(connection);
+    }
+
+    private static string SumPath(string path) => path + ".sha256";
+
+    private static string Sha256Of(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexStringLower(SHA256.HashData(stream));
+    }
+
+    /// <summary>No checksum kept, or the file matches it (or the one a save left as .new when it stopped after the swap).</summary>
+    private static bool SumMatches(string path)
+    {
+        var sum = SumPath(path);
+        var kept = new[] { sum, sum + ".new" }.Where(File.Exists).Select(f => File.ReadAllText(f).Trim()).ToList();
+        if (kept.Count == 0)
+        {
+            return true;
+        }
+
+        var actual = Sha256Of(path);
+        return kept.Any(k => string.Equals(k, actual, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool QuickCheck(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA quick_check;";
+        return string.Equals(Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture), "ok", StringComparison.Ordinal);
+    }
+
+    /// <summary>The written copy reads back as the state written: quick_check, schema version, world, tick and objects.</summary>
+    private static void ReadBack(string temp, SaveState state)
+    {
+        using var connection = Open(temp, readOnly: true);
+        if (!QuickCheck(connection) || UserVersion(connection) != SchemaVersion)
+        {
+            throw new InvalidDataException("The written save game did not pass its check; the previous one is kept.");
+        }
+
+        var read = Read(connection);
+        if (read.Seed != state.Seed || read.Tick != state.Tick || read.Objects.Count != state.Objects.Count || read.Inhabitants.Count != state.Inhabitants.Count)
+        {
+            throw new InvalidDataException("The written save game reads back differently; the previous one is kept.");
+        }
     }
 
     private static SqliteConnection Open(string path, bool readOnly = false)
@@ -420,6 +546,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("nature", JsonSerializer.Serialize(s.Nature, Json)));
         }
 
+        if (s.Animals is not null)
+        {
+            // The animal stocks (B4b K4); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("animals", JsonSerializer.Serialize(s.Animals, Json)));
+        }
+
         if (s.Placed is not null)
         {
             // Things that came after the world start (durability, D711 section 5); no entry = none.
@@ -436,6 +568,12 @@ public static class SaveGameStore
         {
             // Reached milestones (B2598); no entry = none.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("milestones", JsonSerializer.Serialize(s.Milestones, Json)));
+        }
+
+        if (s.ChronicleNight is not null)
+        {
+            // The chronicle's day narratives (B8 R10); no entry = none told yet.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("chronicle_night", JsonSerializer.Serialize(s.ChronicleNight, Json)));
         }
 
         if (s.ContentFingerprint is not null)
@@ -708,9 +846,11 @@ public static class SaveGameStore
             Burning = meta.TryGetValue("burning", out var burning) ? JsonSerializer.Deserialize<List<Simulation.Objects.BurningThing>>(burning, Json) : null,
             Forgetting = meta.TryGetValue("forgetting", out var forgetting) ? JsonSerializer.Deserialize<Simulation.Inhabitants.ForgettingState>(forgetting, Json) : null,
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
+            Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
+            ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),

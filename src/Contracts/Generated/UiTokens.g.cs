@@ -385,6 +385,28 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Which drawn symbol stands for an id (no picture files: the symbols are drawn by the game).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiIconChoice
+    {
+
+        /// <summary>
+        /// Season or weather id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Drawn symbol.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("icon")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UiIconChoiceIcon>))]
+        public UiIconChoiceIcon Icon { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -470,7 +492,7 @@ namespace GlassWorld.Contracts
         public HeadSymbol HeadSymbol { get; set; } = new HeadSymbol();
 
         /// <summary>
-        /// Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.
+        /// Sizes of the corner layout (UI concept Variante A, D957 v4, B2643; grew out of the zones preview W1717/D642): compact corners so the middle of the picture stays free.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("zones")]
         public Zones Zones { get; set; } = new Zones();
@@ -558,6 +580,96 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum UiIconChoiceIcon
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("menu")]
+        Menu = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("question")]
+        Question = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("letter")]
+        Letter = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("book")]
+        Book = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("person")]
+        Person = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("pause")]
+        Pause = 5,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("play")]
+        Play = 6,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("fast")]
+        Fast = 7,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("blossom")]
+        Blossom = 8,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("sun")]
+        Sun = 9,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("leaf")]
+        Leaf = 10,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("snowflake")]
+        Snowflake = 11,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("cloud")]
+        Cloud = 12,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("rain")]
+        Rain = 13,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("snow")]
+        Snow = 14,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("fog")]
+        Fog = 15,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("storm")]
+        Storm = 16,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("frost")]
+        Frost = 17,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("heat")]
+        Heat = 18,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("drought")]
+        Drought = 19,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
+        Unknown = 20,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class HeadSymbol
     {
 
@@ -608,6 +720,66 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("panel_padding")]
         public int PanelPadding { get; set; } = default!;
+
+        /// <summary>
+        /// Diameter of an inhabitant's round portrait in the list top left.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portrait_px")]
+        public int PortraitPx { get; set; } = default!;
+
+        /// <summary>
+        /// Diameter of a portrait in the compact list (many inhabitants: portraits only, the name on hover).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("compact_portrait_px")]
+        public int CompactPortraitPx { get; set; } = default!;
+
+        /// <summary>
+        /// Width of the portrait list top left with name and activity.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portrait_list_width")]
+        public int PortraitListWidth { get; set; } = default!;
+
+        /// <summary>
+        /// From this many inhabitants the list shows portraits only and scrolls (D957 section 1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portraits_compact_from")]
+        public int PortraitsCompactFrom { get; set; } = default!;
+
+        /// <summary>
+        /// Largest share of the free height the portrait list takes; more scrolls.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portrait_list_height_share")]
+        public double PortraitListHeightShare { get; set; } = default!;
+
+        /// <summary>
+        /// Diameter of the round symbol buttons top right (menu, questions, mail, chronicle, inhabitants).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("round_button_px")]
+        public int RoundButtonPx { get; set; } = default!;
+
+        /// <summary>
+        /// Width of the favour bar top right.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("favor_bar_width")]
+        public int FavorBarWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("middle_share")]
+        public double MiddleShare { get; set; } = default!;
+
+        /// <summary>
+        /// Symbol of each season in the time block top right (season ids of the world time data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("season_icons")]
+        public System.Collections.Generic.ICollection<UiIconChoice> SeasonIcons { get; set; } = new System.Collections.ObjectModel.Collection<UiIconChoice>();
+
+        /// <summary>
+        /// Symbol of each weather in the time block top right (ids of the weather vocabulary); an unknown weather shows the symbol 'unknown'.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weather_icons")]
+        public System.Collections.Generic.ICollection<UiIconChoice> WeatherIcons { get; set; } = new System.Collections.ObjectModel.Collection<UiIconChoice>();
 
     }
 }

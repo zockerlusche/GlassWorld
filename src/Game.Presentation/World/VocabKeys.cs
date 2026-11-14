@@ -17,4 +17,7 @@ public static class VocabKeys
 
     /// <summary>Name of a property (the dream texts, A1618).</summary>
     public static string Property(string id) => "vocab.property." + id;
+
+    /// <summary>Name of a weather or weather condition (the weather symbol's tooltip, A1682).</summary>
+    public static string Weather(string id) => "vocab.weather." + id;
 }

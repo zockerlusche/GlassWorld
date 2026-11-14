@@ -14,6 +14,7 @@ namespace GlassWorld.Simulation.Nature;
 /// <param name="WetFrost">Frost takts with wetness shortly before (frost on wet things).</param>
 /// <param name="LastWetTakt">The last takt with precipitation, or -1.</param>
 /// <param name="Flags">Influences of the takt that runs now: bit 0 wet, 1 frost, 2 heat, 3 frost on wet.</param>
+/// <param name="SnowMm">The island's snow cover in millimetres (TL #25357); 0 = none.</param>
 public sealed record NatureState(
     long BaseTakt,
     IReadOnlyDictionary<string, List<long>> Growth,
@@ -23,7 +24,8 @@ public sealed record NatureState(
     List<long> Heat,
     List<long> WetFrost,
     long LastWetTakt,
-    int Flags);
+    int Flags,
+    long SnowMm = 0);
 
 /// <summary>What a place went through since a tick (R51, for the durability of things): counts of takts.</summary>
 /// <param name="Wet">Takts with precipitation.</param>
@@ -67,6 +69,7 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     private long _baseTakt = -1;
     private long _lastWetTakt = -1;
     private int _flags;
+    private long _snowMm;
     private long _lastTick = -1;
 
     /// <summary>Creates the takt; <paramref name="weather"/> null = no weather (no drought, no influences).</summary>
@@ -94,7 +97,10 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     public string Name => "nature";
 
     /// <inheritdoc/>
-    public bool HasState => _growth.Count > 0 || (_data.Influences is not null && _wet.Count > 0);
+    public bool HasState => _growth.Count > 0 || (_data.Influences is not null && _wet.Count > 0) || _snowMm > 0;
+
+    /// <summary>The island's snow cover in millimetres now (TL #25357; the look and the inhabitants read it).</summary>
+    public long SnowMm => _snowMm;
 
     /// <summary>Ticks per takt.</summary>
     public long TaktTicks => _taktTicks;
@@ -189,6 +195,12 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         {
             hasher.Write((long)_digests[WetKey]).Write((long)_digests[FrostKey]).Write((long)_digests[HeatKey]).Write((long)_digests[WetFrostKey]).Write(_lastWetTakt).Write(_flags);
         }
+
+        // Only a world with snow on the ground carries it (hashes of other worlds stay as they were).
+        if (_snowMm > 0)
+        {
+            hasher.Write("snow").Write(_snowMm);
+        }
     }
 
     /// <summary>The sums for a save game.</summary>
@@ -201,7 +213,8 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         [.. _heat],
         [.. _wetFrost],
         _lastWetTakt,
-        _flags);
+        _flags,
+        _snowMm);
 
     /// <summary>Restores the sums of a save game.</summary>
     public void Restore(NatureState? state)
@@ -230,6 +243,7 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         Replace(_wetFrost, state.WetFrost);
         _lastWetTakt = state.LastWetTakt;
         _flags = state.Flags;
+        _snowMm = state.SnowMm;
         _digests.Clear();
         foreach (var (group, series) in _growth)
         {
@@ -318,6 +332,19 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         if (reading.TemperatureTenthC >= influences.HeatMinTenthC)
         {
             _flags |= HeatBit;
+        }
+
+        // TL #25357: precipitation in frost builds the snow cover up, warmth melts it - once per takt.
+        if (_data.Snow is { } snow)
+        {
+            if (reading.PrecipitationPermille > 0 && reading.TemperatureTenthC < 0)
+            {
+                _snowMm = Math.Min(snow.MaxMm, _snowMm + snow.PerTaktMm);
+            }
+            else if (reading.TemperatureTenthC >= 10 && _snowMm > 0)
+            {
+                _snowMm = Math.Max(0, _snowMm - ((long)snow.MeltPerDegreeMm * (reading.TemperatureTenthC / 10)));
+            }
         }
     }
 

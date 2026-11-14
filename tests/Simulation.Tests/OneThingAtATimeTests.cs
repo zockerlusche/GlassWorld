@@ -307,6 +307,7 @@ public sealed class OneThingAtATimeTests : IDisposable
         Assert.Equal(a.Planned, loaded.Inhabitants.Get(a.Id).Planned);
 
         // A file from before the mark (the activity records carry no such member) loads without it.
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
         {
             c.Open();

@@ -435,6 +435,103 @@
       },
       "max_total": 24,
       "regrow_hours": 6
+    },
+    {
+      "biome": "freshwater",
+      "object_type": "egg",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 16,
+      "regrow_hours": 72,
+      "grows_on": {
+        "object_type": "reed",
+        "within_cells": 1
+      }
+    },
+    {
+      "biome": "swamp",
+      "object_type": "egg",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 16,
+      "regrow_hours": 72,
+      "grows_on": {
+        "object_type": "reed",
+        "within_cells": 1
+      }
+    },
+    {
+      "biome": "meadow",
+      "object_type": "wool",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 16,
+      "regrow_hours": 96,
+      "grows_on": {
+        "object_type": "thorn_bush",
+        "within_cells": 1
+      }
+    },
+    {
+      "biome": "forest",
+      "object_type": "feather",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20,
+      "regrow_hours": 48,
+      "grows_on": {
+        "object_type": "conifer_tree",
+        "within_cells": 2
+      }
+    },
+    {
+      "biome": "forest",
+      "object_type": "feather",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20,
+      "regrow_hours": 48,
+      "grows_on": {
+        "object_type": "deciduous_tree",
+        "within_cells": 2
+      }
+    },
+    {
+      "biome": "meadow",
+      "object_type": "dung",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20,
+      "regrow_hours": 72
+    },
+    {
+      "biome": "field",
+      "object_type": "dung",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 16,
+      "regrow_hours": 72
     }
   ],
   "mandatory": [

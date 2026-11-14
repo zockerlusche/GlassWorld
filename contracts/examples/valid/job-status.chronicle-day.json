@@ -1,0 +1,24 @@
+{
+  "contract_version": "0.2",
+  "job_id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+  "tick": 2600,
+  "kind": "chronicle",
+  "state": "done",
+  "result": {
+    "chronicle": {
+      "narrative": {
+        "locale": "de",
+        "text": "Am dritten Tag begegneten sich Joro und Rena zum ersten Mal, und Rena nahm zum ersten Mal einen Feuerstein in die Hand."
+      }
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "ollama",
+    "model": "qwen3.5:9b",
+    "prompt_version": "review/night.v1",
+    "seed": 4242,
+    "latency_ms": 9800,
+    "attempts": 1
+  }
+}
