@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/invention-base-functions.schema.json",
+  "title": "InventionBaseFunctions",
+  "description": "The fixed set of base functions every invented thing is mapped to (B2616, D827 R31): what it is for in the simplest sense. The effect in the world comes only through the properties a function grants (no thing-specific paths, D1022); new functions only by changing this data, never by the AI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "functions"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "functions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/BaseFunction"
+      }
+    }
+  },
+  "$defs": {
+    "BaseFunction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "grants_properties"
+      ],
+      "properties": {
+        "id": {
+          "description": "Function id; its visible name is the text key vocab.base_function.<id> (DE/EN).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "description": {
+          "description": "What the function means, in English, for the guard's prompt (internal, ADR-0007).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "grants_properties": {
+          "description": "Properties (vocabulary property) every thing with this function has. Empty while the vocabulary has no fitting property: the function is then only recorded.",
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    }
+  }
+}

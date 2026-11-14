@@ -112,6 +112,7 @@
   },
   "max_materials": 12,
   "living_properties": [],
+  "require_base_function": false,
   "implied_properties": [
     "crafted"
   ]

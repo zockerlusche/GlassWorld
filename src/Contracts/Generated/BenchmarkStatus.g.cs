@@ -697,6 +697,13 @@ namespace GlassWorld.Contracts
         public string TechLevel { get; set; } = default!;
 
         /// <summary>
+        /// The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("base_function")]
+        public string? BaseFunction { get; set; } = default!;
+
+        /// <summary>
         /// Optional (B4b R11).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

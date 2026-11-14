@@ -569,6 +569,7 @@ public sealed class SimulationHost
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
+        inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
         {
             // Out of the hash while only things of the world start exist.
