@@ -419,7 +419,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 var distance = Math.Sqrt((dx * dx) + (dz * dz));
                 if (distance < radius)
                 {
-                    parts.Add((thing, (int)Math.Round(heat * (1.0 - (distance / radius)), MidpointRounding.AwayFromZero)));
+                    parts.Add((thing, (int)Math.Round(heat * (1.0 - (distance / radius)) * StrengthPermille(thing.Id) / 1000.0, MidpointRounding.AwayFromZero)));
                 }
             }
         }
