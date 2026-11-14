@@ -21,7 +21,8 @@ public static class InhabitantStates
     /// <param name="label">What the inhabitant calls the subject of a remembered event (<see cref="InhabitantsSystem.LabelOf"/>); null = no labels.</param>
     /// <param name="typeLabel">What the inhabitant calls a kind of thing its knowledge or a habit is about (<see cref="InhabitantsSystem.TypeLabelOf"/>); null = no labels.</param>
     /// <param name="needLabel">The name of a need an invention brought (<see cref="InhabitantsSystem.NeedLabelOf"/>, A1372); null = no labels.</param>
-    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null, Func<string, LocalizedName?>? needLabel = null)
+    /// <param name="unsure">Whether it is no longer sure of a belief (<see cref="InhabitantsSystem.UnsureOf"/>, D1017 G1); null = always sure.</param>
+    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null, Func<string, LocalizedName?>? needLabel = null, Func<Inhabitant, string, string, bool>? unsure = null)
     {
         ArgumentNullException.ThrowIfNull(perceivedTypes);
         ArgumentNullException.ThrowIfNull(perceivedInhabitants);
@@ -66,7 +67,7 @@ public static class InhabitantStates
                     looked = true;
                 }
 
-                known.Add(Entry(type, property, belief, seen, called));
+                known.Add(Entry(type, property, belief, seen, called, unsure?.Invoke(inhabitant, type, property) == true));
             }
         }
 
@@ -92,15 +93,15 @@ public static class InhabitantStates
         return state;
     }
 
-    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief, Func<Inhabitant, string, LocalizedName?>? typeLabel = null) =>
-        Entry(type, property, belief, LatestPlace(inhabitant, type), typeLabel?.Invoke(inhabitant, type));
+    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief, Func<Inhabitant, string, LocalizedName?>? typeLabel = null, Func<Inhabitant, string, string, bool>? unsure = null) =>
+        Entry(type, property, belief, LatestPlace(inhabitant, type), typeLabel?.Invoke(inhabitant, type), unsure?.Invoke(inhabitant, type, property) == true);
 
     /// <summary>
     /// A belief as the contract carries it, with what belongs to its type and is the same for all beliefs
     /// about it: <paramref name="seen"/>, the most recent remembered place of the type, and
     /// <paramref name="called"/>, what the inhabitant itself calls it.
     /// </summary>
-    private static KnowledgeEntry Entry(string type, string property, Objects.Belief belief, (string ObjectId, PlaceMemory Place)? seen, LocalizedName? called)
+    private static KnowledgeEntry Entry(string type, string property, Objects.Belief belief, (string ObjectId, PlaceMemory Place)? seen, LocalizedName? called, bool fading)
     {
         return new KnowledgeEntry
         {
@@ -118,6 +119,9 @@ public static class InhabitantStates
 
             // What the inhabitant itself calls this kind of thing (an invention it knows); absent for what the data name.
             Label = called,
+
+            // A fading belief says so (GW2 #395); absent = sure, so requests without fading stay as they were.
+            Sure = fading ? false : null,
         };
     }
 

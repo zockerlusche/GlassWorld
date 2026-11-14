@@ -74,7 +74,8 @@
       "properties": {
         "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
         "radius_cm": { "type": "integer", "minimum": 1, "maximum": 10000, "description": "How near the burning things are." },
-        "min_burning": { "type": "integer", "minimum": 1, "maximum": 64, "description": "How many burning things at least." }
+        "min_burning": { "type": "integer", "minimum": 1, "maximum": 64, "description": "How many burning things at least." },
+        "caught_only": { "type": "boolean", "description": "Count only things that took hold from a fire near them, not fires the inhabitants made (review GW2 #398: two campfires at the camp are no big fire). Absent = false." }
       }
     },
     "FireRemains": {

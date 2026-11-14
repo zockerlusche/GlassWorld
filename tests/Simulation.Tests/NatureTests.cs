@@ -30,6 +30,20 @@ public sealed class NatureTests
     }
 
     [Fact]
+    public void AFactorFromOutsideMultipliesTheSeasonFactor()
+    {
+        // GW3 K4 (#25247): e.g. how full an animal stock is - half full, half the growth.
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var nature = new NatureSystem(Settings(1000), host.World.Calendar.Settings.TicksPerHour, null) { FactorOf = (_, _) => 500 };
+        var regrow = 3 * nature.TaktTicks;
+        Step(host, nature, (2 * regrow) + nature.TaktTicks);
+
+        Assert.True(nature.HasState);
+        Assert.False(nature.Grown("apple", 0, (2 * regrow) - 1, regrow));
+        Assert.True(nature.Grown("apple", 0, 2 * regrow, regrow));
+    }
+
+    [Fact]
     public void AtHalfSpeedAPlaceNeedsTwiceAsLong()
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 3, new MockDecisionPort(), "de");

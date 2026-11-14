@@ -25,6 +25,20 @@ public sealed record InventionRules(
     BuildRules Build)
 {
     /// <summary>
+    /// The base functions of the data (D827 R31, content/invention/base_functions.json): id -> the properties a thing with
+    /// that function gets. The core acts on these properties only, never on the function itself (D1022).
+    /// </summary>
+    public FrozenDictionary<string, FrozenSet<string>> BaseFunctions { get; init; } = FrozenDictionary<string, FrozenSet<string>>.Empty;
+
+    /// <summary>What a type made from <paramref name="invention"/> is: its own properties, what being made implies and what its base function grants.</summary>
+    public IEnumerable<string> PropertiesOf(Invention invention)
+    {
+        ArgumentNullException.ThrowIfNull(invention);
+        var granted = invention.BaseFunction is { } function && BaseFunctions.TryGetValue(function, out var properties) ? properties : [];
+        return invention.Introduces.Concat(Settings.ImpliedProperties).Concat(granted).Distinct(StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// The world's tech level as a number: the position of <c>Settings.TechLevel</c> in the vocabulary
     /// <c>tech_level</c> (first = 0; checked at load). Data that count tech levels (look epochs) compare with it.
     /// </summary>
@@ -88,6 +102,12 @@ public static class InventionCheck
     /// <summary>A name names a weapon, a trap, hunting or fishing gear or poison (B4b R16, B2481; data forbidden_terms).</summary>
     public const string ForbiddenPurpose = "forbidden_purpose";
 
+    /// <summary>Point 11 (D827 R31): the base function is not in the data's list.</summary>
+    public const string UnknownBaseFunction = "unknown_base_function";
+
+    /// <summary>Point 11 (D827 R31): no base function although the data require one (require_base_function).</summary>
+    public const string MissingBaseFunction = "missing_base_function";
+
     /// <summary>A new need or ability names an action that is not in the vocabulary.</summary>
     public const string UnknownAction = "unknown_action";
 
@@ -130,6 +150,13 @@ public static class InventionCheck
         if (invention.Materials.Concat(invention.Steps.SelectMany(s => s.Materials)).Any(m => !perceivedTypes.Contains(m)))
         {
             reasons.Add(MaterialNotPerceived);
+        }
+
+        // Point 11 (D827 R31): the thing is mapped to a base function of the fixed list (data); while the guard does not map
+        // yet, a missing one passes unless the data require it.
+        if (invention.BaseFunction is { } baseFunction ? !rules.BaseFunctions.ContainsKey(baseFunction) : settings.RequireBaseFunction == true)
+        {
+            reasons.Add(invention.BaseFunction is null ? MissingBaseFunction : UnknownBaseFunction);
         }
 
         if (!rules.Actions.Contains(invention.Purpose))

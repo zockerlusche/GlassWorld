@@ -305,6 +305,42 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void ABaseFunctionGivesItsPropertiesToTheNewTypeAndNothingElse()
+    {
+        // D827 R31: the effect comes only through granted properties; a function without fitting properties is only recorded.
+        var rules = Content.Value.Inventions;
+        var invention = Result([]).Invention!;
+        invention.BaseFunction = "shelter";
+        Assert.Contains("sheltering", rules.PropertiesOf(invention));
+        Assert.Superset(rules.Settings.ImpliedProperties.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(invention).ToHashSet(StringComparer.Ordinal));
+        invention.BaseFunction = "tool";
+        Assert.Equal(rules.Settings.ImpliedProperties.Order(StringComparer.Ordinal), rules.PropertiesOf(invention).Order(StringComparer.Ordinal));
+
+        // Every function has its name in both languages.
+        foreach (var language in new[] { "de", "en" })
+        {
+            var catalogue = File.ReadAllText(Path.Combine(TestData.Root, "content", "i18n", language + ".json"));
+            Assert.All(rules.BaseFunctions.Keys, id => Assert.Contains($"\"vocab.base_function.{id}\"", catalogue, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void AnInventionMappedToAShelterShelters()
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 16);
+        RunUntilJob(host, port);
+        var job = port.Submitted.Single();
+        var answer = Approved(job, []);
+        answer.Result!.Invention!.Invention!.BaseFunction = "shelter";
+        port.Answer(job, answer);
+        host.World.Run(30);
+        var type = InventionSystem.TypeIdFor(job.RequestId);
+        Assert.True(host.Types.HasProperty(type, "sheltering"));
+        Assert.Equal("shelter", host.Inventions.Invention(type)?.BaseFunction);
+    }
+
+    [Fact]
     public void TheFinalCheckRefusesWhatTheDataForbid()
     {
         var rules = Content.Value.Inventions;
@@ -333,6 +369,13 @@ public sealed class InventionTests : IDisposable
         // B2531: a property the data mark as one of living beings is refused.
         var living = rules with { Settings = Copy(rules.Settings, s => s.LivingProperties = ["container"]) };
         Assert.Contains(InventionCheck.LivingProperty, InventionCheck.Check(Result(["container"]), perceived, living));
+
+        // Point 11 (D827 R31): a base function from the list passes, one outside it never; a missing one only while the data allow it.
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, rules));
+        Assert.Contains(InventionCheck.UnknownBaseFunction, InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "no_such_function"), perceived, rules));
+        var strict = rules with { Settings = Copy(rules.Settings, s => s.RequireBaseFunction = true) };
+        Assert.Contains(InventionCheck.MissingBaseFunction, InventionCheck.Check(Result(["container"]), perceived, strict));
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, strict));
 
         InventionResult Mutate(Action<InventionResult> change)
         {

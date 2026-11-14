@@ -126,6 +126,19 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
         _forgotten.AddRange(state?.Forgotten ?? []);
     }
 
+    /// <summary>
+    /// Whether the inhabitant is no longer sure of a belief (GW2 #395): it has faded below the data's
+    /// <c>unsure_below</c> - its confidence now against the confidence before it began to fade.
+    /// </summary>
+    public bool IsUnsure(Inhabitant inhabitant, string typeId, string propertyId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _settings?.UnsureBelow is { } below
+            && _fading.TryGetValue((inhabitant.Id, typeId, propertyId), out var known) && known.Original > 0
+            && inhabitant.Beliefs.TryGet(typeId, propertyId, out var belief)
+            && belief.Confidence / known.Original < below;
+    }
+
     /// <summary>The strength of a belief now: 1 when fresh, falling by the source's decay per day since it was used.</summary>
     internal double StrengthOf(Belief belief, long used, long now) =>
         _settings is { } settings && settings.DecayPerDay.TryGetValue(belief.Source, out var decay)

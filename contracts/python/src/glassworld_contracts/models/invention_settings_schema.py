@@ -103,6 +103,10 @@ class InventionSettings(BaseModel):
         ge=1,
         le=16,
     )
+    require_base_function: bool | None = Field(
+        None,
+        description='Final check point 11 (D827 R31): when true, an invention without a base function is refused (missing_base_function). False while the guard does not map things yet; a base function that is not in the list is always refused.',
+    )
     implied_properties: list[common_schema.VocabId] = Field(
         ...,
         description='Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).',
