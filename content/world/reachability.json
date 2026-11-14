@@ -14,7 +14,7 @@
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },
     { "gap": "heat:embers", "reason": "No data says which thing gives which heat level (see heat:warm)." },
     { "gap": "heat:open_fire", "reason": "No data says which thing gives which heat level (see heat:warm)." },
-    { "gap": "heat:kiln", "reason": "No data says which thing gives which heat level (see heat:warm); a kiln is no object yet." },
+    { "gap": "heat:kiln", "reason": "No data says which thing gives which heat level (see heat:warm); nothing gives this one yet." },
     { "gap": "heat:furnace", "reason": "No data says which thing gives which heat level (see heat:warm); a furnace is no object yet." },
 
     { "gap": "process:roast_food", "reason": "Needs heat level embers (see heat:embers)." },
