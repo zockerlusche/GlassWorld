@@ -335,7 +335,12 @@ public partial class WorldPresenter
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
-        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed) { HullOutline = quality.HullOutline };
+        var looks = _objectsView.Looks;
+        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
+        {
+            HullOutline = quality.HullOutline,
+            ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
+        };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
 

@@ -18,6 +18,7 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Niche">The measures of a rock niche (shape rock_niche, TL #20750), or null.</param>
 /// <param name="WallProbeM">Radius around the object in which the ground is searched for the wall it leans on (align wall; 0 = no search).</param>
 /// <param name="WallMinRiseM">How far the ground must rise within that radius to count as a wall.</param>
+/// <param name="Reach">A1632: where a hand meets the thing (low, mid, high) for the animation choice, or null.</param>
 public sealed record ObjectLook(
     string VisualId,
     ObjectLookShape Shape,
@@ -32,7 +33,8 @@ public sealed record ObjectLook(
     double SwayM = 0,
     RockNicheShape? Niche = null,
     double WallProbeM = 0,
-    double WallMinRiseM = 0)
+    double WallMinRiseM = 0,
+    string? Reach = null)
 {
     /// <summary>The colour of a role; a shape with more roles than colours repeats them from the start.</summary>
     public string Color(int role) => Colors[role % Colors.Count];
@@ -188,7 +190,8 @@ public sealed class ObjectLooks
                 visual.SwayM ?? 0,
                 visual.Niche is { } niche ? RockNicheShape.From(niche) : null,
                 visual.Niche?.WallProbeM ?? 0,
-                visual.Niche?.WallMinRiseM ?? 0);
+                visual.Niche?.WallMinRiseM ?? 0,
+                visual.Reach?.ToString().ToLowerInvariant());
             visuals.Add(look);
             foreach (var type in visual.Types)
             {
