@@ -734,6 +734,11 @@ public partial class Main
                 settings.Close();
             }
 
+            if (_tourFull)
+            {
+                await FullTourAsync(first, Take);
+            }
+
             ok = failed == 0 && count > 0;
         }
         catch (Exception e) when (e is not OutOfMemoryException)
