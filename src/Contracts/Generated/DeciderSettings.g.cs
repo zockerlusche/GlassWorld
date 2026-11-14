@@ -37,10 +37,24 @@ namespace GlassWorld.Contracts
         public double? MoodAtLeast { get; set; } = default!;
 
         /// <summary>
-        /// Least game hours between two leisure questions of one inhabitant.
+        /// Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("every_hours")]
         public double EveryHours { get; set; } = default!;
+
+        /// <summary>
+        /// D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("every_hours_by_trait")]
+        public TraitCurve? EveryHoursByTrait { get; set; } = default!;
+
+        /// <summary>
+        /// D1086: needs_at_least is multiplied by this trait factor (a lower factor = a free moment already with less strength). Omitted = the same for all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("needs_at_least_by_trait")]
+        public TraitCurve? NeedsAtLeastByTrait { get; set; } = default!;
 
     }
 
