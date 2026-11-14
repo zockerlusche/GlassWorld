@@ -163,6 +163,37 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void AnInhabitantRemembersHowItsPlaceFeltAndForgetsItLater()
+    {
+        // B5 R32 (D1099): the latest feeling per grid square, bounded and forgotten after the data's time.
+        var (host, inhabitant) = Island();
+        var places = Content.Value.Body!.FeltPlaces!;
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        var place = $"{(long)Math.Floor(inhabitant.Position.X / places.CellM)}/{(long)Math.Floor(inhabitant.Position.Z / places.CellM)}";
+        Assert.Equal(places.KeptDry, inhabitant.FeltPlaces[place].Felt);
+
+        inhabitant.RememberFelt("far/away", new FeltPlace("cold", host.World.Tick), places.Max, (long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour);
+        inhabitant.RememberFelt("later/on", new FeltPlace("warm", host.World.Tick + ((long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour)), places.Max, (long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour);
+        Assert.DoesNotContain("far/away", inhabitant.FeltPlaces.Keys);
+        Assert.Contains("later/on", inhabitant.FeltPlaces.Keys);
+    }
+
+    [Fact]
+    public void FeltPlacesAreBoundedPerInhabitant()
+    {
+        var (_, inhabitant) = Island();
+        for (var i = 0; i < 10; i++)
+        {
+            inhabitant.RememberFelt($"{i}/0", new FeltPlace("mild", 100 + i), 3, 1_000_000);
+        }
+
+        Assert.Equal(["7/0", "8/0", "9/0"], inhabitant.FeltPlaces.Keys);
+    }
+
+    [Fact]
     public void AWetInhabitantStaysWetAcrossSavingAndLoading()
     {
         var (host, inhabitant) = Island();
@@ -179,6 +210,7 @@ public sealed class BodyTests
             var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new SilentPort(), "de"), SaveGameStore.Load(path));
             Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
             Assert.Equal(wet, loaded.Body!.WetPermille(inhabitant.Id));
+            Assert.Equal(inhabitant.FeltPlaces, loaded.Inhabitants.Get(inhabitant.Id).FeltPlaces);
         }
         finally
         {

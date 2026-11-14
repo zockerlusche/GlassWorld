@@ -179,13 +179,15 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     private void TakeIn(World world)
     {
         var every = Math.Max(1L, (long)(_data.ExperienceEveryMinutes ?? 10) * _ticksPerHour / 60);
-        if (_data.Experiences is not { Count: > 0 } experiences || world.Tick % every != 0)
+        if (world.Tick % every != 0)
         {
             return;
         }
 
+        var experiences = _data.Experiences ?? [];
         foreach (var inhabitant in _inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal))
         {
+            RememberHowItFelt(world, inhabitant);
             var action = inhabitant.Activity?.Action;
             foreach (var experience in experiences)
             {
@@ -240,6 +242,43 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     {
         var inHour = tick % _ticksPerHour;
         return (int)((perHour * (inHour + 1) / _ticksPerHour) - (perHour * inHour / _ticksPerHour));
+    }
+
+    /// <summary>
+    /// B5 R32 (D1099): the inhabitant remembers how its place feels now - kept dry in the rain by a thing there, else
+    /// wet, else its comfort level, each mapped to a feeling by the data. Only what it felt there; no rule what to do.
+    /// </summary>
+    private void RememberHowItFelt(World world, Inhabitant inhabitant)
+    {
+        if (_data.FeltPlaces is not { } places)
+        {
+            return;
+        }
+
+        string? felt = null;
+        var rain = AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true };
+        if (rain && places.KeptDry is { } dry && ShelterOf(inhabitant.Position) is not null)
+        {
+            felt = dry;
+        }
+        else if (places.Wet is { } wet && WetPermille(inhabitant.Id) >= (_data.Wetness.WetFromPermille ?? 1))
+        {
+            felt = wet;
+        }
+        else if (_inhabitants.ComfortLevelOf(world, inhabitant) is { } level)
+        {
+            felt = places.FromComfort.FirstOrDefault(f => string.Equals(f.Level, level, StringComparison.Ordinal))?.Felt;
+        }
+
+        if (felt is null)
+        {
+            return;
+        }
+
+        var x = (long)Math.Floor(inhabitant.Position.X / places.CellM);
+        var z = (long)Math.Floor(inhabitant.Position.Z / places.CellM);
+        var place = x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" + z.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        inhabitant.RememberFelt(place, new FeltPlace(felt, world.Tick), places.Max, (long)places.ForgetHours * _ticksPerHour);
     }
 
     /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
