@@ -60,6 +60,37 @@ class BodyWetness(BaseModel):
     )
 
 
+class Season(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    season: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    permille: int = Field(
+        ...,
+        description='0 = lets everything through, 1000 = full cover.',
+        ge=0,
+        le=1000,
+    )
+
+
+class BodyCover(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='A shade-casting object type.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    seasons: list[Season] = Field(..., max_length=8, min_length=1)
+
+
 class SunPosition(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -115,3 +146,8 @@ class BodySettings(BaseModel):
     )
     wetness: BodyWetness
     sun: BodySun
+    cover: list[BodyCover] | None = Field(
+        None,
+        description='How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).',
+        max_length=64,
+    )
