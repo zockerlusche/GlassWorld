@@ -8,7 +8,7 @@ public enum LogLineKind
     /// <summary>An inhabitant thought something.</summary>
     Thought,
 
-    /// <summary>An inhabitant said something (an answer to the player, or declining).</summary>
+    /// <summary>An inhabitant said something (an answer to the player, declining, or aloud to another inhabitant with a spoken action, A1510).</summary>
     Said,
 
     /// <summary>The player said something to an inhabitant.</summary>
@@ -47,8 +47,17 @@ public sealed class ConversationLog
     private readonly int _capacity;
     private long _seq;
 
-    /// <summary>Creates a log that keeps the newest <paramref name="capacity"/> lines.</summary>
-    public ConversationLog(int capacity) => _capacity = Math.Max(1, capacity);
+    private readonly IReadOnlySet<string> _spoken;
+
+    /// <summary>
+    /// Creates a log that keeps the newest <paramref name="capacity"/> lines; the thought with an action of
+    /// <paramref name="spokenActions"/> (vocabulary 'spoken', A1510) is something said aloud, not thought.
+    /// </summary>
+    public ConversationLog(int capacity, IReadOnlySet<string>? spokenActions = null)
+    {
+        _capacity = Math.Max(1, capacity);
+        _spoken = spokenActions ?? new HashSet<string>();
+    }
 
     /// <summary>Changes whenever a line is added or counted up.</summary>
     public long Version { get; private set; }
@@ -64,6 +73,8 @@ public sealed class ConversationLog
         {
             LogLineKind? kind = e.Kind switch
             {
+                // A1510 (W1728): with a spoken action (introduce, talk, warn, show, teach) the line is said aloud.
+                "thought" when e.Text is { Length: > 0 } && e.Action is { } action && _spoken.Contains(action) => LogLineKind.Said,
                 "thought" when e.Text is { Length: > 0 } => LogLineKind.Thought,
                 "said" or "declined" when e.Text is { Length: > 0 } => LogLineKind.Said,
                 "declined" => LogLineKind.Declined,

@@ -2977,6 +2977,94 @@
     {
       "key": "ui.card.musing.male",
       "text": "Was ihn beschäftigt"
+    },
+    {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Baut auf etwas, das der Bewohner nicht weiß"
+    },
+    {
+      "key": "msg.learnlog.title",
+      "text": "Lern-Protokoll – Tag {day}"
+    },
+    {
+      "key": "msg.learnlog.nothing",
+      "text": "(nichts Neues)"
+    },
+    {
+      "key": "msg.learnlog.is.true",
+      "text": "ist"
+    },
+    {
+      "key": "msg.learnlog.is.false",
+      "text": "ist nicht"
+    },
+    {
+      "key": "msg.learnlog.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.seen",
+      "text": "{time} sieht: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.experienced",
+      "text": "{time} erfährt selbst: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.heard",
+      "text": "{time} hört von {from}: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.knowledge_gained.guessed",
+      "text": "{time} vermutet: {thing} {is} {property}"
+    },
+    {
+      "key": "msg.learnlog.name_learned",
+      "text": "{time} kennt jetzt den Namen von {other}"
+    },
+    {
+      "key": "msg.learnlog.first_meeting",
+      "text": "{time} trifft {other} zum ersten Mal"
+    },
+    {
+      "key": "msg.learnlog.invention_wanted",
+      "text": "{time} wünscht sich etwas für: {need}"
+    },
+    {
+      "key": "msg.learnlog.invented",
+      "text": "{time} erfindet: {thing}"
+    },
+    {
+      "key": "msg.learnlog.built",
+      "text": "{time} baut fertig: {thing}"
+    },
+    {
+      "key": "msg.learnlog.first_use",
+      "text": "{time} benutzt zum ersten Mal: {thing}"
+    },
+    {
+      "key": "msg.learnlog.combined",
+      "text": "{time} bringt Dinge zusammen und bekommt: {thing}"
+    },
+    {
+      "key": "msg.learnlog.discovered_process",
+      "text": "{time} entdeckt einen Arbeitsschritt: {action}"
+    },
+    {
+      "key": "msg.learnlog.idea",
+      "text": "{time} hat eine Idee"
+    },
+    {
+      "key": "msg.learnlog.dreamed",
+      "text": "{time} träumt"
+    },
+    {
+      "key": "msg.learnlog.praised",
+      "text": "{time} wird von dir gelobt"
+    },
+    {
+      "key": "msg.learnlog.word_heard",
+      "text": "{time} hört von dir das Wort „{word}“ für {thing}"
     }
   ]
 }
