@@ -103,8 +103,11 @@ def test_every_vocabulary_id_has_a_display_text(locale: str) -> None:
         for path in sorted((CONTENT / "objects").glob("*.json"))
         for t in json.loads(path.read_text(encoding="utf-8"))["types"]
     }
-    # Base functions are named too (D827 R31); the guard's English descriptions stay in the data file.
-    expected |= {f"vocab.base_function.{f['id']}" for f in _load("invention/base_functions.json")["functions"]}
+    # Base functions are named too (D827 R31); their English descriptions stay in the data.
+    expected |= {
+        f"vocab.base_function.{f['id']}"
+        for f in _load("invention/base_functions.json")["functions"]
+    }
     assert sorted(expected - keys) == [], f"{locale}: vocabulary ids without display text"
     stale = {k for k in keys if k.startswith("vocab.")} - expected
     assert sorted(stale) == [], f"{locale}: display texts for unknown vocabulary ids"
