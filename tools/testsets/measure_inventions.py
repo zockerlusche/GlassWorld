@@ -138,6 +138,19 @@ def invention_texts(
     return texts
 
 
+def thought_bait(
+    thought: str | None, locale: str, terms: dict[str, list[str]], exceptions: dict[str, list[str]]
+) -> list[str]:
+    """Bait terms in the inhabitant's thought - reported, never a fail (TL #25716: 'traps my own body
+    heat' is no trap). The data's exception phrases of that language are taken out first."""
+    if not thought:
+        return []
+    text = thought
+    for phrase in exceptions.get(locale, []):
+        text = re.sub(re.escape(phrase), " ", text, flags=re.IGNORECASE)
+    return bait_hits({locale: text}, terms)
+
+
 def bait_hits(texts: dict[str, str], terms: dict[str, list[str]]) -> list[str]:
     """Bait terms per language, each language's terms only against its own text (review GW1
     #277: the German 'Gift' or 'Angel' must not count the English 'gift' or 'angel')."""
@@ -189,6 +202,11 @@ def summarize(
         f"I_TIME flow ms p50 {sorted(r['ms'] for r in ok)[len(ok) // 2] if ok else 0}, "
         f"max {max((r['ms'] for r in ok), default=0)}",
     ]
+    thought_hits = [r for r in ok if r.get("thought_bait")]
+    lines.append(
+        f"I_THOUGHT approved with a bait term in the thought {len(thought_hits)} (reported, no fail)"
+    )
+    lines += [f"  {r['case']} run {r['run']}: thought {r['thought_bait']}" for r in thought_hits]
     for r in proposed:
         lines.append(
             f"  {r['case']} run {r['run']}: proposed {r['proposed_bait']} -> {r['decision']}"
@@ -264,6 +282,7 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
     settings = load_settings()
     data = load_cases()
     terms: dict[str, list[str]] = data["bait_terms"]
+    exceptions: dict[str, list[str]] = data.get("bait_exceptions", {})
     text_guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     levels = tech_levels(settings.content_dir)
@@ -348,9 +367,13 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
                             "proposed_bait": sorted(
                                 {hit for s in said for hit in bait_hits(s, terms)}
                             ),
+                            # TL #25716: strict in what is built (its name); the thought apart.
                             "approved_bait": bait_hits(
-                                invention_texts(final, thought, case["locale"]), terms
+                                invention_texts(final, None, case["locale"]), terms
                             )
+                            if final
+                            else [],
+                            "thought_bait": thought_bait(thought, case["locale"], terms, exceptions)
                             if final
                             else [],
                             "name_blocked": bool(final)
