@@ -35,6 +35,26 @@ public sealed class SelfCheckViewTests
         Assert.False(SelfCheckView.NeedsPlayer(check));
     }
 
+    /// <summary>D1050 find 2: an image AI never set up gives no start hint; once a folder is named, its problems do.</summary>
+    [Fact]
+    public void AnImageAiNeverSetUpDoesNotCallThePlayer()
+    {
+        var check = Example();
+        var image = check.Checks.Single(c => c.Ai == AiCheckAi.Image);
+        image.Reason = SelfCheckView.ImageNotSetUp;
+        Assert.False(SelfCheckView.NeedsPlayer(check));
+        Assert.True(SelfCheckView.Lines(check)[0].Problem);
+
+        image.Reason = "comfyui_down";
+        Assert.True(SelfCheckView.NeedsPlayer(check));
+
+        image.Reason = SelfCheckView.ImageNotSetUp;
+        var language = check.Checks.Single(c => c.Ai == AiCheckAi.Language);
+        language.State = AiCheckState.Problem;
+        language.Reason = SelfCheckView.ImageNotSetUp;
+        Assert.True(SelfCheckView.NeedsPlayer(check));
+    }
+
     /// <summary>Every AI, state and view text the settings can show exists in DE and EN (KR4).</summary>
     [Fact]
     public void EveryKeyOfTheViewHasATextInBothLanguages()
