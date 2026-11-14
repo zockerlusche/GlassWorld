@@ -546,6 +546,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("nature", JsonSerializer.Serialize(s.Nature, Json)));
         }
 
+        if (s.Animals is not null)
+        {
+            // The animal stocks (B4b K4); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("animals", JsonSerializer.Serialize(s.Animals, Json)));
+        }
+
         if (s.Placed is not null)
         {
             // Things that came after the world start (durability, D711 section 5); no entry = none.
@@ -834,6 +840,7 @@ public static class SaveGameStore
             Burning = meta.TryGetValue("burning", out var burning) ? JsonSerializer.Deserialize<List<Simulation.Objects.BurningThing>>(burning, Json) : null,
             Forgetting = meta.TryGetValue("forgetting", out var forgetting) ? JsonSerializer.Deserialize<Simulation.Inhabitants.ForgettingState>(forgetting, Json) : null,
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
+            Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
