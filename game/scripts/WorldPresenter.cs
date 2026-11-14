@@ -82,6 +82,18 @@ public partial class WorldPresenter : Node3D
     /// </summary>
     public event Action<Exception>? SaveFailed;
 
+    /// <summary>
+    /// Raised once when a world step failed (B2712): the world is stopped, the save game keeps its last good state,
+    /// and the half advanced state went to <see cref="RescuePath"/> (null if that could not be written).
+    /// </summary>
+    public event Action<Exception, string?>? Faulted;
+
+    /// <summary>True after a world step failed (B2712): the world no longer runs and is never saved into its save game.</summary>
+    public bool IsFaulted { get; private set; }
+
+    /// <summary>The rescue file next to the save game (B2712), or null for a world without one.</summary>
+    public string? RescuePath => SavePath is null ? null : System.IO.Path.ChangeExtension(SavePath, null) + ".rescue.db";
+
     /// <summary>State hash right after restoring, before open questions are sent again (save/load check).</summary>
     public string? HashAtLoad { get; private set; }
 
@@ -185,10 +197,72 @@ public partial class WorldPresenter : Node3D
             return;
         }
 
+        // B2712: after a failed step the state may be half advanced - it never replaces the last good save game.
+        if (IsFaulted)
+        {
+            return;
+        }
+
         // The content fingerprint lets a replay tell changed data from lost determinism (once per world, ~1.5 MB).
         _contentFingerprint ??= ContentFingerprint.TryCompute(_contentDirectory);
         SaveGameStore.Save(SavePath, StateCodec.Capture(_host) with { ContentFingerprint = _contentFingerprint });
         Saved?.Invoke(SavePath);
+    }
+
+    /// <summary>
+    /// B2712: a world step threw. The world stops (speed 0, no more steps), the state goes once to the rescue file
+    /// (never over the save game), and the player is told calmly. The last good save game stays as it was.
+    /// </summary>
+    /// <summary>Runs ticks of the world unless it is faulted; an exception from a step faults it (B2712).</summary>
+    internal void RunGuarded(long ticks)
+    {
+        if (_host is null || ticks <= 0 || IsFaulted)
+        {
+            return;
+        }
+
+        try
+        {
+            _host.World.Run(ticks);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            Fault(e);
+        }
+    }
+
+    /// <summary>The smoke's fault check (TL #24690): the expected failure is logged as a line, not as an error.</summary>
+    internal bool QuietFaults { get; set; }
+
+    private void Fault(Exception e)
+    {
+        IsFaulted = true;
+        Speed = 0;
+        _accumulator = 0;
+        if (QuietFaults)
+        {
+            GD.Print($"WORLD_STEP_FAILED (expected by the check) {e.GetType().Name}: {e.Message}");
+        }
+        else
+        {
+            GD.PushError($"WORLD_STEP_FAILED {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+        }
+
+        string? rescue = null;
+        if (_host is not null && RescuePath is { } path)
+        {
+            try
+            {
+                SaveGameStore.Save(path, StateCodec.Capture(_host) with { ContentFingerprint = _contentFingerprint });
+                rescue = path;
+            }
+            catch (Exception saveError) when (saveError is not OutOfMemoryException)
+            {
+                GD.PushWarning($"RESCUE_SAVE_FAILED {saveError.GetType().Name}: {saveError.Message}");
+            }
+        }
+
+        Faulted?.Invoke(e, rescue);
     }
 
     private void Begin(SimulationHost host, string? savePath)
@@ -316,10 +390,7 @@ public partial class WorldPresenter : Node3D
         var ticks = Math.Min((long)_accumulator, calendar.Settings.MaxTicksPerFrame);
         _accumulator -= ticks;
         _accumulator = Math.Min(_accumulator, calendar.Settings.MaxTicksPerFrame);
-        if (ticks > 0)
-        {
-            _host.World.Run(ticks);
-        }
+        RunGuarded(ticks);
 
         if (Mode == WorldLookMode.Island)
         {

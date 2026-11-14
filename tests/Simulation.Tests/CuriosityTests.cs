@@ -84,8 +84,10 @@ public sealed class CuriosityTests : IDisposable
         Assert.True(looker.Beliefs.TryGet("sea_water", "drinkable", out var drinkable) && drinkable.Source == KnowledgeSources.Guessed);
         Assert.False(looker.Beliefs.TryGet("sea_water", "salty", out _));
 
-        // No property an action's effect depends on is ever learned as seen.
+        // No property an action's effect depends on is ever learned as seen - except what a thing is by being made
+        // (the invention data's implied properties): a made thing looks made (B2698).
         var effects = Content.Actions.Actions.SelectMany(Content.Actions.Rules).Select(r => r.RequiresProperty).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        effects.ExceptWith(Content.Inventions.Settings.ImpliedProperties);
         Assert.DoesNotContain(looker.Beliefs.All, b => effects.Contains(b.PropertyId) && b.Belief.Source != KnowledgeSources.Guessed);
     }
 

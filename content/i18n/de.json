@@ -55,6 +55,10 @@
       "text": "Gedanke"
     },
     {
+      "key": "msg.world.faulted",
+      "text": "Es gab ein Problem, die Welt ist angehalten. Dein letzter Spielstand ist sicher; der Stand von eben liegt als Rettungsdatei daneben."
+    },
+    {
       "key": "msg.save.failed",
       "text": "Speichern hat nicht geklappt. Die Welt bleibt offen, damit nichts verloren geht."
     },
@@ -673,6 +677,10 @@
     {
       "key": "vocab.action.introduce",
       "text": "Vorstellen"
+    },
+    {
+      "key": "vocab.action.add_fuel",
+      "text": "Nachlegen"
     },
     {
       "key": "vocab.biome.beach_sea",
@@ -1611,6 +1619,62 @@
       "text": "Wort gehört"
     },
     {
+      "key": "vocab.event.milestone_reached",
+      "text": "Meilenstein erreicht"
+    },
+    {
+      "key": "msg.milestone.first_edge",
+      "text": "Erste Schneide"
+    },
+    {
+      "key": "msg.milestone.first_cord",
+      "text": "Erste Schnur"
+    },
+    {
+      "key": "msg.milestone.first_handled_tool",
+      "text": "Erstes Werkzeug mit Griff"
+    },
+    {
+      "key": "msg.milestone.first_fire",
+      "text": "Erstes Feuer"
+    },
+    {
+      "key": "msg.milestone.first_container",
+      "text": "Erstes Gefäß"
+    },
+    {
+      "key": "msg.milestone.cooked_food",
+      "text": "Gekochtes Essen"
+    },
+    {
+      "key": "msg.milestone.first_shelter",
+      "text": "Erster Unterstand"
+    },
+    {
+      "key": "msg.milestone.first_warming_thing",
+      "text": "Erstes wärmendes Ding"
+    },
+    {
+      "key": "msg.milestone.fired_clay",
+      "text": "Gebrannter Ton"
+    },
+    {
+      "key": "msg.milestone.charcoal",
+      "text": "Holzkohle"
+    },
+    {
+      "key": "msg.milestone.bread",
+      "text": "Brot"
+    },
+    {
+      "key": "msg.milestone.glass",
+      "text": "Glas"
+    },
+    {
+      "key": "msg.milestone.first_metal",
+      "text": "Erstes Metall"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },
@@ -1999,6 +2063,14 @@
       "text": "Antwort verfallen"
     },
     {
+      "key": "vocab.event.burned_out",
+      "text": "Feuer heruntergebrannt"
+    },
+    {
+      "key": "vocab.event.put_out",
+      "text": "Feuer vom Regen gelöscht"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },
@@ -2033,6 +2105,10 @@
     {
       "key": "vocab.property.fruit",
       "text": "Fruchtartig"
+    },
+    {
+      "key": "vocab.property.firm",
+      "text": "Fest"
     },
     {
       "key": "vocab.property.mushroom",

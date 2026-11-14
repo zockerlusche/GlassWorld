@@ -53,7 +53,9 @@ public sealed class ProcessTests
         Assert.NotEqual("pyrite", changed.TypeId);
         Assert.Equal("pyrite", host.Processes!.RootOf(changed.TypeId));
         Assert.Contains("sharp", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
-        Assert.Equal(host.Types.TrueProperties("pyrite").Count + 1, host.Types.TrueProperties(changed.TypeId).Count);
+        // + sharp, + crafted (B2700: what was processed is made).
+        Assert.Equal(host.Types.TrueProperties("pyrite").Count + 2, host.Types.TrueProperties(changed.TypeId).Count);
+        Assert.Contains("crafted", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
         Assert.Equal("strike_hard_stone_to_edge", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
         Assert.True(host.Inhabitants.Get(Actor).Beliefs.TryGet(changed.TypeId, "sharp", out var sharp) && sharp.Value);
 
@@ -62,6 +64,60 @@ public sealed class ProcessTests
         RunCombine(host, other, hammer);
         Assert.True(host.Objects.TryGet(other.Id, out var second));
         Assert.Equal(changed.TypeId, second.TypeId);
+    }
+
+    [Fact]
+    public void TwoFibresBraidedTogetherBecomeACord()
+    {
+        // A1378 R10 (TL #23438): fibres to cord as a pair rule of the data - the one braided lasts, the other is used up.
+        var (host, events, _) = World(port: null);
+        var reed = host.Objects.Spawn("reed", new Position(1, 0));
+        var other = host.Objects.Spawn("reed", new Position(1.5, 0));
+
+        RunCombine(host, reed, other);
+        Assert.True(host.Objects.TryGet(reed.Id, out var cord));
+        Assert.Equal("reed", host.Processes!.RootOf(cord.TypeId));
+        Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
+        Assert.False(host.Objects.TryGet(other.Id, out _));
+        Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+    }
+
+    [Fact]
+    public void ANutHeldToTheFireIsRoastedAndCountsAsMade()
+    {
+        // B2700: the fire gives its heat level (open_fire); roast_food needs embers, so it applies to the nut.
+        // A decider that never answers: the fire must burn a tick first, and no answer may replace the try.
+        var (host, events, _) = World(port: null, silent: true);
+        var nut = host.Objects.Spawn("hazelnut", new Position(1, 0));
+        var fire = host.Objects.Spawn("fire", new Position(1.5, 0));
+        host.World.Run(1);
+
+        // The fire burns and gives its heat level; at that level roast_food fits the nut with the fire as the heat.
+        var table = Content.Value.Processes!;
+        var level = host.Fire.HeatLevelOf(fire, table.HeatLevels);
+        Assert.Equal(table.HeatIndex("open_fire"), level);
+        var truth0 = new[] { nut, fire }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
+        Assert.Equal("roast_food", table.Match(truth0, null, level, 1)?.Rule.Id);
+
+        RunCombine(host, nut, fire);
+        Assert.True(host.Objects.TryGet(nut.Id, out var roasted));
+        var truth = (IReadOnlySet<string>)host.Types.TrueProperties(roasted.TypeId);
+        Assert.Contains("cooked", truth);
+        Assert.Contains("crafted", truth);
+        Assert.Equal("roast_food", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.True(host.Objects.TryGet(fire.Id, out _));
+    }
+
+    [Fact]
+    public void WithoutAFireNothingIsRoasted()
+    {
+        var (host, _, _) = World(port: null);
+        var nut = host.Objects.Spawn("hazelnut", new Position(1, 0));
+        var flint = host.Objects.Spawn("flint", new Position(1.5, 0));
+
+        RunCombine(host, nut, flint);
+        Assert.True(host.Objects.TryGet(nut.Id, out var after));
+        Assert.DoesNotContain("cooked", (IReadOnlySet<string>)host.Types.TrueProperties(after.TypeId));
     }
 
     [Fact]
@@ -101,6 +157,52 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void ForTwoStonesStrikingAndSplittingComeBeforeBinding()
+    {
+        // GW2 D999: a rule whose condition a thing fully meets ranks before one that only shares single properties.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port, silent: true);
+        var stone = host.Objects.Spawn("fieldstone", new Position(1, 0));
+        var other = host.Objects.Spawn("fieldstone", new Position(1.5, 0));
+
+        RunCombine(host, stone, other);
+        var candidates = Assert.Single(port.Submitted).Payload.Process!.Candidates!.ToList();
+        Assert.Equal("strike", candidates[0]);
+        Assert.True(candidates.IndexOf("split") < candidates.IndexOf("bind") || !candidates.Contains("bind"), string.Join(",", candidates));
+    }
+
+    [Fact]
+    public void ForSandstoneAndFlintStrikingComesBeforeBinding()
+    {
+        // GW2 D1016: the flint meets one of bind's three conditions, but one of strike's two - the share decides.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port, silent: true);
+        var sandstone = host.Objects.Spawn("sandstone", new Position(1, 0));
+        var flint = host.Objects.Spawn("flint", new Position(1.5, 0));
+
+        RunCombine(host, sandstone, flint);
+        var candidates = Assert.Single(port.Submitted).Payload.Process!.Candidates!.ToList();
+        Assert.True(candidates.IndexOf("strike") < candidates.IndexOf("bind"), string.Join(",", candidates));
+    }
+
+    [Fact]
+    public void TheJudgeMayChooseFromEveryProcessThePhysicsAllowsNotOnlyFromRulesOfTheData()
+    {
+        // TL #23700 / GW2 D991: clay with spring water - no data rule fits at this level, but mixing may.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port, silent: true);
+        var clay = host.Objects.Spawn("clay", new Position(1, 0));
+        var water = host.Objects.Spawn("spring_water", new Position(1.5, 0));
+
+        RunCombine(host, clay, water);
+        var candidates = Assert.Single(port.Submitted).Payload.Process!.Candidates!;
+        Assert.Contains("mix", candidates);
+        Assert.Contains("soak", candidates);
+        Assert.DoesNotContain("heat", candidates);
+        Assert.InRange(candidates.Count, 1, ProcessRuleSet.MaxCandidates);
+    }
+
+    [Fact]
     public void NothingHappensIsWorldTruthTooAndAnAnswerThatDoesNotFitIsRefused()
     {
         var port = new ScriptedJobPort();
@@ -121,6 +223,31 @@ public sealed class ProcessTests
         Assert.Single(port.Submitted);
         Assert.True(host.Objects.TryGet(grass.Id, out var same));
         Assert.Equal("dry_grass", same.TypeId);
+    }
+
+    [Fact]
+    public void NothingHappensOfALowerTechLevelIsAskedAgainOnceTheWorldIsHigher()
+    {
+        // Review GW1 #356: 'nothing happens' holds at the level it was judged at.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port);
+        var flint = host.Objects.Spawn("flint", new Position(1, 0));
+        var grass = host.Objects.Spawn("dry_grass", new Position(1.5, 0));
+        var truth = new[] { grass, flint }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
+        var id = ProcessSignatures.RuleId(ProcessSignatures.CombineTrial, truth, null, null);
+        var now = host.Milestones.TechLevelIndex;
+
+        // Judged at the level the world has now: stays 'nothing', nobody is asked.
+        host.Processes!.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now)], [], []));
+        RunCombine(host, grass, flint);
+        Assert.Empty(port.Submitted);
+
+        // Judged at a lower level: the world has risen since, so it is judged again - at the level of now.
+        host.Processes.Restore(new ProcessState(0, [new WorldProcessRule(id, false, null, "req", 0, now - 1)], [], []));
+        RunCombine(host, grass, flint);
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal(host.Milestones.TechLevel, job.Payload.Process!.TechLevel);
+        Assert.Equal(now, Assert.Single(host.Processes.Pending).TechLevel);
     }
 
     [Fact]
@@ -214,9 +341,9 @@ public sealed class ProcessTests
         };
     }
 
-    private static (SimulationHost Host, List<WorldEvent> Events, IJobPort? Port) World(IJobPort? port)
+    private static (SimulationHost Host, List<WorldEvent> Events, IJobPort? Port) World(IJobPort? port, bool silent = false)
     {
-        var host = SimulationHost.CreateEmpty(ContentDirectory, 13, new MockDecisionPort(), "de", port);
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 13, silent ? new SilentPort() : new MockDecisionPort(), "de", port);
         var model = Content.Value.InhabitantModel;
         var needs = model.Needs.ToDictionary(n => n.Id, _ => 1.0, StringComparer.Ordinal);
         var moods = model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
@@ -247,6 +374,15 @@ public sealed class ProcessTests
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
         return new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de", jobs);
+    }
+
+    private sealed class SilentPort : IDecisionPort
+    {
+        public void Send(string requestId, string requestJson)
+        {
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
     }
 
     private sealed class ScriptedJobPort : IJobPort

@@ -203,6 +203,14 @@
       "description": "Something came of using things together (combine, B2687): target = the new thing, target type = its type, detail = the rule."
     },
     {
+      "id": "burned_out",
+      "description": "A fire the inhabitant could see has burnt down (A1379): target type = the fire's type, the thing is gone."
+    },
+    {
+      "id": "put_out",
+      "description": "Rain put out a fire the inhabitant could see (A1379): target type = the fire's type, the thing is gone."
+    },
+    {
       "id": "discovered_process",
       "description": "An inhabitant discovered a new way of working, a process (B4b; action = the process; reported by the core once processes are discovered). The chronicle kind of the same name waited for it."
     },
@@ -249,6 +257,10 @@
     {
       "id": "word_heard",
       "description": "An inhabitant heard the player's word for a thing it sees (A1617, B2678); target the type, detail the word."
+    },
+    {
+      "id": "milestone_reached",
+      "description": "The world reached a milestone of the data for the first time (B2598); detail the milestone id, target type the made thing's type."
     }
   ]
 }

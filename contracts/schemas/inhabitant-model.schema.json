@@ -79,6 +79,7 @@
         "need": { "$ref": "common.schema.json#/$defs/VocabId" },
         "min_tenth_c": { "description": "Lower edge of the zone; colder air is too cold.", "type": "integer", "minimum": -500, "maximum": 600 },
         "max_tenth_c": { "description": "Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "band_tenth_c": { "description": "Width of the cool and the warm band just outside the zone, in tenths of a degree (A1379): the request tells the decider comfortable inside the zone, cool/warm within the band, cold/hot beyond (vocabulary comfort_level, in its order). Omitted = no comfort in the request.", "type": "integer", "minimum": 1, "maximum": 300 },
         "individual_shift_tenth_c": { "description": "Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.", "type": "integer", "minimum": 0, "maximum": 200 },
         "cold_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is below the zone.", "type": "number", "minimum": 0, "maximum": 1 },
         "heat_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is above the zone.", "type": "number", "minimum": 0, "maximum": 1 },

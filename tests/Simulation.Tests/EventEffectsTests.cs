@@ -166,6 +166,36 @@ public sealed class EventEffectsTests
         Assert.Contains("listener_share", Assert.Throws<InvalidDataException>(() => Rules(With(new EventEffect { Event = InhabitantsSystem.KnowledgeGained, Effects = [new Effect { Kind = EffectKind.Need, Id = Purpose, Delta = 0.1, ListenerShare = 0.5 }] }))).Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheModelHoldsEveryFeelingOfTheVocabularyAndEveryInhabitantStartsWithAll()
+    {
+        // A1626 (D923): the concept names ten feelings; the model gives each a rest value, so none is missing.
+        var vocabulary = Ids(VocabularyKind.Mood);
+        Assert.Equal(vocabulary.Order(StringComparer.Ordinal), Content.InhabitantModel.Moods.Select(m => m.Id).Order(StringComparer.Ordinal));
+
+        var (world, _, inhabitants) = NewWorld(Content.Actions);
+        world.Step();
+        Assert.All(inhabitants.All, i => Assert.Equal(vocabulary.Order(StringComparer.Ordinal), i.Moods.Keys.Order(StringComparer.Ordinal)));
+    }
+
+    [Fact]
+    public void WhatOneMadeOrFoundOutMakesItProud()
+    {
+        // A1626: pride comes from events in the data (W1744 path); the values are the data's.
+        var (world, _, inhabitants) = NewWorld(Content.Actions);
+        var maker = inhabitants.Get("inh-000001");
+        var other = inhabitants.Get("inh-000002");
+        foreach (var kind in new[] { "invented", "built", "discovered_process", "praised" })
+        {
+            var gain = Content.Actions.EventEffects(kind, null).Where(e => e.Kind == EffectKind.Mood && e.Id == "pride").Sum(e => e.Delta);
+            Assert.True(gain > 0, $"content: {kind} makes proud");
+            maker.Moods["pride"] = other.Moods["pride"] = 0.1;
+            inhabitants.Report(new WorldEvent(kind, world.Tick, maker.Id, null, null));
+            Assert.Equal(0.1 + gain, maker.Moods["pride"], 12);
+            Assert.Equal(0.1, other.Moods["pride"], 12);
+        }
+    }
+
     private static double OnPurpose(IEnumerable<Effect> effects) => effects.Where(e => e.Kind == EffectKind.Need && e.Id == Purpose).Sum(e => e.Delta);
 
     private static double Decay(World world) =>

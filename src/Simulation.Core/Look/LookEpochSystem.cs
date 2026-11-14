@@ -79,8 +79,11 @@ public sealed class LookEpochSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The current epoch id.</summary>
     public string Current { get; private set; }
 
-    /// <summary>The reached tech level as the epochs count it (position in the vocabulary <c>tech_level</c>).</summary>
-    public int ReachedTechLevel { get; }
+    /// <summary>
+    /// The reached tech level as the epochs count it (position in the vocabulary <c>tech_level</c>); it rises with
+    /// the world's milestones (A1625).
+    /// </summary>
+    public int ReachedTechLevel { get; set; }
 
     /// <inheritdoc/>
     public bool HasState => !string.Equals(Current, First, StringComparison.Ordinal);

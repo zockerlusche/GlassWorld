@@ -121,6 +121,15 @@ public sealed class ContentSet
     /// <summary>The basic processing rules (content/processes/rules.json, B2537) as a combine trial applies them (B2687 K2); null without the file.</summary>
     public ProcessRuleSet? Processes { get; init; }
 
+    /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
+    public NatureSettings? Nature { get; init; }
+
+    /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
+    public DurabilitySettings? Durability { get; init; }
+
+    /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
+    public MilestoneCatalog? Milestones { get; init; }
+
     /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
     public SkillLevelSettings SkillLevels { get; init; } = new();
 
@@ -202,6 +211,8 @@ public sealed class ContentSet
                 ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json"))),
                 ContractSerializer.Deserialize<ImageGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "image", "generation.json"))),
                 jobPhases.WaitForSleepersHours));
+        // GW2 D971: what a thing is by being made is not assumed for a found thing.
+        brain.MadeProperties = inventions.Settings.ImpliedProperties.ToFrozenSet(StringComparer.Ordinal);
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var events = Ids(vocabularies, VocabularyKind.Event);
@@ -217,6 +228,15 @@ public sealed class ContentSet
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         var names = LoadNames(contentDirectory);
+        var processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+            ? ProcessRuleSet.Create(
+                ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                objects,
+                inventions.Processes,
+                inventions.TechLevels,
+                inventions.Settings.TechLevel)
+            : null;
+        var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
         return new ContentSet(
             calendar,
             objects,
@@ -237,13 +257,13 @@ public sealed class ContentSet
             SkillLevels = LoadSkillLevels(contentDirectory),
             LearningLog = LoadLearningLog(contentDirectory, events),
             Conversation = conversation,
-            Processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
-                ? ProcessRuleSet.Create(
-                    ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
-                    objects,
-                    inventions.Processes,
-                    inventions.TechLevels,
-                    inventions.Settings.TechLevel)
+            Processes = processes,
+            Milestones = milestones,
+            Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
+                ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
+                : null,
+            Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
+                ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
                 : null,
             Appearance = LoadAppearance(
                 contentDirectory,
@@ -449,7 +469,9 @@ public sealed class ContentSet
 
         if (data.Looking is { } looking)
         {
-            problems.AddRange(LookingProblems(looking, data, actions, objects, effects));
+            // What a thing is by being made (the invention data's implied properties) is seen: a made thing looks made (TL #23489).
+            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties;
+            problems.AddRange(LookingProblems(looking, data, actions, objects, effects, made));
         }
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
@@ -583,9 +605,9 @@ public sealed class ContentSet
 
     /// <summary>
     /// Looking (TL #19921) teaches what can be seen, never an effect: no visible property may be one an
-    /// action's effect depends on; what is seen is less sure than what is tried, a guess at most guessed_cap.
+    /// action's effect depends on - except what a thing is by being made (implied properties): a made thing looks made; what is seen is less sure than what is tried, a guess at most guessed_cap.
     /// </summary>
-    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects)
+    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, ICollection<string> made)
     {
         if (!actions.TryGetValue(looking.Action, out var action) || action.Target != VocabularyEntryTarget.Object)
         {
@@ -599,7 +621,7 @@ public sealed class ContentSet
             {
                 yield return $"unknown visible property '{property}'";
             }
-            else if (effectProperties.Contains(property))
+            else if (effectProperties.Contains(property) && !made.Contains(property))
             {
                 yield return $"visible property '{property}' is an effect (learned only by trying, being told or asking)";
             }
@@ -741,6 +763,49 @@ public sealed class ContentSet
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
         Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The milestones (B2598), if the file exists: known properties, rules and tech levels, unique ids, and exactly
+    /// one of made_with and rule per milestone.
+    /// </summary>
+    private static MilestoneCatalog? LoadMilestones(string contentDirectory, HashSet<string> properties, HashSet<string> rules, IReadOnlyList<string> techLevels)
+    {
+        var path = Path.Combine(contentDirectory, "milestones", "catalog.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var catalog = ContractSerializer.Deserialize<MilestoneCatalog>(File.ReadAllText(path));
+        var problems = new List<string>();
+        foreach (var milestone in catalog.Milestones)
+        {
+            var made = milestone.MadeWith is { Count: > 0 };
+            if (made == milestone.Rule is not null)
+            {
+                problems.Add($"'{milestone.Id}' needs exactly one of made_with and rule");
+            }
+
+            problems.AddRange((milestone.MadeWith ?? []).Where(p => !properties.Contains(p)).Select(p => $"'{milestone.Id}' names unknown property '{p}'"));
+            if (milestone.Rule is { } rule && !rules.Contains(rule))
+            {
+                problems.Add($"'{milestone.Id}' names unknown rule '{rule}'");
+            }
+
+            if (milestone.RaisesTechLevel is { } level && !techLevels.Contains(level, StringComparer.Ordinal))
+            {
+                problems.Add($"'{milestone.Id}' names unknown tech level '{level}'");
+            }
+        }
+
+        problems.AddRange(catalog.Milestones.GroupBy(m => m.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"'{g.Key}' twice"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Milestones: " + string.Join("; ", problems) + ".");
+        }
+
+        return catalog;
+    }
 
     private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits)
     {

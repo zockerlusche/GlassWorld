@@ -123,6 +123,14 @@
       "schema": "climate-settings"
     },
     {
+      "pattern": "nature/*.json",
+      "schema": "nature-settings"
+    },
+    {
+      "pattern": "durability/*.json",
+      "schema": "durability-settings"
+    },
+    {
       "pattern": "look/palette.json",
       "schema": "look-palette"
     },
@@ -169,6 +177,10 @@
     {
       "pattern": "sound/library.json",
       "schema": "base-sound-library"
+    },
+    {
+      "pattern": "milestones/*.json",
+      "schema": "milestone-catalog"
     },
     {
       "pattern": "processes/*.json",

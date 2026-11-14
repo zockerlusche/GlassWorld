@@ -80,6 +80,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("gust_period_minutes")]
         public int GustPeriodMinutes { get; set; } = default!;
 
+        /// <summary>
+        /// Rough days of this climate (A1382, spec R24, review GW1 #23950): extreme weather entered by the weather's own daily roll (stream weather/extreme), never set from outside. Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("extremes")]
+        public ClimateExtremes? Extremes { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -318,6 +325,75 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("season")]
         public string? Season { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ClimateExtremes
+    {
+
+        /// <summary>
+        /// Whole days after an extreme ends before the next may begin (calm world).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cooldown_days")]
+        public int CooldownDays { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public System.Collections.Generic.ICollection<ClimateExtremeWeather> Weather { get; set; } = new System.Collections.ObjectModel.Collection<ClimateExtremeWeather>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("heat_waves")]
+        public System.Collections.Generic.ICollection<ClimateHeatWave> HeatWaves { get; set; } = new System.Collections.ObjectModel.Collection<ClimateHeatWave>();
+
+    }
+
+    /// <summary>
+    /// A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ClimateExtremeWeather
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string Season { get; set; } = default!;
+
+        /// <summary>
+        /// A weather state of this climate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public string Weather { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_permille")]
+        public int ChancePermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hours_min")]
+        public int HoursMin { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hours_max")]
+        public int HoursMax { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A heat wave: at the start of a day of the season it begins with chance_permille, lasts days_min to days_max whole days and lifts the air by offset_tenth_c over the climate's curve (what the inhabitants feel; the weather states go on).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ClimateHeatWave
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string Season { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_permille")]
+        public int ChancePermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("days_min")]
+        public int DaysMin { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("days_max")]
+        public int DaysMax { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
         public int OffsetTenthC { get; set; } = default!;

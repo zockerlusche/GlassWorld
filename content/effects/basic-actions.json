@@ -20,7 +20,8 @@
     { "action": "introduce", "destination": "here", "duration_minutes": 2, "reach_m": 2 },
     { "action": "approach", "destination": "here", "duration_minutes": 1, "reach_m": 2 },
     { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 },
-    { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4 } }
+    { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "known_only": true } },
+    { "action": "add_fuel", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "feeds": true } }
   ],
   "rules": [
     { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
@@ -103,6 +104,31 @@
     ] },
     { "event": "knowledge_gained", "detail_ends_with": "/seen", "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.01 }
+    ] },
+    { "event": "invented", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.15 }
+    ] },
+    { "event": "built", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.1 }
+    ] },
+    { "event": "discovered_process", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.1 }
+    ] },
+    { "event": "praised", "effects": [
+      { "kind": "mood", "id": "pride", "delta": 0.05 }
+    ] },
+    { "event": "build_failed", "detail_ends_with": "gave_up", "effects": [
+      { "kind": "mood", "id": "shame", "delta": 0.05 }
+    ] },
+    { "event": "quarrelled", "effects": [
+      { "kind": "mood", "id": "anger", "delta": 0.2 }
+    ] },
+    { "event": "reconciled", "effects": [
+      { "kind": "mood", "id": "anger", "delta": -0.2 },
+      { "kind": "mood", "id": "love", "delta": 0.05 }
+    ] },
+    { "event": "partnered", "effects": [
+      { "kind": "mood", "id": "love", "delta": 0.3 }
     ] }
   ]
 }

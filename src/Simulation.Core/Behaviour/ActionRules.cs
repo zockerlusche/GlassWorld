@@ -14,7 +14,9 @@ namespace GlassWorld.Simulation.Behaviour;
 /// <param name="WakeAfterTicks">Ticks the action has run before a pressing need can cut it short (B2681).</param>
 /// <param name="PartnerReachM">Greatest distance of a partner thing from the target (combine, B2687); 0 = no partners.</param>
 /// <param name="PartnerOptions">At most this many options with a partner per question; 0 = the action uses its target alone.</param>
-public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true, bool Frontier = false, bool Gradual = false, long WakeAfterTicks = 0, double PartnerReachM = 0, int PartnerOptions = 0);
+/// <param name="Feeds">The partner is fuel for a burning target (A1379), not a thing to combine with.</param>
+/// <param name="KnownOnly">Offered only with things the asker already believes something about (R39, GW2 D979).</param>
+public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true, bool Frontier = false, bool Gradual = false, long WakeAfterTicks = 0, double PartnerReachM = 0, int PartnerOptions = 0, bool Feeds = false, bool KnownOnly = false);
 
 /// <summary>
 /// What actions do (content/effects/*.json). The effect of an action on a target is decided only by the
@@ -67,7 +69,7 @@ public sealed class ActionRules
             Require(
                 t.Partners is null || actions.Entries.First(e => e.Id == t.Action).Target == VocabularyEntryTarget.Object,
                 $"action '{t.Action}' has partners, so it needs an object target");
-            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true, t.Destination == ActionTimingDestination.Frontier, t.Gradual ?? false, (long)(t.WakeAfterMinutes ?? 0) * ticksPerHour / 60, t.Partners?.ReachM ?? 0, t.Partners?.MaxOptions ?? 0)), $"timing for '{t.Action}' defined twice");
+            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true, t.Destination == ActionTimingDestination.Frontier, t.Gradual ?? false, (long)(t.WakeAfterMinutes ?? 0) * ticksPerHour / 60, t.Partners?.ReachM ?? 0, t.Partners?.MaxOptions ?? 0, t.Partners?.Feeds ?? false, t.Partners?.KnownOnly ?? false)), $"timing for '{t.Action}' defined twice");
         }
 
         foreach (var rule in all.SelectMany(f => f.Rules))

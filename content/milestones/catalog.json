@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.2",
+  "milestones": [
+    { "id": "first_edge", "text_key": "msg.milestone.first_edge", "made_with": ["sharp"], "raises_tech_level": "tool" },
+    { "id": "first_cord", "text_key": "msg.milestone.first_cord", "rule": "braid_two_fibres_to_cord" },
+    { "id": "first_handled_tool", "text_key": "msg.milestone.first_handled_tool", "rule": "bind_edge_to_handle" },
+    { "id": "first_fire", "text_key": "msg.milestone.first_fire", "rule": "fire_from_spark_and_dry_grass" },
+    { "id": "first_container", "text_key": "msg.milestone.first_container", "made_with": ["container"] },
+    { "id": "cooked_food", "text_key": "msg.milestone.cooked_food", "made_with": ["cooked"] },
+    { "id": "first_shelter", "text_key": "msg.milestone.first_shelter", "made_with": ["sheltering"], "raises_tech_level": "hut" },
+    { "id": "first_warming_thing", "text_key": "msg.milestone.first_warming_thing", "made_with": ["insulating", "crafted"] },
+    { "id": "fired_clay", "text_key": "msg.milestone.fired_clay", "rule": "fire_shaped_clay", "raises_tech_level": "workshop" },
+    { "id": "charcoal", "text_key": "msg.milestone.charcoal", "rule": "char_wood" },
+    { "id": "bread", "text_key": "msg.milestone.bread", "rule": "bake_dough_to_bread" },
+    { "id": "glass", "text_key": "msg.milestone.glass", "made_with": ["transparent"], "raises_tech_level": "workshop" },
+    { "id": "first_metal", "text_key": "msg.milestone.first_metal", "rule": "melt_with_furnace", "raises_tech_level": "metal" }
+  ]
+}

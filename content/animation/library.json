@@ -269,6 +269,34 @@
     },
     {
       "kind": "action",
+      "id": "inspect",
+      "target": "object",
+      "reach": "low",
+      "clip": "crouch_inspect"
+    },
+    {
+      "kind": "action",
+      "id": "eat",
+      "target": "object",
+      "reach": "low",
+      "clip": "crouch_inspect"
+    },
+    {
+      "kind": "action",
+      "id": "drink",
+      "target": "object",
+      "reach": "low",
+      "clip": "crouch_inspect"
+    },
+    {
+      "kind": "action",
+      "id": "combine",
+      "target": "object",
+      "reach": "low",
+      "clip": "crouch_inspect"
+    },
+    {
+      "kind": "action",
       "id": "pick_up",
       "clip": "pick_up"
     },
@@ -305,6 +333,11 @@
     {
       "kind": "action",
       "id": "combine",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "add_fuel",
       "clip": "handle"
     },
     {
