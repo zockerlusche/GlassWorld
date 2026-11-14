@@ -1279,7 +1279,8 @@ public sealed class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
-            var isIntended = action == intended;
+            // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
+            var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
@@ -1293,10 +1294,22 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
+                        // A1379: fuel only for a burning thing that takes fuel (the data of its type).
+                        if (withOthers.Feeds && TakesFuel?.Invoke(target) != true)
+                        {
+                            break;
+                        }
+
                         // B2687: an action that uses a second thing (combine) once per thing within reach of the
                         // subject, nearest first - never by whether a rule fits (R39): what comes of it is the
                         // world's truth, whether one tries is the inhabitant's. Nothing near, no option.
-                        foreach (var partner in PartnersNear(target, things, withOthers))
+                        // R39 (GW2 D979): with known_only only things the asker already believes something about.
+                        if (withOthers.KnownOnly && !asker.Beliefs.About(target.TypeId).Any())
+                        {
+                            break;
+                        }
+
+                        foreach (var partner in PartnersNear(target, things, withOthers, withOthers.KnownOnly ? asker : null))
                         {
                             (isIntended ? first : raw).Add((action, target.Id, partner));
                         }
@@ -1338,6 +1351,42 @@ public sealed class DecisionsSystem : IWorldSystem
                     }
 
                     break;
+                case VocabularyEntryTarget.Object when target is null && _actions.Timing(action) is { PartnerOptions: > 0, KnownOnly: true, Feeds: false } free:
+                    // R39, GW2 D979, TL TH142: without a subject (a free moment) pairs of things the asker already
+                    // believes something about, nearest to it first, each with its partners nearest to it - so
+                    // putting known things together comes up when there is time, not only at an unknown thing.
+                    // A pair counts once: B with A is not offered again after A with B (review GW1 #365).
+                    var offered = new HashSet<(string, string)>();
+                    foreach (var subject in things.Where(o => asker.Beliefs.About(o.TypeId).Any()))
+                    {
+                        if (offered.Count >= free.PartnerOptions || Rests(asker, action, subject.Id, tick))
+                        {
+                            continue;
+                        }
+
+                        foreach (var partner in PartnersNear(subject, things, free, asker))
+                        {
+                            if (offered.Count >= free.PartnerOptions || offered.Contains((partner, subject.Id)))
+                            {
+                                continue;
+                            }
+
+                            offered.Add((subject.Id, partner));
+                            (isIntended ? first : raw).Add((action, subject.Id, partner));
+                        }
+                    }
+
+                    break;
+                case VocabularyEntryTarget.Object when target is null && _brain.IsAboutMadeThings(action):
+                    // D999 (TL TH143): in a free moment, the made things in sight the asker knows are made (#358), nearest
+                    // first - so what was built can be used when there is time, not only when a need is low. Whether it
+                    // helps is the world's matter (the effect rules of its true properties).
+                    foreach (var made in things.Where(o => _brain.BelievesMadeFor(asker, action, o.TypeId) && !Rests(asker, action, o.Id, tick)))
+                    {
+                        (isIntended ? first : raw).Add((action, made.Id, null));
+                    }
+
+                    break;
                 default:
                     // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
@@ -1363,8 +1412,11 @@ public sealed class DecisionsSystem : IWorldSystem
     /// Things in sight within the action's partner reach of the subject, nearest to it first (ties by id),
     /// at most the data's number (B2687). The same in every run: the order depends on positions and ids only.
     /// </summary>
-    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing) =>
-        things.Where(o => o.Id != target.Id)
+    /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
+    public Func<WorldObject, bool>? TakesFuel { get; set; }
+
+    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing, Inhabitant? knower = null) =>
+        things.Where(o => o.Id != target.Id && (knower is null || knower.Beliefs.About(o.TypeId).Any()))
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
             .Where(o => o.Distance <= timing.PartnerReachM)
             .OrderBy(o => o.Distance).ThenBy(o => o.Id, StringComparer.Ordinal)
@@ -1395,6 +1447,9 @@ public sealed class DecisionsSystem : IWorldSystem
 
                 // B2594: how far it sees right now; what lies beyond is not in the perception lists.
                 VisibilityM = Math.Round(_inhabitants.SightRadiusM, 1),
+
+                // A1379: how warm it feels to this inhabitant, the same felt value its warmth need uses.
+                Comfort = _inhabitants.ComfortLevelOf(world, inhabitant),
             },
             Perception = new Perception
             {

@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -119,6 +120,12 @@ public sealed class UtilityBrain
     /// <summary>The data in use.</summary>
     public UtilityWeights Weights { get; }
 
+    /// <summary>
+    /// What a thing is by being made (the invention data's implied properties, D9): unknown counts as not, never as
+    /// the unknown-target belief - nobody takes a found thing for a made one (GW2 D971).
+    /// </summary>
+    public FrozenSet<string> MadeProperties { get; internal set; } = FrozenSet<string>.Empty;
+
     /// <summary>Whether any consideration aims at other inhabitants (target_inhabitant, W1744).</summary>
     public bool AimsAtInhabitants { get; }
 
@@ -154,6 +161,14 @@ public sealed class UtilityBrain
                 continue;
             }
 
+            // GW2 D971: a consideration about a made thing suggests nothing for a thing the inhabitant does not know
+            // to be made (use is not offered on clay).
+            if (targetTypeId is not null && !MadeAsBelieved(inhabitant, c, targetTypeId))
+            {
+                needBased = true;
+                continue;
+            }
+
             // A consideration that yields to the needs (yields_to_needs, B2-6 R14) counts like a need-based
             // one: it suggests its action only while the needs leave room for it.
             var yields = c.YieldsToNeeds ?? false;
@@ -170,6 +185,34 @@ public sealed class UtilityBrain
         }
 
         return !needBased;
+    }
+
+    /// <summary>Whether the inhabitant believes the target is made, where the consideration asks for it (true otherwise).</summary>
+    /// <summary>
+    /// Whether the inhabitant believes a thing of <paramref name="typeId"/> is made wherever an action's considerations
+    /// ask for it (GW2 D971, #358): true for actions that ask for no made-property. Used where an action is offered
+    /// without the needs' say (an intention in a free moment, B2687), so 'use' is still not offered on clay.
+    /// </summary>
+    public bool BelievesMadeFor(Inhabitant inhabitant, string action, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal))
+            .All(c => MadeAsBelieved(inhabitant, c.Data, typeId));
+    }
+
+    private bool MadeAsBelieved(Inhabitant inhabitant, Consideration c, string typeId) =>
+        new[] { c.TargetProperty, c.RequiresAlso }.All(p => p is null || !MadeProperties.Contains(p)
+            || (inhabitant.Beliefs.TryGet(typeId, p, out var belief) && belief.Value));
+
+    /// <summary>
+    /// Whether an action is about made things (D999): it has considerations and every one asks for a made property
+    /// (target_property or requires_also among <see cref="MadeProperties"/>) - 'use' in the shipped data.
+    /// </summary>
+    public bool IsAboutMadeThings(string action)
+    {
+        var of = _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal)).ToList();
+        return MadeProperties.Count > 0 && of.Count > 0
+            && of.All(c => (c.Data.TargetProperty is { } p && MadeProperties.Contains(p)) || (c.Data.RequiresAlso is { } q && MadeProperties.Contains(q)));
     }
 
     /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
@@ -488,7 +531,7 @@ public sealed class UtilityBrain
         ArgumentNullException.ThrowIfNull(inhabitant);
         return inhabitant.Beliefs.TryGet(typeId, property, out var belief)
             ? (belief.Value ? belief.Confidence : 0.0)
-            : Weights.UnknownTargetBelief;
+            : MadeProperties.Contains(property) ? 0.0 : Weights.UnknownTargetBelief;
     }
 
     /// <summary>

@@ -373,3 +373,36 @@ def test_v5_and_guard_v4_take_a_ripe_idea_as_the_want(settings: Settings) -> Non
     g3 = load_prompt(settings.prompts_dir, "guard/invention", 3)
     old = g3.render(guard_values(job, BOWL, 1, vocab, safety, g3.settings))
     assert "its own idea" not in old.user
+
+
+def test_v6_says_what_the_inhabitant_knows_about_its_materials(settings: Settings) -> None:
+    """A1582 (R8): its own beliefs with their source, also a 'not'; never the truth (GW1 #372)."""
+    from glassworld_ai.invention.flow import inventor_values
+
+    vocab = _vocab(settings)
+    data = copy.deepcopy(JOB_DATA)
+    data["payload"]["invention"]["inhabitant"]["knowledge"] = [
+        {
+            "subject": {"kind": "type", "id": "clay_lump"},
+            "property": "edible",
+            "value": False,
+            "confidence": 0.9,
+            "source": "experienced",
+            "told_by": None,
+            "tick": 10,
+        }
+    ]
+    job = GenerationJob.model_validate(data)
+    v6 = load_prompt(settings.prompts_dir, "invention/invent", 6)
+    user = v6.render(inventor_values(job, v6, vocab, "")).user
+    assert "## What you know\n- clay_lump is not edible (you tried it yourself)" in user
+    v5 = load_prompt(settings.prompts_dir, "invention/invent", 5)
+    assert "## What you know" not in v5.render(inventor_values(job, v5, vocab, "")).user
+    # An invention by the inhabitant's name for it, never its runtime id alone (review GW1 #374).
+    data["payload"]["invention"]["inhabitant"]["knowledge"][0] |= {
+        "subject": {"kind": "type", "id": "inv_a1b2c3d4e5f6"},
+        "label": {"de": "Lehmschale", "en": "Clay bowl"},
+    }
+    named = GenerationJob.model_validate(data)
+    user = v6.render(inventor_values(named, v6, vocab, "")).user
+    assert 'inv_a1b2c3d4e5f6 (you call it "Lehmschale") is not edible' in user

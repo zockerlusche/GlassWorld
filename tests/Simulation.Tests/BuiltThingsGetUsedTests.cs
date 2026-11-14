@@ -289,19 +289,14 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         other.Needs[Need] = 0.0;
         var stone = new WorldObject("obj-000002", NearbyTypes[0], new Position(-1, 0));
 
+        // GW2 D971: that a thing is made (the invention data's implied property) is not assumed when unknown - nobody
+        // takes a found thing for a made one. Who does not believe it is made is not drawn to use it at all, the
+        // made thing no more than a stone, and the decider is not offered it either; the maker is.
         var scored = Shipped.Brain.Score(other, [thing, stone]);
-        var unknown = Use.Weight * UseCurve.At(0.0) * Weights.UnknownTargetBelief * DistanceFactor(1);
-        Assert.Equal(unknown, scored.Single(o => o.Action == Use.Action && o.TargetId == thing.Id).Score, 9);
-        Assert.Equal(unknown, scored.Single(o => o.Action == Use.Action && o.TargetId == stone.Id).Score, 9);
-        Assert.True(BestUse(Shipped.Brain.Score(maker, [thing, stone]), thing.Id) > unknown);
-
-        // This pins a decision of the proposal values, not a rule of the frame: with the shipped weight the
-        // routine does not try the use on things it knows nothing about (the wish for an unknown thing stays
-        // below standing around), so no inhabitant goes round "using" stones and berries when its need is
-        // low. Trying remains the decider's choice. A higher weight opens it; then this assertion goes.
-        Assert.NotEqual(Use.Action, scored[0].Action);
-        var idle = Weights.Considerations.Single(c => c.Need is null && c.TargetProperty is null && c.Trait is null && c.NoveltyCurve is null);
-        Assert.True(Use.Weight * Weights.UnknownTargetBelief < idle.Weight);
+        Assert.DoesNotContain(scored, o => o.Action == Use.Action);
+        Assert.False(Shipped.Brain.NeedSuggests(other, Use.Action, thing.TypeId));
+        Assert.True(BestUse(Shipped.Brain.Score(maker, [thing, stone]), thing.Id) > 0);
+        Assert.True(Shipped.Brain.NeedSuggests(maker, Use.Action, thing.TypeId));
     }
 
     [Fact]
@@ -322,16 +317,26 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
 
         host.World.Run(hour * 12);
         Assert.Contains(events, e => e.Kind == InventionSystem.FirstUse && e.InhabitantId == builder.Id);
-        Assert.DoesNotContain(events, e => e.InhabitantId == other.Id && e.Action == Use.Action);
-        Assert.False(other.Beliefs.TryGet(typeId, Made, out _));
-
-        // Told by the builder (the existing way: a passing action hands the belief on as heard, as sure as
-        // the teller times the listener's trust): now the routine uses the thing, and trying makes it sure.
+        // B2698: a made thing looks made - a newcomer who uses it has learned that by looking (seen), never by
+        // trying blind; one that has not looked leaves it alone (#358).
         var knowledge = Quiet.Value.Knowledge;
-        var trust = other.Relationships.Get(builder.Id, new Relation(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect)).Trust;
-        Assert.True(builder.Beliefs.TryGet(typeId, Made, out var told));
-        other.Beliefs.Set(typeId, Made, told.Value, told.Confidence * trust, KnowledgeSources.Heard, builder.Id, host.World.Tick);
-        RunUntil(host, () => events.Any(e => e.Kind == InhabitantsSystem.ActionFinished && e.InhabitantId == other.Id && e.Action == Use.Action && e.TargetId == builtId), hour * 6);
+        if (events.Any(e => e.InhabitantId == other.Id && e.Action == Use.Action))
+        {
+            Assert.True(other.Beliefs.TryGet(typeId, Made, out var seen) && seen.Value);
+        }
+        else
+        {
+            Assert.False(other.Beliefs.TryGet(typeId, Made, out var none) && none.Value);
+
+            // Told by the builder (the existing way: a passing action hands the belief on as heard, as sure as
+            // the teller times the listener's trust): now the routine uses the thing, and trying makes it sure.
+            var trust = other.Relationships.Get(builder.Id, new Relation(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect)).Trust;
+            Assert.True(builder.Beliefs.TryGet(typeId, Made, out var told));
+            other.Beliefs.Set(typeId, Made, told.Value, told.Confidence * trust, KnowledgeSources.Heard, builder.Id, host.World.Tick);
+            RunUntil(host, () => events.Any(e => e.Kind == InhabitantsSystem.ActionFinished && e.InhabitantId == other.Id && e.Action == Use.Action && e.TargetId == builtId), hour * 6);
+        }
+
+        // Either way it has used the thing now, and trying makes it sure.
         Assert.True(other.Beliefs.TryGet(typeId, Made, out var tried));
         Assert.Equal((true, knowledge.ExperiencedConfidence, KnowledgeSources.Experienced), (tried.Value, tried.Confidence, tried.Source));
 

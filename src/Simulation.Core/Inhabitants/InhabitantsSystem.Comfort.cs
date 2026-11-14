@@ -30,6 +30,36 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public Func<Position, int>? HeatAt { get; set; }
 
+    /// <summary>The comfort levels from coldest to hottest (vocabulary comfort_level, A1379); null = none in the request.</summary>
+    public IReadOnlyList<string>? ComfortLevels { get; set; }
+
+    /// <summary>
+    /// How warm it feels to the inhabitant right now (A1379), for the request: inside its zone the middle
+    /// level, within the data's band below/above the next ones, beyond the outer ones - from the same felt
+    /// temperature its warmth need uses (air plus the heat around it). Null without a zone band, air or levels.
+    /// </summary>
+    public string? ComfortLevelOf(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_model.ComfortZone is not { BandTenthC: { } band } comfort || ComfortLevels is not { Count: 5 } levels
+            || AirAt?.Invoke(world, inhabitant.Position) is not { } air)
+        {
+            return null;
+        }
+
+        var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
+        var felt = Felt(air, inhabitant.Position);
+        var below = comfort.MinTenthC + shift - felt;
+        var above = felt - (comfort.MaxTenthC + shift);
+        return below > 0 ? levels[below <= band ? 1 : 0]
+            : above > 0 ? levels[above <= band ? 3 : 4]
+            : levels[2];
+    }
+
+    /// <summary>The felt temperature at a place: the air plus the heat of things around it, in tenths of a degree.</summary>
+    private int Felt(Air air, Position at) => air.TemperatureTenthC + (HeatAt?.Invoke(at) ?? 0);
+
     /// <summary>
     /// How far the inhabitant's comfort zone is shifted against the zone of the data, in tenths of a degree
     /// (B2582: every inhabitant's zone lies a little differently): a fixed value between minus and plus the
@@ -68,7 +98,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = air.TemperatureTenthC + (HeatAt?.Invoke(inhabitant.Position) ?? 0);
+        var felt = Felt(air, inhabitant.Position);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         if (below <= 0 && above <= 0)

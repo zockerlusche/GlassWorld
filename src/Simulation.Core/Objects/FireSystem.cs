@@ -42,6 +42,15 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         _ticksPerHour = ticksPerHour;
     }
 
+    /// <summary>Event: a fire burnt down (A1379; vocabulary event).</summary>
+    public const string BurnedOut = "burned_out";
+
+    /// <summary>Event: rain put a fire out (A1379; vocabulary event).</summary>
+    public const string PutOut = "put_out";
+
+    /// <summary>Told when a burning thing ends: the thing (already gone from the world) and how (burnt down / put out).</summary>
+    public Action<World, WorldObject, string>? Ended { get; set; }
+
     /// <summary>The air at a place (precipitation puts fires out); null = no weather, fires only burn down.</summary>
     public Func<World, Position, Air?>? AirAt { get; init; }
 
@@ -88,10 +97,12 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            if (world.Tick >= until || AirAt?.Invoke(world, thing.Position) is { Precipitation: true })
+            var burnt = world.Tick >= until;
+            if (burnt || AirAt?.Invoke(world, thing.Position) is { Precipitation: true })
             {
                 _objects.Remove(id);
                 (done ??= []).Add(id);
+                Ended?.Invoke(world, thing, burnt ? BurnedOut : PutOut);
             }
         }
 
@@ -129,6 +140,85 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         return (int)Math.Round(total, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>The heat level a burning thing gives for processing (B2700): position of its type's heat_level in <paramref name="levels"/>, or null.</summary>
+    public int? HeatLevelOf(WorldObject thing, IReadOnlyList<string> levels)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        ArgumentNullException.ThrowIfNull(levels);
+        if (!_until.ContainsKey(thing.Id) || ParamsOf(thing.TypeId)?.HeatLevel is not { } level)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < levels.Count; i++)
+        {
+            if (string.Equals(levels[i], level, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The highest heat level of burning things within <paramref name="reachM"/> of a place (B2700), or null.</summary>
+    public int? HeatLevelNear(Position at, double reachM, IReadOnlyList<string> levels)
+    {
+        int? best = null;
+        foreach (var id in _until.Keys)
+        {
+            if (_objects.TryGet(id, out var thing) && HeatLevelOf(thing, levels) is { } level)
+            {
+                var dx = thing.Position.X - at.X;
+                var dz = thing.Position.Z - at.Z;
+                if ((dx * dx) + (dz * dz) <= reachM * reachM)
+                {
+                    best = Math.Max(best ?? level, level);
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Whether the thing is burning now and its type takes fuel (A1379).</summary>
+    public bool TakesFuel(WorldObject thing)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        return _until.ContainsKey(thing.Id) && ParamsOf(thing.TypeId)?.TakesFuel == true;
+    }
+
+    /// <summary>
+    /// Fuel put into a burning thing (A1379): when the fire takes fuel and the partner is fuel, the partner is
+    /// used up and the fire burns its fuel_minutes longer, at most burn_max_minutes from now. Returns whether
+    /// it burns longer now; anything else changes nothing (offered by reach, not by truth).
+    /// </summary>
+    public bool Feed(World world, string fireId, string fuelId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (!_until.TryGetValue(fireId, out var until) || !_objects.TryGet(fireId, out var fire) || !_objects.TryGet(fuelId, out var fuel)
+            || ParamsOf(fire.TypeId) is not { TakesFuel: true } fireParams || ParamsOf(fuel.TypeId)?.FuelMinutes is not { } minutes)
+        {
+            return false;
+        }
+
+        var longer = until + ((long)minutes * _ticksPerHour / 60);
+        if (fireParams.BurnMaxMinutes is { } most)
+        {
+            longer = Math.Min(longer, world.Tick + ((long)most * _ticksPerHour / 60));
+        }
+
+        if (longer <= until)
+        {
+            // Already at its most (review GW1 #355): the fuel stays where it is.
+            return false;
+        }
+
+        _objects.Remove(fuelId);
+        _until[fireId] = longer;
+        return true;
     }
 
     /// <inheritdoc/>

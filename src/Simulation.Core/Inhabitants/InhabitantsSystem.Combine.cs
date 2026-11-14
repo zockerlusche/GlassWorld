@@ -24,6 +24,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Inhabitant, string, IReadOnlyList<WorldObject>, bool>? Processing { get; set; }
 
     /// <summary>
+    /// Feeding a fire (A1379): the target, the fuel; returns whether it burns longer now. Set by the host
+    /// from the fires; null = feeding does nothing.
+    /// </summary>
+    public Func<World, Inhabitant, string, string, bool>? Feeding { get; set; }
+
+    /// <summary>
     /// Whether every partner thing of the activity is still there, is not the target itself, appears once
     /// and lies within the action's partner reach of the target. True for activities without partners.
     /// </summary>
@@ -54,7 +60,7 @@ public sealed partial class InhabitantsSystem
     /// <summary>
     /// Applies the first combination rule (rule-id order) that fits the action and the things - the target
     /// and its partners in entity-id order, so the same things give the same assignment in every run and in
-    /// replays. The new things lie where the actor stands; the rule's consumed inputs are used up. The actor
+    /// replays. The new things lie at the target's place (beside the actor, GW3 D990); the rule's consumed inputs are used up. The actor
     /// experiences the true properties of what came of it, and the world reports it (memory, chronicle).
     /// Returns whether anything came of it; nothing fitting is an outcome too (without effect, so the
     /// repetition guard lets the same try rest, W1696).
@@ -92,7 +98,8 @@ public sealed partial class InhabitantsSystem
 
         foreach (var typeId in rule.Creates)
         {
-            var made = _objects.Spawn(typeId, inhabitant.Position);
+            // Where the things were put together (the target's place), not under the actor's feet (GW3 D990).
+            var made = _objects.Spawn(typeId, target.Position);
             Experience(world.Tick, inhabitant, activity.Action, made.TypeId, _objects.Catalog.TrueProperties(made.TypeId));
             Report(new WorldEvent(Combined, world.Tick, inhabitant.Id, activity.Action, made.Id) { TargetType = made.TypeId, Detail = rule.Id });
         }
