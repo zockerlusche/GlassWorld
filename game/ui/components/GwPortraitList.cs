@@ -125,11 +125,20 @@ public partial class GwPortraitList : PanelContainer
     public GwPortraitList()
     {
         Name = "Portraits";
-        ThemeTypeVariation = UiTheme.CompactPanel;
+        // S1b (D795): on the world without a box; the screen gives it the world theme (light text, dark outline).
+        ThemeTypeVariation = UiTheme.WorldPanel;
         _scroll.AddChild(_rows);
         AddChild(_scroll);
         _scroll.GetVScrollBar().ValueChanged += _ => AskForPictures();
+        ShowScrollBar();
     }
+
+    /// <summary>
+    /// A scroll bar only for the compact list of many (S1b tour: with four rows a bar stood on the world beside the
+    /// names); the wheel scrolls either way.
+    /// </summary>
+    private void ShowScrollBar() =>
+        _scroll.VerticalScrollMode = _compact ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.ShowNever;
 
     /// <summary>A click on a row: the inhabitant is chosen.</summary>
     public event Action<string>? Chosen;
@@ -198,6 +207,7 @@ public partial class GwPortraitList : PanelContainer
             if (compact != _compact)
             {
                 _compact = compact;
+                ShowScrollBar();
                 foreach (var row in _shown)
                 {
                     row.Resize(_style, _compact);

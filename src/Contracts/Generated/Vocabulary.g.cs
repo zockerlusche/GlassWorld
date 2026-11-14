@@ -41,6 +41,13 @@ namespace GlassWorld.Contracts
         public string? OnlyWhen { get; set; } = default!;
 
         /// <summary>
+        /// Actions only (B9 R26, GW3 #25889): a word kept for a later step that does not exist in the world yet. The core never offers it (it must have no offered timing), a prompt never lists it and it is never an invention's purpose. The step that makes it executable removes the mark. Absent = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reserved")]
+        public bool? Reserved { get; set; } = default!;
+
+        /// <summary>
         /// Actions only (A1510, W1728): the inhabitant's thought with this action is said aloud to the one it turns to (introducing, talking, warning, showing, teaching), so the log shows 'says' instead of 'thinks'. Absent = false (a thought).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

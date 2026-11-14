@@ -31,10 +31,18 @@ public sealed record MailMessage(string Id, string? InhabitantId, string Kind, l
     public bool IsOpen => AcknowledgedTick is null;
 }
 
+/// <summary>A knock that waits until its sender is awake (A1714, D1112 #7): nobody knocks in its sleep.</summary>
+/// <param name="InhabitantId">Who knocks.</param>
+/// <param name="TextKey">The message text key.</param>
+/// <param name="Detail">The need, or the missing properties of a builder's knock.</param>
+/// <param name="Subject">The invention type of a builder's knock, else null.</param>
+public sealed record HeldKnock(string InhabitantId, string TextKey, string? Detail, string? Subject);
+
 /// <summary>The mailbox as saved.</summary>
 /// <param name="Counter">Last message number.</param>
 /// <param name="Messages">All messages, oldest first (open and history).</param>
-public sealed record MailboxState(long Counter, IReadOnlyList<MailMessage> Messages);
+/// <param name="Held">Knocks waiting for their sleeping sender (A1714); null = none.</param>
+public sealed record MailboxState(long Counter, IReadOnlyList<MailMessage> Messages, IReadOnlyList<HeldKnock>? Held = null);
 
 /// <summary>
 /// The player's mailbox (B6 R10/R11, a world system after the player system): messages of the
@@ -72,6 +80,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
     private readonly int _historyMax;
     private readonly int _ticksPerHour;
     private readonly List<MailMessage> _messages = [];
+    private readonly List<HeldKnock> _held = [];
     private long _counter;
 
     /// <summary>Creates the mailbox.</summary>
@@ -95,7 +104,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
     public string Name => "mailbox";
 
     /// <inheritdoc/>
-    public bool HasState => _counter > 0;
+    public bool HasState => _counter > 0 || _held.Count > 0;
 
     /// <summary>Open messages, most urgent first, then newest.</summary>
     public IReadOnlyList<MailMessage> Open => [.. _messages.Where(m => m.IsOpen).OrderByDescending(m => m.Urgency).ThenByDescending(m => m.CreatedTick).ThenBy(m => m.Id, StringComparer.Ordinal)];
@@ -134,12 +143,15 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
     {
         ArgumentNullException.ThrowIfNull(world);
 
+        // A1714 (D1112 #7): a knock held while its sender slept comes once it is awake - if it still holds then.
+        ReleaseHeld(world);
+
         // A call for help is a knock at the glass (A1341).
         foreach (var call in _inhabitants.Events.Where(e => e.Tick == world.Tick && e.Kind == PlayerSystem.HelpNeeded).ToList())
         {
             if (_kinds.ContainsKey(KnockKind))
             {
-                Add(world, call.InhabitantId, KnockKind, "msg.mail.knock", call.Detail);
+                Knock(world, call.InhabitantId, "msg.mail.knock", call.Detail, null);
             }
         }
 
@@ -150,7 +162,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
             if (_kinds.ContainsKey(KnockKind))
             {
                 var text = stuck.Text == Inventions.InventionSystem.InWorld ? BuildStuckText : BuildMissingText;
-                Add(world, stuck.InhabitantId, KnockKind, text, stuck.Detail, stuck.TargetId);
+                Knock(world, stuck.InhabitantId, text, stuck.Detail, stuck.TargetId);
             }
         }
 
@@ -205,10 +217,20 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
                 hasher.Write(subject);
             }
         }
+
+        // A1714: held knocks only while there are any, so other worlds hash as before.
+        if (_held.Count > 0)
+        {
+            hasher.Write("held").Write(_held.Count);
+            foreach (var h in _held)
+            {
+                hasher.Write(h.InhabitantId).Write(h.TextKey).Write(h.Detail ?? string.Empty).Write(h.Subject ?? string.Empty);
+            }
+        }
     }
 
     /// <summary>The state to save.</summary>
-    public MailboxState Capture() => new(_counter, [.. _messages]);
+    public MailboxState Capture() => new(_counter, [.. _messages], _held.Count > 0 ? [.. _held] : null);
 
     /// <summary>
     /// Restores a saved state (null = a save game from before the mailbox: empty). Unknown kinds, ids
@@ -218,6 +240,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
     {
         _counter = 0;
         _messages.Clear();
+        _held.Clear();
         if (state is null)
         {
             return;
@@ -235,6 +258,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
 
         _counter = state.Counter;
         _messages.AddRange(state.Messages);
+        _held.AddRange(state.Held ?? []);
     }
 
     private bool CallStillOpen(MailMessage message) =>
@@ -246,6 +270,48 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
         message.InhabitantId is { } who
         && _inhabitants.All.Any(i => i.Id == who)
         && (StillStuck is not { } stuck || stuck(who, message.Subject!));
+
+    /// <summary>
+    /// A knock at the glass, or - while its sender sleeps - held until it is awake (A1714, D1112 #7: a knock nobody
+    /// could have made was a sound without a visible cause). A newer one for the same need or invention replaces it.
+    /// </summary>
+    private void Knock(World world, string inhabitantId, string textKey, string? detail, string? subject)
+    {
+        if (_inhabitants.TryGet(inhabitantId, out var sender) && _inhabitants.IsAsleep(sender))
+        {
+            _held.RemoveAll(h => h.InhabitantId == inhabitantId && h.Detail == detail && h.Subject == subject);
+            _held.Add(new HeldKnock(inhabitantId, textKey, detail, subject));
+            return;
+        }
+
+        Add(world, inhabitantId, KnockKind, textKey, detail, subject);
+    }
+
+    /// <summary>Knocks of senders awake again, in the order they were held; those whose need is over, or whose sender is gone, drop.</summary>
+    private void ReleaseHeld(World world)
+    {
+        if (_held.Count == 0 || !_kinds.ContainsKey(KnockKind))
+        {
+            return;
+        }
+
+        for (var i = 0; i < _held.Count;)
+        {
+            var h = _held[i];
+            if (_inhabitants.TryGet(h.InhabitantId, out var sender) && _inhabitants.IsAsleep(sender))
+            {
+                i++;
+                continue;
+            }
+
+            _held.RemoveAt(i);
+            var probe = new MailMessage(string.Empty, h.InhabitantId, KnockKind, world.Tick, h.TextKey, h.Detail, 0, 0, null, world.Tick) { Subject = h.Subject };
+            if (h.Subject is null ? CallStillOpen(probe) : BuilderStillStuck(probe))
+            {
+                Add(world, h.InhabitantId, KnockKind, h.TextKey, h.Detail, h.Subject);
+            }
+        }
+    }
 
     private void Add(World world, string? inhabitantId, string kind, string textKey, string? detail, string? subject = null)
     {

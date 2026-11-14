@@ -197,7 +197,7 @@ public static class UiLayoutCheck
     {
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
-        var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
+        var date = DateSample(host);
         var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
         var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
         var portraits = new GwPortraitList();
@@ -211,6 +211,11 @@ public static class UiLayoutCheck
             log.Content.AddChild(new Label { Text = "ui.log.no_answer", AutowrapMode = TextServer.AutowrapMode.WordSmart });
         }
 
+        // The parts on the world take the world theme as in the game (S1b).
+        var world = UiTheme.BuildWorld(style);
+        portraits.Theme = world;
+        log.ThemeTypeVariation = UiTheme.WorldPanel;
+        log.Theme = world;
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
@@ -260,6 +265,16 @@ public static class UiLayoutCheck
                 }
             }
 
+            // TL #25715: the text on the world reads over snow, sand and light grass (the grounds of the data).
+            if (!portraits.Compact)
+            {
+                // Compact rows show the portraits only, no names.
+                problems.AddRange(WorldTextProblems(style, "portraits", portraits));
+            }
+
+            problems.AddRange(WorldTextProblems(style, "log", log));
+            problems.AddRange(WorldTextProblems(style, "time block", corner));
+
             if (portraits.Compact != (count >= style.Tokens.Zones.PortraitsCompactFrom))
             {
                 problems.Add($"{count} portraits: compact is {portraits.Compact}");
@@ -270,11 +285,55 @@ public static class UiLayoutCheck
         return problems;
     }
 
+    /// <summary>
+    /// Text that stands on the world (S1b, TL #25715): its outline is thick enough, and its colour against the outline
+    /// over every light ground of the data (snow, sand, light grass, sky) reaches the text contrast. Headless renders
+    /// nothing, so the check reads the colours the part really draws with from its theme.
+    /// </summary>
+    private static IEnumerable<string> WorldTextProblems(UiStyle style, string name, Control part)
+    {
+        var label = part.FindChildren("*", nameof(Label), true, false).OfType<Label>().FirstOrDefault(l => l.IsVisibleInTree() && l.Text.Length > 0);
+        if (label is null)
+        {
+            yield return $"{name}: no text on the world found";
+            yield break;
+        }
+
+        var size = label.GetThemeConstant("outline_size");
+        if (size < UiStandardRules.MinWorldOutlinePx)
+        {
+            yield return $"{name}: text outline {size} px, needs {UiStandardRules.MinWorldOutlinePx}";
+        }
+
+        static RgbaColor Rgba(Color c) => new(c.R, c.G, c.B, c.A);
+        var text = Rgba(label.GetThemeColor("font_color"));
+        var outline = Rgba(label.GetThemeColor("font_outline_color"));
+        var white = new RgbaColor(1, 1, 1, 1);
+        foreach (var ground in style.Tokens.Window.WorldCheckGrounds.Select(RgbaColor.Parse))
+        {
+            var ring = outline.Over(ground.Over(white));
+            var ratio = RgbaColor.Contrast(text.Over(ring), ring);
+            if (ratio < UiStandardRules.TextContrast)
+            {
+                yield return $"{name}: text in its outline over the ground {ground} has contrast {ratio:0.00}, needs {UiStandardRules.TextContrast:0.0}";
+            }
+        }
+    }
+
+    /// <summary>A long date (B2759): late in a season, many game days, a high year.</summary>
+    private static Dictionary<string, string> DateValues(Node host) =>
+        new() { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" };
+
+    /// <summary>Season and game day as the time block shows them side by side.</summary>
+    private static string DateSample(Node host) =>
+        TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host)) + "  " + TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
+
     /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
     private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
     {
-        var (bar, date, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
+        var (bar, date, day, time) = GameScreen.CreateTopBar(style, choices, _ => { });
+        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host));
+        day.Text = TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
         time.Text = "23:59";
         var side = new GwSideBar();
         side.Add("inhabitants", "ui.inhabitants.title");
