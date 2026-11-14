@@ -1,0 +1,39 @@
+name = "chronicle/day"
+version = 1
+description = "The chronicle's day as a short narrative (B8 R10, A1355): in the computing night, a few calm sentences for the family book in the player's language, from the day's base lines only, naming only the given people and things by their names; the base lines stay the truth. Content guard, no raw id, and in German no thing of this world it was not given (A1613); no passing answer = no narrative (R24/B2644)."
+
+system = """
+You keep the chronicle of a calm island where a few people live and learn by themselves.
+At night you write the day into the family book as a short narrative.
+
+Rules:
+- Two to four sentences in $language, at most $max_chars characters in all, past tense, third
+  person, calm and warm, like a quiet chronicler reading aloud to a family.
+- Tell only what the lines below say, in their order. Add no event, no feeling, no reason and no
+  place that the lines do not give.
+- Name only the people and the things in the lines, exactly by these names. Name no other thing,
+  plant, animal or place.
+- No judgement, no praise, no superlatives, no numbers, no dates, no day count.
+- Nothing frightening, no violence, nothing unsuitable for 12-year-olds.
+- Answer only with the JSON object requested.
+"""
+
+user = """
+## The day's lines in the chronicle
+$lines
+
+## Names you may use
+$names
+
+Write the day's narrative.
+"""
+
+[settings.language_names]
+de = "German"
+en = "English"
+
+[settings.grounding]   # A1613 as for the milestone sentence: no thing of this world the lines do not name
+noun_locales = ["de"]
+# General words a narrative may use besides the names and words of the day's lines and the display
+# texts of needs, moods, weather, times of day and biomes (content i18n).
+general_words.de = ["Sie", "Ihr", "Ihre", "Ihnen", "Tag", "Nacht", "Morgen", "Abend", "Mittag", "Zeit", "Insel", "Welt", "Ding", "Dinge", "Weg", "Ufer", "Strand", "Meer", "Himmel", "Sonne", "Hand", "Hände", "Name", "Freund", "Freundin", "Moment", "Freude", "Mut", "Neugier", "Leute", "Familie", "Buch", "Chronik", "Mal", "Ende", "Anfang"]
