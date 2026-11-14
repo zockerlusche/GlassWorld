@@ -24,6 +24,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Inhabitant, string, IReadOnlyList<WorldObject>, bool>? Processing { get; set; }
 
     /// <summary>
+    /// B5 R45: whether a thing lacks one of its true properties right now (wet fuel does not burn); set by the
+    /// host from the fire data. Null = things always have their true properties.
+    /// </summary>
+    public Func<World, WorldObject, string, bool>? Lacks { get; set; }
+
+    /// <summary>
     /// Feeding a fire (A1379): the target, the fuel; returns whether it burns longer now. Set by the host
     /// from the fires; null = feeding does nothing.
     /// </summary>
@@ -82,7 +88,15 @@ public sealed partial class InhabitantsSystem
         }
 
         things.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
-        var matches = rules.Match(activity.Action, [.. things.Select(t => t.TypeId)]);
+        var types = things.Select(t => t.TypeId).ToList();
+        var matches = Lacks is { } lacks ? rules.Match(activity.Action, types, (i, p) => lacks(world, things[i], p)) : rules.Match(activity.Action, types);
+        if (matches.Count == 0 && Lacks is not null && rules.Match(activity.Action, types).Count > 0)
+        {
+            // A known rule that needs what the things lack right now (wet grass and a spark): nothing comes of it,
+            // and it is no unknown try for the judge either.
+            return false;
+        }
+
         if (matches.Count == 0)
         {
             // No combination: maybe a processing (the target first, as the inhabitant chose it).

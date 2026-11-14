@@ -74,7 +74,12 @@ public sealed class CombinationRuleSet
     /// Callers pass the types of the objects in entity-id order, so the assignment (and with it which
     /// object a <c>consumes</c> index uses up) is the same in every run and in replays.
     /// </summary>
-    public IReadOnlyList<(CombinationRule Rule, int[] Assignment)> Match(string action, IReadOnlyList<string> typeIds)
+    /// <param name="action">The action.</param>
+    /// <param name="typeIds">The types of the things, in entity-id order.</param>
+    /// <param name="lacks">
+    /// B5 R45: whether thing <c>i</c> lacks a true property right now (wet fuel does not burn); null = none.
+    /// </param>
+    public IReadOnlyList<(CombinationRule Rule, int[] Assignment)> Match(string action, IReadOnlyList<string> typeIds, Func<int, string, bool>? lacks = null)
     {
         ArgumentNullException.ThrowIfNull(typeIds);
         var result = new List<(CombinationRule, int[])>();
@@ -82,7 +87,7 @@ public sealed class CombinationRuleSet
         {
             var slots = rule.Inputs.ToList();
             var assignment = new int[slots.Count];
-            if (Assign(slots, typeIds, 0, new bool[typeIds.Count], assignment))
+            if (Assign(slots, typeIds, 0, new bool[typeIds.Count], assignment, lacks))
             {
                 result.Add((rule, assignment));
             }
@@ -91,7 +96,7 @@ public sealed class CombinationRuleSet
         return result;
     }
 
-    private bool Assign(List<InputSlot> slots, IReadOnlyList<string> typeIds, int slot, bool[] used, int[] assignment)
+    private bool Assign(List<InputSlot> slots, IReadOnlyList<string> typeIds, int slot, bool[] used, int[] assignment, Func<int, string, bool>? lacks)
     {
         if (slot == slots.Count)
         {
@@ -100,14 +105,14 @@ public sealed class CombinationRuleSet
 
         for (var i = 0; i < typeIds.Count; i++)
         {
-            if (used[i] || !slots[slot].Properties.All(p => _catalog.TrueProperties(typeIds[i]).Contains(p)))
+            if (used[i] || !slots[slot].Properties.All(p => _catalog.TrueProperties(typeIds[i]).Contains(p) && lacks?.Invoke(i, p) != true))
             {
                 continue;
             }
 
             used[i] = true;
             assignment[slot] = i;
-            if (Assign(slots, typeIds, slot + 1, used, assignment))
+            if (Assign(slots, typeIds, slot + 1, used, assignment, lacks))
             {
                 return true;
             }

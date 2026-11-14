@@ -438,6 +438,8 @@ public sealed class SimulationHost
                 }
             }
         };
+        // B5 R45: wet fuel does not burn in a combination either (spark and wet grass).
+        inhabitants.Lacks = fire.Lacks;
         fire.Caught = (w, thing, burning) =>
         {
             var sight = inhabitants.SightRadiusM;

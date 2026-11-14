@@ -169,6 +169,13 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         return band is not null && dryTakts * Nature.TaktTicks < (long)band.Hours * _ticksPerHour;
     }
 
+    /// <summary>B5 R45: whether a thing lacks the fuel property right now because it is wet (it does not burn in a combination either).</summary>
+    public bool Lacks(World world, WorldObject thing, string property)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        return Settings is { } data && string.Equals(property, data.FuelProperty, StringComparison.Ordinal) && IsWet(world, thing.Position);
+    }
+
     /// <summary>Whether a thing feeds a fire and can catch one: its type has the fuel property (TRUE properties).</summary>
     private bool IsFuel(string typeId) =>
         Settings is { } data && _objects.Catalog.Contains(typeId) && _objects.Catalog.TrueProperties(typeId).Contains(data.FuelProperty);
