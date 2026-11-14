@@ -37,6 +37,9 @@ public sealed class MemoryRecorder
         _actions = actions;
     }
 
+    /// <summary>A memory was just recorded: who, kind, about kind and id, formative (D1017 G1b: what hurt sets a floor).</summary>
+    public Action<Inhabitant, string, string?, string?, bool>? Remembered { get; set; }
+
     /// <summary>Takes a reported core event; every data entry that fits gives one remembered event.</summary>
     public void Observe(WorldEvent worldEvent)
     {
@@ -83,6 +86,7 @@ public sealed class MemoryRecorder
                 _ => false,
             };
             note.Who.Memory.Remember(worldEvent.Tick, note.Kind, note.AboutKind, note.AboutId, formative, _settings.MaxEvents, note.Count, note.Outcome);
+            Remembered?.Invoke(note.Who, note.Kind, note.AboutKind, note.AboutId, formative);
         }
     }
 
