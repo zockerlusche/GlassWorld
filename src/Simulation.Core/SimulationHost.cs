@@ -438,6 +438,10 @@ public sealed class SimulationHost
                 }
             }
         };
+
+        // B5 R45: wet fuel does not burn in a combination either (spark and wet grass).
+        inhabitants.Lacks = fire.Lacks;
+
         // B5 R47: what the inhabitants feel near fire (a big fire close by) drives their mood by the data.
         inhabitants.Feels = (inhabitant, sensation) => fire.Feels(inhabitant.Position, sensation);
         fire.Caught = (w, thing, burning) =>
@@ -566,6 +570,7 @@ public sealed class SimulationHost
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
         memory.Remembered = forgetting.Remembered;
+        inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
         {
             // Out of the hash while only things of the world start exist.

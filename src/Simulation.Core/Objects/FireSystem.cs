@@ -169,6 +169,13 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         return band is not null && dryTakts * Nature.TaktTicks < (long)band.Hours * _ticksPerHour;
     }
 
+    /// <summary>B5 R45: whether a thing lacks the fuel property right now because it is wet (it does not burn in a combination either).</summary>
+    public bool Lacks(World world, WorldObject thing, string property)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        return Settings is { } data && string.Equals(property, data.FuelProperty, StringComparison.Ordinal) && IsWet(world, thing.Position);
+    }
+
     /// <summary>
     /// B5 R47: whether a sensation of the fire data is felt at a place - at least min_burning burning things
     /// within its radius (a campfire alone is not a big fire). Unknown sensations: false.

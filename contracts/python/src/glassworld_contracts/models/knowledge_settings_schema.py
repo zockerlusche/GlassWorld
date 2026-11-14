@@ -319,6 +319,12 @@ class KnowledgeForgetting(BaseModel):
         description='D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.',
         max_length=16,
     )
+    unsure_below: float | None = Field(
+        None,
+        description="D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class KnowledgeMemoryEvent(BaseModel):

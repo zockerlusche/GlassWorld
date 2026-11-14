@@ -473,7 +473,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     private List<KnowledgeEntry> Known(Inhabitant inhabitant, IReadOnlyList<string> seen)
     {
-        var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, [], null, _inhabitants.TypeLabelOf).Knowledge ?? []).Take(KnowledgeMax).ToList();
+        var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, [], null, _inhabitants.TypeLabelOf, unsure: _inhabitants.UnsureOf).Knowledge ?? []).Take(KnowledgeMax).ToList();
         var seenTypes = seen.ToHashSet(StringComparer.Ordinal);
         var visible = _knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         known.AddRange(inhabitant.Beliefs.All
@@ -484,7 +484,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(KnowledgeMax - known.Count)
-            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf)));
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf, _inhabitants.UnsureOf)));
         return known;
     }
 

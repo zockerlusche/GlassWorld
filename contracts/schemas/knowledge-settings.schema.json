@@ -877,6 +877,12 @@
               "floor": { "type": "number", "minimum": 0, "maximum": 1 }
             }
           }
+        },
+        "unsure_below": {
+          "description": "D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

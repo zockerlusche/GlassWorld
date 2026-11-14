@@ -675,6 +675,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("floor_after")]
         public System.Collections.Generic.ICollection<Floor_after>? FloorAfter { get; set; } = default!;
 
+        /// <summary>
+        /// D1017 G1 (GW2 #395): below this strength a fading belief goes to the AI with sure: false ('you think so, but are no longer sure'). Absent = never marked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unsure_below")]
+        public double? UnsureBelow { get; set; } = default!;
+
     }
 
     /// <summary>
