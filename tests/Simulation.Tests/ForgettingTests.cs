@@ -60,6 +60,36 @@ public sealed class ForgettingTests
     }
 
     [Fact]
+    public void AFadedBeliefGoesToTheAiAsNoLongerSureAFreshOneAsBefore()
+    {
+        // GW2 #395: below unsure_below it carries sure: false; above it, sure stays absent (requests unchanged).
+        var (host, a) = World();
+        var forgetting = Content.Value.Knowledge.Forgetting!;
+        var decay = forgetting.DecayPerDay[KnowledgeSources.Heard];
+        a.Beliefs.Set(Thing, Property, true, 0.8, KnowledgeSources.Heard, null, 0);
+        Assert.Null(Sure(host, a));
+
+        // Fewer days than it takes to fall below the mark: still sure.
+        var day = host.World.Calendar.TicksPerDay;
+        var unsureAfter = 1;
+        while (1 - (decay * unsureAfter) >= forgetting.UnsureBelow!.Value)
+        {
+            unsureAfter++;
+        }
+        // Two days short of the mark (one day short sits on it, where rounding decides): still sure.
+        host.World.Run((day * (unsureAfter - 2)) + 1);
+        Assert.Null(Sure(host, a));
+
+        host.World.Run(day * 2);
+        Assert.True(a.Beliefs.TryGet(Thing, Property, out _));
+        Assert.False(Sure(host, a));
+
+        // Used again: sure again.
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.ActionFinished, host.World.Tick, a.Id, "inspect", null) { TargetType = Thing });
+        Assert.Null(Sure(host, a));
+    }
+
+    [Fact]
     public void TellingSomeoneUsesTheTellersKnowledgeToo()
     {
         // Review GW2 #392: the listener's belief names the teller; hearing it makes the teller's belief as sure as before.
@@ -116,6 +146,9 @@ public sealed class ForgettingTests
         Assert.True(a.Beliefs.TryGet(Thing, Property, out var same));
         Assert.Equal(0.8, same.Confidence, 12);
     }
+
+    private static bool? Sure(SimulationHost host, Inhabitant a) =>
+        Assert.Single(InhabitantStates.Of(a, Content.Value.Knowledge, [Thing], [], unsure: host.Inhabitants.UnsureOf).Knowledge!).Sure;
 
     /// <summary>One inhabitant, busy with nothing, in an empty world (nothing to act on, nothing new to learn).</summary>
     private static (SimulationHost Host, Inhabitant A) World()
