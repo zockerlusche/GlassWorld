@@ -18,7 +18,7 @@ public sealed record WearState(IReadOnlyDictionary<string, WornThing> Worn);
 /// objects - nobody else sees, takes or uses it - and its id and type are kept here, so nothing is lost. Taking off
 /// (<c>wear: off</c>) lays it down at the wearer's feet with the same id. Warmth comes only through the worn thing's
 /// true properties (the body system asks <see cref="WornTypeOf"/>), never through the function (TL #25587).
-/// Known limit: while worn, a thing does not age (durability acts on things in the world).
+/// While worn a thing keeps its age by time; durability watches it again when it is laid down (no wear-out while worn).
 /// </summary>
 public sealed class WearSystem : IWorldSystem, IOptionalWorldState
 {
@@ -54,11 +54,10 @@ public sealed class WearSystem : IWorldSystem, IOptionalWorldState
                 return false;
             }
 
-            _objects.Restore(new WorldObject(worn.Id, worn.TypeId, at), _objects.NextNumber);
-            return true;
+            return _objects.Lay(new WorldObject(worn.Id, worn.TypeId, at));
         }
 
-        if (_worn.ContainsKey(inhabitant.Id) || !_objects.TryGet(target.Id, out var thing) || !_objects.Remove(thing.Id))
+        if (_worn.ContainsKey(inhabitant.Id) || !_objects.TryGet(target.Id, out var thing) || !_objects.Lift(thing.Id))
         {
             return false;
         }

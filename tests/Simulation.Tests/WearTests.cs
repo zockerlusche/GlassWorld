@@ -1,14 +1,56 @@
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Tests;
 
 /// <summary>B4b K4 part 2 (B2752): one worn thing per inhabitant; warmth only through its material.</summary>
-public sealed class WearTests
+public sealed class WearTests : IDisposable
 {
     private static readonly string ContentDirectory = Path.Combine(TestData.Root, "content");
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), "gw-wear-" + Guid.NewGuid().ToString("N"));
+
+    public WearTests() => Directory.CreateDirectory(_directory);
+
+    /// <inheritdoc/>
+    public void Dispose() => Directory.Delete(_directory, recursive: true);
+
+    [Fact]
+    public void AWornThingIsSavedAndLaidDownTheSameAfterALoadAsInAnUnbrokenRun()
+    {
+        var original = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        original.Types.Register("test_wrap", ["wearable", "crafted"]);
+        var wearer = original.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
+        var wrap = original.Objects.Spawn("test_wrap", wearer.Position);
+        original.World.Run(5);
+        Assert.True(original.Wear.Wear(wearer, wrap, wearer.Position));
+        original.World.Run(40);
+
+        var path = Path.Combine(_directory, "world.db");
+        SaveGameStore.Save(path, StateCodec.Capture(original));
+        var content = ContentSet.Load(ContentDirectory);
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var loaded = StateCodec.Restore(new SimulationHostFactory(content, settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+        // Both run on with the same decider, so what follows the load can be compared.
+        loaded.Types.Register("test_wrap", ["wearable", "crafted"]);
+        Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(new WornThing(wrap.Id, "test_wrap"), loaded.Wear.WornBy(wearer.Id));
+
+        foreach (var host in new[] { original, loaded })
+        {
+            var who = host.Inhabitants.All.First(i => i.Id == wearer.Id);
+            Assert.True(host.Wear.Wear(who, null, who.Position));
+            host.World.Run(30);
+        }
+
+        Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
+        Assert.True(loaded.Objects.TryGet(wrap.Id, out _));
+    }
 
     [Fact]
     public void PuttingOnTakesTheThingOffTheGroundAndTakingOffLaysItDownWithItsOwnId()
@@ -38,9 +80,9 @@ public sealed class WearTests
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
         host.Types.Register("test_wrap", ["wearable", "crafted"]);
-        Assert.Contains(host.Actions.Applying("put_on", "test_wrap"), r => r.Wear == EffectRuleWear.On);
-        Assert.Contains(host.Actions.Applying("take_off", null), r => r.Wear == EffectRuleWear.Off);
-        Assert.DoesNotContain(host.Actions.Applying("put_on", "flint"), r => r.Wear is not null); // not wearable
+        Assert.Contains(host.Content.Actions.WithTruth(host.Types).Applying("put_on", "test_wrap"), r => r.Wear == EffectRuleWear.On);
+        Assert.Contains(host.Content.Actions.WithTruth(host.Types).Applying("take_off", null), r => r.Wear == EffectRuleWear.Off);
+        Assert.DoesNotContain(host.Content.Actions.WithTruth(host.Types).Applying("put_on", "flint"), r => r.Wear is not null); // not wearable
     }
 
     [Fact]
