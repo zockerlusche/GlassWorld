@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The start hint 'an AI needs you' no longer comes for an image AI that was never set up (no ComfyUI folder named; D1050 find 2, TL #24591): the world shows simple pictures without it, and the hint came with every new world. Its line under Settings > AI still says what to do; once a folder is named, its problems give the hint again.
 - The Windows export prepares the AI service's environment (`uv sync --frozen` in the repository; TL #24536): before, uv built it at the first start of a test package while the game waited only 60 s, so the first start 'with AI' ran without AI. `SKIP_UV_SYNC=1` skips it.
 - A made thing can be used when there is time (GW2 D999, TL TH143): a free moment offers the decider 'use' on the made things in sight the inhabitant knows are made (#358), nearest first. Until now 'use' reached the decider only as the subject of a question, so a built thing waited for a low need and was never used in the 6-day run.
 - A night question about a thing the inhabitant knows nothing about goes out only when the thing shows something at a glance (GW2 D999): a conifer shows none of the visible properties, and with an empty perception the model guessed from memories of other things. Such a question waits until the inhabitant has looked or tried, as before.

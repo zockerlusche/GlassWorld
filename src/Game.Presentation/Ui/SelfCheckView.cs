@@ -34,11 +34,19 @@ public static class SelfCheckView
         return [.. check.Checks.Select(Line).Select((line, index) => (line, index)).OrderBy(x => x.line.Problem ? 0 : 1).ThenBy(x => x.index).Select(x => x.line)];
     }
 
-    /// <summary>Whether any AI needs the player (a calm hint at start, W1703 rule 2).</summary>
+    /// <summary>Reason of an image AI the player never set up: no ComfyUI folder named yet.</summary>
+    public const string ImageNotSetUp = "folder_unknown";
+
+    /// <summary>
+    /// Whether any AI needs the player (a calm hint at start, W1703 rule 2). An image AI that was never set up
+    /// (no ComfyUI folder named) is not a reason: the world shows simple pictures without it, and the hint would
+    /// come with every new world (D1050 find 2). Its line in the settings still says what to do.
+    /// </summary>
     public static bool NeedsPlayer(SelfCheck check)
     {
         ArgumentNullException.ThrowIfNull(check);
-        return check.Checks.Any(c => c.State == AiCheckState.Problem);
+        return check.Checks.Any(c => c.State == AiCheckState.Problem
+            && !(c.Ai == AiCheckAi.Image && string.Equals(c.Reason, ImageNotSetUp, StringComparison.Ordinal)));
     }
 
     /// <summary>The line of one AI.</summary>
