@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.2",
+  "days_per_life_year": 10,
+  "start_age_years": {
+    "min": 18,
+    "max": 35
+  },
+  "phases": [
+    {
+      "id": "child",
+      "from_years": 0,
+      "actions": [
+        "*"
+      ]
+    },
+    {
+      "id": "youth",
+      "from_years": 12,
+      "actions": [
+        "*"
+      ]
+    },
+    {
+      "id": "adult",
+      "from_years": 18,
+      "actions": [
+        "*"
+      ]
+    },
+    {
+      "id": "elder",
+      "from_years": 60,
+      "actions": [
+        "*"
+      ]
+    }
+  ]
+}

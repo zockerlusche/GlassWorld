@@ -199,6 +199,10 @@
       "description": "An inhabitant moved to live somewhere else (B8 R9; reported by the core once settlements exist)."
     },
     {
+      "id": "stage_changed",
+      "description": "An inhabitant entered a new life phase (B9 R1): detail = the phase (vocabulary life_stage)."
+    },
+    {
       "id": "combined",
       "description": "Something came of using things together (combine, B2687): target = the new thing, target type = its type, detail = the rule."
     },

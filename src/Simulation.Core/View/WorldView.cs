@@ -60,6 +60,12 @@ public sealed record InhabitantSnapshot(
     /// (W1698); null only if it has none. Read-only copy for the presentation, not part of the state hash.
     /// </summary>
     public string? Name { get; init; }
+
+    /// <summary>Its life phase (B9 R1, vocabulary life_stage), or null.</summary>
+    public string? LifeStage { get; init; }
+
+    /// <summary>Its age in life years (B9 R1), or null.</summary>
+    public int? AgeYears { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -134,6 +140,8 @@ public static class WorldView
                 Facing = inhabitants.FacingOf(i),
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
                 Name = i.Name,
+                LifeStage = i.LifeStage,
+                AgeYears = i.AgeYears,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

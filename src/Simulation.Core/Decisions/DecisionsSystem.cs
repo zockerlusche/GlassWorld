@@ -176,6 +176,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>A1373 step 2 (set by the host): the options of a stuck building (inhabitant, invention type), fresh each time a request is built.</summary>
     public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? StuckOptions { get; set; }
 
+    /// <summary>Whether the asker's life phase allows an action (B9 R1, data); null = every action.</summary>
+    public Func<Inhabitant, string, bool>? ActionAllowed { get; set; }
+
     /// <summary>A1373 step 2 (set by the host): what a stuck building's request tells the decider (inhabitant, invention type).</summary>
     public Func<string, string, StuckBuilding?>? StuckContext { get; set; }
 
@@ -1288,6 +1291,12 @@ public sealed class DecisionsSystem : IWorldSystem
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
+            // B9 R1: only what its life phase allows (data) - checked by the core, not the prompt.
+            if (ActionAllowed?.Invoke(asker, action) == false)
+            {
+                continue;
+            }
+
             if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
             {
                 continue;
@@ -1526,6 +1535,7 @@ public sealed class DecisionsSystem : IWorldSystem
                         Id = i.Id,
                         DistanceM = Distance(inhabitant.Position, i.Position),
                         Called = i.Name is { } name && inhabitant.KnownNames.Contains(i.Id) ? new CalledAs { Name = name, Label = null } : null,
+                        LifeStage = i.LifeStage,
                     })],
             },
             Options = [.. options.Select(o => new Option

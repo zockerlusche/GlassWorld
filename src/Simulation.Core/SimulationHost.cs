@@ -607,6 +607,15 @@ public sealed class SimulationHost
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
+
+        // B9 R1: inhabitants age (data: life/aging.json) - after the core systems; the phase decides which actions the
+        // decider may offer.
+        if (content.Aging is { } agingData)
+        {
+            var aging = new AgingSystem(agingData, inhabitants, world.Seed, world.Calendar.TicksPerDay);
+            world.Add(aging);
+            decisions.ActionAllowed = aging.Allows;
+        }
         memory.Remembered = forgetting.Remembered;
         inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
