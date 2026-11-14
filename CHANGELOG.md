@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The rule guard asks its second question (A1582, R9, B2578; guard v5): can the inhabitant come to it? An invention that works only because of a property the inhabitant does not know about its material (nothing listed as noticed) goes back with the new reason beyond_knowledge, without saying which property. config: guard prompt 5.
 - Said or thought (A1510, W1728): the action vocabulary marks the actions whose line is said aloud to the other one (spoken: introduce, talk to, warn, show, teach); the conversation log shows those as 'says' instead of 'thinks'.
 - Reach heights for actions on things (A1632, D958 D1, part 1): every thing's look says where a hand meets it - `reach` low (on the ground), mid (bushes, trunks, reeds) or high (look/objects visuals, data) - and the animation mappings may choose by it (`reach` with target object, wins over the target kind alone). Looking at, eating, drinking at or combining a thing on the ground now crouches (`crouch_inspect`) instead of reaching forward at table height. Reaching up for high things (IK) follows in part 2.
 - The decider's options come in a shuffled order (D1025, TL TH142): in L1591 combine stood first in 61 of 67 requests and 9 of 15 combine choices were option 1. After the cut to the limit (which still keeps the intended option) the order is shuffled per question from the world seed and the question id - the same in a replay and when a question is sent again, with no random stream of the world.
