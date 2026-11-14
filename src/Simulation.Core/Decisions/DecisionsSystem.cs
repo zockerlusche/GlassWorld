@@ -1414,10 +1414,6 @@ public sealed class DecisionsSystem : IWorldSystem
         return [.. kept.Select(o => (o.OptionId, o.Action, o.TargetId))];
     }
 
-    /// <summary>
-    /// D1025: a deterministic Fisher-Yates shuffle from a seed (SplitMix64) - no random stream of the world, so the
-    /// order is the same in a replay and costs nothing in the hash.
-    /// </summary>
     /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> undone (D1025).</summary>
     private static IReadOnlyList<(string OptionId, string Action, string? TargetId)> InDataOrder(OpenQuestion question, ulong worldSeed)
     {
@@ -1441,6 +1437,10 @@ public sealed class DecisionsSystem : IWorldSystem
     internal static int OrderSeed(ulong worldSeed, string questionId) =>
         DecisionIds.SeedOf(string.Create(CultureInfo.InvariantCulture, $"options/{worldSeed}/{questionId}"));
 
+    /// <summary>
+    /// D1025: a deterministic Fisher-Yates shuffle from a seed (SplitMix64) - no random stream of the world, so the
+    /// order is the same in a replay and costs nothing in the hash.
+    /// </summary>
     internal static void Shuffle<T>(List<T> items, int seed)
     {
         var state = (ulong)(uint)seed;
