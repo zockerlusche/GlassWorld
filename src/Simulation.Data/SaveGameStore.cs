@@ -426,6 +426,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("placed", JsonSerializer.Serialize(s.Placed, Json)));
         }
 
+        if (s.Wet is not null)
+        {
+            // How wet the inhabitants are (B5-11); no entry = nobody.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("wet", JsonSerializer.Serialize(s.Wet, Json)));
+        }
+
         if (s.Milestones is not null)
         {
             // Reached milestones (B2598); no entry = none.
@@ -703,6 +709,7 @@ public static class SaveGameStore
             Forgetting = meta.TryGetValue("forgetting", out var forgetting) ? JsonSerializer.Deserialize<Simulation.Inhabitants.ForgettingState>(forgetting, Json) : null,
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
+            Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",

@@ -566,6 +566,21 @@ public sealed class SimulationHost
         // Out of the hash while nothing burns.
         world.Add(fire);
 
+        // B5-11 (R29/R30): rain wets, wet cools, the sun warms where no shade falls - islands only (weather and map).
+        BodySystem? body = null;
+        if (content.Body is { } bodyData && map is not null && weather is not null)
+        {
+            var bodyWeather = weather;
+            body = new BodySystem(bodyData, inhabitants, objects, content.Objects, world.Calendar.Settings.TicksPerHour)
+            {
+                AirAt = AirAt,
+                CloudPermille = w => bodyWeather.Read(w).CloudPermille,
+                WindAt = bodyWeather.WindAt,
+            };
+            inhabitants.BodyTenthC = body.FeltTenthC;
+            world.Add(body);
+        }
+
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
@@ -593,6 +608,7 @@ public sealed class SimulationHost
             Fire = fire,
             Forgetting = forgetting,
             Durability = durability,
+            Body = body,
             Milestones = milestones,
             Nature = nature,
             Conversation = conversation,
@@ -897,6 +913,9 @@ public sealed class SimulationHost
 
     /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
     public DurabilitySystem? Durability { get; private init; }
+
+    /// <summary>Rain, drying and sun on the inhabitants' bodies (B5-11); null without body data or off islands.</summary>
+    public BodySystem? Body { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
