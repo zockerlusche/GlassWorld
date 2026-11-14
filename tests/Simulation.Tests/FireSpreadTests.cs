@@ -111,7 +111,7 @@ public sealed class FireSpreadTests
     [Fact]
     public void ABigFireCloseByMakesAnInhabitantAfraidButACampfireAloneDoesNot()
     {
-        // B5 R47: the sensation near_fire (data: several burning things within the radius) drives fear by the model.
+        // B5 R47: the sensation near_fire (data: fire that took hold of several things within the radius) drives fear.
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
         host.World.Run(1);
         host.WeatherSystem!.Force("clear", host.World.Tick);
@@ -120,21 +120,64 @@ public sealed class FireSpreadTests
         Assert.False(host.Fire.Feels(inhabitant.Position, felt.Sensation));
 
         // One campfire next to the inhabitant: warm, not frightening.
-        host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        var at = inhabitant.Position;
+        host.Objects.Spawn("fire", new Position(at.X + 1, at.Z));
         host.World.Run(1);
         Assert.False(host.Fire.Feels(inhabitant.Position, felt.Sensation));
         var calm = inhabitant.Moods["fear"];
 
-        // Enough burning things close by: a big fire - fear rises while it is felt.
-        for (var i = 1; i < felt.MinBurning; i++)
+        // Dry grass around it and a sure spread: the fire takes hold of it - a big fire close by.
+        var sure = Settings(dryingHours: 0);
+        sure.Spread!.MaxBurning = felt.MinBurning + 2;
+        sure.Felt = Content.Value.Fire!.Felt;
+        host.Fire.Settings = sure;
+        for (var i = 0; i < felt.MinBurning; i++)
         {
-            host.Objects.Spawn("fire", new Position(inhabitant.Position.X - i, inhabitant.Position.Z));
+            host.Objects.Spawn("dry_grass", new Position(at.X + 1.3 + (i * 0.3), at.Z));
         }
 
-        host.World.Run(1);
+        for (var tick = 0; tick < 60 && !host.Fire.Feels(inhabitant.Position, felt.Sensation); tick++)
+        {
+            host.World.Run(1);
+        }
+
         Assert.True(host.Fire.Feels(inhabitant.Position, felt.Sensation));
         host.World.Run(host.World.Calendar.Settings.TicksPerHour / 4);
         Assert.True(inhabitant.Moods["fear"] > calm, $"{inhabitant.Moods["fear"]} <= {calm}");
+    }
+
+    [Fact]
+    public void TwoCampfiresAtTheCampFrightenNobody()
+    {
+        // Review GW2 #398: only fire that took hold counts as a big fire, not the fires the inhabitants made.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        host.Fire.Settings = null;
+        var inhabitant = host.Inhabitants.All.First();
+        var felt = Content.Value.Fire!.Felt!.First();
+        Assert.True(felt.CaughtOnly);
+        for (var i = 0; i < felt.MinBurning + 1; i++)
+        {
+            host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 1 + i, inhabitant.Position.Z));
+        }
+
+        host.World.Run(1);
+        host.Fire.Settings = Content.Value.Fire;
+        Assert.False(host.Fire.Feels(inhabitant.Position, felt.Sensation));
+    }
+
+    [Fact]
+    public void WhereFireTookHoldIsRememberedInTheSaveGame()
+    {
+        var (host, at) = Island(sure: true);
+        host.Objects.Spawn("fire", at);
+        host.Objects.Spawn("dry_grass", new Position(at.X + 0.5, at.Z));
+        host.World.Run(10);
+        var caught = Assert.Single(host.Fire.Capture(), b => b.Caught);
+        var restored = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        restored.Fire.Restore(host.Fire.Capture());
+        Assert.Contains(restored.Fire.Capture(), b => b.Id == caught.Id && b.Caught);
     }
 
     [Fact]
