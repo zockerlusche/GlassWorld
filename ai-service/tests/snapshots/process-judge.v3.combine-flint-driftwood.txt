@@ -18,7 +18,7 @@ Rules:
   Tries that do not:
   - Soaking a coin changes nothing.
   - Heating a paper clip does not turn it into a tool.
-  - Grinding a dry leaf does not make it food.
+  - Painting a plastic toy does not make it food.
 - Only properties that really follow from the process. Never invent food or drink: drying,
   striking or heating does not make something edible or drinkable unless it already was.
 - If feasible: changes = the number of the input that is worked on and changes. It gains
