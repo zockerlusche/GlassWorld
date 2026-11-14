@@ -81,7 +81,9 @@ public sealed class FireSpreadTests
         var (host, at) = Island(sure: false);
         var fire = host.Objects.Spawn("fire", at);
         var minutes = Content.Value.Objects.Params("fire").BurnMinutes!.Value;
-        host.World.Run(((long)minutes * host.World.Calendar.Settings.TicksPerHour / 60) + 2);
+        // Its fuel, then the embers' glow (B2736 course).
+        var embers = Content.Value.Fire!.Course?.EmbersMinutes ?? 0;
+        host.World.Run(((long)(minutes + embers) * host.World.Calendar.Settings.TicksPerHour / 60) + 2);
 
         Assert.False(host.Objects.TryGet(fire.Id, out _));
         Assert.Contains(host.Objects.All, o => o.TypeId == "ash" && o.Position == at);

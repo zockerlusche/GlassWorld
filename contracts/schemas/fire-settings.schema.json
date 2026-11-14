@@ -23,6 +23,10 @@
       "description": "A fire takes hold of dry burnable things near it. Absent = fires never spread.",
       "$ref": "#/$defs/FireSpread"
     },
+    "course": {
+      "description": "B2736 (Marcel W2107): a fire is not on or off, it follows its fuel - it kindles, burns full, fades as the fuel runs low, lies as embers (no flame, still a heat level for cooking and kindling again) and leaves its remains. Heat and spreading scale with its strength. Absent = on/off as before.",
+      "$ref": "#/$defs/FireCourse"
+    },
     "felt": {
       "description": "B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).",
       "type": "array",
@@ -65,6 +69,18 @@
           "uniqueItems": true,
           "items": { "$ref": "common.schema.json#/$defs/VocabId" }
         }
+      }
+    },
+    "FireCourse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kindle_minutes", "fade_minutes", "embers_minutes", "embers_permille", "embers_heat_level"],
+      "properties": {
+        "kindle_minutes": { "type": "integer", "minimum": 0, "maximum": 600, "description": "Game minutes from lighting (or kindling again) to full strength; it rises from the embers' strength." },
+        "fade_minutes": { "type": "integer", "minimum": 0, "maximum": 600, "description": "The last game minutes of its fuel, in which it fades down to the embers' strength." },
+        "embers_minutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "How long the embers glow after the fuel is used up; then the fire has burnt down." },
+        "embers_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Strength of the embers (heat and spreading scale with it; no flame)." },
+        "embers_heat_level": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The heat level the embers give for processing (B2700), e.g. embers." }
       }
     },
     "FireFelt": {

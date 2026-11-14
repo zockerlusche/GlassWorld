@@ -81,6 +81,42 @@ class FireSpread(BaseModel):
     )
 
 
+class FireCourse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kindle_minutes: int = Field(
+        ...,
+        description="Game minutes from lighting (or kindling again) to full strength; it rises from the embers' strength.",
+        ge=0,
+        le=600,
+    )
+    fade_minutes: int = Field(
+        ...,
+        description="The last game minutes of its fuel, in which it fades down to the embers' strength.",
+        ge=0,
+        le=600,
+    )
+    embers_minutes: int = Field(
+        ...,
+        description='How long the embers glow after the fuel is used up; then the fire has burnt down.',
+        ge=0,
+        le=1440,
+    )
+    embers_permille: int = Field(
+        ...,
+        description='Strength of the embers (heat and spreading scale with it; no flame).',
+        ge=0,
+        le=1000,
+    )
+    embers_heat_level: str = Field(
+        ...,
+        description='The heat level the embers give for processing (B2700), e.g. embers.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class FireFelt(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -144,6 +180,10 @@ class FireSettings(BaseModel):
     spread: FireSpread | None = Field(
         None,
         description='A fire takes hold of dry burnable things near it. Absent = fires never spread.',
+    )
+    course: FireCourse | None = Field(
+        None,
+        description='B2736 (Marcel W2107): a fire is not on or off, it follows its fuel - it kindles, burns full, fades as the fuel runs low, lies as embers (no flame, still a heat level for cooking and kindling again) and leaves its remains. Heat and spreading scale with its strength. Absent = on/off as before.',
     )
     felt: list[FireFelt] | None = Field(
         None,
