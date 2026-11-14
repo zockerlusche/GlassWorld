@@ -408,10 +408,11 @@ public sealed class RunTraceWriter : IDisposable
         var stream = new FileStream(DayPath(day), FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
         _writer = new StreamWriter(stream, new UTF8Encoding(false)) { NewLine = "\n" };
         // Packing reads only finished files: off the game thread, so midnight shows no hitch (GW3 #25998).
-        if (_settings.PackOldDays && _packing.IsCompleted)
+        // Chained, never skipped: a slow pack (or a thread pool that starts late) only delays the next one.
+        if (_settings.PackOldDays)
         {
             var keep = day - 1;
-            _packing = Task.Run(() => PackBefore(keep));
+            _packing = _packing.ContinueWith(_ => PackBefore(keep), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         }
         return _writer;
     }
