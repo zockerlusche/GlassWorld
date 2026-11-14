@@ -3007,6 +3007,70 @@
       "text": "is not"
     },
     {
+      "key": "msg.learnlog.fact.building_material.true",
+      "text": "is building material"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.false",
+      "text": "is not building material"
+    },
+    {
+      "key": "msg.learnlog.fact.container.true",
+      "text": "is a container"
+    },
+    {
+      "key": "msg.learnlog.fact.container.false",
+      "text": "is not a container"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.true",
+      "text": "hardens in fire"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.false",
+      "text": "does not harden in fire"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.true",
+      "text": "makes sparks"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.false",
+      "text": "makes no sparks"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.true",
+      "text": "smoulders"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.false",
+      "text": "does not smoulder"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.true",
+      "text": "is a mushroom"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.false",
+      "text": "is not a mushroom"
+    },
+    {
+      "key": "msg.learnlog.fact.water.true",
+      "text": "is water"
+    },
+    {
+      "key": "msg.learnlog.fact.water.false",
+      "text": "is not water"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.true",
+      "text": "is stone"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.false",
+      "text": "is not stone"
+    },
+    {
       "key": "msg.learnlog.night",
       "text": "Night"
     },

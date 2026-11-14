@@ -72,6 +72,24 @@ public sealed class LearningLogTests : IDisposable
     }
 
     [Fact]
+    public void ANounOrVerbPropertyReadsAsASentenceNotInLowerCase()
+    {
+        // D1085: 'Pyrit ist stein' and 'ist schlägt funken' - such labels have their own phrase per truth.
+        var (host, mira, joro) = TwoInhabitants();
+        mira.Beliefs.Set("pyrite", "stone", true, 0.8, KnowledgeSources.Heard, joro.Id, 5);
+        mira.Beliefs.Set("pyrite", "sparks", false, 0.8, KnowledgeSources.Heard, joro.Id, 5);
+        mira.Beliefs.Set("pyrite", "edible", false, 0.8, KnowledgeSources.Heard, joro.Id, 5);
+        foreach (var property in new[] { "stone", "sparks", "edible" })
+        {
+            host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, 5, mira.Id, "listen", "pyrite") { Detail = property + "/" + KnowledgeSources.Heard });
+        }
+
+        host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
+        var text = File.ReadAllText(Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory)));
+        Assert.Contains($"hört von {joro.Name}: Pyrit ist Stein, schlägt keine Funken, ist nicht essbar", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AWordTheVoiceSaidForAThingIsLoggedWithTheWord()
     {
         // #352: word_heard carries the word in its detail and the type as its target.

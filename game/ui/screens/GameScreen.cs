@@ -115,6 +115,9 @@ public partial class GameScreen : CanvasLayer
     private string? _lastCardId;
     private double _sinceRefreshMs = double.MaxValue;
 
+    /// <summary>Node name of a gift button in the help window (its text is filled in, so the UI tour finds it by name).</summary>
+    public const string HelpGiveName = "HelpGive";
+
     /// <summary>Id of the inhabitant whose card is open, or null.</summary>
     public string? CardId => _cardId;
 
@@ -1490,6 +1493,7 @@ public partial class GameScreen : CanvasLayer
                 var type = card.GiftType!;
                 var button = new Button
                 {
+                    Name = HelpGiveName,
                     Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr(VocabKeys.ObjectType(type)), ["cost"] = cost }),
                     AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                     TooltipText = card.Text ?? string.Empty,
