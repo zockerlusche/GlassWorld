@@ -103,6 +103,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 1440
+        },
+        "extremes": {
+          "description": "Rough days of this climate (A1382, spec R24, review GW1 #23950): extreme weather entered by the weather's own daily roll (stream weather/extreme), never set from outside. Omitted = none.",
+          "$ref": "#/$defs/ClimateExtremes"
         }
       }
     },
@@ -420,6 +424,110 @@
           "type": "integer",
           "minimum": -1000,
           "maximum": 1000
+        }
+      }
+    },
+    "ClimateExtremes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cooldown_days",
+        "weather",
+        "heat_waves"
+      ],
+      "properties": {
+        "cooldown_days": {
+          "description": "Whole days after an extreme ends before the next may begin (calm world).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "weather": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/ClimateExtremeWeather"
+          }
+        },
+        "heat_waves": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/ClimateHeatWave"
+          }
+        }
+      }
+    },
+    "ClimateExtremeWeather": {
+      "description": "A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "weather",
+        "chance_permille",
+        "hours_min",
+        "hours_max"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "weather": {
+          "description": "A weather state of this climate.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "chance_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "hours_min": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240
+        },
+        "hours_max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240
+        }
+      }
+    },
+    "ClimateHeatWave": {
+      "description": "A heat wave: at the start of a day of the season it begins with chance_permille, lasts days_min to days_max whole days and lifts the air by offset_tenth_c over the climate's curve (what the inhabitants feel; the weather states go on).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "chance_permille",
+        "days_min",
+        "days_max",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "chance_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "days_min": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 14
+        },
+        "days_max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 14
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
         }
       }
     }
