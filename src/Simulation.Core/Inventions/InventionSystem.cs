@@ -310,9 +310,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
             _wants[want.InhabitantId] = want;
         }
 
-        foreach (var record in state.Inventions)
+        // In the order they were made (D1096 #1): a material that is itself an invention is known before what is made of it.
+        foreach (var record in state.Inventions.OrderBy(r => r.Tick).ThenBy(r => r.TypeId, StringComparer.Ordinal))
         {
-            _types.Register(record.TypeId, _rules.PropertiesOf(Parse(record)));
+            _types.Register(record.TypeId, _rules.PropertiesOf(Parse(record), TruthOf));
             _inventions[record.TypeId] = record;
         }
 
@@ -560,9 +561,12 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         }
     }
 
+    /// <summary>The world's true properties of a type, or none for a type the world does not know (D1096 #1).</summary>
+    private IEnumerable<string> TruthOf(string typeId) => _types.Contains(typeId) ? _types.TrueProperties(typeId) : [];
+
     private void Decide(World world, OpenWant want, InventionResult result, string json)
     {
-        var reasons = InventionCheck.Check(result, want.Materials.ToHashSet(StringComparer.Ordinal), _rules, Milestones?.TechLevel).ToList();
+        var reasons = InventionCheck.Check(result, want.Materials.ToHashSet(StringComparer.Ordinal), _rules, Milestones?.TechLevel, TruthOf).ToList();
         var typeId = TypeIdFor(want.RequestId);
         if (reasons.Count == 0 && _types.Contains(typeId))
         {
@@ -585,7 +589,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         }
 
         var invention = result.Invention!;
-        _types.Register(typeId, _rules.PropertiesOf(invention));
+        _types.Register(typeId, _rules.PropertiesOf(invention, TruthOf));
         _inventions[typeId] = new InventionRecord(
             typeId,
             want.RequestId,
