@@ -199,6 +199,14 @@
       "description": "An inhabitant moved to live somewhere else (B8 R9; reported by the core once settlements exist)."
     },
     {
+      "id": "picked_up",
+      "description": "An inhabitant took a thing into its hand (AK1a): target = the thing, target type = its type."
+    },
+    {
+      "id": "dropped",
+      "description": "An inhabitant put down the thing it held (AK1a): target = the thing, target type = its type."
+    },
+    {
       "id": "combined",
       "description": "Something came of using things together (combine, B2687): target = the new thing, target type = its type, detail = the rule."
     },

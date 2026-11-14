@@ -438,6 +438,13 @@ public static class SaveGameStore
         }
 
         // How places felt (B5 R32) by inhabitant id; older saves have no entry.
+        // What inhabitants hold (AK1a); older saves have no entry.
+        var held = s.Inhabitants.Where(i => i.Held is not null).ToDictionary(i => i.Id, i => i.Held!, StringComparer.Ordinal);
+        if (held.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("held", JsonSerializer.Serialize(held, Json)));
+        }
+
         var felt = s.Inhabitants.Where(i => i.FeltPlaces is not null).ToDictionary(i => i.Id, i => i.FeltPlaces!, StringComparer.Ordinal);
         if (felt.Count > 0)
         {
@@ -794,6 +801,9 @@ public static class SaveGameStore
         var ideas = meta.TryGetValue("ideas", out var ideaJson)
             ? JsonSerializer.Deserialize<Dictionary<string, SavedIdeas>>(ideaJson, Json) ?? []
             : [];
+        var heldThings = meta.TryGetValue("held", out var heldJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, string>>(heldJson, Json) ?? []
+            : [];
         var feltPlaces = meta.TryGetValue("felt_places", out var feltJson)
             ? JsonSerializer.Deserialize<Dictionary<string, List<SavedFeltPlace>>>(feltJson, Json) ?? []
             : [];
@@ -833,7 +843,8 @@ public static class SaveGameStore
                     imprints[r.GetString(0)].ToList() is { Count: > 0 } imprintList ? imprintList : null,
                     memories.GetValueOrDefault(r.GetString(0)),
                     ideas.GetValueOrDefault(r.GetString(0)),
-                    feltPlaces.GetValueOrDefault(r.GetString(0)))),
+                    feltPlaces.GetValueOrDefault(r.GetString(0)),
+                    heldThings.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

@@ -130,7 +130,8 @@ public sealed class FruitAtPlantTests
         var rules = Content.WorldGen.Spawns.Spawns.Where(r => r.GrowsOn is not null).GroupBy(r => r.ObjectType).ToDictionary(g => g.Key, g => g.Select(r => r.GrowsOn!).ToList());
         var all = host.Objects.All.ToList();
         var loose = new List<string>();
-        foreach (var fruit in all.Where(o => rules.ContainsKey(o.TypeId)))
+        // A fruit that was picked (AK1a) may be carried anywhere; every fruit that still grows lies at its plant.
+        foreach (var fruit in all.Where(o => rules.ContainsKey(o.TypeId) && map.GrowsInPlace(o.Id)))
         {
             var at = map.CellOf(fruit.Position)!.Value;
             var near = rules[fruit.TypeId].Any(grows => all.Any(p => p.TypeId == grows.ObjectType && map.CellOf(p.Position) is { } c && Math.Abs(c.X - at.X) <= grows.WithinCells && Math.Abs(c.Z - at.Z) <= grows.WithinCells));

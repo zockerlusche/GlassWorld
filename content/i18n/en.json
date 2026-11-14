@@ -1915,6 +1915,14 @@
       "text": "someone"
     },
     {
+      "key": "vocab.event.picked_up",
+      "text": "Picked up"
+    },
+    {
+      "key": "vocab.event.dropped",
+      "text": "Put down"
+    },
+    {
       "key": "vocab.event.combined",
       "text": "Something came of it"
     },

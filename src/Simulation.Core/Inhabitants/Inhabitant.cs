@@ -158,6 +158,9 @@ public sealed class Inhabitant
     /// <summary>The current run of one action without effect at one spot (W1696), or null.</summary>
     public RepeatRun? Repeat { get; internal set; }
 
+    /// <summary>The thing it holds in its hand (AK1a, D1046 v2), or null. The thing stays in the world and follows it.</summary>
+    public string? Held { get; internal set; }
+
     /// <summary>
     /// Actions that rest after too many repeats without effect (W1696), each for its target or, without a
     /// target, for its place (content/behaviour/utility.json: repetition), in the order they began to rest.
@@ -302,6 +305,12 @@ public sealed class Inhabitant
             {
                 hasher.Write(objectId).Write(place.TypeId).Write(place.Position.X).Write(place.Position.Z).Write(place.Tick);
             }
+        }
+
+        // A held thing only while it holds one (AK1a), so states without carrying keep their hashes.
+        if (Held is { } held)
+        {
+            hasher.Write("held").Write(held);
         }
 
         // Felt places only once there are any (B5 R32), so states without them keep their hashes.

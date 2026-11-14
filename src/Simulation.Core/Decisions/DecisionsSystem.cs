@@ -941,6 +941,12 @@ public sealed class DecisionsSystem : IWorldSystem
         inSight.Clear();
         for (var i = 0; i < all.Count; i++)
         {
+            // AK1a: what it holds is in its hand (distance 0); what another holds is no thing for it.
+            if (_objects.HeldBy(all[i].Id) is { } holder && holder != inhabitant.Id)
+            {
+                continue;
+            }
+
             var distance = Distance(position, all[i].Position);
             if (distance <= radius)
             {
@@ -1295,7 +1301,8 @@ public sealed class DecisionsSystem : IWorldSystem
 
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
+                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick)
+                    && Fits(asker, _actions.Timing(action), target.Id):
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
                         // A1379: fuel only for a burning thing that takes fuel (the data of its type).
@@ -1427,6 +1434,10 @@ public sealed class DecisionsSystem : IWorldSystem
         Shuffle(cut, seed);
         return [.. cut.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
+
+    /// <summary>AK1a: taking into the hand only with a free hand, putting down only the held thing.</summary>
+    private static bool Fits(Inhabitant asker, Behaviour.ActionTimingInfo timing, string targetId) =>
+        (!timing.Holds || asker.Held is null) && (!timing.Releases || asker.Held == targetId);
 
     /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> or <see cref="Shuffled"/> undone (D1025).</summary>
     private static (string OptionId, string Action, string? TargetId)[] InDataOrder(OpenQuestion question, ulong worldSeed)

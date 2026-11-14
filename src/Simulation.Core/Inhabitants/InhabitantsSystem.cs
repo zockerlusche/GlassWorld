@@ -91,6 +91,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Event: an action finished and its effects applied.</summary>
     public const string ActionFinished = "action_finished";
 
+    /// <summary>An inhabitant took a thing into its hand (AK1a).</summary>
+    public const string PickedUp = "picked_up";
+
+    /// <summary>An inhabitant put down the thing it held (AK1a).</summary>
+    public const string Dropped = "dropped";
+
     /// <summary>Event: an action was cancelled (target gone, or the action rests after repeats without effect).</summary>
     public const string ActionCancelled = "action_cancelled";
 
@@ -145,6 +151,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _gaits = gaits;
         _objects = objects;
         _ticksPerHour = ticksPerHour;
+
+        // A held thing that is used up (eaten from the hand) or otherwise gone leaves the hand free (AK1a).
+        _objects.Removed += gone =>
+        {
+            foreach (var holder in _ordered)
+            {
+                if (holder.Held == gone.Id)
+                {
+                    holder.Held = null;
+                }
+            }
+        };
         _isInhabitant = _inhabitants.ContainsKey;
         _needs = [.. model.Needs];
         _moods = [.. model.Moods];
@@ -657,6 +675,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 probe?.Leave(PartSpacing);
             }
         }
+
+        // AK1a: what an inhabitant holds goes where it goes (the hand's height is the look's).
+        foreach (var holder in _ordered)
+        {
+            if (holder.Held is { } held && !_objects.Move(held, holder.Position))
+            {
+                holder.Held = null;
+            }
+        }
     }
 
     /// <summary>
@@ -1138,6 +1165,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             target = resolved.Thing;
             listener = resolved.Inhabitant;
+
+            // AK1a: a thing in someone else's hand is no target (others see it, but cannot act on it).
+            if (target is not null && _objects.HeldBy(target.Id) is { } holder && holder != inhabitant.Id)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+                inhabitant.Activity = null;
+                return;
+            }
         }
 
         if (listener is not null && activity.RemainingTicks is null && IsAsleep(listener))
@@ -1951,6 +1986,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 inhabitant.RememberPlace(target.Id, new PlaceMemory(target.TypeId, target.Position, world.Tick), memory.PlaceMemoryMax);
             }
 
+            // Only a thing the data let it take (a rule of the action fits its truth, e.g. portable) goes into the hand.
+            changed |= (applying.Count > 0 || _actions.Timing(activity.Action).Releases) && HoldOrRelease(world, inhabitant, activity.Action, target);
+
             if (activity.Partners is { Count: > 0 })
             {
                 // A1379: fuel into a fire, else things used together (B2687).
@@ -1961,6 +1999,35 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// AK1a (D1046 v2): an action whose timing holds takes its target into the free hand - a thing nobody holds that is
+    /// still there; one whose timing releases puts the held thing down at the inhabitant's feet. The data say which action
+    /// does what; the code names none.
+    /// </summary>
+    private bool HoldOrRelease(World world, Inhabitant inhabitant, string action, WorldObject target)
+    {
+        var timing = _actions.Timing(action);
+        if (timing.Holds && inhabitant.Held is null && _objects.HeldBy(target.Id) is null && _objects.TryGet(target.Id, out _))
+        {
+            inhabitant.Held = target.Id;
+            _objects.SetHeld(target.Id, inhabitant.Id);
+            _objects.Move(target.Id, inhabitant.Position);
+            Report(new WorldEvent(PickedUp, world.Tick, inhabitant.Id, action, target.Id) { TargetType = target.TypeId });
+            return true;
+        }
+
+        if (timing.Releases && inhabitant.Held == target.Id)
+        {
+            inhabitant.Held = null;
+            _objects.SetHeld(target.Id, null);
+            _objects.Move(target.Id, inhabitant.Position);
+            Report(new WorldEvent(Dropped, world.Tick, inhabitant.Id, action, target.Id) { TargetType = target.TypeId });
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
