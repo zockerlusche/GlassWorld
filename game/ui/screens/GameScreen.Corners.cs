@@ -30,6 +30,8 @@ public partial class GameScreen
     private readonly HashSet<string> _portraitAsked = new(StringComparer.Ordinal);
     private HFlowContainer? _topRow;
     private bool _portraitBusy;
+    private int _portraitRound;
+    private double _portraitScale;
 
     /// <summary>The portrait list top left (for the UI tour).</summary>
     public GwPortraitList PortraitsForShots => _portraits;
@@ -195,10 +197,12 @@ public partial class GameScreen
         {
             while (_portraitWanted.TryDequeue(out var id))
             {
-                if (_presenter?.PortraitFigure(id) is not { } figure || _style is null)
+                if (!IsInstanceValid(_presenter) || _presenter?.PortraitFigure(id) is not { } figure || _style is null)
                 {
                     continue;
                 }
+
+                var round = _portraitRound;
 
                 var px = (int)Math.Ceiling(_style.Tokens.Zones.PortraitPx * 2 * (float)_style.ContentScaleFactor);
                 var studio = new SubViewport
@@ -217,9 +221,14 @@ public partial class GameScreen
                 AddChild(studio);
 
                 // The idle pose settles in a few frames; then the camera finds the head bone.
-                for (var i = 0; i < 4; i++)
+                if (!await StudioFramesAsync(studio, round, 4))
                 {
-                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                    if (!IsInstanceValid(this))
+                    {
+                        return;
+                    }
+
+                    continue;
                 }
 
                 var head = new Vector3(0, 1.6f, 0);
@@ -234,9 +243,14 @@ public partial class GameScreen
                 var look = head + new Vector3(0, -0.02f, 0);
                 camera.Position = look + new Vector3(0, 0.04f, 1.05f);
                 camera.LookAt(look, Vector3.Up);
-                for (var i = 0; i < 3; i++)
+                if (!await StudioFramesAsync(studio, round, 3))
                 {
-                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                    if (!IsInstanceValid(this))
+                    {
+                        return;
+                    }
+
+                    continue;
                 }
 
                 var image = studio.GetTexture().GetImage();
@@ -252,8 +266,55 @@ public partial class GameScreen
         }
         finally
         {
-            _portraitBusy = false;
+            if (IsInstanceValid(this))
+            {
+                _portraitBusy = false;
+            }
         }
+    }
+
+    /// <summary>
+    /// Waits a few frames for the portrait studio (review GW3 #25496). False when the screen or the studio is gone
+    /// meanwhile (main menu, loading) or the pictures were reset (new world, new UI size); then the studio is freed
+    /// and its picture is not kept.
+    /// </summary>
+    private async Task<bool> StudioFramesAsync(SubViewport studio, int round, int frames)
+    {
+        for (var i = 0; i < frames; i++)
+        {
+            if (!IsInstanceValid(this) || !IsInsideTree() || !IsInstanceValid(studio) || round != _portraitRound)
+            {
+                break;
+            }
+
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        if (IsInstanceValid(this) && IsInsideTree() && IsInstanceValid(studio) && round == _portraitRound)
+        {
+            return true;
+        }
+
+        if (IsInstanceValid(studio))
+        {
+            studio.QueueFree();
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Forgets all still portraits (a new world, or a new UI size: review GW3 #25496, a picture rendered at 100 %
+    /// would be blurry at 150 %). A render under way is dropped; the rows in view ask again.
+    /// </summary>
+    private void ResetPortraits(double scale)
+    {
+        _portraitScale = scale;
+        _portraitRound++;
+        _portraitWanted.Clear();
+        _portraitAsked.Clear();
+        _portraitPictures.Clear();
+        _portraits.Redraw();
     }
 
     /// <summary>

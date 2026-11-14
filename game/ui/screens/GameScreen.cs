@@ -737,6 +737,11 @@ public partial class GameScreen : CanvasLayer
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
         _portraits.Setup(style);
+        if (style.ContentScaleFactor != _portraitScale)
+        {
+            ResetPortraits(style.ContentScaleFactor);
+        }
+
         SetZones(!settings.ClassicLayout);
 
         // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
