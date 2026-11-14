@@ -1,0 +1,78 @@
+{
+  "description": "B2741 (PR2 sharpened, Marcel W2115): what the inhabitants could invent never exists in advance - no type, recipe, name, animation, sound or prompt example. These are names of possible inventions; test_no_prebuilt_inventions.py reports them in content/, game/ and the active prompts. English words match in any case, German nouns only capitalised (so 'herd' is not 'Herd'). Weapons, traps and slings are not listed: the forbidden lists must name them (content/invention/settings.json forbidden_terms). Nests, eggs and fruit are nature, not inventions.",
+  "words": {
+    "en": [
+      "ladder", "stairs", "staircase", "raft", "boat", "canoe", "paddle", "oar", "cart", "wagon", "wheelbarrow",
+      "bridge", "hut", "house", "chair", "bench", "basket", "bowl", "cup", "jug", "lamp", "torch", "drum", "flute",
+      "rattle", "axe", "hammer", "knife", "fence", "door", "roof", "oven", "kiln", "hearth", "loom", "needle",
+      "shovel", "spade", "plough", "plow", "mill", "sled", "sledge", "lid", "stopper", "spoon", "comb", "rake", "hoe",
+      "boot", "sandal"
+    ],
+    "de": [
+      "Leiter", "Treppe", "Floß", "Boot", "Kanu", "Paddel", "Ruder", "Karren", "Wagen", "Schubkarre", "Brücke",
+      "Hütte", "Haus", "Stuhl", "Bank", "Korb", "Schale", "Becher", "Krug", "Lampe", "Fackel", "Trommel", "Flöte",
+      "Rassel", "Axt", "Hammer", "Messer", "Zaun", "Tür", "Dach", "Ofen", "Brennofen", "Herd", "Webstuhl", "Nadel",
+      "Schaufel", "Spaten", "Pflug", "Mühle", "Schlitten", "Deckel", "Stöpsel", "Löffel", "Kamm", "Rechen", "Harke",
+      "Stiefel", "Sandale", "Hut"
+    ]
+  },
+  "allowed": [
+    { "path": "content/objects/start-catalog.json", "word": "needle", "status": "ok", "owner": "GW4", "reason": "the needles of a conifer tree, nature" },
+    { "path": "game/scripts/World/IslandScene.Benchmark.cs", "word": "bench", "status": "ok", "owner": "GW1", "reason": "--bench options and BENCH log lines of the benchmark" },
+    { "path": "prompts/help/suggest.v1.toml", "word": "bridge", "status": "ok", "owner": "GW2", "reason": "'bridges the gap', a verb" },
+    { "path": "content/animation/library.json", "word": "hammer", "status": "ok", "owner": "GW3", "reason": "a motion (to hammer, strike), not the tool" },
+    { "path": "prompts/conversation/reply.v7.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "'Hause' (zu Hause, at home) in the grounding check's general words - not rendered" },
+    { "path": "prompts/decider/decide.v13.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/review/night.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+
+    { "path": "content/vocabulary/tech_levels.json", "word": "hut", "status": "open", "owner": "TL", "reason": "tech level id 'hut' (D711 epochs): an era named after a possible invention - TL decides (B2741)" },
+    { "path": "content/vocabulary/epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id and description 'Simple huts and fireplaces' - TL decides (B2741)" },
+    { "path": "content/look/epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id 'hut' - follows the tech level decision" },
+    { "path": "content/look/shots_epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id 'hut' - follows the tech level decision" },
+    { "path": "content/milestones/catalog.json", "word": "hut", "status": "open", "owner": "TL", "reason": "raises_tech_level 'hut' - follows the tech level decision" },
+    { "path": "content/processes/rules.json", "word": "hut", "status": "open", "owner": "TL", "reason": "tech_level 'hut' of process rules - follows the tech level decision" },
+    { "path": "content/i18n/de.json", "word": "hut", "status": "open", "owner": "TL", "reason": "keys vocab.epoch.hut, vocab.tech_level.hut - follows the tech level decision" },
+    { "path": "content/i18n/en.json", "word": "hut", "status": "open", "owner": "TL", "reason": "keys vocab.epoch.hut, vocab.tech_level.hut, text 'Hut' - follows the tech level decision" },
+    { "path": "content/i18n/de.json", "word": "hütte", "status": "open", "owner": "TL", "reason": "visible name of tech level and epoch 'Hütte' - follows the tech level decision" },
+    { "path": "content/vocabulary/outline_sizes.json", "word": "hut", "status": "open", "owner": "GW3", "reason": "size description 'the size of a tree, a big rock or a hut' - a neutral size word would do" },
+
+    { "path": "content/vocabulary/heat_levels.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "heat level id 'kiln' names an invention (a kiln) - a neutral id (e.g. glowing) would do; TL decides" },
+    { "path": "content/processes/rules.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "heat level 'kiln' in heat_levels and heat_min - follows the heat level decision" },
+    { "path": "content/world/reachability.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "gaps 'heat:kiln' - follows the heat level decision" },
+    { "path": "content/i18n/de.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "key vocab.heat_level.kiln - follows the heat level decision" },
+    { "path": "content/i18n/en.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "key and visible text 'Kiln' - follows the heat level decision" },
+    { "path": "content/i18n/de.json", "word": "brennofen", "status": "open", "owner": "TL", "reason": "visible text 'Brennofen' of heat level kiln - follows the heat level decision" },
+
+    { "path": "content/vocabulary/shapes.json", "word": "bowl", "status": "open", "owner": "GW3", "reason": "building part shape 'bowl' names a vessel - a geometric name (e.g. hollow half sphere) would do" },
+    { "path": "content/build/kit.json", "word": "bowl", "status": "open", "owner": "GW3", "reason": "shape 'bowl' of the build kit - follows the shape decision" },
+    { "path": "game/build/check/all_shapes.json", "word": "bowl", "status": "open", "owner": "GW3", "reason": "shape 'bowl' - follows the shape decision" },
+    { "path": "game/scripts/Build/BuildPlanNode.cs", "word": "bowl", "status": "open", "owner": "GW3", "reason": "shape 'bowl' - follows the shape decision" },
+    { "path": "content/i18n/de.json", "word": "bowl", "status": "open", "owner": "GW3", "reason": "key vocab.shape.bowl - follows the shape decision" },
+    { "path": "content/i18n/en.json", "word": "bowl", "status": "open", "owner": "GW3", "reason": "key and visible text 'Bowl' - follows the shape decision" },
+    { "path": "content/i18n/de.json", "word": "schale", "status": "open", "owner": "GW3", "reason": "visible name of shape 'Schale' - follows the shape decision" },
+
+    { "path": "content/invention/base_functions.json", "word": "basket", "status": "open", "owner": "GW3", "reason": "examples in the guard's base function descriptions are prompt examples of inventions - describe the function only" },
+    { "path": "content/invention/base_functions.json", "word": "bench", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "hearth", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "oven", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "lamp", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "torch", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "drum", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "flute", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "rattle", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "roof", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "hut", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "lid", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "door", "status": "open", "owner": "GW3", "reason": "as above" },
+    { "path": "content/invention/base_functions.json", "word": "stopper", "status": "open", "owner": "GW3", "reason": "as above" },
+
+    { "path": "content/sound/library.json", "word": "axe", "status": "open", "owner": "GW3", "reason": "base sound tagged for an axe - a sound of something invented comes from the guard's description at runtime (D471 D7)" },
+    { "path": "content/sound/library.json", "word": "door", "status": "open", "owner": "GW3", "reason": "base sound 'a wooden door creaking open' - as above" },
+    { "path": "content/sound/library.json", "word": "hammer", "status": "open", "owner": "GW3", "reason": "tag 'hammer' - a motion sound may stay if it means striking, not the tool; owner checks" },
+
+    { "path": "prompts/guard/invention.v4.toml", "word": "axe", "status": "open", "owner": "GW2", "reason": "'a hand axe, a knife, a scraper' as allowed tool examples - removed in guard v6 (B2732); released v4 is not edited" },
+    { "path": "prompts/guard/invention.v4.toml", "word": "knife", "status": "open", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/builder/plan.v2.toml", "word": "lid", "status": "open", "owner": "GW2", "reason": "part examples 'a rim, a lid, a foot' - removed in builder v3; released v2 is not edited" }
+  ]
+}
