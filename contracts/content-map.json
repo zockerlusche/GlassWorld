@@ -211,6 +211,10 @@
       "schema": "invention-settings"
     },
     {
+      "pattern": "invention/base_functions.json",
+      "schema": "invention-base-functions"
+    },
+    {
       "pattern": "build/settings.json",
       "schema": "build-settings"
     },
