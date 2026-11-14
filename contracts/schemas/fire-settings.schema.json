@@ -23,6 +23,12 @@
       "description": "A fire takes hold of dry burnable things near it. Absent = fires never spread.",
       "$ref": "#/$defs/FireSpread"
     },
+    "felt": {
+      "description": "B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).",
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/FireFelt" }
+    },
     "remains": {
       "description": "What a fire leaves where it burnt down (not when rain put it out): the burnt type and what is left.",
       "type": "array",
@@ -59,6 +65,16 @@
           "uniqueItems": true,
           "items": { "$ref": "common.schema.json#/$defs/VocabId" }
         }
+      }
+    },
+    "FireFelt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sensation", "radius_cm", "min_burning"],
+      "properties": {
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
+        "radius_cm": { "type": "integer", "minimum": 1, "maximum": 10000, "description": "How near the burning things are." },
+        "min_burning": { "type": "integer", "minimum": 1, "maximum": 64, "description": "How many burning things at least." }
       }
     },
     "FireRemains": {

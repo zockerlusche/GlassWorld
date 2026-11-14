@@ -996,7 +996,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         foreach (var driver in _moodDrivers)
         {
-            if (inhabitant.Needs.TryGetValue(driver.Need, out var need) && need < driver.Below && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
+            var acts = driver.Sensation is { } sensation
+                ? Feels?.Invoke(inhabitant, sensation) == true
+                : driver.Need is { } needId && inhabitant.Needs.TryGetValue(needId, out var need) && need < (driver.Below ?? 0);
+            if (acts && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
             {
                 inhabitant.Moods[driver.Mood] = Math.Clamp(mood + PerTick(driver.DeltaPerHour), 0.0, 1.0);
             }
