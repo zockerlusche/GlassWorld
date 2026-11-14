@@ -59,6 +59,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("review")]
         public ReviewResult? Review { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("milestone")]
+        public MilestoneResult? Milestone { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -501,6 +505,18 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("morning_mood")]
         public string? MorningMood { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// R35 (D962): the chronicle's sentence for a milestone in the player's language, or null when the content guard or the grounding left it out (no stand-in sentence, B2644).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MilestoneResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("sentence")]
+        public GeneratedText? Sentence { get; set; } = default!;
 
     }
 
