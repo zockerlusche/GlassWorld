@@ -148,7 +148,7 @@ public partial class GameScreen
         if (weather is not null)
         {
             _weatherIcon.Icon = CornerModel.IconFor(zones.WeatherIcons, weather);
-            _weatherIcon.TooltipText = TextFill.Fill(Tr("ui.corner.weather"), new Dictionary<string, string> { ["weather"] = Tr("vocab.weather." + weather) });
+            _weatherIcon.TooltipText = TextFill.Fill(Tr("ui.corner.weather"), new Dictionary<string, string> { ["weather"] = Tr(VocabKeys.Weather(weather)) });
         }
 
         var (value, max) = _feed.Favor();
