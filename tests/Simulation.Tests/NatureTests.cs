@@ -4,6 +4,7 @@ using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Nature;
+using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Tests;
@@ -41,6 +42,47 @@ public sealed class NatureTests
         Assert.True(nature.HasState);
         Assert.False(nature.Grown("apple", 0, (2 * regrow) - 1, regrow));
         Assert.True(nature.Grown("apple", 0, 2 * regrow, regrow));
+    }
+
+    [Fact]
+    public void SnowInFrostBuildsACoverAndWarmthMeltsIt()
+    {
+        // TL #25357: always frost and precipitation as the only change - snow builds up, at most the data's most.
+        var climate = ContractSerializer.Deserialize<ClimateSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "climate", "temperate.json")));
+        climate.Weather.Extremes = null;
+        foreach (var row in climate.Weather.Seasons.SelectMany(s => s.Transitions))
+        {
+            row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
+        }
+
+        var data = ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "nature", "settings.json")));
+        var snow = data.Snow!;
+        var (world, nature) = WithWeather(climate, data, heightOffsetTenthC: -2000);
+        // Two days: the weather turns to precipitation (snow in this cold) and every such takt adds to the cover.
+        world.Run(2 * world.Calendar.TicksPerDay);
+        Assert.InRange(nature.SnowMm, snow.PerTaktMm, snow.MaxMm);
+        Assert.True(nature.HasState);
+
+        // In a warm world the same cover melts away.
+        var (warm, thawing) = WithWeather(climate, data, heightOffsetTenthC: 2000);
+        thawing.Restore(nature.Capture() with { SnowMm = nature.SnowMm });
+        warm.Run(20 * thawing.TaktTicks + 1);
+        Assert.Equal(0, thawing.SnowMm);
+    }
+
+    [Fact]
+    public void NoSnowLiesWhereAFireWarms()
+    {
+        // TL #25397: the island-wide cover melts locally in the warmth of a heat source.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        host.Nature!.Restore(host.Nature.Capture() with { SnowMm = 100 });
+        var at = host.Inhabitants.All.First().Position;
+        var far = new Position(at.X + 50, at.Z);
+        host.Objects.Spawn("fire", at);
+
+        Assert.Equal(0, host.SnowMmAt(at));
+        Assert.Equal(100, host.SnowMmAt(far));
     }
 
     [Fact]
@@ -126,5 +168,17 @@ public sealed class NatureTests
         }
 
         nature.Advance(host.World);
+    }
+
+    private static (World World, NatureSystem Nature) WithWeather(ClimateSettings climate, NatureSettings data, int heightOffsetTenthC)
+    {
+        var content = ContentSet.Load(ContentDirectory);
+        var world = new World(9, content.Calendar);
+        var settings = world.Calendar.Settings;
+        var weather = new Weather.WeatherSystem(climate, heightOffsetTenthC, settings.TicksPerHour, settings.HoursPerDay, 9);
+        world.Add(weather);
+        var nature = new NatureSystem(data, settings.TicksPerHour, weather);
+        world.Add(nature);
+        return (world, nature);
     }
 }
