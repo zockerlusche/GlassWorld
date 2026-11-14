@@ -86,6 +86,42 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FireCourse
+    {
+
+        /// <summary>
+        /// Game minutes from lighting (or kindling again) to full strength; it rises from the embers' strength.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kindle_minutes")]
+        public int KindleMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// The last game minutes of its fuel, in which it fades down to the embers' strength.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_minutes")]
+        public int FadeMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// How long the embers glow after the fuel is used up; then the fire has burnt down.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("embers_minutes")]
+        public int EmbersMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// Strength of the embers (heat and spreading scale with it; no flame).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("embers_permille")]
+        public int EmbersPermille { get; set; } = default!;
+
+        /// <summary>
+        /// The heat level the embers give for processing (B2700), e.g. embers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("embers_heat_level")]
+        public string EmbersHeatLevel { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FireFelt
     {
 
@@ -162,6 +198,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("spread")]
         public FireSpread? Spread { get; set; } = default!;
+
+        /// <summary>
+        /// B2736 (Marcel W2107): a fire is not on or off, it follows its fuel - it kindles, burns full, fades as the fuel runs low, lies as embers (no flame, still a heat level for cooking and kindling again) and leaves its remains. Heat and spreading scale with its strength. Absent = on/off as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("course")]
+        public FireCourse? Course { get; set; } = default!;
 
         /// <summary>
         /// B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).

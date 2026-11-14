@@ -9,7 +9,8 @@ namespace GlassWorld.Simulation.Objects;
 /// <param name="Id">Object id.</param>
 /// <param name="Until">Tick at which it has burnt down.</param>
 /// <param name="Caught">Whether it took hold from a fire near it (B5 R46) rather than being made (review GW2 #398).</param>
-public sealed record BurningThing(string Id, long Until, bool Caught = false);
+/// <param name="Since">When it was lit or kindled again (B2736 course); null in older saves = fully kindled.</param>
+public sealed record BurningThing(string Id, long Until, bool Caught = false, long? Since = null);
 
 /// <summary>
 /// B2687 K3 (spec Bogen 30 R7, A1379 part): fire as a thing of the world. Every thing whose type has
@@ -31,6 +32,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     private readonly Func<string, string?> _rootOf;
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, long> _until = new(StringComparer.Ordinal);
+
+    // B2736: when each burning thing was lit or kindled again (its kindling rises from then).
+    private readonly SortedDictionary<string, long> _since = new(StringComparer.Ordinal);
+    private long _now;
 
     // Burning things that took hold from a fire near them (B5 R46) - only they make a big fire (review GW2 #398).
     private readonly SortedSet<string> _caught = new(StringComparer.Ordinal);
@@ -104,9 +109,14 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             var ticks = Math.Max(1L, (long)minutes * _ticksPerHour / 60);
             foreach (var thing in ofType.Objects)
             {
-                _until.TryAdd(thing.Id, world.Tick + ticks);
+                if (_until.TryAdd(thing.Id, world.Tick + ticks))
+                {
+                    _since[thing.Id] = world.Tick;
+                }
             }
         }
+
+        _now = world.Tick;
 
         if (_until.Count == 0)
         {
@@ -122,7 +132,8 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var burnt = world.Tick >= until;
+            // B2736: with a course, the embers glow on after the fuel is used up; then it has burnt down.
+            var burnt = world.Tick >= until + Ticks(Settings?.Course?.EmbersMinutes ?? 0);
             if (burnt || AirAt?.Invoke(world, thing.Position) is { Precipitation: true })
             {
                 _objects.Remove(id);
@@ -139,6 +150,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var id in done ?? [])
         {
             _until.Remove(id);
+            _since.Remove(id);
             _caught.Remove(id);
         }
 
@@ -243,7 +255,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
         var radius = spread.RadiusCm / 100.0;
         var near = new List<WorldObject>();
-        var closest = new SortedDictionary<string, (WorldObject Thing, double Distance)>(StringComparer.Ordinal);
+        var closest = new SortedDictionary<string, (WorldObject Thing, long Potency)>(StringComparer.Ordinal);
         foreach (var source in sources)
         {
             near.Clear();
@@ -260,9 +272,17 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 var dx = thing.Position.X - source.Position.X;
                 var dz = thing.Position.Z - source.Position.Z;
                 var distance = Math.Sqrt((dx * dx) + (dz * dz));
-                if (distance < radius && (!closest.TryGetValue(thing.Id, out var known) || distance < known.Distance))
+                if (distance >= radius)
                 {
-                    closest[thing.Id] = (thing, distance);
+                    continue;
+                }
+
+                // How strongly this fire reaches the thing: its strength (B2736) times what is left of the reach.
+                var restCm = Math.Max(0L, spread.RadiusCm - (long)Math.Round(distance * 100));
+                var potency = StrengthPermille(source.Id) * restCm / spread.RadiusCm;
+                if (!closest.TryGetValue(thing.Id, out var known) || potency > known.Potency)
+                {
+                    closest[thing.Id] = (thing, potency);
                 }
             }
         }
@@ -275,7 +295,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         var windPermille = (long)Math.Round(Math.Clamp(WindAt?.Invoke(world.Tick) ?? 0, 0, 1) * 1000);
         var rng = world.Random.Get("fire");
         var lit = 0;
-        foreach (var (thing, distance) in closest.Values)
+        foreach (var (thing, potency) in closest.Values)
         {
             if (lit >= spread.MaxNew || _until.Count >= spread.MaxBurning)
             {
@@ -287,8 +307,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var restCm = Math.Max(0L, spread.RadiusCm - (long)Math.Round(distance * 100));
-            var chance = (long)spread.ChancePermille * restCm / spread.RadiusCm * (1000 + (windPermille * spread.WindPermille / 1000)) / 1000;
+            var chance = (long)spread.ChancePermille * potency / 1000 * (1000 + (windPermille * spread.WindPermille / 1000)) / 1000;
             if (rng.NextInt(0, 1000) >= chance)
             {
                 continue;
@@ -298,10 +317,54 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             var fire = _objects.Spawn(spread.Becomes, thing.Position);
             var minutes = ParamsOf(fire.TypeId)?.BurnMinutes ?? 0;
             _until[fire.Id] = world.Tick + Math.Max(1L, (long)minutes * _ticksPerHour / 60);
+            _since[fire.Id] = world.Tick;
             _caught.Add(fire.Id);
             lit++;
             Caught?.Invoke(world, thing, fire);
         }
+    }
+
+    /// <summary>
+    /// B2736: how strong a burning thing is now, in permille: it rises from the embers' strength while it kindles,
+    /// burns full, fades down to the embers' strength in the last minutes of its fuel and glows as embers after.
+    /// Without a course (or a thing not yet burning) 1000. For the look (flame size) and the light (B5-13).
+    /// </summary>
+    public int StrengthPermille(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        if (Settings?.Course is not { } course || !_until.TryGetValue(id, out var until))
+        {
+            return 1000;
+        }
+
+        if (_now >= until)
+        {
+            return course.EmbersPermille;
+        }
+
+        var strength = 1000L;
+        var kindle = Ticks(course.KindleMinutes);
+        var age = _now - _since.GetValueOrDefault(id, long.MinValue / 2);
+        if (kindle > 0 && age < kindle)
+        {
+            strength = Math.Min(strength, course.EmbersPermille + ((1000L - course.EmbersPermille) * Math.Max(0, age) / kindle));
+        }
+
+        var fade = Ticks(course.FadeMinutes);
+        var rest = until - _now;
+        if (fade > 0 && rest < fade)
+        {
+            strength = Math.Min(strength, course.EmbersPermille + ((1000L - course.EmbersPermille) * rest / fade));
+        }
+
+        return (int)strength;
+    }
+
+    /// <summary>B2736: whether a burning thing lies as embers now (its fuel used up, no flame).</summary>
+    public bool IsEmbers(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return Settings?.Course is not null && _until.TryGetValue(id, out var until) && _now >= until;
     }
 
     /// <summary>
@@ -326,7 +389,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
                 var distance = Math.Sqrt((dx * dx) + (dz * dz));
                 if (distance < radius)
                 {
-                    total += heat * (1.0 - (distance / radius));
+                    total += heat * (1.0 - (distance / radius)) * StrengthPermille(thing.Id) / 1000.0;
                 }
             }
         }
@@ -339,10 +402,13 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     {
         ArgumentNullException.ThrowIfNull(thing);
         ArgumentNullException.ThrowIfNull(levels);
-        if (!_until.ContainsKey(thing.Id) || ParamsOf(thing.TypeId)?.HeatLevel is not { } level)
+        if (!_until.ContainsKey(thing.Id) || ParamsOf(thing.TypeId)?.HeatLevel is not { } typeLevel)
         {
             return null;
         }
+
+        // B2736: embers still give their heat level (cooking, kindling again), not the flame's.
+        var level = IsEmbers(thing.Id) && Settings?.Course is { } course ? course.EmbersHeatLevel : typeLevel;
 
         for (var i = 0; i < levels.Count; i++)
         {
@@ -398,7 +464,9 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             return false;
         }
 
-        var longer = until + ((long)minutes * _ticksPerHour / 60);
+        // B2736: fuel on embers kindles the fire again - from now, rising through its kindling.
+        var embers = Settings?.Course is not null && world.Tick >= until;
+        var longer = (embers ? world.Tick : until) + ((long)minutes * _ticksPerHour / 60);
         if (fireParams.BurnMaxMinutes is { } most)
         {
             longer = Math.Min(longer, world.Tick + ((long)most * _ticksPerHour / 60));
@@ -412,6 +480,11 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
         _objects.Remove(fuelId);
         _until[fireId] = longer;
+        if (embers)
+        {
+            _since[fireId] = world.Tick;
+        }
+
         return true;
     }
 
@@ -423,6 +496,15 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var (id, until) in _until)
         {
             hasher.Write(id).Write(until);
+        }
+
+        // B2736: when each was lit counts only where fires have a course (other worlds' hashes stay as they were).
+        if (Settings?.Course is not null)
+        {
+            foreach (var (id, since) in _since)
+            {
+                hasher.Write(id).Write(since);
+            }
         }
 
         // Only worlds where fire took hold carry the mark (hashes of other worlds stay as they were).
@@ -437,7 +519,8 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>The burning things for a save game.</summary>
-    public IReadOnlyList<BurningThing> Capture() => [.. _until.Select(b => new BurningThing(b.Key, b.Value, _caught.Contains(b.Key)))];
+    public IReadOnlyList<BurningThing> Capture() =>
+        [.. _until.Select(b => new BurningThing(b.Key, b.Value, _caught.Contains(b.Key), _since.TryGetValue(b.Key, out var since) ? since : null))];
 
     /// <summary>Restores the burning things of a save game.</summary>
     public void Restore(IReadOnlyList<BurningThing>? burning)
@@ -445,12 +528,20 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var thing in burning ?? [])
         {
             _until[thing.Id] = thing.Until;
+            if (thing.Since is { } since)
+            {
+                _since[thing.Id] = since;
+            }
+
             if (thing.Caught)
             {
                 _caught.Add(thing.Id);
             }
         }
     }
+
+    /// <summary>Game minutes as ticks.</summary>
+    private long Ticks(int minutes) => (long)minutes * _ticksPerHour / 60;
 
     /// <summary>The params of a type, through the root of a changed thing; null for types without any (inventions).</summary>
     private ObjectParams? ParamsOf(string typeId)

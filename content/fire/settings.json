@@ -17,6 +17,13 @@
     "becomes": "fire",
     "spares": ["crafted"]
   },
+  "course": {
+    "kindle_minutes": 5,
+    "fade_minutes": 20,
+    "embers_minutes": 60,
+    "embers_permille": 250,
+    "embers_heat_level": "embers"
+  },
   "felt": [
     { "sensation": "near_fire", "radius_cm": 1500, "min_burning": 2, "caught_only": true }
   ],
