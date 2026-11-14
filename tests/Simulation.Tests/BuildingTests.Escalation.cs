@@ -48,6 +48,21 @@ public sealed partial class BuildingTests
     }
 
     [Fact]
+    public void TheStuckOptionsAreShuffledLikeEveryQuestion()
+    {
+        // D1096 #7 (D1025): the position of an option says nothing - the order comes from the world and the question id.
+        var decider = new EscalationPort(_ => null);
+        var (host, _, typeId) = Stuck(decider);
+        var builder = host.Inhabitants.All.Single();
+        RunUntil(host, () => decider.Stuck.Count > 0, (int)(48 * host.World.Calendar.Settings.TicksPerHour));
+        var request = decider.Stuck.First();
+        var questionId = host.Decisions.OpenQuestionIds(builder.Id).Single();
+        var expected = host.Inventions.EscalationOptionsOf(builder.Id, typeId).Take(DecisionsSystem.MaxOptions).ToList();
+        DecisionsSystem.Shuffle(expected, DecisionsSystem.OrderSeed(host.World.Seed, questionId));
+        Assert.Equal(expected.Select(o => (o.Action, o.TargetId)), request.Options.Select(o => (o.Action, o.Target)));
+    }
+
+    [Fact]
     public void GivingUpByChoiceEndsTheBuildingAndFrustrates()
     {
         var decider = new EscalationPort(r => r.Options.Single(o => o.Action == Escalation.GiveUpAction).OptionId);
