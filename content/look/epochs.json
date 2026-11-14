@@ -3,13 +3,13 @@
   "blend_real_seconds": 30.0,
   "epochs": [
     {
-      "id": "wilderness",
+      "id": "gathering",
       "tech_level": 0,
       "colors": [],
       "details": []
     },
     {
-      "id": "tools",
+      "id": "shaping",
       "tech_level": 1,
       "colors": [
         {
@@ -22,7 +22,7 @@
       ]
     },
     {
-      "id": "hut",
+      "id": "building",
       "tech_level": 2,
       "colors": [
         {
@@ -36,7 +36,7 @@
       ]
     },
     {
-      "id": "workshop",
+      "id": "processing",
       "tech_level": 3,
       "colors": [
         {
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "id": "metal",
+      "id": "smelting",
       "tech_level": 4,
       "colors": [
         {

@@ -6,7 +6,7 @@ whether it plausibly works in the real world and, if so, what it changes.
 Rules:
 - Judge only by the TRUE properties given and simple real-world physics (heat, cutting,
   grinding, mixing, drying, soaking, binding, braiding, shaping, firing, charring, melting).
-- Respect the tech level: nothing needs better tools, machines or knowledge than "hut".
+- Respect the tech level: nothing needs better tools, machines or knowledge than "building".
 - Heat: processes that work by heat need at least some heat (heat_min); the result may need at
   most the heat that is available ((no heat)).
 - Be strict. Answer feasible = true ONLY if people really do exactly this with such things and

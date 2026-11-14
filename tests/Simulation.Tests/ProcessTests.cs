@@ -95,7 +95,7 @@ public sealed class ProcessTests
         // The fire burns and gives its heat level; at that level roast_food fits the nut with the fire as the heat.
         var table = Content.Value.Processes!;
         var level = host.Fire.HeatLevelOf(fire, table.HeatLevels);
-        Assert.Equal(table.HeatIndex("open_fire"), level);
+        Assert.Equal(table.HeatIndex("flame"), level);
         var truth0 = new[] { nut, fire }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
         Assert.Equal("roast_food", table.Match(truth0, null, level, 1)?.Rule.Id);
 
@@ -337,7 +337,7 @@ public sealed class ProcessTests
         rule["inputs"] = new JsonArray(Condition(changing), Condition(other));
         rule["tool"] = null;
         rule["heat_min"] = null;
-        rule["tech_level"] = "tool";
+        rule["tech_level"] = "shaping";
         rule["result"] = new JsonObject
         {
             ["add_properties"] = new JsonArray(add),

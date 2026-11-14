@@ -20,8 +20,8 @@
         }
       ],
       "tool": null,
-      "heat_level": "embers",
-      "tech_level": "hut",
+      "heat_level": "glowing",
+      "tech_level": "building",
       "inhabitant": {
         "id": "inh-0001",
         "needs": [
@@ -138,7 +138,7 @@
           ]
         ],
         "tool": null,
-        "heat_level": "embers"
+        "heat_level": "glowing"
       }
     }
   }
