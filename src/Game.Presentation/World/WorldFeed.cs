@@ -102,7 +102,10 @@ public sealed record InhabitantCard(InhabitantRow Row, IReadOnlyList<CardValue> 
 /// <param name="Year">Year since founding, from 1.</param>
 /// <param name="Day">Day of the season, from 1.</param>
 /// <param name="Time">hh:mm.</param>
-public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time);
+/// <param name="GameDay">Running game day since the founding, from 1 (B2759).</param>
+/// <param name="DaysPerSeason">Days of a season (<c>time.json</c>).</param>
+/// <param name="DaysPerYear">Days of a year: days of a season times the seasons.</param>
+public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time, long GameDay, int DaysPerSeason, int DaysPerYear);
 
 /// <summary>A mailbox message as the screen shows it.</summary>
 /// <param name="Id">Message id.</param>
@@ -271,12 +274,16 @@ public sealed class WorldFeed
     public ClockView Clock()
     {
         var time = Snapshot.Time;
+        var settings = _host.World.Calendar.Settings;
         return new ClockView(
             $"time.season.{time.SeasonId}",
             $"time.phase.{Phase(time.Phase)}",
             time.Year,
             time.DayOfSeason,
-            string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"));
+            string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"),
+            time.Day,
+            settings.DaysPerSeason,
+            settings.DaysPerSeason * settings.Seasons.Count);
     }
 
     /// <summary>Neutral number from an id such as <c>inh-000004</c> (the UI shows "Inhabitant 4").</summary>

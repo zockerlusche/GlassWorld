@@ -38,6 +38,8 @@ public partial class Main : Node3D
     private const string IslandArgument = "--island";
     private const string LoadSaveArgument = "--load-save=";
     private const string LookAtArgument = "--look-at=";
+    private const string NewWorldArgument = "--new-world=";
+    private const string RunSecondsArgument = "--run-s=";
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
 
@@ -46,6 +48,11 @@ public partial class Main : Node3D
 
     // Where a check run's camera looks (x, z, distance in m; debug builds only, A1375).
     private (double X, double Z, double Distance)? _lookAt;
+    // A run like a player's (B2768): a new world made as the menu's form makes it, and how long it runs at the
+    // fastest speed before it quits saved (0 = until the window is closed).
+    private NewWorldChoice? _newWorld;
+    private double _runS;
+    private bool _quitting;
     private bool _tour;
     private double _tourRunS;
     private bool _nightShots;
@@ -131,6 +138,14 @@ public partial class Main : Node3D
         {
             GD.PushError($"LOAD_SAVE_FAIL no save game at '{missing}'");
             GetTree().Quit(1);
+            return;
+        }
+
+        // B2768: a night run with a window, as Marcel plays it (new world from the menu, save after every day,
+        // learning log), but without anyone at the menu.
+        if (_newWorld is { } choice && _smokeFrames == 0 && _shotsFolder is null && _loadSave is null)
+        {
+            StartNewWorldRun(choice);
             return;
         }
 
@@ -253,6 +268,17 @@ public partial class Main : Node3D
             if (arg.StartsWith(LoadSaveArgument, StringComparison.Ordinal) && OS.IsDebugBuild())
             {
                 _loadSave = arg[LoadSaveArgument.Length..];
+            }
+
+            if (arg.StartsWith(NewWorldArgument, StringComparison.Ordinal))
+            {
+                _newWorld = ParseNewWorld(arg[NewWorldArgument.Length..]);
+            }
+
+            if (arg.StartsWith(RunSecondsArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[RunSecondsArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var runS) && runS > 0)
+            {
+                _runS = runS;
             }
 
             if (arg == DebugArgument)
@@ -403,6 +429,90 @@ public partial class Main : Node3D
                 _menu.ShowWindow(message);
             }
         }
+    }
+
+    /// <summary>
+    /// <c>--new-world=SEED[,SIZE[,CLIMATE[,FAVOR]]]</c>; a missing size or climate is the data's default (empty here,
+    /// filled and checked in <see cref="StartNewWorldRun"/>), a missing favour 50. Null with a warning when the seed is
+    /// no number.
+    /// </summary>
+    private static NewWorldChoice? ParseNewWorld(string value)
+    {
+        var parts = value.Split(',');
+        if (!ulong.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seed))
+        {
+            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR]]])");
+            return null;
+        }
+
+        var favor = parts.Length > 3 && int.TryParse(parts[3], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 50;
+        return new NewWorldChoice(
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"run-{seed}"),
+            seed,
+            parts.Length > 1 ? parts[1] : string.Empty,
+            parts.Length > 2 ? parts[2] : string.Empty,
+            favor);
+    }
+
+    /// <summary>
+    /// A run like a player's (B2768): creates the world in the world list exactly as the menu's "new world" does
+    /// (saved at once and after every game day, learning log beside it) and enters it; with <c>--run-s</c> it runs
+    /// at the fastest speed of the data for that many real seconds and then quits saved, as closing the window does.
+    /// </summary>
+    private void StartNewWorldRun(NewWorldChoice choice)
+    {
+        if (_library is null)
+        {
+            GD.PushError("NEW_WORLD_FAIL no world list");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Size and climate are options of the data (review GW3 #442): a typo fails here, clearly, not mid-start.
+        if (_menuData?.Options is { } options)
+        {
+            choice = choice with
+            {
+                Size = choice.Size.Length > 0 ? choice.Size : options.DefaultSize,
+                Climate = choice.Climate.Length > 0 ? choice.Climate : options.DefaultClimate,
+            };
+            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate))
+            {
+                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}' or climate '{choice.Climate}' is not an option of content/player/world_options.json");
+                GetTree().Quit(1);
+                return;
+            }
+        }
+
+        var meta = _library.Create(choice, DateTimeOffset.UtcNow);
+        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} save={_library.SavePath(meta.Id)}");
+        EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate), meta, created: true);
+        if (_world?.Host is null)
+        {
+            GD.PushError("NEW_WORLD_FAIL the world did not start");
+            GetTree().Quit(1);
+            return;
+        }
+
+        if (_runS > 0)
+        {
+            _ = RunThenQuitAsync(_runS);
+        }
+    }
+
+    private async Task RunThenQuitAsync(double seconds)
+    {
+        var fastest = ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings).Max(c => c.Speed);
+        _world.Speed = fastest;
+        GD.Print($"RUN_START speed={fastest.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+        var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
+        while (Time.GetTicksMsec() < until && _world is not null && !_quitting)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        GD.Print($"RUN_END tick={_world?.Host?.World.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"}");
+        SaveAndQuit();
     }
 
     /// <summary>Builds presenter, audio and screen around a world; returns whether spatial audio is ready.</summary>
@@ -644,9 +754,16 @@ public partial class Main : Node3D
     /// <summary>Quitting saves on every path (menu, window close, Alt+F4); a failed save keeps the game open.</summary>
     private void SaveAndQuit()
     {
+        // Once is enough (review GW3 #442): a run that ends while the window is being closed must not save twice.
+        if (_quitting)
+        {
+            return;
+        }
+
         SaveSettings();
         if (TrySave())
         {
+            _quitting = true;
             // Like the smoke: silence all sounds and quit a moment later, so the audio server lets go of
             // every playback first (no stream left at exit, #142).
             _audio?.Silence();
