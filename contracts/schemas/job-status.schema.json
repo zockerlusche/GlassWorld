@@ -104,6 +104,9 @@
         },
         "milestone": {
           "$ref": "#/$defs/MilestoneResult"
+        },
+        "chronicle": {
+          "$ref": "#/$defs/ChronicleResult"
         }
       },
       "minProperties": 1,
@@ -850,6 +853,26 @@
       ],
       "properties": {
         "sentence": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/GeneratedText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ChronicleResult": {
+      "description": "B8 R10 (A1355): the day's narrative in the player's language, or null when the content guard or the grounding left it out (the base lines stay).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "narrative"
+      ],
+      "properties": {
+        "narrative": {
           "anyOf": [
             {
               "$ref": "common.schema.json#/$defs/GeneratedText"

@@ -76,7 +76,38 @@ public partial class Main
     {
         var screen = _screen!;
         var ids = _world!.Host!.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).Select(i => i.Id).ToList();
-        screen.ShowZonesForShots(false);
+
+        // 29. The corners of Variante A (A1682), the standard: portraits (their still pictures render one by one),
+        // every round button's window, help and gifts from the menu.
+        screen.ShowZonesForShots(true);
+        for (var i = 0; i < 120 && screen.PortraitsForShots.PicturesShown < screen.PortraitsForShots.Count; i++)
+        {
+            await Frames(1);
+        }
+
+        GD.Print($"UI_TOUR_FULL portraits {screen.PortraitsForShots.PicturesShown}/{screen.PortraitsForShots.Count}");
+        await take("29_ecken");
+        foreach (var key in GameScreen.PanelKeysForShots(true))
+        {
+            screen.OpenPanelForShots(key);
+            await take($"29_ecken_{key}");
+        }
+
+        screen.OpenPanelForShots(null);
+        OpenPause();
+        if (_pause is not null && Press(_pause, "ui.pause.help"))
+        {
+            await take("29_ecken_menue_hilfe");
+        }
+
+        screen.OpenPanelForShots(null);
+        if (screen.PortraitsForShots.RowButtons.Count > 0)
+        {
+            screen.PortraitsForShots.RowButtons[^1].EmitSignal(BaseButton.SignalName.Pressed);
+            await take("29_ecken_portraet_klick");
+        }
+
+        screen.ShowCardForShots(null, expand: false);
 
         // 30. Every inhabitant's card, the last one unfolded; the conversation and the pointing mode.
         for (var i = 0; i < ids.Count; i++)
@@ -168,7 +199,7 @@ public partial class Main
         screen.ShowCardForShots(first, expand: true);
         await take("35_en_karte");
         screen.ShowCardForShots(null, expand: false);
-        foreach (var key in GameScreen.PanelKeysForShots(false))
+        foreach (var key in GameScreen.PanelKeysForShots(true))
         {
             screen.OpenPanelForShots(key);
             await take($"35_en_{key}");
@@ -195,5 +226,10 @@ public partial class Main
         ApplySettings(normal with { Language = "de" });
         TextCatalogs.SetLanguage("de");
         await Frames(2);
+
+        // 36. The old layout as the fallback until step 3 (TL #23224), once.
+        screen.ShowZonesForShots(false);
+        await take("36_alter_aufbau");
+        screen.ShowZonesForShots(true);
     }
 }

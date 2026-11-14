@@ -63,6 +63,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("milestone")]
         public MilestoneResult? Milestone { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
+        public ChronicleResult? Chronicle { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -517,6 +521,18 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("sentence")]
         public GeneratedText? Sentence { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B8 R10 (A1355): the day's narrative in the player's language, or null when the content guard or the grounding left it out (the base lines stay).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChronicleResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("narrative")]
+        public GeneratedText? Narrative { get; set; } = default!;
 
     }
 

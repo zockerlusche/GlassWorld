@@ -111,7 +111,7 @@ public partial class BuildPlanNode : Node3D
             "sphere" => (Scaled(new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 16, Rings = 8 }, size), 0f),
             "wedge" => (new PrismMesh { Size = size, LeftToRight = 0f }, 0f),
             "ring" => (new TorusMesh { InnerRadius = radius - Mathf.Min(size.Y, radius / 2f), OuterRadius = radius, Rings = 24, RingSegments = 8 }, 0f),
-            "bowl" => (Scaled(new SphereMesh { Radius = 0.5f, Height = 1f, IsHemisphere = true, RadialSegments = 16, Rings = 6 }, size, doubleSided: true, shiftY: -0.5f), Mathf.Pi),
+            "hemisphere_open" => (Scaled(new SphereMesh { Radius = 0.5f, Height = 1f, IsHemisphere = true, RadialSegments = 16, Rings = 6 }, size, doubleSided: true, shiftY: -0.5f), Mathf.Pi),
             _ => throw new InvalidDataException($"No mesh for kit shape '{shape}'."),
         };
     }
@@ -133,7 +133,7 @@ public partial class BuildPlanNode : Node3D
         arrays[(int)Mesh.ArrayType.Normal] = normals;
         if (doubleSided)
         {
-            // Open shapes (bowl): the inside is a second surface with reversed winding and normals,
+            // Open shapes (hemisphere_open): the inside is a second surface with reversed winding and normals,
             // because the comic shader culls back faces.
             var indices = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
             var count = vertices.Length;

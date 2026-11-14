@@ -33,33 +33,6 @@ class HeadSymbol(BaseModel):
     )
 
 
-class Zones(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    side_panel_width: int = Field(
-        ...,
-        description='Width of the side window on the right (pixels at the reference size; grows with the text size).',
-        ge=200,
-        le=1200,
-    )
-    log_width: int = Field(
-        ..., description='Width of the pinned log on the left.', ge=160, le=1200
-    )
-    log_height_share: float = Field(
-        ...,
-        description='Share of the free height below the top bar the log takes.',
-        ge=0.1,
-        le=1.0,
-    )
-    panel_padding: int = Field(
-        ...,
-        description='Inner padding of the top bar and the zone panels (the windows of the layout so far keep window.padding).',
-        ge=0,
-        le=64,
-    )
-
-
 class UiScaleRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -366,6 +339,118 @@ class UiKnock(BaseModel):
     )
 
 
+class Icon(StrEnum):
+    menu = 'menu'
+    question = 'question'
+    letter = 'letter'
+    book = 'book'
+    person = 'person'
+    pause = 'pause'
+    play = 'play'
+    fast = 'fast'
+    blossom = 'blossom'
+    sun = 'sun'
+    leaf = 'leaf'
+    snowflake = 'snowflake'
+    cloud = 'cloud'
+    rain = 'rain'
+    snow = 'snow'
+    fog = 'fog'
+    storm = 'storm'
+    frost = 'frost'
+    heat = 'heat'
+    drought = 'drought'
+    unknown = 'unknown'
+
+
+class UiIconChoice(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(..., description='Season or weather id.', min_length=1)
+    icon: Icon = Field(..., description='Drawn symbol.')
+
+
+class Zones(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    side_panel_width: int = Field(
+        ...,
+        description='Width of the side window on the right (pixels at the reference size; grows with the text size).',
+        ge=200,
+        le=1200,
+    )
+    log_width: int = Field(
+        ..., description='Width of the pinned log on the left.', ge=160, le=1200
+    )
+    log_height_share: float = Field(
+        ...,
+        description='Share of the free height below the top bar the log takes.',
+        ge=0.1,
+        le=1.0,
+    )
+    panel_padding: int = Field(
+        ...,
+        description='Inner padding of the top bar and the zone panels (the windows of the layout so far keep window.padding).',
+        ge=0,
+        le=64,
+    )
+    portrait_px: int = Field(
+        ...,
+        description="Diameter of an inhabitant's round portrait in the list top left.",
+        ge=16,
+        le=256,
+    )
+    compact_portrait_px: int = Field(
+        ...,
+        description='Diameter of a portrait in the compact list (many inhabitants: portraits only, the name on hover).',
+        ge=16,
+        le=256,
+    )
+    portrait_list_width: int = Field(
+        ...,
+        description='Width of the portrait list top left with name and activity.',
+        ge=120,
+        le=1200,
+    )
+    portraits_compact_from: int = Field(
+        ...,
+        description='From this many inhabitants the list shows portraits only and scrolls (D957 section 1).',
+        ge=2,
+        le=1000,
+    )
+    portrait_list_height_share: float = Field(
+        ...,
+        description='Largest share of the free height the portrait list takes; more scrolls.',
+        ge=0.1,
+        le=1.0,
+    )
+    round_button_px: int = Field(
+        ...,
+        description='Diameter of the round symbol buttons top right (menu, questions, mail, chronicle, inhabitants).',
+        ge=24,
+        le=256,
+    )
+    favor_bar_width: int = Field(
+        ..., description='Width of the favour bar top right.', ge=60, le=1200
+    )
+    middle_share: float = Field(
+        ...,
+        description='Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).',
+        ge=0.05,
+        le=0.9,
+    )
+    season_icons: list[UiIconChoice] = Field(
+        ...,
+        description='Symbol of each season in the time block top right (season ids of the world time data).',
+    )
+    weather_icons: list[UiIconChoice] = Field(
+        ...,
+        description="Symbol of each weather in the time block top right (ids of the weather vocabulary); an unknown weather shows the symbol 'unknown'.",
+    )
+
+
 class UiPalette(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -432,5 +517,5 @@ class UiTokens(BaseModel):
     )
     zones: Zones = Field(
         ...,
-        description='Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.',
+        description='Sizes of the corner layout (UI concept Variante A, D957 v4, B2643; grew out of the zones preview W1717/D642): compact corners so the middle of the picture stays free.',
     )

@@ -309,6 +309,13 @@ class MilestoneResult(BaseModel):
     sentence: common_schema.GeneratedText | None
 
 
+class ChronicleResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    narrative: common_schema.GeneratedText | None
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -361,6 +368,7 @@ class JobResult(BaseModel):
     model3d: Model3dResult | None = None
     review: ReviewResult | None = None
     milestone: MilestoneResult | None = None
+    chronicle: ChronicleResult | None = None
 
 
 class JobStatus(BaseModel):
