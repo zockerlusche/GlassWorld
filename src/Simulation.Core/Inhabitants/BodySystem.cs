@@ -246,7 +246,8 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>
     /// B5 R32 (D1099): the inhabitant remembers how its place feels now - kept dry in the rain by a thing there, else
-    /// wet, else its comfort level, each mapped to a feeling by the data. Only what it felt there; no rule what to do.
+    /// wet, else its comfort level, each mapped to a feeling by the data - when the feeling changed since the last
+    /// one it remembered. Only what it felt there; no rule what to do.
     /// </summary>
     private void RememberHowItFelt(World world, Inhabitant inhabitant)
     {
@@ -270,7 +271,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
             felt = places.FromComfort.FirstOrDefault(f => string.Equals(f.Level, level, StringComparison.Ordinal))?.Felt;
         }
 
-        if (felt is null)
+        // Only a change of feeling is remembered (review GW1 #427): walking on in the same feeling does not push
+        // the older, telling places out of the bounded memory.
+        if (felt is null || (inhabitant.FeltPlaces.Count > 0 && string.Equals(inhabitant.FeltPlaces.Values.MaxBy(f => f.Tick).Felt, felt, StringComparison.Ordinal)))
         {
             return;
         }
