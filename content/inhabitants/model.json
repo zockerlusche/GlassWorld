@@ -83,7 +83,8 @@
       { "id": "courage", "min": 0.2, "max": 0.9 },
       { "id": "creativity", "min": 0.2, "max": 0.9 },
       { "id": "orderliness", "min": 0.2, "max": 0.9 },
-      { "id": "kindness", "min": 0.2, "max": 0.9 }
+      { "id": "kindness", "min": 0.2, "max": 0.9 },
+      { "id": "drive", "min": 0.2, "max": 0.9 }
     ],
     "needs": [
       { "id": "hunger", "min": 0.6, "max": 0.8 },

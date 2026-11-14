@@ -833,6 +833,10 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        },
+        "idea_grow_by_trait": {
+          "description": "D1086: idea_grow is multiplied by this trait factor (ideas ripen faster). Omitted = the same for all.",
+          "$ref": "common.schema.json#/$defs/TraitCurve"
         }
       }
     },
