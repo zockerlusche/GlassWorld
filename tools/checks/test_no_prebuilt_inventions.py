@@ -102,8 +102,17 @@ def _allowed() -> set[tuple[str, str]]:
 def test_the_names_match_as_meant() -> None:
     assert words_in("climb_ladder, two boats, a fire-bowl") == {"ladder", "boat", "bowl"}
     assert words_in("Ein Floß und zwei Hütten") == {"floß", "hütte"}
+    assert words_in("drei Körbe, two knives") == {"körbe", "knives"}
     # German nouns only capitalised; no part of a longer word.
     assert words_in("a herd of goats, eine Nussschale, honeycomb, bridges") == {"bridge"}
+
+
+def test_every_active_prompt_is_scanned() -> None:
+    """Review GW5: a prompt key whose file is missing would silently drop out of the scan."""
+    prompts = _active_prompts()
+    assert len(prompts) >= 10
+    missing = [p.relative_to(ROOT).as_posix() for p in prompts if not p.exists()]
+    assert missing == [], missing
 
 
 def test_every_allowed_entry_has_owner_status_and_reason() -> None:
