@@ -154,6 +154,15 @@ public sealed class LookEpochTests : IDisposable
         host.Decisions.Submit(Set(Reached()));
         host.World.Run(5);
 
+        // Saved when no decider answer is on its way: a loaded world's port never gets an answer the running one
+        // still receives (resending after a load is for live play, not for hash comparisons). D1025 shuffles the
+        // options, so which question is in flight when depends on the order.
+        for (var i = 0; i < 200 && host.Decisions.Open.Any(q => q.RequestId.Length > 0 && q.RetryAtTick is null); i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.DoesNotContain(host.Decisions.Open, q => q.RequestId.Length > 0 && q.RetryAtTick is null);
         var path = Path.Combine(_directory, "epoch.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
         var state = SaveGameStore.Load(path);

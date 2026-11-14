@@ -139,13 +139,13 @@ public sealed class CombineTests
             Assert.NotEqual(option.Target, Assert.Single(option.Partners));
         }
 
-        // Per question and target: nearest to the target first (ties by id); the far flint never.
+        // Per question and target: only partners within reach (the nearest are chosen; their order in the request is
+        // shuffled, D1025); the far flint never.
         var positions = host.Objects.All.ToDictionary(o => o.Id, o => o.Position, StringComparer.Ordinal);
         foreach (var group in offers.GroupBy(o => (o.Request.RequestId, o.Option.Target)))
         {
             var target = positions[group.Key.Target!];
             var distances = group.Select(o => Distance(target, positions[o.Option.Partners.Single()])).ToList();
-            Assert.Equal(distances.Order(), distances);
             Assert.All(distances, d => Assert.True(d <= 2.0));
         }
 
