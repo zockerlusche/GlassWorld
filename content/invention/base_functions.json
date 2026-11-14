@@ -15,10 +15,8 @@
     },
     {
       "id": "heat_source",
-      "description": "Gives warmth (a hearth, an oven, a warming stone).",
-      "grants_properties": [
-        "hot"
-      ]
+      "description": "Gives warmth (a hearth, an oven, a warming object).",
+      "grants_properties": []
     },
     {
       "id": "light_source",

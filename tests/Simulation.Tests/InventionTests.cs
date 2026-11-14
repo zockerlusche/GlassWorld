@@ -310,8 +310,8 @@ public sealed class InventionTests : IDisposable
         // D827 R31: the effect comes only through granted properties; a function without fitting properties is only recorded.
         var rules = Content.Value.Inventions;
         var invention = Result([]).Invention!;
-        invention.BaseFunction = "heat_source";
-        Assert.Contains("hot", rules.PropertiesOf(invention));
+        invention.BaseFunction = "shelter";
+        Assert.Contains("sheltering", rules.PropertiesOf(invention));
         Assert.Superset(rules.Settings.ImpliedProperties.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(invention).ToHashSet(StringComparer.Ordinal));
         invention.BaseFunction = "tool";
         Assert.Equal(rules.Settings.ImpliedProperties.Order(StringComparer.Ordinal), rules.PropertiesOf(invention).Order(StringComparer.Ordinal));
@@ -325,19 +325,19 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
-    public void AnInventionMappedToAHeatSourceIsHotInTheWorld()
+    public void AnInventionMappedToAShelterShelters()
     {
         var port = new ScriptedJobPort();
         var host = World(port, 16);
         RunUntilJob(host, port);
         var job = port.Submitted.Single();
         var answer = Approved(job, []);
-        answer.Result!.Invention!.Invention!.BaseFunction = "heat_source";
+        answer.Result!.Invention!.Invention!.BaseFunction = "shelter";
         port.Answer(job, answer);
         host.World.Run(30);
         var type = InventionSystem.TypeIdFor(job.RequestId);
-        Assert.True(host.Types.HasProperty(type, "hot"));
-        Assert.Equal("heat_source", host.Inventions.Invention(type)?.BaseFunction);
+        Assert.True(host.Types.HasProperty(type, "sheltering"));
+        Assert.Equal("shelter", host.Inventions.Invention(type)?.BaseFunction);
     }
 
     [Fact]
