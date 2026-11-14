@@ -16,11 +16,11 @@
     },
     {
       "id": "kiln",
-      "description": "A closed fire that holds strong heat for long."
+      "description": "Strong heat held for a long time."
     },
     {
       "id": "furnace",
-      "description": "The strongest heat, enough to melt sand or metal."
+      "description": "The strongest heat, far beyond an open fire."
     }
   ]
 }

@@ -209,7 +209,7 @@ public partial class Main
                 ("new world", menu.OpenNewWorld),
                 ("worlds", menu.OpenWorlds),
                 ("settings", () => OpenSettings(menu.ShowWindow)),
-                ("pause", () => menu.ShowWindow(PauseMenu.Create(_style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { })))),
+                ("pause", () => menu.ShowWindow(PauseMenu.Create(_style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }) { Help = () => { } }))),
             };
             foreach (var (name, open) in screens)
             {
@@ -310,7 +310,7 @@ public partial class Main
                 ("settings hints", Tab("ui.settings.section.hints")),
                 ("settings audio", Tab("ui.settings.section.audio")),
                 ("settings ai", Tab("ui.settings.section.ai")),
-                ("pause", PauseMenu.Create(style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }))),
+                ("pause", PauseMenu.Create(style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }) { Help = () => { } })),
             ];
         };
     }
@@ -960,15 +960,16 @@ public partial class Main
                 GD.Print("NIGHT_OK");
             }
 
-            // The zones preview of the UI concept (W1717): switched on, checked, switched back.
-            var zones = _screen is null ? "game screen missing" : await _screen.CheckZonesAsync(_settings);
-            if (zones.Length > 0)
+            // The corners of Variante A (A1682), the standard layout: switched on, checked, back to the old layout the
+            // checks around it were written for (it stays as a fallback until step 3).
+            var corners = _screen is null ? "game screen missing" : await _screen.CheckCornersAsync(_settings);
+            if (corners.Length > 0)
             {
-                problems = [.. problems, "zones preview: " + zones];
+                problems = [.. problems, "corners: " + corners];
             }
             else
             {
-                GD.Print("ZONES_OK");
+                GD.Print("CORNERS_OK");
             }
 
             // The debug view and the time keys (B2-6 R31).

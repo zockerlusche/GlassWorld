@@ -31,8 +31,8 @@
       "description": "A round band with a hole."
     },
     {
-      "id": "bowl",
-      "description": "A hollow round shape open at the top."
+      "id": "hemisphere_open",
+      "description": "A hollow half sphere, open at the top."
     }
   ]
 }

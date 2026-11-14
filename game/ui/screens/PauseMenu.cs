@@ -23,9 +23,12 @@ public sealed record PauseActions(Action Resume, Action Save, Action Settings, A
 
     /// <summary>Leaves to the list of saved worlds (W1689b: loading is found from the pause menu); null hides it.</summary>
     public Action? Load { get; init; }
+
+    /// <summary>Plays on and opens help and gifts (TL #23224: they moved from a side button into the menu); null hides it.</summary>
+    public Action? Help { get; init; }
 }
 
-/// <summary>Pause menu on Esc (B6 R5): play on, save, settings, main menu, quit.</summary>
+/// <summary>Pause menu on Esc (B6 R5): play on, save, load, share, help and gifts, settings, main menu, quit.</summary>
 public static class PauseMenu
 {
     /// <summary>Builds the window; closing it (Esc or the close button) means "play on".</summary>
@@ -91,6 +94,16 @@ public static class PauseMenu
         {
             Add(window, "ui.pause.share", share);
         }
+
+        if (actions.Help is { } help)
+        {
+            Add(window, "ui.pause.help", () =>
+            {
+                window.Close();
+                help();
+            });
+        }
+
         Add(window, "ui.menu.settings", actions.Settings);
         Add(window, "ui.pause.main_menu", () =>
         {

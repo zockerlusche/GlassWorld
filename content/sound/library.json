@@ -728,9 +728,9 @@
         "hack"
       ],
       "context_words": [
-        "axe",
         "wood",
-        "log"
+        "log",
+        "branch"
       ],
       "files": [
         {
@@ -754,9 +754,9 @@
         "groan"
       ],
       "context_words": [
-        "door",
-        "hinge",
-        "wooden"
+        "wooden",
+        "swing",
+        "bend"
       ],
       "files": [
         {
@@ -832,7 +832,7 @@
         "knock",
         "clack",
         "tap",
-        "hammer"
+        "pound"
       ],
       "context_words": [
         "stone",

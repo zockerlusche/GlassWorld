@@ -1223,8 +1223,8 @@
       "text": "Ring"
     },
     {
-      "key": "vocab.shape.bowl",
-      "text": "Bowl"
+      "key": "vocab.shape.hemisphere_open",
+      "text": "Open half sphere"
     },
     {
       "key": "vocab.tech_level.wilderness",
@@ -2555,10 +2555,6 @@
       "text": "Off for now - these sounds are being remade."
     },
     {
-      "key": "msg.converse.no_answer",
-      "text": "Hm ... I have to think about that."
-    },
-    {
       "key": "ui.setup.model_image",
       "text": "Image AI: draws pictures of new things in the computing night (in your ComfyUI)"
     },
@@ -2835,20 +2831,40 @@
       "text": "{name} did not answer."
     },
     {
-      "key": "ui.settings.zones_preview",
-      "text": "New screen layout (preview)"
+      "key": "ui.settings.classic_layout",
+      "text": "Old screen layout (fallback)"
     },
     {
       "key": "ui.zone.people",
       "text": "Inhabitants"
     },
     {
-      "key": "ui.zone.world",
-      "text": "World"
+      "key": "ui.zone.chronicle",
+      "text": "Chronicle"
     },
     {
-      "key": "ui.zone.contact",
-      "text": "Contact"
+      "key": "ui.zone.questions",
+      "text": "What is on their minds"
+    },
+    {
+      "key": "ui.zone.mailbox",
+      "text": "Mailbox"
+    },
+    {
+      "key": "ui.pause.help",
+      "text": "Help and gifts"
+    },
+    {
+      "key": "ui.corner.brooding",
+      "text": "Puzzling over a question"
+    },
+    {
+      "key": "ui.corner.portrait_tip",
+      "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.weather",
+      "text": "Weather: {weather}"
     },
     {
       "key": "ui.card.title",
@@ -2979,18 +2995,6 @@
       "text": "Timeline"
     },
     {
-      "key": "ui.zone.tab.questions",
-      "text": "What occupies them"
-    },
-    {
-      "key": "ui.zone.tab.help",
-      "text": "Help"
-    },
-    {
-      "key": "ui.zone.tab.mailbox",
-      "text": "Mailbox"
-    },
-    {
       "key": "msg.hint.questions_many",
       "text": "{name} is wondering about several things."
     },
@@ -3049,6 +3053,10 @@
     {
       "key": "ui.card.musing.male",
       "text": "What occupies them"
+    },
+    {
+      "key": "vocab.property.waterproof",
+      "text": "Waterproof"
     },
     {
       "key": "vocab.guard_reason.beyond_knowledge",

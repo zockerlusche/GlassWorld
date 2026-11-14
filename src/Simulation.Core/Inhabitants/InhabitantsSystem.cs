@@ -16,8 +16,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId)
 {
     /// <summary>
-    /// Text for the player (thought bubble), already in the player's language; for no_answer the text key of the
-    /// calm line (the game translates it); null for most events.
+    /// Text for the player (thought bubble), already in the player's language; null for most events - also for
+    /// no_answer, which puts no words in the inhabitant's mouth (D1096 #8).
     /// </summary>
     public string? Text { get; init; }
 

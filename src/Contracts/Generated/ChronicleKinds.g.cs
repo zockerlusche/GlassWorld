@@ -40,6 +40,33 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// B8 R10 (A1355): the day's narrative (family book) in the computing night. At nightfall the core sends the chronicle entries since the last nightfall as one job of kind chronicle; the answer (content guard, length) stands above the day's base lines. Left out = no narrative is asked for.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ChronicleNarrativeSettings
+    {
+
+        /// <summary>
+        /// Longest narrative in characters (at most the 280 of a generated text).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many entries go into one job (the newest when there are more).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_entries")]
+        public int MaxEntries { get; set; } = default!;
+
+        /// <summary>
+        /// Priority of the job (higher runs first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
+        public int JobPriority { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Which core events become chronicle entries and how their base line reads (B8 R9/R10, D471 D8): the core logs events language-neutrally; the base line is a text key with parameters (DE/EN, no AI). New kinds are data, not code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -51,6 +78,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("kinds")]
         public System.Collections.Generic.ICollection<ChronicleKind> Kinds { get; set; } = new System.Collections.ObjectModel.Collection<ChronicleKind>();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("narrative")]
+        public ChronicleNarrativeSettings? Narrative { get; set; } = default!;
 
     }
 }
