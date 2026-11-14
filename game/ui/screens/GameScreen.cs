@@ -98,6 +98,9 @@ public partial class GameScreen : CanvasLayer
     private long? _nightfallTick;
     private PanelContainer? _topBar;
     private Label? _date;
+
+    // B2759: game day and year beside the season (a label of its own, so a narrow bar wraps between them).
+    private Label? _day;
     private Label? _favor;
     private readonly VBoxContainer _helpList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _helpShape = "-";
@@ -167,7 +170,7 @@ public partial class GameScreen : CanvasLayer
         _overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         UiSetup.Bind(_root);
         UiSetup.Bind(_overlay);
-        (_topBar, _date, _time) = CreateTopBar(style, ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings), speed => presenter.Speed = speed);
+        (_topBar, _date, _day, _time) = CreateTopBar(style, ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings), speed => presenter.Speed = speed);
         foreach (var (button, choice) in _topBar.GetChild(0).GetChildren().OfType<Button>().Zip(ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings)))
         {
             _timeButtons.Add((button, choice));
@@ -464,19 +467,21 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
-    /// The top bar: world clock (date and time as two parts) and one toggle per speed (pause, normal,
+    /// The top bar: world clock (season, game day and year, time as three parts) and one toggle per speed (pause, normal,
     /// fast-forward factors). Its parts flow into a second line when the room is too narrow (large UI
     /// or text size), so nothing is cut off (D366 section 2).
     /// </summary>
-    public static (PanelContainer Bar, Label Date, Label Time) CreateTopBar(UiStyle style, IReadOnlyList<TimeChoice> choices, Action<double> setSpeed)
+    public static (PanelContainer Bar, Label Date, Label Day, Label Time) CreateTopBar(UiStyle style, IReadOnlyList<TimeChoice> choices, Action<double> setSpeed)
     {
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(choices);
         var bar = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
         var row = new HFlowContainer();
         var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
+        var day = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
         var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
         row.AddChild(date);
+        row.AddChild(day);
         row.AddChild(time);
         var group = new ButtonGroup();
         foreach (var choice in choices)
@@ -494,7 +499,7 @@ public partial class GameScreen : CanvasLayer
         }
 
         bar.AddChild(row);
-        return (bar, date, time);
+        return (bar, date, day, time);
     }
 
     public override void _Process(double delta)
@@ -2359,7 +2364,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>Rebuilds lists, clock, card and question marks from the current snapshot.</summary>
     public void Refresh()
     {
-        if (_feed is null || _date is null || _time is null)
+        if (_feed is null || _date is null || _day is null || _time is null)
         {
             return;
         }
@@ -2386,10 +2391,12 @@ public partial class GameScreen : CanvasLayer
             ["year"] = Number(clock.Year),
         };
         _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
+        _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
         _date.TooltipText = TextFill.Fill(Tr("ui.clock.date_tooltip"), new Dictionary<string, string>(values)
         {
             ["year_days"] = Number(clock.DaysPerYear),
         });
+        _day.TooltipText = _date.TooltipText;
         _time.Text = clock.Time;
         RefreshCorners(rows, clock);
 

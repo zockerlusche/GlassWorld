@@ -80,7 +80,7 @@ public partial class GameScreen
     /// </summary>
     private void MoveClockParts(bool corners)
     {
-        if (_topBar is null || _date is null || _time is null || _favor is null)
+        if (_topBar is null || _date is null || _day is null || _time is null || _favor is null)
         {
             return;
         }
@@ -90,8 +90,9 @@ public partial class GameScreen
         {
             Move(_seasonIcon, _cornerDate, 0);
             Move(_date, _cornerDate, 1);
-            Move(_time, _cornerDate, 2);
-            Move(_weatherIcon, _cornerDate, 3);
+            Move(_day, _cornerDate, 2);
+            Move(_time, _cornerDate, 3);
+            Move(_weatherIcon, _cornerDate, 4);
             for (var i = 0; i < _timeButtons.Count; i++)
             {
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
@@ -102,15 +103,16 @@ public partial class GameScreen
             return;
         }
 
-        // The old order: date, time, speeds, favour, menu (the corner's symbols wait outside the tree).
+        // The old order: date, day, time, speeds, favour, menu (the corner's symbols wait outside the tree).
         Move(_date, _topRow, 0);
-        Move(_time, _topRow, 1);
+        Move(_day, _topRow, 1);
+        Move(_time, _topRow, 2);
         for (var i = 0; i < _timeButtons.Count; i++)
         {
-            Move(_timeButtons[i].Button, _topRow, 2 + i);
+            Move(_timeButtons[i].Button, _topRow, 3 + i);
         }
 
-        Move(_favor, _topRow, 2 + _timeButtons.Count);
+        Move(_favor, _topRow, 3 + _timeButtons.Count);
         Move(_seasonIcon, _cornerDate, 0);
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
@@ -415,7 +417,7 @@ public partial class GameScreen
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(choices);
         var px = style.Tokens.Zones.RoundButtonPx;
-        var (bar, _, _) = CreateTopBar(style, choices, _ => { });
+        var (bar, _, _, _) = CreateTopBar(style, choices, _ => { });
         var block = new PanelContainer { Name = "CornerSample", ThemeTypeVariation = UiTheme.WorldPanel };
         var column = new VBoxContainer();
         var speeds = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };

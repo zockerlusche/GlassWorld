@@ -197,7 +197,7 @@ public static class UiLayoutCheck
     {
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
-        var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" });
+        var date = DateSample(host);
         var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
         var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
         var portraits = new GwPortraitList();
@@ -320,11 +320,20 @@ public static class UiLayoutCheck
         }
     }
 
+    /// <summary>A long date (B2759): late in a season, many game days, a high year.</summary>
+    private static Dictionary<string, string> DateValues(Node host) =>
+        new() { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" };
+
+    /// <summary>Season and game day as the time block shows them side by side.</summary>
+    private static string DateSample(Node host) =>
+        TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host)) + "  " + TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
+
     /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
     private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
     {
-        var (bar, date, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" });
+        var (bar, date, day, time) = GameScreen.CreateTopBar(style, choices, _ => { });
+        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host));
+        day.Text = TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
         time.Text = "23:59";
         var side = new GwSideBar();
         side.Add("inhabitants", "ui.inhabitants.title");
