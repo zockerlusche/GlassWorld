@@ -13,6 +13,11 @@
     { "kind": "unknown_inhabitant", "enabled": true },
     { "kind": "leisure", "enabled": true }
   ],
-  "leisure": { "needs_at_least": 0.3, "every_hours": 6 },
+  "leisure": {
+    "needs_at_least": 0.3,
+    "every_hours": 6,
+    "every_hours_by_trait": { "trait": "drive", "curve": [[0.2, 0.75], [0.55, 1.0], [0.9, 1.5]] },
+    "needs_at_least_by_trait": { "trait": "drive", "curve": [[0.2, 1.15], [0.55, 1.0], [0.9, 0.85]] }
+  },
   "fallback_environment": { "temperature_c": 18.0, "weather": ["clear"] }
 }

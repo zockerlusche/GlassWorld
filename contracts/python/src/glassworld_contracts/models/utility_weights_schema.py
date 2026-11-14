@@ -10,10 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
-type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
+type CurveItem1Item = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
-type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
+type CurveItem = Annotated[list[CurveItem1Item], Field(..., max_length=2, min_length=2)]
 
 
 class RuntimeNeedConsideration(BaseModel):
@@ -100,11 +100,11 @@ type NoveltyCurve = Annotated[
 ]
 
 
-type CurveItem1Item = Annotated[float, Field(..., ge=0.0, le=1.0)]
+type CurveItem2Item = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
-type CurveItem1 = Annotated[
-    list[CurveItem1Item], Field(..., max_length=2, min_length=2)
+type CurveItem2 = Annotated[
+    list[CurveItem2Item], Field(..., max_length=2, min_length=2)
 ]
 
 
@@ -152,7 +152,7 @@ class Consideration(BaseModel):
         None,
         description="Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",
     )
-    curve: list[CurveItem1] = Field(
+    curve: list[CurveItem2] = Field(
         ...,
         description='Points [x, y] with ascending x in 0..1.',
         max_length=16,

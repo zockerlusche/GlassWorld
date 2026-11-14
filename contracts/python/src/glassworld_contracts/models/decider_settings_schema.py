@@ -39,6 +39,14 @@ class LeisureSettings(BaseModel):
         gt=0.0,
         le=240.0,
     )
+    every_hours_by_trait: common_schema.TraitCurve | None = Field(
+        None,
+        description='D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.',
+    )
+    needs_at_least_by_trait: common_schema.TraitCurve | None = Field(
+        None,
+        description='D1086: needs_at_least is multiplied by this trait factor (a lower factor = a free moment already with less strength). Omitted = the same for all.',
+    )
 
 
 class Kind(StrEnum):
