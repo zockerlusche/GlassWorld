@@ -245,6 +245,23 @@ public static class UiTheme
             theme.SetColor(name, "Button", text);
         }
 
+        // A scroll bar on the world: no track, a thin grip in the outline colour (S1b tour: a dark bar stood beside the log).
+        var thin = Math.Max(2, style.Tokens.Window.WorldOutlinePx / 2);
+        StyleBoxFlat Grip(float alpha)
+        {
+            var grip = new StyleBoxFlat { BgColor = outline with { A = outline.A * alpha } };
+            grip.SetCornerRadiusAll(thin);
+            grip.ContentMarginLeft = grip.ContentMarginRight = thin;
+            return grip;
+        }
+
+        var track = new StyleBoxEmpty();
+        track.ContentMarginLeft = track.ContentMarginRight = thin;
+        theme.SetStylebox("scroll", "VScrollBar", track);
+        theme.SetStylebox("scroll_focus", "VScrollBar", track);
+        theme.SetStylebox("grabber", "VScrollBar", Grip(0.5f));
+        theme.SetStylebox("grabber_highlight", "VScrollBar", Grip(0.8f));
+        theme.SetStylebox("grabber_pressed", "VScrollBar", Grip(1f));
         return theme;
     }
 
