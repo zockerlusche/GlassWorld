@@ -100,7 +100,9 @@ class JudgeContext:
             if not physics:
                 raise GuardError("the prompt reads physics from the data, but rules.json has none")
             self.guard = validate_guard(
-                {k: v for k, v in physics.items() if k != "examples"}, vocab
+                # max_candidates (D1025) is the core's cut of the candidates, no guard rule.
+                {k: v for k, v in physics.items() if k not in ("examples", "max_candidates")},
+                vocab,
             )
         self.heat_levels = [str(h) for h in rules["heat_levels"]]  # lowest first (order matters)
         self.tech_levels = tech_levels(content_dir)

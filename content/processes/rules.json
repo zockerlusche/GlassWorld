@@ -141,6 +141,7 @@
       ],
       "grind": []
     },
+    "max_candidates": 16,
     "examples": {
       "works": [
         "Leaving wet laundry in the wind makes it dry.",
