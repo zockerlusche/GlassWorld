@@ -131,6 +131,10 @@
       "schema": "durability-settings"
     },
     {
+      "pattern": "body/*.json",
+      "schema": "body-settings"
+    },
+    {
       "pattern": "fire/*.json",
       "schema": "fire-settings"
     },
