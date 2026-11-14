@@ -81,6 +81,12 @@ public sealed class WorldObjects : IWorldSystem
     /// </summary>
     public IReadOnlyList<ObjectsOfType> ByType => _byType;
 
+    /// <summary>Told when a new object comes into the world (not when a save game restores one).</summary>
+    public event Action<WorldObject>? Spawned;
+
+    /// <summary>Told when an object leaves the world (used up, eaten, spoiled).</summary>
+    public event Action<WorldObject>? Removed;
+
     /// <summary>Creates an object of a known type.</summary>
     public WorldObject Spawn(string typeId, Position position)
     {
@@ -93,6 +99,7 @@ public sealed class WorldObjects : IWorldSystem
         NextNumber++;
         _objects.Add(obj.Id, obj);
         Index(obj);
+        Spawned?.Invoke(obj);
         return obj;
     }
 
@@ -106,6 +113,8 @@ public sealed class WorldObjects : IWorldSystem
         {
             return false;
         }
+
+        Removed?.Invoke(obj);
 
         _objects.Remove(id);
 

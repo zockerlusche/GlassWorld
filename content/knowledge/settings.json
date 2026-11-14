@@ -51,7 +51,8 @@
       "sharp",
       "fibrous",
       "transparent",
-      "container"
+      "container",
+      "crafted"
     ],
     "inspect_confidence": 0.8,
     "guessed_confidence": 0.4,
@@ -127,13 +128,14 @@
     ]
   },
   "night_questions": {
+    "ask_without_notice": true,
     "job_priority": 40,
     "questions": [
       { "trigger": "unknown_object", "question": "what_is" }
     ]
   },
   "review": {
-    "enabled": false,
+    "enabled": true,
     "job_priority": 10,
     "knowledge_max": 40,
     "max_new_ideas": 1,

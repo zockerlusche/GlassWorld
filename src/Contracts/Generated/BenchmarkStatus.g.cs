@@ -560,6 +560,10 @@ namespace GlassWorld.Contracts
         Review = 10,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("milestone")]
+        Milestone = 11,
+
+
     }
 
     /// <summary>

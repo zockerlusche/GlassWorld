@@ -91,12 +91,16 @@ namespace GlassWorld.Contracts
         Reeds = 17,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("flame")]
+        Flame = 18,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("marker")]
-        Marker = 18,
+        Marker = 19,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
-        None = 19,
+        None = 20,
 
 
     }
@@ -192,6 +196,14 @@ namespace GlassWorld.Contracts
         public double? FootprintWidthM { get; set; } = default!;
 
         /// <summary>
+        /// A1632 (D958 D1): where a hand meets this thing when someone acts on it - low (on the ground: crouch), mid (hip to chest: bushes, trunks, reeds), high (above the head). The animation mappings choose by it; absent = the action's general clip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reach")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ObjectVisualReach>))]
+        public ObjectVisualReach? Reach { get; set; } = default!;
+
+        /// <summary>
         /// How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -201,6 +213,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("niche")]
         public ObjectNiche? Niche { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("glow")]
+        public ObjectGlow? Glow { get; set; } = default!;
 
     }
 
@@ -432,6 +448,51 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A look that gives light (M2 find, TL #23595: fire, spark): its body is drawn self-lit, so it shows at night too, and each such object carries a warm point light that flickers. Presentation only; absent = an ordinary lit look.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectGlow
+    {
+
+        /// <summary>
+        /// Palette colour id of the light.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_color")]
+        public string LightColor { get; set; } = default!;
+
+        /// <summary>
+        /// Strength of the light (0 = no light, the body still glows).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_energy")]
+        public double LightEnergy { get; set; } = default!;
+
+        /// <summary>
+        /// How far the light reaches, in metres at size factor 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_range_m")]
+        public double LightRangeM { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the light above the object's foot, in metres at size factor 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_height_m")]
+        public double LightHeightM { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the strength that wavers (0 = steady; at most half, a calm waver, never a blink).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flicker")]
+        public double Flicker { get; set; } = default!;
+
+        /// <summary>
+        /// How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flicker_hz")]
+        public double FlickerHz { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/objects.json: how the core's objects (trees, bushes, berries, water sources, stones ...) are drawn on the island in the main game. Each object type maps to one simple shape of the look prototype (D569) in palette colours; size and turn vary per object, derived from its id (same picture at every start). A type without an entry gets the calm neutral fallback marker and is logged once. Presentation only, not part of the hash.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -493,6 +554,31 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("stream_sources")]
         public ObjectStreamSources? StreamSources { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many glowing objects carry a light at once (the first in the drawing order); the others still glow. Keeps a row of fires cheap.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_lights")]
+        public int? MaxLights { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ObjectVisualReach
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("low")]
+        Low = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("mid")]
+        Mid = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("high")]
+        High = 2,
+
 
     }
 }

@@ -186,6 +186,7 @@ class JobKind(StrEnum):
     sound = 'sound'
     model3d = 'model3d'
     review = 'review'
+    milestone = 'milestone'
 
 
 class JobState(StrEnum):

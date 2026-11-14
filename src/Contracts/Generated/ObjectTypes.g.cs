@@ -80,6 +80,13 @@ namespace GlassWorld.Contracts
         public int? BurnMinutes { get; set; } = default!;
 
         /// <summary>
+        /// The heat level a burning thing of this type gives for processing (B2700, a heat level of content/processes/rules.json, e.g. open_fire): put together with it or near it, rules with heat_min up to this level apply. Only with burn_minutes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_level")]
+        public string? HeatLevel { get; set; } = default!;
+
+        /// <summary>
         /// A burning thing of this type can be fed (A1379): fuel put into it makes it burn longer. Only with burn_minutes. Omitted = false (a spark).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

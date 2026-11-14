@@ -188,9 +188,32 @@ public sealed class UtilityBrain
     }
 
     /// <summary>Whether the inhabitant believes the target is made, where the consideration asks for it (true otherwise).</summary>
+    /// <summary>
+    /// Whether the inhabitant believes a thing of <paramref name="typeId"/> is made wherever an action's considerations
+    /// ask for it (GW2 D971, #358): true for actions that ask for no made-property. Used where an action is offered
+    /// without the needs' say (an intention in a free moment, B2687), so 'use' is still not offered on clay.
+    /// </summary>
+    public bool BelievesMadeFor(Inhabitant inhabitant, string action, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal))
+            .All(c => MadeAsBelieved(inhabitant, c.Data, typeId));
+    }
+
     private bool MadeAsBelieved(Inhabitant inhabitant, Consideration c, string typeId) =>
         new[] { c.TargetProperty, c.RequiresAlso }.All(p => p is null || !MadeProperties.Contains(p)
             || (inhabitant.Beliefs.TryGet(typeId, p, out var belief) && belief.Value));
+
+    /// <summary>
+    /// Whether an action is about made things (D999): it has considerations and every one asks for a made property
+    /// (target_property or requires_also among <see cref="MadeProperties"/>) - 'use' in the shipped data.
+    /// </summary>
+    public bool IsAboutMadeThings(string action)
+    {
+        var of = _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal)).ToList();
+        return MadeProperties.Count > 0 && of.Count > 0
+            && of.All(c => (c.Data.TargetProperty is { } p && MadeProperties.Contains(p)) || (c.Data.RequiresAlso is { } q && MadeProperties.Contains(q)));
+    }
 
     /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
     public bool Serves(string action, string need) =>

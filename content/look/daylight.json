@@ -1,6 +1,6 @@
 {
   "contract_version": "0.2",
-  "night_min_brightness": 0.3,
+  "night_min_brightness": 0.18,
   "sun_azimuth_deg": 35,
   "blend_minutes": 40,
   "shadow_blur": 2.0,
@@ -19,7 +19,7 @@
     "disc_size_deg": 1.6,
     "glow": 0.35,
     "light_color": "#9fb3e6",
-    "light_energy": 0.6,
+    "light_energy": 0.2,
     "shadows": false
   },
   "phases": [
@@ -70,7 +70,7 @@
       "sky_top": "#18203f",
       "sky_horizon": "#3e4a78",
       "ambient_color": "#6573a0",
-      "ambient_energy": 0.4,
+      "ambient_energy": 0.18,
       "stars": 1.0,
       "moon": 1.0,
       "water_light": "#3d4a78"

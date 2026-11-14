@@ -23,6 +23,12 @@ class Kind(StrEnum):
     special = 'special'
 
 
+class Reach(StrEnum):
+    low = 'low'
+    mid = 'mid'
+    high = 'high'
+
+
 class Target(StrEnum):
     inhabitant = 'inhabitant'
     object = 'object'
@@ -74,6 +80,10 @@ class AnimationMapping(BaseModel):
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    reach: Reach | None = Field(
+        None,
+        description="A1632 (D958 D1): only with target object - this mapping applies when the thing's reach (look/objects visuals) is this; it wins over the mapping for the target kind alone. Lets an action on a thing on the ground crouch, on a bush reach forward.",
     )
     target: Target | None = Field(
         None,

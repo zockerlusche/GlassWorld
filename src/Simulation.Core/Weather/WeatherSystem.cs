@@ -49,6 +49,18 @@ public sealed record WeatherState(string Weather, long SinceTick, long DryTicks,
     /// on and in save games from before the signals (B2-5), which get them from the saved weather on load.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, long>>? Signals { get; init; }
+
+    /// <summary>Tick a running extreme weather ends (A1382), or null when none runs.</summary>
+    public long? ExtremeUntil { get; init; }
+
+    /// <summary>Tick a running heat wave ends, or null.</summary>
+    public long? HeatUntil { get; init; }
+
+    /// <summary>The running heat wave's lift of the air, tenths of a degree.</summary>
+    public int HeatOffsetTenthC { get; init; }
+
+    /// <summary>Tick before which no new extreme begins (calm world), or null.</summary>
+    public long? CalmUntil { get; init; }
 }
 
 /// <summary>
@@ -72,6 +84,12 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     private readonly ClimateWeather _data;
     private readonly Dictionary<string, ClimateWeatherState> _states;
     private readonly int _heightOffsetTenthC;
+    private readonly int _ticksPerHour;
+    private readonly long _ticksPerDay;
+    private long? _extremeUntil;
+    private long? _heatUntil;
+    private int _heatOffset;
+    private long? _calmUntil;
     private readonly AirTemperature _air;
     private readonly long _changeTicks;
     private readonly long _droughtTicks;
@@ -104,6 +122,15 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _droughtTicks = (long)_data.DroughtAfterDryDays * hoursPerDay * ticksPerHour;
         _gustTicks = Math.Max(1L, (long)_data.GustPeriodMinutes * ticksPerHour / 60);
         _transitionTicks = (long)_data.TransitionMinutes * ticksPerHour / 60;
+        _ticksPerHour = ticksPerHour;
+        _ticksPerDay = (long)hoursPerDay * ticksPerHour;
+        foreach (var extreme in _data.Extremes?.Weather ?? [])
+        {
+            if (!_states.ContainsKey(extreme.Weather) || extreme.HoursMax < extreme.HoursMin)
+            {
+                throw new InvalidDataException($"Climate '{climate.Id}': extreme weather '{extreme.Weather}' is unknown or its hours are reversed.");
+            }
+        }
         _windSeed = seed ^ RandomStreams.Fnv1a64("weather/wind");
         _signalRules = [.. (_data.Signals ?? []).OrderBy(s => s.Condition, StringComparer.Ordinal)];
         Current = _data.States.First().Weather;
@@ -170,6 +197,9 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// </summary>
     public int PrecipitationPermille => _states[Current].PrecipitationPermille;
 
+    /// <summary>Whether it is a drought now: the drought weather itself or joined after the dry days (A1380: growth slows).</summary>
+    public bool InDrought => DroughtJoins || string.Equals(Current, _data.DroughtWeather, StringComparison.Ordinal);
+
     /// <summary>Whether the drought weather has joined another main weather after the dry days of the data.</summary>
     private bool DroughtJoins => _droughtTicks > 0 && _dryTicks >= _droughtTicks && Current != _data.DroughtWeather;
 
@@ -215,7 +245,68 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// the height drop of the start cells. Integers only.
     /// </summary>
     public int TemperatureAt(Time.WorldTime time, string? weather, string? biome = null) =>
-        _air.At(time, weather, biome) + _heightOffsetTenthC;
+        _air.At(time, weather, biome) + _heightOffsetTenthC + (_heatUntil is { } until && time.Tick < until ? _heatOffset : 0);
+
+    /// <summary>Whether an extreme weather runs now (A1382): the usual weather changes rest.</summary>
+    public bool InExtreme => _extremeUntil is not null;
+
+    /// <summary>Whether a heat wave runs now (A1382).</summary>
+    public bool InHeatWave => _heatUntil is not null;
+
+    /// <summary>
+    /// A1382: at the start of a day the climate's rough days may begin - one roll per entry of the season in
+    /// data order (stream weather/extreme), the first that hits begins; none while one runs or the calm after
+    /// one lasts. Ends are checked every tick.
+    /// </summary>
+    private void Extremes(World world, long tick)
+    {
+        if (_extremeUntil is { } weatherEnd && tick >= weatherEnd)
+        {
+            _extremeUntil = null;
+            _calmUntil = tick + ((_data.Extremes?.CooldownDays ?? 0) * _ticksPerDay);
+        }
+
+        if (_heatUntil is { } heatEnd && tick >= heatEnd)
+        {
+            _heatUntil = null;
+            _heatOffset = 0;
+            _calmUntil = tick + ((_data.Extremes?.CooldownDays ?? 0) * _ticksPerDay);
+        }
+
+        if (_data.Extremes is not { } extremes || tick == 0 || tick % _ticksPerDay != 0
+            || _extremeUntil is not null || _heatUntil is not null || (_calmUntil is { } calm && tick < calm))
+        {
+            return;
+        }
+
+        var season = world.Now.SeasonId;
+        var rng = world.Random.Get("weather/extreme");
+        foreach (var extreme in extremes.Weather.Where(e => e.Season == season))
+        {
+            if (rng.NextInt(0, 1000) < extreme.ChancePermille)
+            {
+                var hours = rng.NextInt(extreme.HoursMin, extreme.HoursMax + 1);
+                _extremeUntil = tick + (hours * _ticksPerHour);
+                if (extreme.Weather != Current)
+                {
+                    Change(extreme.Weather, tick);
+                }
+
+                return;
+            }
+        }
+
+        foreach (var wave in extremes.HeatWaves.Where(h => h.Season == season))
+        {
+            if (rng.NextInt(0, 1000) < wave.ChancePermille)
+            {
+                var days = rng.NextInt(wave.DaysMin, Math.Max(wave.DaysMin, wave.DaysMax) + 1);
+                _heatUntil = tick + (days * _ticksPerDay);
+                _heatOffset = wave.OffsetTenthC;
+                return;
+            }
+        }
+    }
 
     /// <summary>True if the climate has biome offsets (the per-cell temperature then depends on the biome).</summary>
     public bool HasBiomeTemperatures => _air.HasBiomeOffsets;
@@ -233,6 +324,13 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
             throw new ArgumentException($"Unknown weather '{weather}'.", nameof(weather));
         }
 
+        // A wish of the player ends a running extreme weather (review GW1 #23950); the calm after it follows.
+        if (_extremeUntil is not null)
+        {
+            _extremeUntil = null;
+            _calmUntil = tick + ((_data.Extremes?.CooldownDays ?? 0) * _ticksPerDay);
+        }
+
         Change(weather, tick);
         SyncSignals(tick, announce: true);
     }
@@ -243,7 +341,8 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         ArgumentNullException.ThrowIfNull(world);
         var tick = world.Tick;
         _knownUntil = tick + 1;
-        if (tick > 0 && tick % _changeTicks == 0)
+        Extremes(world, tick);
+        if (tick > 0 && tick % _changeTicks == 0 && _extremeUntil is null)
         {
             var next = Draw(world.Now.SeasonId, world.Random.Get("weather/change"));
             // Snow or rain is decided by the temperature without the new weather's own offset.
@@ -283,6 +382,12 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
             hasher.Write(start).Write(weather);
         }
 
+        // Extremes only while one runs or its calm lasts, so climates without them keep their hashes (A1382).
+        if (_extremeUntil is not null || _heatUntil is not null || _calmUntil is not null)
+        {
+            hasher.Write("extremes").Write(_extremeUntil ?? -1).Write(_heatUntil ?? -1).Write(_heatOffset).Write(_calmUntil ?? -1);
+        }
+
         // Only while a signalled condition is on, so worlds in plain weather keep their hashes (B2-5).
         if (_signals.Count > 0)
         {
@@ -298,6 +403,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     public WeatherState Capture() => new(Current, SinceTick, _dryTicks, [.. _history])
     {
         Signals = _signals.Count > 0 ? [.. _signals] : null,
+        ExtremeUntil = _extremeUntil,
+        HeatUntil = _heatUntil,
+        HeatOffsetTenthC = _heatOffset,
+        CalmUntil = _calmUntil,
     };
 
     /// <summary>Restores a saved state (unknown ids are refused).</summary>
@@ -314,6 +423,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _history.Clear();
         _history.AddRange(state.History);
         _knownUntil = tick;
+        _extremeUntil = state.ExtremeUntil;
+        _heatUntil = state.HeatUntil;
+        _heatOffset = state.HeatOffsetTenthC;
+        _calmUntil = state.CalmUntil;
         _signals.Clear();
         foreach (var (condition, since) in state.Signals ?? [])
         {

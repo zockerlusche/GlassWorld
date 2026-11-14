@@ -219,6 +219,9 @@ public partial class GameScreen : CanvasLayer
         // size, when the area was empty, so every later hint hung below the screen edge with only its top
         // border to see.
         _toasts.MinimumSizeChanged += PlaceToasts;
+        // Wrapped hint texts grow the box after it was placed without changing its minimum size: it then
+        // stands on the bottom margin again (position only, so this does not resize and call itself).
+        _toasts.Resized += KeepToastsOnTheMargin;
 
         // Events never move the camera by themselves (TL #19976): a new thought is a hint, and only its
         // "look" button makes the camera follow that inhabitant (until the player moves it or presses Esc).
@@ -720,6 +723,9 @@ public partial class GameScreen : CanvasLayer
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
         SetZones(settings.ZonesPreview);
+
+        // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
+        _logShown = -1;
         Layout();
     }
 
@@ -2485,9 +2491,23 @@ public partial class GameScreen : CanvasLayer
         _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "check-2"), fastForward: false);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        // Measured once the hint area holds still (layout passes are deferred; at most ten frames).
+        var rect = _toasts.GetRect();
+        for (var i = 0; i < 10; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            var now = _toasts.GetRect();
+            if (now == rect)
+            {
+                break;
+            }
+
+            rect = now;
+        }
+
         var view = GetViewport().GetVisibleRect().Size;
         var margin = _style.Tokens.Window.SafeMargin;
-        var rect = _toasts.GetRect();
         var shown = _toasts.GetChildCount();
         foreach (var toast in _board.Visible.Where(t => !before.Contains(t.Id)))
         {
@@ -2714,7 +2734,11 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        _sideBar.Position = new Vector2(area.X - margin - _sideBar.GetCombinedMinimumSize().X, margin);
+        // A container never shrinks by itself: after a smaller UI or text size, or shorter labels in another language,
+        // the column kept its old width while it was placed by its new minimum and reached past the right edge
+        // (D1060 finds 1 and 3, measured: size 274 px, minimum 146/196 px). It takes its minimum size again first.
+        _sideBar.Size = _sideBar.GetCombinedMinimumSize();
+        _sideBar.Position = new Vector2(area.X - margin - _sideBar.Size.X, margin);
         _topBar.Position = new Vector2(margin, margin);
         _topBar.Size = new Vector2(area.X - (2 * margin) - _sideBar.GetCombinedMinimumSize().X - gap, 0);
         var list = _sideBar.PanelOf("inhabitants");
@@ -2775,6 +2799,18 @@ public partial class GameScreen : CanvasLayer
         _toasts.Size = new Vector2(width, 0);
         var x = _zones ? MathF.Floor((area.X - width) / 2) : area.X - margin - width;
         _toasts.Position = new Vector2(x, area.Y - margin - _toasts.Size.Y);
+    }
+
+    /// <summary>The hint box keeps its bottom on the safe margin when it grows or shrinks by itself.</summary>
+    private void KeepToastsOnTheMargin()
+    {
+        if (_style is null)
+        {
+            return;
+        }
+
+        var bottom = GetViewport().GetVisibleRect().Size.Y - _style.Tokens.Window.SafeMargin;
+        _toasts.Position = new Vector2(_toasts.Position.X, bottom - _toasts.Size.Y);
     }
 
     /// <summary>Screen part the card is centred in (left of the side bar and its open panel, see <see cref="ScreenModel.CardRoom"/>).</summary>

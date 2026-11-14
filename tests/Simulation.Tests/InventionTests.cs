@@ -53,6 +53,10 @@ public sealed class InventionTests : IDisposable
         Assert.Equal(NearbyTypes.Order(StringComparer.Ordinal), payload.Materials.Select(m => m.Type).Order(StringComparer.Ordinal));
         Assert.Equal(["burnable"], payload.Materials.Single(m => m.Type == "flint").Observed);
         Assert.Empty(payload.Materials.Single(m => m.Type == "pyrite").Observed);
+
+        // R8 (A1582): the inventor knows what it believes about what it sees - its own beliefs, never the truth.
+        Assert.Contains(payload.Inhabitant.Knowledge, k => k.Subject.Id == "flint" && k.Property == "burnable");
+        Assert.All(payload.Inhabitant.Knowledge, k => Assert.True(inhabitant.Beliefs.TryGet(k.Subject.Id, k.Property, out var b) && b.Value == k.Value));
         Assert.Contains(host.Inhabitants.EventsSince(0), e => e.Event.Kind == InventionSystem.Wanted && e.Event.Action == Need);
         Assert.Single(host.Inventions.Wants);
     }
@@ -466,7 +470,7 @@ public sealed class InventionTests : IDisposable
         public void Submit(string requestId, string jobJson)
         {
             var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
-            if (job.Kind is JobKind.Memory or JobKind.Dream)
+            if (job.Kind is JobKind.Memory or JobKind.Dream or JobKind.Review)
             {
                 // The night's memory and dream jobs of the thirsty test inhabitant are not what these tests are
                 // about (B2681: kept awake by thirst it sleeps later and remembers more, so they can come first).
