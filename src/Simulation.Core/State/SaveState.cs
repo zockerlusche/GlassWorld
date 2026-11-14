@@ -422,7 +422,7 @@ public static class StateCodec
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
         host.Processes?.Restore(state.Processes);
-        host.Fire.Restore(state.Burning);
+        host.Fire.Restore(state.Burning, state.Tick);
         host.Forgetting.Restore(state.Forgetting);
         host.Nature?.Restore(state.Nature);
         host.Animals?.Restore(state.Animals);
