@@ -59,6 +59,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> MayRemove { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
 
         /// <summary>
+        /// D1025 (GW2 #25006): at most this many processes go to the judge of a combine trial (contract: 1..16). Large enough for every process physics allows, so the ranking by our data rules only orders them and never decides which ones the judge sees. Absent = 8 (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_candidates")]
+        public int? MaxCandidates { get; set; } = default!;
+
+        /// <summary>
         /// Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers. They do name things of the world (water, wood, stone...): physics as data is Marcel's choice (F5297 = A), so the judge prompt itself names none, the rendered prompt does (review GW3 #337).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("examples")]
