@@ -541,6 +541,7 @@ def test_v14_names_trying_as_possible_without_a_value() -> None:
     v14 = _render(_leisure(), version=14)
     assert "often worth more" in v13 and "often worth more" not in v14
     assert "You can learn by trying." in v14 and "Nobody tells\n  you what works." in v14
+    assert "look around, inspect, try things" in v13 and "look around, inspect" not in v14
     block = v14.split("## Right now")[1].split("## Options")[0]
     assert "Any of the options is fine, and so is resting" in block
     assert "try something" not in block and "look closer" not in block
