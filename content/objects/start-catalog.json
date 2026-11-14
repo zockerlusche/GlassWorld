@@ -37,6 +37,10 @@
     { "id": "peat", "description": "Dark, soft earth from the swamp.", "properties": ["burnable", "portable"], "params": { "fuel_minutes": 90 } },
     { "id": "driftwood", "description": "Smooth wood washed up by the sea.", "properties": ["burnable", "building_material", "portable"], "params": { "fuel_minutes": 45 } },
     { "id": "shell", "description": "A hard shell from the beach.", "properties": ["sharp", "container", "portable"] },
-    { "id": "wild_grain", "description": "Grass with heavy ears full of grains.", "properties": ["edible", "long_lasting", "portable"] }
+    { "id": "wild_grain", "description": "Grass with heavy ears full of grains.", "properties": ["edible", "long_lasting", "portable"] },
+    { "id": "egg", "description": "A small egg left in a nest in the reeds.", "properties": ["edible", "portable"] },
+    { "id": "wool", "description": "A tuft of soft wool caught on a thorny bush.", "properties": ["fibrous", "braidable", "insulating", "portable"] },
+    { "id": "feather", "description": "A light feather lying on the ground.", "properties": ["insulating", "portable"] },
+    { "id": "dung", "description": "Dry dung of grazing animals.", "properties": ["burnable", "portable"], "params": { "fuel_minutes": 30 } }
   ]
 }
