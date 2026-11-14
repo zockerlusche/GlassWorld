@@ -376,6 +376,32 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void AStepChangesItsTargetAndWhatItUsesUpTheToolStaysAsItIs()
+    {
+        // Review GW2 #424: a tool a step works with is not worked on - its properties count as they are.
+        var objects = Content.Value.Objects;
+        var steps = Content.Value.Processes!;
+        var types = objects.TypeIds.Select(t => (Id: t, Properties: objects.TrueProperties(t))).ToList();
+        foreach (var process in Content.Value.Vocabularies[VocabularyKind.Process].Entries.Select(e => e.Id))
+        {
+            foreach (var a in types)
+            {
+                foreach (var b in types.Where(b => b.Id != a.Id))
+                {
+                    if (steps.StepResult(process, [a.Properties, b.Properties], null) is { } result && result.Worked.Count == 1)
+                    {
+                        // The other material is not worked on: its properties are not replaced by the step's result.
+                        Assert.DoesNotContain(1 - result.Worked[0], result.Worked);
+                        return;
+                    }
+                }
+            }
+        }
+
+        Assert.Fail("the data have no step with a material that is not worked on (a tool)");
+    }
+
+    [Fact]
     public void AnInventionMappedToAShelterShelters()
     {
         var port = new ScriptedJobPort();

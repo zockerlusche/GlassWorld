@@ -79,10 +79,12 @@ public sealed record InventionRules(
         var tech = TechLevels.ToList().IndexOf(invention.TechLevel);
         foreach (var step in invention.Steps)
         {
-            if (StepRules?.StepResult(step.Process, [.. step.Materials.Select(Of)], tech < 0 ? null : tech) is { } made)
+            var materials = step.Materials.ToList();
+            if (StepRules?.StepResult(step.Process, [.. materials.Select(Of)], tech < 0 ? null : tech) is { } result)
             {
-                properties.UnionWith(made);
-                worked.UnionWith(step.Materials);
+                // Only the step's target and what it uses up are changed; its other materials count as they are (review GW2 #424).
+                properties.UnionWith(result.Made);
+                worked.UnionWith(result.Worked.Select(i => materials[i]));
             }
         }
 

@@ -53,9 +53,10 @@ public sealed class ProcessRuleSet
     /// What a step of a plan makes of its materials by the data's rules (D1097): the most specific rule of the step's process
     /// that fits them - two materials as a pair, or one alone - at the given tech level and any heat (a plan does not say how
     /// hot; the tech level bounds what it can reach). The result is the target's properties with the rule's additions and
-    /// removals, or null when no rule fits.
+    /// removals, and which materials the step worked on - its target and what it uses up (review GW2 #424: the others stay
+    /// as they are); null when no rule fits.
     /// </summary>
-    public FrozenSet<string>? StepResult(string process, IReadOnlyList<FrozenSet<string>> materials, int? worldTech)
+    public (FrozenSet<string> Made, IReadOnlyList<int> Worked)? StepResult(string process, IReadOnlyList<FrozenSet<string>> materials, int? worldTech)
     {
         ArgumentNullException.ThrowIfNull(materials);
         var hottest = HeatLevels.Count - 1;
@@ -66,20 +67,22 @@ public sealed class ProcessRuleSet
                 continue;
             }
 
-            FrozenSet<string>? target = null;
+            IReadOnlyList<int>? inputs = null;
             if (materials.Count >= 2 && Fit(rule, [materials[0], materials[1]]) is { } pair)
             {
-                target = materials[pair.Inputs[0]];
+                inputs = pair.Inputs;
             }
             else if (materials.Count >= 1 && rule.Inputs.Count == 1 && rule.Tool is null && FitsOne(rule, materials[0]))
             {
-                target = materials[0];
+                inputs = [0];
             }
 
-            if (target is not null)
+            if (inputs is not null)
             {
-                return target.Union(rule.Result.AddProperties, StringComparer.Ordinal).Except(rule.Result.RemoveProperties, StringComparer.Ordinal)
+                var made = materials[inputs[0]].Union(rule.Result.AddProperties, StringComparer.Ordinal).Except(rule.Result.RemoveProperties, StringComparer.Ordinal)
                     .ToFrozenSet(StringComparer.Ordinal);
+                var worked = rule.Result.Consumes.Where(i => i < inputs.Count).Select(i => inputs[i]).Append(inputs[0]).Distinct().ToList();
+                return (made, worked);
             }
         }
 
