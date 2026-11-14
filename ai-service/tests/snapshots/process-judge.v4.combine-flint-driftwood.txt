@@ -13,11 +13,11 @@ Rules:
   the change is clear and common. When in doubt: false. Most odd tries do nothing.
   Tries that work:
   - Leaving wet laundry in the wind makes it dry.
-  - Beating egg white for a long time turns it into stiff foam.
+  - Rubbing cold hands together for a while makes them warm.
   - Rubbing a leather strap with fat makes it supple.
   Tries that do not:
   - Soaking a coin changes nothing.
-  - Heating a feather does not turn it into a tool.
+  - Heating a paper clip does not turn it into a tool.
   - Grinding a dry leaf does not make it food.
 - Only properties that really follow from the process. Never invent food or drink: drying,
   striking or heating does not make something edible or drinkable unless it already was.

@@ -13,10 +13,10 @@
     { "id": "spark", "description": "A short-lived glowing spark.", "properties": ["hot"], "params": { "burn_minutes": 20 } },
     { "id": "fire", "description": "A small fire with flames.", "properties": ["hot"], "params": { "burn_minutes": 90, "heat_level": "open_fire", "takes_fuel": true, "burn_max_minutes": 240, "heat_tenth_c": 80, "heat_radius_cm": 400 } },
     { "id": "rock_niche", "description": "A niche or cave mouth in the rock; no room inside (B2514 T3).", "properties": ["stone", "hard", "sheltering"] },
-    { "id": "deciduous_tree", "description": "A broad-leaved tree with a thick trunk.", "properties": ["burnable", "building_material", "splittable"] },
-    { "id": "conifer_tree", "description": "A tall tree with needles and cones.", "properties": ["burnable", "building_material", "splittable"] },
-    { "id": "fruit_tree", "description": "A small tree that bears fruit in summer.", "properties": ["burnable", "building_material"] },
-    { "id": "palm_tree", "description": "A slender tree with large leaves near the beach.", "properties": ["burnable", "building_material", "fibrous"] },
+    { "id": "deciduous_tree", "description": "A broad-leaved tree with a thick trunk.", "properties": ["burnable", "building_material", "splittable"], "params": { "shade_height_cm": 900, "crown_radius_cm": 450 } },
+    { "id": "conifer_tree", "description": "A tall tree with needles and cones.", "properties": ["burnable", "building_material", "splittable"], "params": { "shade_height_cm": 1400, "crown_radius_cm": 300 } },
+    { "id": "fruit_tree", "description": "A small tree that bears fruit in summer.", "properties": ["burnable", "building_material"], "params": { "shade_height_cm": 450, "crown_radius_cm": 250 } },
+    { "id": "palm_tree", "description": "A slender tree with large leaves near the beach.", "properties": ["burnable", "building_material", "fibrous"], "params": { "shade_height_cm": 900, "crown_radius_cm": 250 } },
     { "id": "resin", "description": "Sticky drops on a conifer trunk.", "properties": ["sticky", "burnable", "portable"], "params": { "fuel_minutes": 15 } },
     { "id": "bark", "description": "A strip of bark and bast from a tree.", "properties": ["fibrous", "braidable", "burnable", "portable"], "params": { "fuel_minutes": 20 } },
     { "id": "berry_bush", "description": "A bush with small berries.", "properties": ["burnable"] },
@@ -37,6 +37,10 @@
     { "id": "peat", "description": "Dark, soft earth from the swamp.", "properties": ["burnable", "portable"], "params": { "fuel_minutes": 90 } },
     { "id": "driftwood", "description": "Smooth wood washed up by the sea.", "properties": ["burnable", "building_material", "portable"], "params": { "fuel_minutes": 45 } },
     { "id": "shell", "description": "A hard shell from the beach.", "properties": ["sharp", "container", "portable"] },
-    { "id": "wild_grain", "description": "Grass with heavy ears full of grains.", "properties": ["edible", "long_lasting", "portable"] }
+    { "id": "wild_grain", "description": "Grass with heavy ears full of grains.", "properties": ["edible", "long_lasting", "portable"] },
+    { "id": "egg", "description": "A small egg left in a nest in the reeds.", "properties": ["edible", "portable"] },
+    { "id": "wool", "description": "A tuft of soft wool caught on a thorny bush.", "properties": ["fibrous", "braidable", "insulating", "portable"] },
+    { "id": "feather", "description": "A light feather lying on the ground.", "properties": ["insulating", "portable"] },
+    { "id": "dung", "description": "Dry dung of grazing animals.", "properties": ["burnable", "portable"], "params": { "fuel_minutes": 30 } }
   ]
 }

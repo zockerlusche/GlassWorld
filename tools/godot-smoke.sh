@@ -90,6 +90,10 @@ if ! grep -q '^SCREEN_OK$' "$LOG"; then
   echo "SMOKE_FAIL: game screen check failed (marker 'SCREEN_OK' missing)" >&2
   exit 1
 fi
+if ! grep -q '^CORNERS_OK$' "$LOG"; then
+  echo "SMOKE_FAIL: corner layout check failed (marker 'CORNERS_OK' missing, A1682)" >&2
+  exit 1
+fi
 if ! grep -q '^UI_OK$' "$LOG"; then
   echo "SMOKE_FAIL: UI standard check failed (marker 'UI_OK' missing)" >&2
   exit 1
@@ -120,7 +124,7 @@ fi
 if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$MAIN_ISLAND_LOG"; then
   island_fail "errors in Godot output"
 fi
-for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^ISLAND_COVER cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^ISLAND_QUALITY level=[a-z_]+ shadows=(off|low|high) outline=(off|inverted_hull)$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
+for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^ISLAND_COVER cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^CORNERS_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^ISLAND_QUALITY level=[a-z_]+ shadows=(off|low|high) outline=(off|inverted_hull)$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
   if ! grep -Eq "$marker" "$MAIN_ISLAND_LOG"; then
     island_fail "marker '$marker' missing"
   fi

@@ -35,7 +35,6 @@
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
     { "gap": "property:fatty", "reason": "No object type carries it and only churn_milk_to_butter makes it (D643)." },
     { "gap": "property:milky", "reason": "Only made by grind_nuts_with_water_to_milk (see there)." },
-    { "gap": "property:insulating", "reason": "No object type carries it and no rule makes it: no clothing rule, no wool (D643 question 1)." },
 
     { "gap": "tech:workshop", "reason": "Its only rule is melt_sand_with_ash (see there)." },
     { "gap": "tech:metal", "reason": "Follows workshop; its only rule is melt_with_furnace (see there)." }

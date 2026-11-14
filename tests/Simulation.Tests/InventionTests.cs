@@ -109,7 +109,8 @@ public sealed class InventionTests : IDisposable
         var host = World(port, 12);
         RunUntilJob(host, port);
         var job = port.Submitted.Single();
-        var introduces = new[] { "container", "drinkable" };
+        // Nothing only materials can bring (no_new: drinkable ...), D1096 #1 - that is refused unless a material has it.
+        var introduces = new[] { "container", "portable" };
         port.Answer(job, Approved(job, introduces));
         host.World.Step();
 
@@ -151,8 +152,9 @@ public sealed class InventionTests : IDisposable
         // The rules know the new type by its true properties only.
         var obj = host.Objects.Spawn(typeId, host.Inhabitants.All.Single().Position);
         Assert.Equal(typeId, obj.TypeId);
+        // Drinkable it is not (none of its materials is, D1096 #1): the drink rules for drinkable things do not apply to it.
         var drinkable = Content.Value.Actions.WithTruth(host.Types).Applying("drink", typeId);
-        Assert.Contains(drinkable, r => r.RequiresProperty == "drinkable");
+        Assert.DoesNotContain(drinkable, r => r.RequiresProperty == "drinkable");
         Assert.DoesNotContain(drinkable, r => r.RequiresProperty == "salty");
         Assert.Throws<KeyNotFoundException>(() => Content.Value.Actions.Applying("drink", typeId));
     }
@@ -271,6 +273,7 @@ public sealed class InventionTests : IDisposable
         SaveGameStore.Save(path, StateCodec.Capture(host));
 
         // Turn the file back into schema 1 (as written by the B1 build).
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
         {
             connection.Open();
@@ -322,6 +325,28 @@ public sealed class InventionTests : IDisposable
             var catalogue = File.ReadAllText(Path.Combine(TestData.Root, "content", "i18n", language + ".json"));
             Assert.All(rules.BaseFunctions.Keys, id => Assert.Contains($"\"vocab.base_function.{id}\"", catalogue, StringComparison.Ordinal));
         }
+    }
+
+    [Fact]
+    public void FoodComesOnlyFromMaterialsAndPoisonStaysPoison()
+    {
+        // D1096 #1: the process physics' no_new / never_remove hold for inventions too - the world knows the truth.
+        var rules = Content.Value.Inventions;
+        var objects = Content.Value.Objects;
+        IEnumerable<string> Truth(string type) => objects.Contains(type) ? objects.TrueProperties(type) : [];
+        var food = rules.NoNew.First();
+        var plain = NearbyTypes.Where(t => !objects.TrueProperties(t).Contains(food)).ToArray();
+        var withFood = objects.TypeIds.First(t => objects.TrueProperties(t).Contains(food));
+        Assert.Contains(InventionCheck.PropertyWithoutSource, InventionCheck.Check(Result([food], plain), plain.ToHashSet(StringComparer.Ordinal), rules, truth: Truth));
+        string[] fed = [withFood, plain[0]];
+        Assert.DoesNotContain(InventionCheck.PropertyWithoutSource, InventionCheck.Check(Result([food], fed), fed.ToHashSet(StringComparer.Ordinal), rules, truth: Truth));
+
+        // A thing made with a poisonous material is poisonous too, whatever the AI said.
+        var keep = rules.NeverRemove.First(p => !rules.NoNew.Contains(p) && objects.TypeIds.Any(t => objects.TrueProperties(t).Contains(p)));
+        var source = objects.TypeIds.First(t => objects.TrueProperties(t).Contains(keep));
+        var made = Result([], [source, plain[0]]).Invention!;
+        Assert.Contains(keep, rules.PropertiesOf(made, Truth));
+        Assert.DoesNotContain(keep, rules.PropertiesOf(made));
     }
 
     [Fact]

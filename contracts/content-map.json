@@ -123,12 +123,20 @@
       "schema": "climate-settings"
     },
     {
-      "pattern": "nature/*.json",
+      "pattern": "nature/settings.json",
       "schema": "nature-settings"
+    },
+    {
+      "pattern": "nature/animals.json",
+      "schema": "nature-animals"
     },
     {
       "pattern": "durability/*.json",
       "schema": "durability-settings"
+    },
+    {
+      "pattern": "body/*.json",
+      "schema": "body-settings"
     },
     {
       "pattern": "fire/*.json",

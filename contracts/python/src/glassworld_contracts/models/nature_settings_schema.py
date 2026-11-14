@@ -39,6 +39,27 @@ class NatureType(BaseModel):
     )
 
 
+class NatureSnowCover(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    per_takt_mm: int = Field(
+        ...,
+        description='Snow added by a takt with precipitation in frost, in millimetres.',
+        ge=0,
+        le=1000,
+    )
+    melt_per_degree_mm: int = Field(
+        ...,
+        description='Snow melted by a takt per whole degree above 0 °C, in millimetres.',
+        ge=0,
+        le=1000,
+    )
+    max_mm: int = Field(
+        ..., description='The deepest the cover gets (calm world).', ge=0, le=5000
+    )
+
+
 class NatureInfluences(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -103,4 +124,8 @@ class NatureSettings(BaseModel):
     influences: NatureInfluences | None = Field(
         None,
         description='The influence sums for durability (R51); omitted = none kept.',
+    )
+    snow: NatureSnowCover | None = Field(
+        None,
+        description="The island's snow cover (TL #25357): each takt that opens with precipitation below 0 °C adds to it, each takt above 0 °C melts it by the degree; omitted = no snow cover kept. Needs influences (the weather reading).",
     )

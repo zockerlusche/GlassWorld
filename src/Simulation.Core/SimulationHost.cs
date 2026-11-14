@@ -238,6 +238,15 @@ public sealed class SimulationHost
             world.Add(nature);
         }
 
+        // B4b K4: the animal stocks scale what the animals leave behind; after the takt, so it reads them at its start.
+        Nature.AnimalStockSystem? animals = null;
+        if (content.Animals is { } animalData && nature is not null && map is not null)
+        {
+            animals = new Nature.AnimalStockSystem(animalData, world.Calendar.TicksPerDay, BiomesOn(map.Map));
+            nature.FactorOf = animals.FactorOf;
+            world.Add(animals);
+        }
+
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
@@ -462,6 +471,15 @@ public sealed class SimulationHost
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
+        // The day's narrative in the computing night (B8 R10, A1355): names as the chronicle shows them.
+        var chronicleNight = new Night.ChronicleNightSystem(content.Chronicle, chronicle, inhabitants, nightJobs.NightBegins, content.Inventions.Guard, jobs, inventions.Log, displayLocale)
+        {
+            ValidateRequests = options.ValidateRequests,
+            TargetName = (id, locale) => (inventions.Invention(id) ?? (objects.TryGet(id, out var thing) ? inventions.Invention(thing.TypeId) : null)) is { } invention
+                ? (locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? invention.Name.En : invention.Name.De)
+                : null,
+        };
+
         // Each inhabitant's diary (TL #20472): presentation-only history, saved but not a world system (not hashed).
         var diary = new InhabitantDiary(content.InhabitantModel.Diary, inhabitants, objects);
         inhabitants.Reported += diary.Observe;
@@ -566,9 +584,25 @@ public sealed class SimulationHost
         // Out of the hash while nothing burns.
         world.Add(fire);
 
+        // B5-11 (R29/R30): rain wets, wet cools, the sun warms where no shade falls - islands only (weather and map).
+        BodySystem? body = null;
+        if (content.Body is { } bodyData && map is not null && weather is not null)
+        {
+            var bodyWeather = weather;
+            body = new BodySystem(bodyData, inhabitants, objects, content.Objects, world.Calendar.Settings.TicksPerHour)
+            {
+                AirAt = AirAt,
+                CloudPermille = w => bodyWeather.Read(w).CloudPermille,
+                WindAt = bodyWeather.WindAt,
+            };
+            inhabitants.BodyTenthC = body.FeltTenthC;
+            world.Add(body);
+        }
+
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
+        memory.Remembered = forgetting.Remembered;
         inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
         {
@@ -579,7 +613,8 @@ public sealed class SimulationHost
         // Out of the hash while no milestone is reached.
         world.Add(milestones);
 
-        world.Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
+        world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -593,8 +628,11 @@ public sealed class SimulationHost
             Fire = fire,
             Forgetting = forgetting,
             Durability = durability,
+            Body = body,
             Milestones = milestones,
             Nature = nature,
+            Animals = animals,
+            ChronicleNight = chronicleNight,
             Conversation = conversation,
             Diary = diary,
             LearningLog = learningLog,
@@ -682,6 +720,7 @@ public sealed class SimulationHost
         Decisions.DisplayLocale = locale;
         Inventions.DisplayLocale = locale;
         NightJobs.DisplayLocale = locale;
+        ChronicleNight.DisplayLocale = locale;
         Conversation.DisplayLocale = locale;
     }
 
@@ -892,17 +931,47 @@ public sealed class SimulationHost
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
 
+    /// <summary>
+    /// The snow on the ground at a place in millimetres (TL #25357, #25397): the island's cover of the nature
+    /// takt, none where a heat source warms the place (it melts there, B2700). 0 without a nature takt.
+    /// </summary>
+    public long SnowMmAt(Position at) => Nature is not { SnowMm: > 0 } nature || Fire.HeatAt(at) > 0 ? 0 : nature.SnowMm;
+
     /// <summary>Knowledge that fades when not used (D1017 G1).</summary>
     public ForgettingSystem Forgetting { get; private init; } = null!;
 
     /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
     public DurabilitySystem? Durability { get; private init; }
 
+    /// <summary>Rain, drying and sun on the inhabitants' bodies (B5-11); null without body data or off islands.</summary>
+    public BodySystem? Body { get; private init; }
+
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
 
     /// <summary>The nature takt (A1380); null on worlds without an island or nature data.</summary>
     public Nature.NatureSystem? Nature { get; private init; }
+
+    /// <summary>The animal stocks (B4b K4); null without animal data or nature takt.</summary>
+    public Nature.AnimalStockSystem? Animals { get; private init; }
+
+    /// <summary>The biomes the island really has (a stock of a species lives only there).</summary>
+    private static HashSet<string> BiomesOn(Map.WorldMap map)
+    {
+        var present = new HashSet<string>(StringComparer.Ordinal);
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                present.Add(map.BiomeAt(x, z));
+            }
+        }
+
+        return present;
+    }
+
+    /// <summary>The chronicle's day narratives (B8 R10, A1355).</summary>
+    public Night.ChronicleNightSystem ChronicleNight { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

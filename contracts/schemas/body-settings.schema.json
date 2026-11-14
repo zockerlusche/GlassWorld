@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/body-settings.schema.json",
+  "title": "BodySettings",
+  "description": "Data file content/body/settings.json (B5-11, spec Bogen 30 R29/R30, D1084): what the weather does to an inhabitant's body beyond the air - rain wets it unless it is under shelter, it dries by a table over the temperature (faster in wind), and being wet cools; the sun warms where nothing casts shade (trees by shade_height_cm and crown_radius_cm in the direction of the sun table, no angle functions). All numbers are data; no fear of water (R30), no behaviour - what an inhabitant does about it stays with the decider (B2584).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "wetness", "sun"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "wetness": { "$ref": "#/$defs/BodyWetness" },
+    "sun": { "$ref": "#/$defs/BodySun" },
+    "cover": {
+      "description": "How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).",
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/BodyCover" }
+    }
+  },
+  "$defs": {
+    "BodyWetness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rain_per_hour", "drying", "wind_drying_permille", "cool_tenth_c", "shelter_property", "shelter_radius_cm"],
+      "properties": {
+        "rain_per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "How fast rain wets an inhabitant out in the open, in permille of fully wet per game hour." },
+        "drying": {
+          "description": "How fast a wet inhabitant dries, by the air temperature: the first band whose below_tenth_c is above the temperature; the last (below_tenth_c null) takes the rest.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/BodyDryingBand" }
+        },
+        "wind_drying_permille": { "type": "integer", "minimum": 0, "maximum": 5000, "description": "Extra drying at full wind, in permille of the band's rate." },
+        "cool_tenth_c": { "type": "integer", "minimum": 0, "maximum": 300, "description": "How much colder it feels when fully wet, in tenths of a degree (linear with the wetness)." },
+        "shelter_property": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The TRUE property of things that keep the rain off whoever stands at them." },
+        "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." }
+      }
+    },
+    "BodyDryingBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["below_tenth_c", "per_hour"],
+      "properties": {
+        "below_tenth_c": { "type": ["integer", "null"], "minimum": -500, "maximum": 600 },
+        "per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "Permille of fully wet that dries per game hour." }
+      }
+    },
+    "BodyCover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seasons"],
+      "properties": {
+        "type": { "$ref": "common.schema.json#/$defs/VocabId", "description": "A shade-casting object type." },
+        "seasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["season", "permille"],
+            "properties": {
+              "season": { "$ref": "common.schema.json#/$defs/VocabId" },
+              "permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "0 = lets everything through, 1000 = full cover." }
+            }
+          }
+        }
+      }
+    },
+    "BodySun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warm_tenth_c", "positions"],
+      "properties": {
+        "warm_tenth_c": { "type": "integer", "minimum": 0, "maximum": 200, "description": "How much warmer it feels in the sun under a clear sky, in tenths of a degree (less with clouds, none in shade)." },
+        "positions": {
+          "description": "Where the sun stands, by season and hour: the latest entry of the season at or before the hour holds; before the first and from an entry without a direction on, the sun is down.",
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/SunPosition" }
+        }
+      }
+    },
+    "SunPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["season", "hour", "toward_x_permille", "toward_z_permille", "shadow_permille"],
+      "properties": {
+        "season": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "hour": { "type": "integer", "minimum": 0, "maximum": 23 },
+        "toward_x_permille": { "type": ["integer", "null"], "minimum": -1000, "maximum": 1000, "description": "Direction the shadows fall (x part); null with z null = the sun is down." },
+        "toward_z_permille": { "type": ["integer", "null"], "minimum": -1000, "maximum": 1000, "description": "Direction the shadows fall (z part)." },
+        "shadow_permille": { "type": "integer", "minimum": 0, "maximum": 20000, "description": "Length of a shadow per height (low sun: long shadows)." }
+      }
+    }
+  }
+}

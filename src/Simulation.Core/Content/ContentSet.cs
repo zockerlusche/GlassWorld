@@ -124,8 +124,14 @@ public sealed class ContentSet
     /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
     public NatureSettings? Nature { get; init; }
 
+    /// <summary>The animal stocks (content/nature/animals.json, B4b K4); null without the file.</summary>
+    public NatureAnimals? Animals { get; init; }
+
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
+
+    /// <summary>Rain, drying and sun on the body (B5-11, D1084); null = only the air is felt.</summary>
+    public BodySettings? Body { get; init; }
 
     /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
     public FireSettings? Fire { get; init; }
@@ -236,9 +242,22 @@ public sealed class ContentSet
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         var names = LoadNames(contentDirectory);
-        var processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+        var processData = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+            ? ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json")))
+            : null;
+        if (processData?.Physics is { } physics)
+        {
+            // D1096 #1: the process physics' no_new / never_remove hold for inventions too.
+            inventions = inventions with
+            {
+                NoNew = physics.NoNew.ToFrozenSet(StringComparer.Ordinal),
+                NeverRemove = physics.NeverRemove.ToFrozenSet(StringComparer.Ordinal),
+            };
+        }
+
+        var processes = processData is not null
             ? ProcessRuleSet.Create(
-                ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                processData,
                 objects,
                 inventions.Processes,
                 inventions.TechLevels,
@@ -270,12 +289,16 @@ public sealed class ContentSet
             Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
                 ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
                 : null,
+            Body = File.Exists(Path.Combine(contentDirectory, "body", "settings.json"))
+                ? ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(Path.Combine(contentDirectory, "body", "settings.json")))
+                : null,
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
             Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
                 ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
                 : null,
+            Animals = LoadAnimals(contentDirectory, Ids(vocabularies, VocabularyKind.Biome)),
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
@@ -618,6 +641,32 @@ public sealed class ContentSet
                 yield return "imprinting.full_at is below habit_from";
             }
         }
+    }
+
+    /// <summary>The animal stocks (B4b K4); every biome in the vocabulary, every growth group in the nature data.</summary>
+    private static NatureAnimals? LoadAnimals(string contentDirectory, HashSet<string> biomes)
+    {
+        var path = Path.Combine(contentDirectory, "nature", "animals.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var animals = ContractSerializer.Deserialize<NatureAnimals>(File.ReadAllText(path));
+        var natureFile = Path.Combine(contentDirectory, "nature", "settings.json");
+        var groups = File.Exists(natureFile)
+            ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(natureFile)).Groups.Select(g => g.Id).ToHashSet(StringComparer.Ordinal)
+            : [];
+        var problems = animals.Species.GroupBy(s => s.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"species '{g.Key}' twice")
+            .Concat(animals.Species.SelectMany(s => s.Biomes.Where(b => !biomes.Contains(b)).Select(b => $"species '{s.Id}' lives in unknown biome '{b}'")))
+            .Concat(animals.Species.SelectMany(s => s.Groups.Where(g => !groups.Contains(g)).Select(g => $"species '{s.Id}' feeds unknown growth group '{g}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Animals: " + string.Join("; ", problems) + ".");
+        }
+
+        return animals;
     }
 
     /// <summary>

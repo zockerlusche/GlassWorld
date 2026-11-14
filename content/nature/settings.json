@@ -89,6 +89,94 @@
         }
       ],
       "drought_permille": 300
+    },
+    {
+      "id": "nesting",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 1000
+        },
+        {
+          "season": "summer",
+          "permille": 600
+        },
+        {
+          "season": "autumn",
+          "permille": 100
+        },
+        {
+          "season": "winter",
+          "permille": 0
+        }
+      ],
+      "drought_permille": 800
+    },
+    {
+      "id": "moult",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 1000
+        },
+        {
+          "season": "summer",
+          "permille": 500
+        },
+        {
+          "season": "autumn",
+          "permille": 300
+        },
+        {
+          "season": "winter",
+          "permille": 100
+        }
+      ],
+      "drought_permille": 1000
+    },
+    {
+      "id": "plumage",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 300
+        },
+        {
+          "season": "summer",
+          "permille": 700
+        },
+        {
+          "season": "autumn",
+          "permille": 1000
+        },
+        {
+          "season": "winter",
+          "permille": 300
+        }
+      ],
+      "drought_permille": 1000
+    },
+    {
+      "id": "grazing",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 1000
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 800
+        },
+        {
+          "season": "winter",
+          "permille": 400
+        }
+      ],
+      "drought_permille": 600
     }
   ],
   "types": [
@@ -139,10 +227,31 @@
     {
       "type": "dry_grass",
       "group": "grass"
+    },
+    {
+      "type": "egg",
+      "group": "nesting"
+    },
+    {
+      "type": "wool",
+      "group": "moult"
+    },
+    {
+      "type": "feather",
+      "group": "plumage"
+    },
+    {
+      "type": "dung",
+      "group": "grazing"
     }
   ],
   "influences": {
     "heat_min_tenth_c": 280,
     "wet_frost_takts": 6
+  },
+  "snow": {
+    "per_takt_mm": 10,
+    "melt_per_degree_mm": 2,
+    "max_mm": 600
   }
 }
