@@ -285,6 +285,42 @@
     {
       "id": "milestone_reached",
       "description": "The world reached a milestone of the data for the first time (B2598); detail the milestone id, target type the made thing's type."
+    },
+    {
+      "id": "partnership_ended",
+      "description": "Two partners parted (B9 R29): inhabitant = one, target = the other."
+    },
+    {
+      "id": "child_expected",
+      "description": "A child is expected (B9 R29, private - not in the chronicle): inhabitant = a parent, target = the other."
+    },
+    {
+      "id": "named",
+      "description": "An inhabitant was given a name (B9 R29): inhabitant = who named, target = who was named, detail = the name."
+    },
+    {
+      "id": "burial",
+      "description": "Someone was laid into the ground (B9 R29): inhabitant = who buried, target = who was buried."
+    },
+    {
+      "id": "custom_created",
+      "description": "A custom came about (B9 R29): detail = its kind (vocabulary)."
+    },
+    {
+      "id": "settlement_founded",
+      "description": "A settlement was founded (B9 R29): target = its id."
+    },
+    {
+      "id": "land_revealed",
+      "description": "New land became reachable (B9 R29)."
+    },
+    {
+      "id": "voyage",
+      "description": "Inhabitants set out across the water (B9 R29)."
+    },
+    {
+      "id": "arrival",
+      "description": "Inhabitants arrived from across the water (B9 R29)."
     }
   ]
 }

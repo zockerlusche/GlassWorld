@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/family-settings.schema.json",
+  "title": "FamilySettings",
+  "description": "Data file content/family/settings.json (B9-4, D1049 v2): partnership, wish for a child, expecting, birth, care and the limit. Empty until B9-4 fills it; placeholders for the TL then.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    }
+  }
+}

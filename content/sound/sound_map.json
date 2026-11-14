@@ -122,6 +122,98 @@
       "action": "teach",
       "sound": "action.talk_to",
       "group": "speaking"
+    },
+    {
+      "action": "court",
+      "sound": null
+    },
+    {
+      "action": "propose_partnership",
+      "sound": null
+    },
+    {
+      "action": "end_partnership",
+      "sound": null
+    },
+    {
+      "action": "wish_child",
+      "sound": null
+    },
+    {
+      "action": "care",
+      "sound": null
+    },
+    {
+      "action": "play",
+      "sound": null
+    },
+    {
+      "action": "carve",
+      "sound": null
+    },
+    {
+      "action": "sing",
+      "sound": null
+    },
+    {
+      "action": "paint",
+      "sound": null
+    },
+    {
+      "action": "dance",
+      "sound": null
+    },
+    {
+      "action": "quarrel",
+      "sound": null
+    },
+    {
+      "action": "apologize",
+      "sound": null
+    },
+    {
+      "action": "reconcile",
+      "sound": null
+    },
+    {
+      "action": "gossip",
+      "sound": null
+    },
+    {
+      "action": "wake",
+      "sound": null
+    },
+    {
+      "action": "cover",
+      "sound": null
+    },
+    {
+      "action": "bury",
+      "sound": null
+    },
+    {
+      "action": "set_stone",
+      "sound": null
+    },
+    {
+      "action": "visit_grave",
+      "sound": null
+    },
+    {
+      "action": "name_person",
+      "sound": null
+    },
+    {
+      "action": "perform_custom",
+      "sound": null
+    },
+    {
+      "action": "found_settlement",
+      "sound": null
+    },
+    {
+      "action": "sail",
+      "sound": null
     }
   ],
   "surfaces": [

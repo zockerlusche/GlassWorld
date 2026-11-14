@@ -3285,6 +3285,226 @@
     {
       "key": "vocab.event.stage_changed",
       "text": "Neue Lebensphase"
+    },
+    {
+      "key": "vocab.action.court",
+      "text": "Umwerben"
+    },
+    {
+      "key": "ui.activity.court",
+      "text": "wirbt um jemanden"
+    },
+    {
+      "key": "vocab.action.propose_partnership",
+      "text": "Partnerschaft vorschlagen"
+    },
+    {
+      "key": "ui.activity.propose_partnership",
+      "text": "fragt, ob sie zusammenbleiben"
+    },
+    {
+      "key": "vocab.action.end_partnership",
+      "text": "Partnerschaft beenden"
+    },
+    {
+      "key": "ui.activity.end_partnership",
+      "text": "trennt sich"
+    },
+    {
+      "key": "vocab.action.wish_child",
+      "text": "Kinderwunsch äußern"
+    },
+    {
+      "key": "ui.activity.wish_child",
+      "text": "wünscht sich ein Kind"
+    },
+    {
+      "key": "vocab.action.care",
+      "text": "Umsorgen"
+    },
+    {
+      "key": "ui.activity.care",
+      "text": "kümmert sich um jemanden"
+    },
+    {
+      "key": "vocab.action.play",
+      "text": "Spielen"
+    },
+    {
+      "key": "ui.activity.play",
+      "text": "spielt"
+    },
+    {
+      "key": "vocab.action.carve",
+      "text": "Schnitzen"
+    },
+    {
+      "key": "ui.activity.carve",
+      "text": "schnitzt"
+    },
+    {
+      "key": "vocab.action.sing",
+      "text": "Singen"
+    },
+    {
+      "key": "ui.activity.sing",
+      "text": "singt"
+    },
+    {
+      "key": "vocab.action.paint",
+      "text": "Malen"
+    },
+    {
+      "key": "ui.activity.paint",
+      "text": "malt"
+    },
+    {
+      "key": "vocab.action.dance",
+      "text": "Tanzen"
+    },
+    {
+      "key": "ui.activity.dance",
+      "text": "tanzt"
+    },
+    {
+      "key": "vocab.action.quarrel",
+      "text": "Streiten"
+    },
+    {
+      "key": "ui.activity.quarrel",
+      "text": "streitet"
+    },
+    {
+      "key": "vocab.action.apologize",
+      "text": "Sich entschuldigen"
+    },
+    {
+      "key": "ui.activity.apologize",
+      "text": "entschuldigt sich"
+    },
+    {
+      "key": "vocab.action.reconcile",
+      "text": "Sich versöhnen"
+    },
+    {
+      "key": "ui.activity.reconcile",
+      "text": "versöhnt sich"
+    },
+    {
+      "key": "vocab.action.gossip",
+      "text": "Tratschen"
+    },
+    {
+      "key": "ui.activity.gossip",
+      "text": "erzählt über jemanden"
+    },
+    {
+      "key": "vocab.action.wake",
+      "text": "Wache halten"
+    },
+    {
+      "key": "ui.activity.wake",
+      "text": "hält Wache"
+    },
+    {
+      "key": "vocab.action.cover",
+      "text": "Zudecken"
+    },
+    {
+      "key": "ui.activity.cover",
+      "text": "deckt zu"
+    },
+    {
+      "key": "vocab.action.bury",
+      "text": "Bestatten"
+    },
+    {
+      "key": "ui.activity.bury",
+      "text": "bestattet"
+    },
+    {
+      "key": "vocab.action.set_stone",
+      "text": "Stein setzen"
+    },
+    {
+      "key": "ui.activity.set_stone",
+      "text": "setzt einen Stein"
+    },
+    {
+      "key": "vocab.action.visit_grave",
+      "text": "Grab besuchen"
+    },
+    {
+      "key": "ui.activity.visit_grave",
+      "text": "besucht ein Grab"
+    },
+    {
+      "key": "vocab.action.name_person",
+      "text": "Namen geben"
+    },
+    {
+      "key": "ui.activity.name_person",
+      "text": "gibt einen Namen"
+    },
+    {
+      "key": "vocab.action.perform_custom",
+      "text": "Brauch ausüben"
+    },
+    {
+      "key": "ui.activity.perform_custom",
+      "text": "übt einen Brauch aus"
+    },
+    {
+      "key": "vocab.action.found_settlement",
+      "text": "Siedlung gründen"
+    },
+    {
+      "key": "ui.activity.found_settlement",
+      "text": "gründet eine Siedlung"
+    },
+    {
+      "key": "vocab.action.sail",
+      "text": "Übersetzen"
+    },
+    {
+      "key": "ui.activity.sail",
+      "text": "fährt übers Wasser"
+    },
+    {
+      "key": "vocab.event.partnership_ended",
+      "text": "Getrennt"
+    },
+    {
+      "key": "vocab.event.child_expected",
+      "text": "Ein Kind wird erwartet"
+    },
+    {
+      "key": "vocab.event.named",
+      "text": "Benannt"
+    },
+    {
+      "key": "vocab.event.burial",
+      "text": "Bestattet"
+    },
+    {
+      "key": "vocab.event.custom_created",
+      "text": "Ein Brauch entstand"
+    },
+    {
+      "key": "vocab.event.settlement_founded",
+      "text": "Siedlung gegründet"
+    },
+    {
+      "key": "vocab.event.land_revealed",
+      "text": "Neues Land"
+    },
+    {
+      "key": "vocab.event.voyage",
+      "text": "Aufbruch übers Wasser"
+    },
+    {
+      "key": "vocab.event.arrival",
+      "text": "Angekommen"
     }
   ]
 }

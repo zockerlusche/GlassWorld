@@ -3285,6 +3285,226 @@
     {
       "key": "vocab.event.stage_changed",
       "text": "New stage of life"
+    },
+    {
+      "key": "vocab.action.court",
+      "text": "Court"
+    },
+    {
+      "key": "ui.activity.court",
+      "text": "courting someone"
+    },
+    {
+      "key": "vocab.action.propose_partnership",
+      "text": "Propose partnership"
+    },
+    {
+      "key": "ui.activity.propose_partnership",
+      "text": "asking to stay together"
+    },
+    {
+      "key": "vocab.action.end_partnership",
+      "text": "End partnership"
+    },
+    {
+      "key": "ui.activity.end_partnership",
+      "text": "parting"
+    },
+    {
+      "key": "vocab.action.wish_child",
+      "text": "Wish for a child"
+    },
+    {
+      "key": "ui.activity.wish_child",
+      "text": "wishing for a child"
+    },
+    {
+      "key": "vocab.action.care",
+      "text": "Care for"
+    },
+    {
+      "key": "ui.activity.care",
+      "text": "caring for someone"
+    },
+    {
+      "key": "vocab.action.play",
+      "text": "Play"
+    },
+    {
+      "key": "ui.activity.play",
+      "text": "playing"
+    },
+    {
+      "key": "vocab.action.carve",
+      "text": "Carve"
+    },
+    {
+      "key": "ui.activity.carve",
+      "text": "carving"
+    },
+    {
+      "key": "vocab.action.sing",
+      "text": "Sing"
+    },
+    {
+      "key": "ui.activity.sing",
+      "text": "singing"
+    },
+    {
+      "key": "vocab.action.paint",
+      "text": "Paint"
+    },
+    {
+      "key": "ui.activity.paint",
+      "text": "painting"
+    },
+    {
+      "key": "vocab.action.dance",
+      "text": "Dance"
+    },
+    {
+      "key": "ui.activity.dance",
+      "text": "dancing"
+    },
+    {
+      "key": "vocab.action.quarrel",
+      "text": "Quarrel"
+    },
+    {
+      "key": "ui.activity.quarrel",
+      "text": "quarrelling"
+    },
+    {
+      "key": "vocab.action.apologize",
+      "text": "Apologize"
+    },
+    {
+      "key": "ui.activity.apologize",
+      "text": "apologizing"
+    },
+    {
+      "key": "vocab.action.reconcile",
+      "text": "Reconcile"
+    },
+    {
+      "key": "ui.activity.reconcile",
+      "text": "making up"
+    },
+    {
+      "key": "vocab.action.gossip",
+      "text": "Gossip"
+    },
+    {
+      "key": "ui.activity.gossip",
+      "text": "talking about someone"
+    },
+    {
+      "key": "vocab.action.wake",
+      "text": "Keep watch"
+    },
+    {
+      "key": "ui.activity.wake",
+      "text": "keeping watch"
+    },
+    {
+      "key": "vocab.action.cover",
+      "text": "Cover"
+    },
+    {
+      "key": "ui.activity.cover",
+      "text": "covering"
+    },
+    {
+      "key": "vocab.action.bury",
+      "text": "Bury"
+    },
+    {
+      "key": "ui.activity.bury",
+      "text": "burying"
+    },
+    {
+      "key": "vocab.action.set_stone",
+      "text": "Set a stone"
+    },
+    {
+      "key": "ui.activity.set_stone",
+      "text": "setting a stone"
+    },
+    {
+      "key": "vocab.action.visit_grave",
+      "text": "Visit a grave"
+    },
+    {
+      "key": "ui.activity.visit_grave",
+      "text": "visiting a grave"
+    },
+    {
+      "key": "vocab.action.name_person",
+      "text": "Give a name"
+    },
+    {
+      "key": "ui.activity.name_person",
+      "text": "giving a name"
+    },
+    {
+      "key": "vocab.action.perform_custom",
+      "text": "Keep a custom"
+    },
+    {
+      "key": "ui.activity.perform_custom",
+      "text": "keeping a custom"
+    },
+    {
+      "key": "vocab.action.found_settlement",
+      "text": "Found a settlement"
+    },
+    {
+      "key": "ui.activity.found_settlement",
+      "text": "founding a settlement"
+    },
+    {
+      "key": "vocab.action.sail",
+      "text": "Cross the water"
+    },
+    {
+      "key": "ui.activity.sail",
+      "text": "crossing the water"
+    },
+    {
+      "key": "vocab.event.partnership_ended",
+      "text": "Parted"
+    },
+    {
+      "key": "vocab.event.child_expected",
+      "text": "A child is expected"
+    },
+    {
+      "key": "vocab.event.named",
+      "text": "Named"
+    },
+    {
+      "key": "vocab.event.burial",
+      "text": "Buried"
+    },
+    {
+      "key": "vocab.event.custom_created",
+      "text": "A custom came about"
+    },
+    {
+      "key": "vocab.event.settlement_founded",
+      "text": "Settlement founded"
+    },
+    {
+      "key": "vocab.event.land_revealed",
+      "text": "New land"
+    },
+    {
+      "key": "vocab.event.voyage",
+      "text": "Set out across the water"
+    },
+    {
+      "key": "vocab.event.arrival",
+      "text": "Arrived"
     }
   ]
 }
