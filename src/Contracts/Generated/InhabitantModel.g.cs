@@ -52,17 +52,26 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// While a need is below a threshold, a feeling changes per hour (may be negative).
+    /// While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class MoodDriver
     {
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("need")]
-        public string Need { get; set; } = default!;
+        public string? Need { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("below")]
-        public double Below { get; set; } = default!;
+        public double? Below { get; set; } = default!;
+
+        /// <summary>
+        /// A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sensation")]
+        public string? Sensation { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("mood")]
         public string Mood { get; set; } = default!;

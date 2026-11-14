@@ -42,7 +42,8 @@
     { "need": "thirst", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },
     { "need": "sleep", "below": 0.2, "mood": "frustration", "delta_per_hour": 0.03 },
     { "need": "fun", "below": 0.3, "mood": "boredom", "delta_per_hour": 0.05 },
-    { "need": "company", "below": 0.3, "mood": "sadness", "delta_per_hour": 0.02 }
+    { "need": "company", "below": 0.3, "mood": "sadness", "delta_per_hour": 0.02 },
+    { "sensation": "near_fire", "mood": "fear", "delta_per_hour": 0.2 }
   ],
   "will_to_live": {
     "start": 0.8,

@@ -38,6 +38,7 @@ class Kind(StrEnum):
     outline_size = 'outline_size'
     vital = 'vital'
     condition = 'condition'
+    sensation = 'sensation'
 
 
 class Target(StrEnum):
