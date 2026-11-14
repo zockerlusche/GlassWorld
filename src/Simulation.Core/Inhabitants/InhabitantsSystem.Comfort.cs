@@ -73,22 +73,21 @@ public sealed partial class InhabitantsSystem
     // B5 R5/R6: the comfort level of the inhabitant being updated in this tick (derived, set before its needs fall).
     private (string Id, string? Level) _levelNow;
 
-    // Review GW3 #435: the felt temperature of the last inhabitant asked, for its tick and place (derived, not state) -
-    // the comfort level, the warmth need and the request ask for it in one tick; the body's sun, wind and shade
-    // scans then run once.
-    private (string Id, long Tick, Position At, int Air, int Felt)? _feltOnce;
+    // Review GW3 #435: while one inhabitant's state is updated (its comfort level, then its warmth need, nothing in
+    // between changes the world), its felt temperature is computed once; any other question computes it afresh.
+    private (string Id, int Felt)? _feltOnce;
+    private bool _keepFelt;
 
-    /// <summary>The felt temperature (<see cref="Felt"/>), computed once per inhabitant, tick and place.</summary>
+    /// <summary>The felt temperature (<see cref="Felt"/>), kept for the inhabitant being updated while <see cref="_keepFelt"/>.</summary>
     private int FeltOnce(World world, Inhabitant inhabitant, Air air)
     {
-        if (_feltOnce is { } known && known.Tick == world.Tick && known.At == inhabitant.Position && known.Air == air.TemperatureTenthC
-            && string.Equals(known.Id, inhabitant.Id, StringComparison.Ordinal))
+        if (_keepFelt && _feltOnce is { } known && string.Equals(known.Id, inhabitant.Id, StringComparison.Ordinal))
         {
             return known.Felt;
         }
 
         var felt = Felt(world, inhabitant, air);
-        _feltOnce = (inhabitant.Id, world.Tick, inhabitant.Position, air.TemperatureTenthC, felt);
+        _feltOnce = _keepFelt ? (inhabitant.Id, felt) : null;
         return felt;
     }
 

@@ -651,10 +651,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
 
-            // B5 R5/R6: how warm it feels now, for this tick's need rates and pace (derived from the state, no lag).
+            // B5 R5/R6: how warm it feels now, for this tick's need rates and pace (derived from the state, no lag);
+            // the felt temperature is computed once for the level and the warmth need (review GW3 #435).
+            _keepFelt = true;
+            _feltOnce = null;
             _levelNow = (inhabitant.Id, ComfortLevelOf(world, inhabitant));
             DecayNeeds(inhabitant);
             FeelTheAir(world, inhabitant);
+            _keepFelt = false;
+            _feltOnce = null;
             if (together.Contains(inhabitant.Id))
             {
                 FillTogether(inhabitant, _model.Togetherness!);
