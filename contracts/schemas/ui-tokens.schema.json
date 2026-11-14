@@ -305,7 +305,10 @@
         "shadow_px",
         "shadow_alpha",
         "button_radius",
-        "world_outline_px"
+        "world_outline_px",
+        "scrim_alpha",
+        "scrim_soft_px",
+        "world_check_grounds"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -488,6 +491,27 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 32
+        },
+        "scrim_alpha": {
+          "description": "Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scrim_soft_px": {
+          "description": "How far that dark ground fades out at its edges (a soft gradient, no box).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "world_check_grounds": {
+          "description": "Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+          }
         }
       }
     },

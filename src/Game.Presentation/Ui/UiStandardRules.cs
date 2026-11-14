@@ -26,6 +26,9 @@ public static class UiStandardRules
     /// <summary>Buttons stand apart from the window they sit on by at least this brightness ratio (S1b, D1076 section 6).</summary>
     public const double SurfaceStep = 1.1;
 
+    /// <summary>Thinnest outline of text that stands on the world (S1b, TL #25715).</summary>
+    public const int MinWorldOutlinePx = 3;
+
     /// <summary>At most this many font sizes: title, text and small (D1076 section 6); section headings are bold text.</summary>
     public const int FontSteps = 3;
 
@@ -71,6 +74,12 @@ public static class UiStandardRules
             ("zones.panel_padding", tokens.Zones.PanelPadding),
         };
         problems.AddRange(room.Where(r => r.Px % 4 != 0).Select(r => $"{r.Name} ({r.Px}) is not on the 4 px grid"));
+
+        // Text on the world needs a ring around each glyph (TL #25715).
+        if (window.WorldOutlinePx < MinWorldOutlinePx)
+        {
+            problems.Add($"window.world_outline_px ({window.WorldOutlinePx}) is below {MinWorldOutlinePx}: text on the world needs its outline");
+        }
 
         if (tokens.Button.MinHit < 40 || tokens.Button.Height < tokens.Button.MinHit)
         {
@@ -176,7 +185,17 @@ public static class UiStandardRules
         }
 
         Require(id, UiColorId.Text_muted, UiColorId.Field, RgbaColor.Contrast(colors[UiColorId.Text_muted].Over(Opaque(UiColorId.Field)), Opaque(UiColorId.Field)), textContrast, problems);
-        Require(id, UiColorId.World_text, UiColorId.World_outline, RgbaColor.Contrast(Opaque(UiColorId.World_text), Opaque(UiColorId.World_outline)), textContrast, problems);
+        // Text on the world (TL #25715): every glyph stands in its outline; the outline over the lightest grounds of the
+        // world (snow, sand, light grass, sky - data) must still give the text its contrast.
+        foreach (var ground in tokens.Window.WorldCheckGrounds.Select(RgbaColor.Parse))
+        {
+            var ring = colors[UiColorId.World_outline].Over(ground.Over(white));
+            var ratio = RgbaColor.Contrast(colors[UiColorId.World_text].Over(ring), ring);
+            if (ratio < textContrast)
+            {
+                problems.Add($"palette '{id}': World_text in its outline over the ground {ground} has contrast {ratio:0.00}, needs {textContrast:0.0}");
+            }
+        }
         Require(id, UiColorId.Bar_bad, UiColorId.Bar_fill, RgbaColor.Contrast(Opaque(UiColorId.Bar_bad), Opaque(UiColorId.Bar_fill)), BrightnessStep, problems);
         Require(id, UiColorId.Bar_fill, UiColorId.Field, RgbaColor.Contrast(Opaque(UiColorId.Bar_fill), Opaque(UiColorId.Field)), BrightnessStep, problems);
         Require(id, UiColorId.Bar_bad, UiColorId.Field, RgbaColor.Contrast(Opaque(UiColorId.Bar_bad), Opaque(UiColorId.Field)), BrightnessStep, problems);

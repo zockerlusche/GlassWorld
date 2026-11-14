@@ -121,6 +121,28 @@ public sealed class UiTests
         Assert.Contains("Bar_bad on Bar_fill", ex.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(0, "#2E2A2633")]
+    [InlineData(1, "#00000033")]
+    public void TextOnTheWorldWithAThinOutlineOverSnowIsRejected(int palette, string outline)
+    {
+        // TL #25715: light text on the world must read over sand and snow; an outline that lets the light ground through
+        // does not hold it.
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["palettes"]![palette]!["colors"]!.AsArray().Single(c => (string)c!["id"]! == "world_outline")!["rgba"] = outline;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("World_text in its outline over the ground", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextOnTheWorldWithoutOutlineIsRejected()
+    {
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["window"]!["world_outline_px"] = 0;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("text on the world needs its outline", ex.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AFourthFontSizeIsRejected()
     {

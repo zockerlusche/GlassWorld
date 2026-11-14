@@ -40,7 +40,8 @@ public partial class GameScreen
     private void BuildCorners()
     {
         var px = _style!.Tokens.Zones.RoundButtonPx;
-        // S1b (D795): speeds, date and weather in a small box; favour and the round buttons stand free below it.
+        // S1b (D795, TL #25715): the whole time block stands on the world on its soft dark ground, no beige box; the speed
+        // and round buttons keep their own form, date, weather and favour take the world's light text.
         var column = new VBoxContainer { Name = "Column" };
         column.AddThemeConstantOverride("separation", _style.Tokens.Window.Gap / 2);
         column.AddChild(TimeBox(_cornerSpeed, _cornerDate));
@@ -115,15 +116,13 @@ public partial class GameScreen
         Move(_favorBar, _cornerFavor, 0);
     }
 
-    /// <summary>The small box of the time block (S1b): speeds over date, time and weather, as wide as they are, at the right.</summary>
-    private static PanelContainer TimeBox(Control speeds, Control date)
+    /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
+    private static VBoxContainer TimeBox(Control speeds, Control date)
     {
-        var box = new PanelContainer { Name = "TimeBox", ThemeTypeVariation = UiTheme.CompactPanel, SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
-        var rows = new VBoxContainer();
+        var rows = new VBoxContainer { Name = "TimeBox", SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
         rows.AddChild(speeds);
         rows.AddChild(date);
-        box.AddChild(rows);
-        return box;
+        return rows;
     }
 
     /// <summary>
@@ -139,6 +138,7 @@ public partial class GameScreen
 
         _portraits.Theme = _worldTheme;
         _cornerFavor.Theme = _worldTheme;
+        _cornerDate.Theme = _worldTheme;
         var log = _sideBar.PanelOf(ScreenZones.Pinned);
         log.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
         log.Theme = _zones ? _worldTheme : null;
@@ -447,7 +447,9 @@ public partial class GameScreen
             buttons.AddChild(round);
         }
 
-        favorRow.Theme = UiTheme.BuildWorld(style);
+        var world = UiTheme.BuildWorld(style);
+        favorRow.Theme = world;
+        dateRow.Theme = world;
         column.AddThemeConstantOverride("separation", style.Tokens.Window.Gap / 2);
         column.AddChild(TimeBox(speeds, dateRow));
         column.AddChild(favorRow);

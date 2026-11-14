@@ -117,8 +117,13 @@ public static class UiTheme
         theme.SetTypeVariation(CompactPanel, "PanelContainer");
         theme.SetStylebox("panel", CompactPanel, compact);
         theme.SetStylebox("panel", TooltipPanel, Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
-        // No room of its own: the safe margin already keeps it off the edge, and the time block stays clear of the middle at 200 %.
-        var world = new StyleBoxEmpty();
+        // A soft dark ground, no box (TL #25715): the outline colour, thin, with a shadow of the same colour that fades
+        // it out at the edges, so light text reads over sand and snow too. No room of its own: the safe margin keeps it
+        // off the edge, and the time block stays clear of the middle at 200 %.
+        var scrim = ToGodot(style.Color(UiColorId.World_outline)) with { A = (float)style.Tokens.Window.ScrimAlpha };
+        var world = new StyleBoxFlat { BgColor = scrim, ShadowColor = scrim, ShadowSize = style.Tokens.Window.ScrimSoftPx };
+        world.SetCornerRadiusAll(style.Tokens.Window.ScrimSoftPx);
+        world.SetContentMarginAll(0);
         theme.SetTypeVariation(WorldPanel, "PanelContainer");
         theme.SetStylebox("panel", WorldPanel, world);
         theme.SetTypeVariation(BubblePanel, "PanelContainer");

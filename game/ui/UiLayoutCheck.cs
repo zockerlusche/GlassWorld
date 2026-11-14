@@ -211,6 +211,11 @@ public static class UiLayoutCheck
             log.Content.AddChild(new Label { Text = "ui.log.no_answer", AutowrapMode = TextServer.AutowrapMode.WordSmart });
         }
 
+        // The parts on the world take the world theme as in the game (S1b).
+        var world = UiTheme.BuildWorld(style);
+        portraits.Theme = world;
+        log.ThemeTypeVariation = UiTheme.WorldPanel;
+        log.Theme = world;
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
@@ -260,6 +265,11 @@ public static class UiLayoutCheck
                 }
             }
 
+            // TL #25715: the text on the world reads over snow, sand and light grass (the grounds of the data).
+            problems.AddRange(WorldTextProblems(style, "portraits", portraits));
+            problems.AddRange(WorldTextProblems(style, "log", log));
+            problems.AddRange(WorldTextProblems(style, "time block", corner));
+
             if (portraits.Compact != (count >= style.Tokens.Zones.PortraitsCompactFrom))
             {
                 problems.Add($"{count} portraits: compact is {portraits.Compact}");
@@ -268,6 +278,41 @@ public static class UiLayoutCheck
 
         stage.QueueFree();
         return problems;
+    }
+
+    /// <summary>
+    /// Text that stands on the world (S1b, TL #25715): its outline is thick enough, and its colour against the outline
+    /// over every light ground of the data (snow, sand, light grass, sky) reaches the text contrast. Headless renders
+    /// nothing, so the check reads the colours the part really draws with from its theme.
+    /// </summary>
+    private static IEnumerable<string> WorldTextProblems(UiStyle style, string name, Control part)
+    {
+        var label = part.FindChildren("*", nameof(Label), true, false).OfType<Label>().FirstOrDefault(l => l.IsVisibleInTree() && l.Text.Length > 0);
+        if (label is null)
+        {
+            yield return $"{name}: no text on the world found";
+            yield break;
+        }
+
+        var size = label.GetThemeConstant("outline_size");
+        if (size < UiStandardRules.MinWorldOutlinePx)
+        {
+            yield return $"{name}: text outline {size} px, needs {UiStandardRules.MinWorldOutlinePx}";
+        }
+
+        static RgbaColor Rgba(Color c) => new(c.R, c.G, c.B, c.A);
+        var text = Rgba(label.GetThemeColor("font_color"));
+        var outline = Rgba(label.GetThemeColor("font_outline_color"));
+        var white = new RgbaColor(1, 1, 1, 1);
+        foreach (var ground in style.Tokens.Window.WorldCheckGrounds.Select(RgbaColor.Parse))
+        {
+            var ring = outline.Over(ground.Over(white));
+            var ratio = RgbaColor.Contrast(text.Over(ring), ring);
+            if (ratio < UiStandardRules.TextContrast)
+            {
+                yield return $"{name}: text in its outline over the ground {ground} has contrast {ratio:0.00}, needs {UiStandardRules.TextContrast:0.0}";
+            }
+        }
     }
 
     /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
