@@ -246,6 +246,11 @@
       "loop": true,
       "asset": "Idle",
       "speed": 0.6
+    },
+    {
+      "id": "family_not_yet_made",
+      "source": "placeholder",
+      "loop": true
     }
   ],
   "mappings": [
@@ -527,6 +532,121 @@
       "kind": "special",
       "id": "knock_glass",
       "clip": "knock_glass"
+    },
+    {
+      "kind": "action",
+      "id": "court",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "propose_partnership",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "end_partnership",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "wish_child",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "care",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "play",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "carve",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "sing",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "paint",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "dance",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "quarrel",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "apologize",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "reconcile",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "gossip",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "wake",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "cover",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "bury",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "set_stone",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "visit_grave",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "name_person",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "perform_custom",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "found_settlement",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "sail",
+      "clip": "family_not_yet_made"
     }
   ],
   "gaits": [

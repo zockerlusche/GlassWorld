@@ -648,6 +648,7 @@ public sealed class SimulationHost
             Processes = processes,
             Fire = fire,
             Aging = agingSystem,
+            FamilyView = new Family.FirstGenerationView(inhabitants, world.Calendar.TicksPerDay),
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
@@ -952,6 +953,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>The read-only family view (B9 R29): kinship, tree, reputation, settlement, culture.</summary>
+    public Family.IFamilyView FamilyView { get; private init; } = null!;
 
     /// <summary>How inhabitants age (B9 R1), or null without aging data.</summary>
     public AgingSystem? Aging { get; private init; }
