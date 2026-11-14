@@ -1467,6 +1467,22 @@
       "text": "Driftwood"
     },
     {
+      "key": "vocab.object.egg",
+      "text": "Egg"
+    },
+    {
+      "key": "vocab.object.wool",
+      "text": "Wool"
+    },
+    {
+      "key": "vocab.object.feather",
+      "text": "Feather"
+    },
+    {
+      "key": "vocab.object.dung",
+      "text": "Dung"
+    },
+    {
       "key": "vocab.object.shell",
       "text": "Shell"
     },

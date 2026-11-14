@@ -13,7 +13,7 @@ namespace GlassWorld.Simulation.Headless.Tests;
 /// </summary>
 public sealed class WorldGenCommandTests : IDisposable
 {
-    private const string Seed7Hash = "86062dcaa75a8a2c28677cd0067c5822f739f96be69886d57d158cb0181fc12f";
+    private const string Seed7Hash = "8ee0a29fa9f44ab10a05be02b80a8909bde8fc5f942efedac99169ee20c0701c";
     private static readonly string Content = ContentFolder.Find();
     private static readonly string[] Biomes = ["land"];
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "gw-worldgen-" + Guid.NewGuid().ToString("N"));

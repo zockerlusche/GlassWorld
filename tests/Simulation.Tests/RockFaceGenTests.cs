@@ -81,6 +81,8 @@ public sealed class RockFaceGenTests
         preset.Start.DryGround = null;
         preset.GeneratorVersion = 3;
         var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 1);
-        Assert.Equal("98d0309ef337f7c129bc7eeac958033323ec28aad9a0eb90ecb3f1f0e12b216f", island.Hash());
+        // The full hash in the message, so a deliberate world change can be taken over (like the golden world hashes).
+        var hash = island.Hash();
+        Assert.True(hash == "0ab993e756086dfd45b406cd353b874210710b0c483558ac122fc8f0191067ae", $"version-3 hash changed: {hash}");
     }
 }
