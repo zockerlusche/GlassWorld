@@ -34,6 +34,9 @@ public partial class WorldPresenter
     // The inventions drawn from their building plans (A1375): built things and building sites.
     private Build.InventionsView? _inventionsView;
     private double _thingFocusM = 10;
+    private Contracts.LookFocus? _focusLook;
+    private Color _focusColor = Colors.White;
+    private MeshInstance3D? _focusRing;
     private GrassView? _grassView;
     private CloudCover? _cover;
     private NatureLook? _nature;
@@ -230,6 +233,56 @@ public partial class WorldPresenter
         _rig.Model.StopFollowing();
     }
 
+    /// <summary>
+    /// A1684 (D1114): the camera goes to a thing by its object id and a calm ring on the ground marks it, fading over
+    /// the look's seconds. False when the thing is gone or there is no island camera.
+    /// </summary>
+    public bool FocusThing(string objectId)
+    {
+        if (_host is null || !_host.Objects.TryGet(objectId, out var thing) || !LookAtThing(thing.Position.X, thing.Position.Z))
+        {
+            return false;
+        }
+
+        _focusRing?.QueueFree();
+        _focusRing = null;
+        if (_focusLook is not { } look)
+        {
+            return true;
+        }
+
+        var radius = (float)InventionLooks.FocusRadiusM(_inventionsView?.ShownExtent(objectId) ?? 0, look.RadiusM, look.MarginM);
+        var material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = _focusColor,
+        };
+        var (x, z) = (thing.Position.X, thing.Position.Z);
+        _focusRing = new MeshInstance3D
+        {
+            Name = "FocusRing",
+            Mesh = new TorusMesh { InnerRadius = Math.Max(0.01f, radius - (float)look.WidthM), OuterRadius = radius },
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Position = new Vector3((float)x, (float)_ground(x, z) + 0.05f, (float)z),
+        };
+        AddChild(_focusRing);
+        var ring = _focusRing;
+        var fade = CreateTween();
+        fade.TweenProperty(material, "albedo_color:a", 0f, look.Seconds);
+        fade.TweenCallback(Callable.From(() =>
+        {
+            if (ring == _focusRing)
+            {
+                _focusRing = null;
+            }
+
+            ring.QueueFree();
+        }));
+        return true;
+    }
+
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
     public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
 
@@ -350,6 +403,12 @@ public partial class WorldPresenter
         _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         _objectsView.Looks.RootOf = typeId => _host?.Processes?.RootOf(typeId);
         AddChild(_objectsView);
+        _focusLook = objectLooks.Focus;
+        if (_focusLook is { } focus && palette.Colors.FirstOrDefault(c => c.Id == focus.Color) is { } ringColor)
+        {
+            _focusColor = Color.FromHtml(ringColor.Color);
+        }
+
         _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground, objectLooks.InventionMinShownM);
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
@@ -451,6 +510,7 @@ public partial class WorldPresenter
         _islandView = null;
         _objectsView = null;
         _inventionsView = null;
+        _focusRing = null;
         _grassView = null;
         _cover = null;
         _nature = null;

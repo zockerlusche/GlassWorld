@@ -9,6 +9,34 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class LookFocus(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seconds: float = Field(
+        ...,
+        description='How long the ring takes to fade (real seconds).',
+        gt=0.0,
+        le=30.0,
+    )
+    radius_m: float = Field(
+        ...,
+        description='Least ring radius; a drawn invention gets half its extent plus the margin if that is more.',
+        gt=0.0,
+        le=10.0,
+    )
+    margin_m: float = Field(
+        ..., description='Room between a drawn thing and its ring.', ge=0.0, le=5.0
+    )
+    width_m: float = Field(..., description='Width of the ring.', gt=0.0, le=1.0)
+    color: str = Field(
+        ...,
+        description='Palette colour id of the ring.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class ObjectLookShape(StrEnum):
     conifer_tree = 'conifer_tree'
     broadleaf_tree = 'broadleaf_tree'
@@ -352,6 +380,10 @@ class LookObjects(BaseModel):
         description='Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.',
         ge=1,
         le=32,
+    )
+    focus: LookFocus | None = Field(
+        None,
+        description='A1684/D1114: when the player is taken to a thing (log line, hint), a calm ring on the ground marks it and fades. Omitted = no ring.',
     )
     invention_min_shown_m: float | None = Field(
         None,

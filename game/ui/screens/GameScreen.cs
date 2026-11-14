@@ -1969,7 +1969,7 @@ public partial class GameScreen : CanvasLayer
             // A1715: a built thing's line takes the camera to the thing (if it is still there), else to the inhabitant.
             button.Pressed += () =>
             {
-                if (builtId is not null && _feed?.PlaceOf(builtId) is { } place && _presenter?.LookAtThing(place.X, place.Z) == true)
+                if (builtId is not null && _presenter?.FocusThing(builtId) == true)
                 {
                     return;
                 }
