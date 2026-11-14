@@ -22,7 +22,7 @@
     { "path": "game/scripts/World/IslandScene.Benchmark.cs", "word": "bench", "status": "ok", "owner": "GW1", "reason": "--bench options and BENCH log lines of the benchmark" },
     { "path": "prompts/help/suggest.v1.toml", "word": "bridge", "status": "ok", "owner": "GW2", "reason": "'bridges the gap', a verb" },
     { "path": "prompts/conversation/reply.v7.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "'Hause' (zu Hause, at home) in the grounding check's general words - not rendered" },
-    { "path": "prompts/decider/decide.v13.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/decider/decide.v14.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/review/night.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
 
