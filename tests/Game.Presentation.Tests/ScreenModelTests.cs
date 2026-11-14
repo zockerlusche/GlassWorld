@@ -54,6 +54,23 @@ public sealed class ScreenModelTests
         Assert.Equal("2", hint.Args["number"]);
     }
 
+    [Fact]
+    public void AKnockNamesWhoKnocksOnceAndLeadsThere()
+    {
+        // A1714 (D1112 #7): a knock had only a sound - now a hint names who knocks and has the look button; a call for
+        // help in the same batch already names the inhabitant, so no second hint.
+        var rows = new[] { new InhabitantRow("inh-000002", 2, 80, false, null, 0, Name: "Elin"), new InhabitantRow("inh-000003", 3, 80, false, null, 0, Name: "Lino") };
+        var knock = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-000002", null, "m-000001") { Detail = Simulation.Player.MailboxSystem.KnockKind };
+        var hint = Assert.Single(ScreenModel.Hints([knock], rows, Unnamed));
+        Assert.Equal((ScreenModel.KnockHint, "Elin", "inh-000002"), (hint.TextKey, hint.Args["name"], hint.LookAt));
+
+        var call = new WorldEvent(Simulation.Player.PlayerSystem.HelpNeeded, 7, "inh-000002", null, null) { Detail = "thirst" };
+        Assert.Equal(["msg.hint.help_needed"], ScreenModel.Hints([call, knock], rows, Unnamed).Select(h => h.TextKey));
+
+        var other = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-000003", null, "m-000002") { Detail = "complaint" };
+        Assert.Empty(ScreenModel.Hints([other], rows, Unnamed)); // only knocks
+    }
+
     [Theory]
     [InlineData("Toma", "Toma")]
     [InlineData(null, "Bewohner 2")]
