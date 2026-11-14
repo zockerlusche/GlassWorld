@@ -55,7 +55,8 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="widthPx">Width at the reference size; 0 = the side panel width of the window tokens.</param>
     /// <param name="contentPx">Width the content asks for in pixels as measured (a table's headers), without the panel's frame; 0 = no wish. Capped at the room like the token width.</param>
     /// <param name="maxWidth">Widest the panel may be (corner layout: never into the free middle, A1682); 0 = no cap but the room.</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0)
+    /// <param name="fitContent">True: no higher than its content needs (S1b: no full-height window for one sentence); more scrolls.</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0, bool fitContent = false)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
@@ -96,7 +97,14 @@ public partial class GwSidePanel : PanelContainer
         }
 
         var y = top > 0 ? top : margin;
-        Size = new Vector2(width, (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1));
+        var height = (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1);
+        if (fitContent)
+        {
+            // Frame, tabs and title (the panel's own minimum, the scroll area asks for nothing) plus what the content needs.
+            height = Math.Min(height, GetCombinedMinimumSize().Y + Content.GetCombinedMinimumSize().Y);
+        }
+
+        Size = new Vector2(width, height);
 
         // The size is the asked one or, if the content needs more, its minimum: placed by what it really is,
         // a panel on the right grows to the left instead of under the buttons beside it (D747 A2: the

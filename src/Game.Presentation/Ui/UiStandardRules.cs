@@ -17,6 +17,18 @@ public static class UiStandardRules
     /// <summary>Minimum contrast of every text in the high-contrast palette (XAG 102).</summary>
     public const double HighContrast = 7.0;
 
+    /// <summary>
+    /// Two colours that mean different things differ in brightness by at least this ratio, not only in hue (S1b,
+    /// A1708: Marcel sees colours weakly; a bar in the bad range must stand out in grey too).
+    /// </summary>
+    public const double BrightnessStep = 1.5;
+
+    /// <summary>Buttons stand apart from the window they sit on by at least this brightness ratio (S1b, D1076 section 6).</summary>
+    public const double SurfaceStep = 1.1;
+
+    /// <summary>At most this many font sizes: title, text and small (D1076 section 6); section headings are bold text.</summary>
+    public const int FontSteps = 3;
+
     private static readonly UiColorId[] TextColors = [UiColorId.Text, UiColorId.Text_muted];
     private static readonly UiColorId[] ControlColors = [UiColorId.Border, UiColorId.Accent, UiColorId.Focus, UiColorId.Positive, UiColorId.Attention];
 
@@ -43,7 +55,22 @@ public static class UiStandardRules
             }
         }
 
+        var steps = tokens.FontSizes.Select(f => f.Px).Distinct().Count();
+        if (steps > FontSteps)
+        {
+            problems.Add($"{steps} font sizes; at most {FontSteps} (title, text, small)");
+        }
+
+        // One grid for all room (D1076 section 6: an 8 px grid, 4 px as its half step).
         problems.AddRange(tokens.Spacing.Where(s => s.Px % 4 != 0).Select(s => $"spacing '{s.Id}' ({s.Px}) is not on the 4 px grid"));
+        var window = tokens.Window;
+        var room = new (string Name, int Px)[]
+        {
+            ("window.padding", window.Padding), ("window.gap", window.Gap), ("window.section_gap", window.SectionGap),
+            ("window.safe_margin", window.SafeMargin), ("window.corner_radius", window.CornerRadius), ("window.button_radius", window.ButtonRadius),
+            ("zones.panel_padding", tokens.Zones.PanelPadding),
+        };
+        problems.AddRange(room.Where(r => r.Px % 4 != 0).Select(r => $"{r.Name} ({r.Px}) is not on the 4 px grid"));
 
         if (tokens.Button.MinHit < 40 || tokens.Button.Height < tokens.Button.MinHit)
         {
@@ -137,6 +164,23 @@ public static class UiStandardRules
                 }
             }
         }
+
+        // The surfaces of S1b (A1708): text fields and bars carry dark text; text on the world needs its outline;
+        // a bar in the bad range differs from a good one and from its track in brightness, not only in hue; buttons
+        // stand apart from their window.
+        var white = new RgbaColor(1, 1, 1, 1);
+        RgbaColor Opaque(UiColorId c) => colors[c].Over(white);
+        foreach (var surface in new[] { UiColorId.Field, UiColorId.Bar_fill, UiColorId.Bar_bad })
+        {
+            Require(id, UiColorId.Text, surface, RgbaColor.Contrast(colors[UiColorId.Text].Over(Opaque(surface)), Opaque(surface)), textContrast, problems);
+        }
+
+        Require(id, UiColorId.Text_muted, UiColorId.Field, RgbaColor.Contrast(colors[UiColorId.Text_muted].Over(Opaque(UiColorId.Field)), Opaque(UiColorId.Field)), textContrast, problems);
+        Require(id, UiColorId.World_text, UiColorId.World_outline, RgbaColor.Contrast(Opaque(UiColorId.World_text), Opaque(UiColorId.World_outline)), textContrast, problems);
+        Require(id, UiColorId.Bar_bad, UiColorId.Bar_fill, RgbaColor.Contrast(Opaque(UiColorId.Bar_bad), Opaque(UiColorId.Bar_fill)), BrightnessStep, problems);
+        Require(id, UiColorId.Bar_fill, UiColorId.Field, RgbaColor.Contrast(Opaque(UiColorId.Bar_fill), Opaque(UiColorId.Field)), BrightnessStep, problems);
+        Require(id, UiColorId.Bar_bad, UiColorId.Field, RgbaColor.Contrast(Opaque(UiColorId.Bar_bad), Opaque(UiColorId.Field)), BrightnessStep, problems);
+        Require(id, UiColorId.Panel_strong, UiColorId.Panel, RgbaColor.Contrast(Opaque(UiColorId.Panel_strong), Opaque(UiColorId.Panel)), SurfaceStep, problems);
     }
 
     private static void Require(string palette, UiColorId front, UiColorId back, double ratio, double needed, List<string> problems)

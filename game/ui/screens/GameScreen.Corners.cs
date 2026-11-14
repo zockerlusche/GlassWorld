@@ -15,7 +15,7 @@ namespace GlassWorld.Game.Ui.Screens;
 /// </summary>
 public partial class GameScreen
 {
-    private readonly PanelContainer _corner = new() { Name = "Corner", Visible = false, ThemeTypeVariation = UiTheme.CompactPanel };
+    private readonly PanelContainer _corner = new() { Name = "Corner", Visible = false, ThemeTypeVariation = UiTheme.WorldPanel };
     private readonly HBoxContainer _cornerSpeed = new() { Name = "Speeds" };
     private readonly HBoxContainer _cornerDate = new() { Name = "Date" };
     private readonly HBoxContainer _cornerFavor = new() { Name = "Favor" };
@@ -40,9 +40,10 @@ public partial class GameScreen
     private void BuildCorners()
     {
         var px = _style!.Tokens.Zones.RoundButtonPx;
+        // S1b (D795): speeds, date and weather in a small box; favour and the round buttons stand free below it.
         var column = new VBoxContainer { Name = "Column" };
-        column.AddChild(_cornerSpeed);
-        column.AddChild(_cornerDate);
+        column.AddThemeConstantOverride("separation", _style.Tokens.Window.Gap / 2);
+        column.AddChild(TimeBox(_cornerSpeed, _cornerDate));
         column.AddChild(_cornerFavor);
         column.AddChild(_cornerButtons);
         _corner.AddChild(column);
@@ -112,6 +113,35 @@ public partial class GameScreen
         Move(_seasonIcon, _cornerDate, 0);
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
+    }
+
+    /// <summary>The small box of the time block (S1b): speeds over date, time and weather, as wide as they are, at the right.</summary>
+    private static PanelContainer TimeBox(Control speeds, Control date)
+    {
+        var box = new PanelContainer { Name = "TimeBox", ThemeTypeVariation = UiTheme.CompactPanel, SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
+        var rows = new VBoxContainer();
+        rows.AddChild(speeds);
+        rows.AddChild(date);
+        box.AddChild(rows);
+        return box;
+    }
+
+    /// <summary>
+    /// The parts that stand on the world without a box take its theme (S1b, D795): the portraits, the log (corner
+    /// layout only) and the favour row. Again after a style change, which builds a new theme.
+    /// </summary>
+    private void ApplyWorldTheme()
+    {
+        if (_worldTheme is null)
+        {
+            return;
+        }
+
+        _portraits.Theme = _worldTheme;
+        _cornerFavor.Theme = _worldTheme;
+        var log = _sideBar.PanelOf(ScreenZones.Pinned);
+        log.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
+        log.Theme = _zones ? _worldTheme : null;
     }
 
     private static void Move(Control part, Node to, int index)
@@ -368,7 +398,7 @@ public partial class GameScreen
 
         foreach (var (panel, contentPx) in windows)
         {
-            panel.Dock(area, style, 0, below, widthPx: zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom);
+            panel.Dock(area, style, 0, below, widthPx: zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom, fitContent: true);
         }
 
         // The log at the bottom left, below the portraits (it gets its own corner shape in step 3).
@@ -386,7 +416,7 @@ public partial class GameScreen
         ArgumentNullException.ThrowIfNull(choices);
         var px = style.Tokens.Zones.RoundButtonPx;
         var (bar, _, _) = CreateTopBar(style, choices, _ => { });
-        var block = new PanelContainer { Name = "CornerSample", ThemeTypeVariation = UiTheme.CompactPanel };
+        var block = new PanelContainer { Name = "CornerSample", ThemeTypeVariation = UiTheme.WorldPanel };
         var column = new VBoxContainer();
         var speeds = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         foreach (var button in bar.GetChild(0).GetChildren().OfType<Button>().ToList())
@@ -417,8 +447,9 @@ public partial class GameScreen
             buttons.AddChild(round);
         }
 
-        column.AddChild(speeds);
-        column.AddChild(dateRow);
+        favorRow.Theme = UiTheme.BuildWorld(style);
+        column.AddThemeConstantOverride("separation", style.Tokens.Window.Gap / 2);
+        column.AddChild(TimeBox(speeds, dateRow));
         column.AddChild(favorRow);
         column.AddChild(buttons);
         block.AddChild(column);

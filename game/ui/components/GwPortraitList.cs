@@ -125,7 +125,8 @@ public partial class GwPortraitList : PanelContainer
     public GwPortraitList()
     {
         Name = "Portraits";
-        ThemeTypeVariation = UiTheme.CompactPanel;
+        // S1b (D795): on the world without a box; the screen gives it the world theme (light text, dark outline).
+        ThemeTypeVariation = UiTheme.WorldPanel;
         _scroll.AddChild(_rows);
         AddChild(_scroll);
         _scroll.GetVScrollBar().ValueChanged += _ => AskForPictures();
