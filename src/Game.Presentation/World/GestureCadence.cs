@@ -37,7 +37,9 @@ public static class GestureCadence
     public static double CycleS(FigureGesture gesture)
     {
         ArgumentNullException.ThrowIfNull(gesture);
-        return gesture.RiseS + (gesture.DipS ?? 0) + (gesture.LiftS ?? 0) + gesture.HoldS + gesture.LowerS + gesture.RestS;
+        // Dip and lift belong to a start point; without one the hand goes to the head at once (as in At).
+        var path = gesture.FromBody is { Count: 3 } ? (gesture.DipS ?? 0) + (gesture.LiftS ?? 0) : 0;
+        return gesture.RiseS + path + gesture.HoldS + gesture.LowerS + gesture.RestS;
     }
 
     /// <summary>The gesture <paramref name="seconds"/> after it began (the cycle repeats while the action lasts).</summary>
