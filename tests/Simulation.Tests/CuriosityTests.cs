@@ -14,7 +14,7 @@ namespace GlassWorld.Simulation.Tests;
 
 /// <summary>
 /// TL #19921: curiosity drives looking at unknown things when the needs are met; looking teaches what can be
-/// seen (kind, look), guesses and where the thing stands - never the effect.
+/// seen (kind, look) and where the thing stands - never a guess (the AI guesses, D1096 #6) and never the effect.
 /// </summary>
 public sealed class CuriosityTests : IDisposable
 {
@@ -63,7 +63,7 @@ public sealed class CuriosityTests : IDisposable
     }
 
     [Fact]
-    public void LookingTeachesTheKindAndGuessesButNeverTheEffect()
+    public void LookingTeachesTheKindButNeitherGuessesNorTheEffect()
     {
         var w = NewWorld();
         var looker = Sated(w.Inhabitants.Get("inh-000001"), 0.9);
@@ -74,15 +74,16 @@ public sealed class CuriosityTests : IDisposable
             RunUntil(w.World, () => looker.Activity is null);
         }
 
-        // Looks like fruit, so it might be edible - a guess; that it is poisonous is not seen.
+        // It looks like fruit - that is seen. Whether it is edible the core never plants (D1096 #6, B2745 e): the AI
+        // guesses (night question), trying shows it. That it is poisonous is not seen either.
         Assert.True(looker.Beliefs.TryGet("red_berry", "fruit", out var fruit) && fruit.Value && fruit.Source == KnowledgeSources.Seen);
-        Assert.True(looker.Beliefs.TryGet("red_berry", "edible", out var edible) && edible.Value);
-        Assert.Equal((KnowledgeSources.Guessed, Looking.GuessedConfidence), (edible.Source, edible.Confidence));
+        Assert.False(looker.Beliefs.TryGet("red_berry", "edible", out _));
         Assert.False(looker.Beliefs.TryGet("red_berry", "poisonous", out _));
 
-        // Looks like water, so it might be drinkable - that it is salty is learned only by drinking.
-        Assert.True(looker.Beliefs.TryGet("sea_water", "drinkable", out var drinkable) && drinkable.Source == KnowledgeSources.Guessed);
+        // It looks like water; drinkable or salty is learned only by drinking (or guessed by the AI).
+        Assert.False(looker.Beliefs.TryGet("sea_water", "drinkable", out _));
         Assert.False(looker.Beliefs.TryGet("sea_water", "salty", out _));
+        Assert.Empty(Looking.Guesses);
 
         // No property an action's effect depends on is ever learned as seen - except what a thing is by being made
         // (the invention data's implied properties): a made thing looks made (B2698).
