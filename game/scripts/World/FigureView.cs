@@ -42,6 +42,9 @@ public partial class FigureView : Node3D
     private string _shownPose = string.Empty;
     private bool _standsIdle;
     private bool _lying;
+
+    /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
+    public bool Lying => _lying;
     private double _lieSeconds;
     private FigureClip _lieClip;
     private LieClip? _lieStage;
@@ -211,11 +214,12 @@ public partial class FigureView : Node3D
             : null;
         _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
-        _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
+        // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
+        _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count, _lying);
         if (place)
         {
             // Placed (after a warm-up, a load) it lies or stands at once, without the way there.
