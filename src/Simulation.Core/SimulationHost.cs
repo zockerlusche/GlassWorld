@@ -358,7 +358,7 @@ public sealed class SimulationHost
         // One job port for all job systems: each receives only the outcomes of its own jobs (the invention
         // system takes the rest), and all write the world's one job log.
         var jobs = jobPort is null ? null : new JobRouter(jobPort);
-        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests };
+        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests, Knowledge = content.Knowledge };
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
 

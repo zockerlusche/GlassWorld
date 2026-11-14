@@ -55,6 +55,10 @@
       "text": "Gedanke"
     },
     {
+      "key": "msg.world.faulted",
+      "text": "Es gab ein Problem, die Welt ist angehalten. Dein letzter Spielstand ist sicher; der Stand von eben liegt als Rettungsdatei daneben."
+    },
+    {
       "key": "msg.save.failed",
       "text": "Speichern hat nicht geklappt. Die Welt bleibt offen, damit nichts verloren geht."
     },

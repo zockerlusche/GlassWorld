@@ -65,6 +65,10 @@ public sealed class InventionSafetyCasesTests
     [InlineData("Gefallen", "*falle", false)]
     [InlineData("club", "club", true)]
     [InlineData("Honigschleuder", "schleuder", false)]
+    [InlineData("Wurfschleuder aus Leder", "wurfschleuder*", true)]
+    [InlineData("Honigschleuder", "wurfschleuder*", false)]
+    [InlineData("Ein Schleuderstein", "schleuderstein*", true)]
+    [InlineData("a slingstone", "slingstone*", true)]
     [InlineData("Tragschlinge", "wurfschlinge*", false)]
     [InlineData("Regenbogen", "bogen", false)]
     [InlineData("Ein Bogen", "bogen", true)]
@@ -77,6 +81,29 @@ public sealed class InventionSafetyCasesTests
     [InlineData("selfish", "fish*", false)]
     public void ATermMatchesWordsAsItsStarsSay(string name, string term, bool hit) =>
         Assert.Equal(hit, InventionCheck.Holds(name, [term]));
+
+    [Theory]
+    [InlineData("Wurfschleuder", "Slingstone thrower")]
+    [InlineData("Steinschleuder zur Jagd", "Hunting sling")]
+    [InlineData("Schleuderstein-Beutel", "Slingstones in a pouch")]
+    public void TheShippedListRefusesSlings(string de, string en)
+    {
+        // TL TH143 (GW2 L1546): guard v5 once approved a hunting sling; the core's list has the last word.
+        var terms = Content.Value.Inventions.Settings.ForbiddenTerms!;
+        Assert.True(InventionCheck.Holds(de, terms.De), de);
+        Assert.True(InventionCheck.Holds(en, terms.En), en);
+    }
+
+    [Theory]
+    [InlineData("Honigschleuder", "Carrying sling")]
+    [InlineData("Tragschlinge", "Arm sling")]
+    public void HarmlessSlingsAndSpinnersStayAllowed(string de, string en)
+    {
+        // The list keeps out what hurts, not every word that sounds like it (ages 12+, calm world).
+        var terms = Content.Value.Inventions.Settings.ForbiddenTerms!;
+        Assert.False(InventionCheck.Holds(de, terms.De), de);
+        Assert.False(InventionCheck.Holds(en, terms.En), en);
+    }
 
     [Theory]
     [InlineData("Fischgrill", "Fish Grill")]

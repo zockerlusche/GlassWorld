@@ -55,6 +55,10 @@
       "text": "Thought"
     },
     {
+      "key": "msg.world.faulted",
+      "text": "Something went wrong, so the world has stopped. Your last save is safe; the state from just now is kept as a rescue file next to it."
+    },
+    {
       "key": "msg.save.failed",
       "text": "Saving did not work. The world stays open so nothing is lost."
     },
