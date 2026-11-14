@@ -1515,6 +1515,10 @@
       "text": "Wild grain"
     },
     {
+      "key": "msg.hint.knock",
+      "text": "{name} knocks at the glass."
+    },
+    {
       "key": "msg.hint.help_needed",
       "text": "{name} finds nothing for {need}."
     },

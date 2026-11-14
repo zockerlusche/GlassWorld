@@ -100,6 +100,9 @@ public static class ScreenModel
         return message.TextKey == QuestionHint && message.LookAt is { } id && rows.FirstOrDefault(r => r.Id == id) is not { OpenQuestions: > 0 };
     }
 
+    /// <summary>Text key of the hint that names who knocks at the glass (A1714).</summary>
+    public const string KnockHint = "msg.hint.knock";
+
     /// <summary>
     /// Calm hints for new events (D366 section 9): an inhabitant has a new open question (B2487: that,
     /// not what). Hints of this kind form one group, so many questions bundle.
@@ -136,6 +139,17 @@ public static class ScreenModel
                 // several questions read "wonders about several things", not a growing count (D705 A4), and a
                 // question already settled when the events arrive raises none.
                 yield return new ToastMessage(QuestionHint, NameArgs(row, unnamedText), QuestionHint + "|" + row.Id, row.Id, "msg.hint.questions_many");
+            }
+        }
+
+        // A1714 (D1112 #7): a knock names who knocks and leads there - a builder's knock, or one held while the sender
+        // slept, had only a sound. A call for help in the same batch already named the inhabitant (no second hint).
+        var called = events.Where(e => e.Kind == Simulation.Player.PlayerSystem.HelpNeeded).Select(e => e.InhabitantId).ToHashSet(StringComparer.Ordinal);
+        foreach (var e in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
+        {
+            if (!called.Contains(e.InhabitantId) && rows.FirstOrDefault(r => r.Id == e.InhabitantId) is { } row)
+            {
+                yield return new ToastMessage(KnockHint, NameArgs(row, unnamedText), KnockHint + "|" + row.Id, row.Id);
             }
         }
 
