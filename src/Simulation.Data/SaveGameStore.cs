@@ -437,7 +437,6 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("ideas", JsonSerializer.Serialize(ideas, Json)));
         }
 
-        // How places felt (B5 R32) by inhabitant id; older saves have no entry.
         // What inhabitants hold (AK1a); older saves have no entry.
         var held = s.Inhabitants.Where(i => i.Held is not null).ToDictionary(i => i.Id, i => i.Held!, StringComparer.Ordinal);
         if (held.Count > 0)
@@ -452,6 +451,7 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("born", JsonSerializer.Serialize(born, Json)));
         }
 
+        // How places felt (B5 R32) by inhabitant id; older saves have no entry.
         var felt = s.Inhabitants.Where(i => i.FeltPlaces is not null).ToDictionary(i => i.Id, i => i.FeltPlaces!, StringComparer.Ordinal);
         if (felt.Count > 0)
         {
