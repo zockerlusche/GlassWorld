@@ -301,6 +301,20 @@ public partial class WorldPresenter : Node3D
                     GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
                     SaveFailed?.Invoke(e);
                 }
+
+                // A1620 (B2685): the learning log of the finished day, next to the save (GW3 #23238). Its own
+                // try (review GW3 #353): a log that cannot be written is no failed save and never reaches World.Step.
+                try
+                {
+                    if (Path.GetDirectoryName(SavePath) is { Length: > 0 } worldFolder)
+                    {
+                        LearningLogWriter.WriteFinishedDays(host, worldFolder, _contentDirectory);
+                    }
+                }
+                catch (Exception e) when (e is not OutOfMemoryException)
+                {
+                    GD.PushWarning($"LEARNING_LOG_FAILED {e.GetType().Name}: {e.Message}");
+                }
             };
         }
 
