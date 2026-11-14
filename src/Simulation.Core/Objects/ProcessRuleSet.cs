@@ -52,6 +52,46 @@ public sealed class ProcessRuleSet
     /// <summary>The process verb of a rule, or null for a rule this set does not have (D1096 #4: milestones by verb).</summary>
     public string? ProcessOf(string ruleId) => _rules.FirstOrDefault(r => string.Equals(r.Id, ruleId, StringComparison.Ordinal))?.Process;
 
+    /// <summary>
+    /// What a step of a plan makes of its materials by the data's rules (D1097): the most specific rule of the step's process
+    /// that fits them - two materials as a pair, or one alone - at the given tech level and any heat (a plan does not say how
+    /// hot; the tech level bounds what it can reach). The result is the target's properties with the rule's additions and
+    /// removals, and which materials the step worked on - its target and what it uses up (review GW2 #424: the others stay
+    /// as they are); null when no rule fits.
+    /// </summary>
+    public (FrozenSet<string> Made, IReadOnlyList<int> Worked)? StepResult(string process, IReadOnlyList<FrozenSet<string>> materials, int? worldTech)
+    {
+        ArgumentNullException.ThrowIfNull(materials);
+        var hottest = HeatLevels.Count - 1;
+        foreach (var rule in _rules)
+        {
+            if (!string.Equals(rule.Process, process, StringComparison.Ordinal) || !Applies(rule, worldTech, hottest))
+            {
+                continue;
+            }
+
+            IReadOnlyList<int>? inputs = null;
+            if (materials.Count >= 2 && Fit(rule, [materials[0], materials[1]]) is { } pair)
+            {
+                inputs = pair.Inputs;
+            }
+            else if (materials.Count >= 1 && rule.Inputs.Count == 1 && rule.Tool is null && FitsOne(rule, materials[0]))
+            {
+                inputs = [0];
+            }
+
+            if (inputs is not null)
+            {
+                var made = materials[inputs[0]].Union(rule.Result.AddProperties, StringComparer.Ordinal).Except(rule.Result.RemoveProperties, StringComparer.Ordinal)
+                    .ToFrozenSet(StringComparer.Ordinal);
+                var worked = rule.Result.Consumes.Where(i => i < inputs.Count).Select(i => inputs[i]).Append(inputs[0]).Distinct().ToList();
+                return (made, worked);
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Rule ids in specificity order.</summary>
     public IEnumerable<string> RuleIds => _rules.Select(r => r.Id);
 

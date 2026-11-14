@@ -45,7 +45,7 @@ building
 - char (Heat something for long with little air.)
 - cut (Cut something with a sharp edge.)
 - dry (Leave something in sun or wind until the water is gone.)
-- fire (Burn a shaped soft mass in strong heat until it is hard.)
+- fire (Expose something to strong heat for a long time.)
 - grind (Rub or crush something.)
 - heat (Make something hot.)
 - melt (Heat something until it becomes liquid.)
