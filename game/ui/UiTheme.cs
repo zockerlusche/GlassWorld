@@ -20,6 +20,9 @@ public static class UiTheme
     /// <summary>Body text over a darkened picture (night scene).</summary>
     public const string OnDarkLabel = "OnDarkLabel";
 
+    /// <summary>A value bar in the bad range (bar rule B2642): its own fill, brighter than a good one (S1b, Marcel sees colours weakly).</summary>
+    public const string BadBar = "GwBadBar";
+
     /// <summary>Theme type variation for big titles.</summary>
     public const string TitleLabel = "TitleLabel";
 
@@ -37,6 +40,12 @@ public static class UiTheme
 
     /// <summary>Panel type for hints and tooltips (Godot's built-in type name).</summary>
     public const string TooltipPanel = "TooltipPanel";
+
+    /// <summary>
+    /// A part that stands on the world without a box (S1b, D795, D1076 section 6: the corners top left and bottom
+    /// left): no frame, only the room around; its text comes from <see cref="BuildWorld"/>.
+    /// </summary>
+    public const string WorldPanel = "GwWorldPanel";
 
     /// <summary>Theme type variation for speech and thought bubbles.</summary>
     public const string BubblePanel = "GwBubblePanel";
@@ -108,6 +117,10 @@ public static class UiTheme
         theme.SetTypeVariation(CompactPanel, "PanelContainer");
         theme.SetStylebox("panel", CompactPanel, compact);
         theme.SetStylebox("panel", TooltipPanel, Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
+        // No room of its own: the safe margin already keeps it off the edge, and the time block stays clear of the middle at 200 %.
+        var world = new StyleBoxEmpty();
+        theme.SetTypeVariation(WorldPanel, "PanelContainer");
+        theme.SetStylebox("panel", WorldPanel, world);
         theme.SetTypeVariation(BubblePanel, "PanelContainer");
         theme.SetStylebox("panel", BubblePanel, Frame(style, UiFrameId.Bubble, UiColorId.Bubble_inhabitant));
 
@@ -121,8 +134,9 @@ public static class UiTheme
 
         // Text fields (new world, talk field): light like the windows, not Godot's dark default, so dark
         // text stays readable; the hint text muted, the focus ring like buttons (B6 R2 UI standard).
-        theme.SetStylebox("normal", "LineEdit", Frame(style, UiFrameId.Button, UiColorId.Panel));
-        theme.SetStylebox("read_only", "LineEdit", Frame(style, UiFrameId.Button, UiColorId.Panel, (UiColorId.Text_muted, button.DisabledTint)));
+        // S1b: a field has a form of its own - a light inset with a line below - so it is not taken for a button.
+        theme.SetStylebox("normal", "LineEdit", Field(style, Frame(style, UiFrameId.Button, UiColorId.Field)));
+        theme.SetStylebox("read_only", "LineEdit", Field(style, Frame(style, UiFrameId.Button, UiColorId.Panel, (UiColorId.Text_muted, button.DisabledTint))));
         theme.SetStylebox("focus", "LineEdit", FocusRing(style));
         theme.SetColor("font_placeholder_color", "LineEdit", ToGodot(style.Color(UiColorId.Text_muted)));
         theme.SetColor("caret_color", "LineEdit", text);
@@ -182,9 +196,56 @@ public static class UiTheme
             BorderColor = tint is { } c ? ToGodot(style.Color(c.Color)) : ToGodot(style.Color(UiColorId.Border)),
         };
         flat.SetBorderWidthAll(style.Tokens.Window.BorderWidth);
-        flat.SetCornerRadiusAll(style.Tokens.Window.CornerRadius);
+
+        // S1b (D1076 section 6): buttons and fields a shape of their own, windows rounder and lifted from the world by
+        // a soft shadow instead of a hard box.
+        flat.SetCornerRadiusAll(id is UiFrameId.Button ? style.Tokens.Window.ButtonRadius : style.Tokens.Window.CornerRadius);
+        if (id is UiFrameId.Window or UiFrameId.Tooltip)
+        {
+            flat.ShadowSize = style.Tokens.Window.ShadowPx;
+            flat.ShadowColor = ToGodot(style.Color(UiColorId.Border)) with { A = (float)style.Tokens.Window.ShadowAlpha };
+        }
+
         flat.SetContentMarginAll(padding);
         return flat;
+    }
+
+    /// <summary>A text field: the frame with a thin border and a thicker line below (a flat frame; a picture frame stays as it is).</summary>
+    private static StyleBox Field(UiStyle style, StyleBox frame)
+    {
+        if (frame is StyleBoxFlat flat)
+        {
+            flat.SetBorderWidthAll(Math.Max(1, style.Tokens.Window.BorderWidth / 2));
+            flat.BorderWidthBottom = style.Tokens.Window.BorderWidth + 1;
+        }
+
+        return frame;
+    }
+
+    /// <summary>
+    /// The theme of the parts that stand on the world without a box (S1b, D795): light text with a dark outline, so it
+    /// reads on grass, water and sky alike; flat buttons (rows of the portrait list and the log) the same. Set on those
+    /// parts only; everything else falls back to the main theme.
+    /// </summary>
+    public static Theme BuildWorld(UiStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        var theme = new Theme();
+        var text = ToGodot(style.Color(UiColorId.World_text));
+        var outline = ToGodot(style.Color(UiColorId.World_outline));
+        foreach (var type in new[] { "Label", "Button" })
+        {
+            theme.SetColor("font_outline_color", type, outline);
+            theme.SetConstant("outline_size", type, style.Tokens.Window.WorldOutlinePx);
+        }
+
+        theme.SetColor("font_color", "Label", text);
+        foreach (var name in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
+        {
+            theme.SetColor(name, "Button", text);
+        }
+
+        return theme;
     }
 
     private static ImageTexture? LoadFrameTexture(UiFrame frame, int sourceScale)
@@ -250,10 +311,12 @@ public static class UiTheme
             return box;
         }
 
-        // The fill leans toward the accent so the level stands out from the track, while dark text stays readable (review #104).
-        var panel = ToGodot(style.Color(UiColorId.Panel));
-        theme.SetStylebox("background", "ProgressBar", Box(panel));
-        theme.SetStylebox("fill", "ProgressBar", Box(panel.Lerp(ToGodot(style.Color(UiColorId.Accent)), 0.35f)));
+        // S1b: the track a light field, the fill its own colour (dark text stays readable on both, review #104); a value
+        // in the bad range differs in brightness too (UiStandardRules.BrightnessStep), not only in hue.
+        theme.SetStylebox("background", "ProgressBar", Box(ToGodot(style.Color(UiColorId.Field))));
+        theme.SetStylebox("fill", "ProgressBar", Box(ToGodot(style.Color(UiColorId.Bar_fill))));
+        theme.SetTypeVariation(BadBar, "ProgressBar");
+        theme.SetStylebox("fill", BadBar, Box(ToGodot(style.Color(UiColorId.Bar_bad))));
         theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetConstant("outline_size", "ProgressBar", 0);
