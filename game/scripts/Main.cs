@@ -456,6 +456,7 @@ public partial class Main : Node3D
             _screen.ApplySettings(_settings, _style);
             _screen.SetupChronicle(ContractSerializer.Deserialize<ChronicleKinds>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "chronicle", "kinds.json"))));
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
+            _world.Faulted += (_, _) => _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
             _screen.PauseRequested += OpenPause;
         }
 
