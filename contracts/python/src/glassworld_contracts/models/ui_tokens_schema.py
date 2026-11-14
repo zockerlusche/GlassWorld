@@ -175,6 +175,18 @@ class UiWindowTokens(BaseModel):
         gt=0.0,
         le=1.0,
     )
+    card_diary_lines: int = Field(
+        ...,
+        description='Diary entries the card shows at once (B2603: the last ones on top, more on a click).',
+        ge=1,
+        le=50,
+    )
+    card_talk_lines: int = Field(
+        ...,
+        description='Last sentences of the conversation the card shows above the talk field (B2603: one conversation).',
+        ge=0,
+        le=50,
+    )
 
 
 class UiButtonTokens(BaseModel):
@@ -360,6 +372,8 @@ class Icon(StrEnum):
     frost = 'frost'
     heat = 'heat'
     drought = 'drought'
+    thumb_up = 'thumb_up'
+    thumb_down = 'thumb_down'
     unknown = 'unknown'
 
 
@@ -369,6 +383,19 @@ class UiIconChoice(BaseModel):
     )
     id: str = Field(..., description='Season or weather id.', min_length=1)
     icon: Icon = Field(..., description='Drawn symbol.')
+
+
+class Kind(StrEnum):
+    uplift = 'uplift'
+    burden = 'burden'
+
+
+class UiBarMood(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(..., description='Mood id of the vocabulary.', min_length=1)
+    kind: Kind = Field(..., description='uplift: much is good; burden: much is bad.')
 
 
 class Zones(BaseModel):
@@ -449,6 +476,40 @@ class Zones(BaseModel):
         ...,
         description="Symbol of each weather in the time block top right (ids of the weather vocabulary); an unknown weather shows the symbol 'unknown'.",
     )
+    card_width: int = Field(
+        ...,
+        description='Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.',
+        ge=200,
+        le=1600,
+    )
+
+
+class Bars(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    state_bad_below: int = Field(
+        ...,
+        description='A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.',
+        ge=0,
+        le=100,
+    )
+    state_good_from: int = Field(
+        ...,
+        description='A state value or an uplifting feeling from this on shows a thumb up.',
+        ge=0,
+        le=100,
+    )
+    burden_bad_from: int = Field(
+        ...,
+        description='A burdening feeling (fear, sadness ...) from this on is in the bad range.',
+        ge=0,
+        le=100,
+    )
+    moods: list[UiBarMood] = Field(
+        ...,
+        description='Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.',
+    )
 
 
 class UiPalette(BaseModel):
@@ -518,4 +579,8 @@ class UiTokens(BaseModel):
     zones: Zones = Field(
         ...,
         description='Sizes of the corner layout (UI concept Variante A, D957 v4, B2643; grew out of the zones preview W1717/D642): compact corners so the middle of the picture stays free.',
+    )
+    bars: Bars = Field(
+        ...,
+        description='One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).',
     )

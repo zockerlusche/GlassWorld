@@ -2931,6 +2931,54 @@
       "text": "Day {day}, {time} - {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Trying it for the first time."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Wondering: What is that? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Wondering: Who is that?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Wondering: Who is there?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Pondering something."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "More questions ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "You: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Show more"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Show less"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Favour"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Favour {value} of {max}. It grows back slowly; gifts cost favour."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Timeline"
     },

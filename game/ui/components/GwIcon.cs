@@ -81,6 +81,10 @@ public partial class GwIcon : Control
                 }
 
                 break;
+            case UiIconChoiceIcon.Thumb_up:
+            case UiIconChoiceIcon.Thumb_down:
+                Thumb(c, r, colour, w, _icon == UiIconChoiceIcon.Thumb_down);
+                break;
             case UiIconChoiceIcon.Question:
             case UiIconChoiceIcon.Unknown:
                 Letter("?", c, s * 0.8f, colour);
@@ -214,6 +218,22 @@ public partial class GwIcon : Control
         var ascent = font.GetAscent(size);
         var width = font.GetStringSize(text, HorizontalAlignment.Left, -1, size).X;
         DrawString(font, new Vector2(centre.X - (width / 2), centre.Y + (ascent / 2) - (size * 0.08f)), text, HorizontalAlignment.Left, -1, size, colour);
+    }
+
+    /// <summary>
+    /// A thumb up, or down (the bar rule B2642): a closed hand with the thumb raised; down is the same hand turned
+    /// upside down, so both read alike at a glance.
+    /// </summary>
+    private void Thumb(Vector2 centre, float r, Color colour, float width, bool down)
+    {
+        var flip = down ? -1f : 1f;
+        Vector2 P(float x, float y) => centre + new Vector2(x * r, y * r * flip);
+
+        // The cuff on the left, the closed fingers as a block, the thumb raised from the block's upper left.
+        DrawColoredPolygon([P(-0.9f, -0.05f), P(-0.55f, -0.05f), P(-0.55f, 0.85f), P(-0.9f, 0.85f)], colour);
+        DrawColoredPolygon([P(-0.45f, -0.1f), P(0.75f, -0.1f), P(0.85f, 0.05f), P(0.85f, 0.75f), P(0.7f, 0.85f), P(-0.45f, 0.85f)], colour);
+        DrawLine(P(-0.25f, -0.05f), P(0.05f, -0.85f), colour, width * 2.2f, true);
+        DrawCircle(P(0.05f, -0.85f), width * 1.1f, colour);
     }
 
     private void Triangle(Vector2 centre, float r, Color colour) =>

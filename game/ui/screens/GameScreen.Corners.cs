@@ -23,6 +23,7 @@ public partial class GameScreen
     private readonly GwIcon _seasonIcon = new() { Name = "Season", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly GwIcon _weatherIcon = new() { Name = "Weather", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly ProgressBar _favorBar = new() { Name = "FavorBar", ShowPercentage = false, MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "ui.favor.tooltip", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+    private readonly GwIcon _favorThumb = new() { Name = "FavorThumb", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private readonly GwRoundButton _menuRound = new() { Name = "CornerMenu" };
     private readonly GwPortraitList _portraits = new() { Visible = false };
     private readonly Dictionary<string, Texture2D> _portraitPictures = new(StringComparer.Ordinal);
@@ -59,6 +60,7 @@ public partial class GameScreen
         _seasonIcon.CustomMinimumSize = icon;
         _weatherIcon.CustomMinimumSize = icon;
         _favorBar.CustomMinimumSize = new Vector2(_style.Tokens.Zones.FavorBarWidth, px * 0.3f);
+        _favorThumb.CustomMinimumSize = icon;
 
         _root.AddChild(_corner);
         _root.AddChild(_portraits);
@@ -95,8 +97,10 @@ public partial class GameScreen
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
             }
 
-            Move(_favorBar, _cornerFavor, 0);
-            Move(_favor, _cornerFavor, 1);
+            // The favour as word, bar and thumb (bar rule B2642, TL #25508): the number only in the tooltip.
+            Move(_favor, _cornerFavor, 0);
+            Move(_favorBar, _cornerFavor, 1);
+            Move(_favorThumb, _cornerFavor, 2);
             return;
         }
 
@@ -112,6 +116,7 @@ public partial class GameScreen
         Move(_seasonIcon, _cornerDate, 0);
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
+        Move(_favorThumb, _cornerFavor, 1);
     }
 
     private static void Move(Control part, Node to, int index)
@@ -156,6 +161,16 @@ public partial class GameScreen
         var (value, max) = _feed.Favor();
         _favorBar.MaxValue = Math.Max(1, max);
         _favorBar.Value = value;
+        var look = CardModel.Judge(BarKind.State, (int)Math.Floor(100 * value / Math.Max(1, max)), _style.Tokens.Bars);
+        _favorBar.ThemeTypeVariation = look == BarLook.Bad ? UiTheme.BadBar : string.Empty;
+        _favorThumb.Icon = look == BarLook.Bad ? UiIconChoiceIcon.Thumb_down : UiIconChoiceIcon.Thumb_up;
+        _favorThumb.Tint = UiTheme.ToGodot(_style.Color(look == BarLook.Bad ? UiColorId.Attention : UiColorId.Positive));
+        _favorThumb.Modulate = look == BarLook.Calm ? Colors.Transparent : Colors.White;
+        var tip = TextFill.Fill(Tr("ui.favor.bar_tooltip"), new Dictionary<string, string> { ["value"] = Number((long)Math.Floor(value)), ["max"] = Number((long)max) });
+        _favorBar.TooltipText = tip;
+        _favorBar.TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
+        _favor!.TooltipText = tip;
+        _favor.TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
 
         foreach (var (id, button) in _themeButtons)
         {
@@ -326,7 +341,8 @@ public partial class GameScreen
     {
         var log = _sideBar.PanelOf(ScreenZones.Pinned);
         var list = _sideBar.PanelOf("inhabitants");
-        PlaceCorners(area, _style!, _corner, _portraits, log, [.. _sideBar.Panels.Where(p => p != log).Select(p => (p, p == list ? _inhabitants.WantedWidth : 0f))]);
+        var card = _sideBar.PanelOf(ScreenZones.Card);
+        PlaceCorners(area, _style!, _corner, _portraits, log, [.. _sideBar.Panels.Where(p => p != log).Select(p => (p, p == list ? _inhabitants.WantedWidth : 0f, p == card))]);
         PlaceToasts();
         FitCard(area);
     }
@@ -341,8 +357,8 @@ public partial class GameScreen
     /// <param name="corner">The time block.</param>
     /// <param name="portraits">The portrait list.</param>
     /// <param name="log">The log.</param>
-    /// <param name="windows">The windows of the right-hand place, with the width their content asks for (0 = none).</param>
-    public static void PlaceCorners(Vector2 area, UiStyle style, Control corner, GwPortraitList portraits, GwSidePanel log, IReadOnlyList<(GwSidePanel Panel, float ContentPx)> windows)
+    /// <param name="windows">The windows of the right-hand place, with the width their content asks for (0 = none) and whether it is the inhabitant card (wider, data: zones.card_width).</param>
+    public static void PlaceCorners(Vector2 area, UiStyle style, Control corner, GwPortraitList portraits, GwSidePanel log, IReadOnlyList<(GwSidePanel Panel, float ContentPx, bool Card)> windows)
     {
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(corner);
@@ -366,9 +382,9 @@ public partial class GameScreen
         portraits.Size = new Vector2(Math.Min(portraits.WantedWidth, leftRoom), listHeight);
         portraits.Position = new Vector2(margin, margin);
 
-        foreach (var (panel, contentPx) in windows)
+        foreach (var (panel, contentPx, card) in windows)
         {
-            panel.Dock(area, style, 0, below, widthPx: zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom);
+            panel.Dock(area, style, 0, below, widthPx: card ? zones.CardWidth : zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom);
         }
 
         // The log at the bottom left, below the portraits (it gets its own corner shape in step 3).
@@ -403,8 +419,9 @@ public partial class GameScreen
         dateRow.AddChild(new Label { Text = time, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
         dateRow.AddChild(new GwIcon { Icon = UiIconChoiceIcon.Storm, CustomMinimumSize = icon });
         var favorRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        favorRow.AddChild(new ProgressBar { ShowPercentage = false, Value = 40, CustomMinimumSize = new Vector2(style.Tokens.Zones.FavorBarWidth, px * 0.3f), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter });
         favorRow.AddChild(new Label { Text = favor, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        favorRow.AddChild(new ProgressBar { ShowPercentage = false, Value = 40, CustomMinimumSize = new Vector2(style.Tokens.Zones.FavorBarWidth, px * 0.3f), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter });
+        favorRow.AddChild(new GwIcon { Icon = UiIconChoiceIcon.Thumb_up, CustomMinimumSize = icon, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter });
         var buttons = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         var menu = new GwRoundButton();
         menu.Setup(UiIconChoiceIcon.Menu, "ui.top.menu_tooltip", px);
@@ -423,6 +440,54 @@ public partial class GameScreen
         column.AddChild(buttons);
         block.AddChild(column);
         return block;
+    }
+
+    /// <summary>
+    /// Layout check only (A1683): an inhabitant card as <see cref="BuildCard"/> builds it - head with portrait, the
+    /// question on top with whisper, conversation lines, the talk field with show and say, diary lines, every bar
+    /// of the needs with its thumb - with long texts given by the check. Returns the panel and its talk field.
+    /// </summary>
+    public static (GwSidePanel Panel, LineEdit TalkField) CardSample(UiStyle style, string title, string doing, string question, string line, string talkHint, IReadOnlyList<string> barKeys)
+    {
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(barKeys);
+        var panel = new GwSidePanel { Name = "CardSample" };
+        panel.Setup(title);
+        var content = panel.Content;
+        var head = new HBoxContainer();
+        var portraitPx = (float)style.Tokens.Zones.PortraitPx * 1.25f;
+        head.AddChild(new GwPortrait { CustomMinimumSize = new Vector2(portraitPx, portraitPx), SizeFlagsVertical = Control.SizeFlags.ShrinkBegin });
+        var about = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        about.AddChild(new Label { Text = doing, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        about.AddChild(new Label { Text = "ui.card.trying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        about.AddChild(new CheckButton { Text = "ui.card.favourite" });
+        head.AddChild(about);
+        content.AddChild(head);
+        content.AddChild(new Label { Text = question, ThemeTypeVariation = UiTheme.SubheaderLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        content.AddChild(new Button { Text = "ui.question.answer", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin });
+        content.AddChild(new Label { Text = "ui.card.talk", ThemeTypeVariation = UiTheme.SubheaderLabel });
+        content.AddChild(new Label { Text = line, ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        var talkRow = new HBoxContainer();
+        var field = new LineEdit { PlaceholderText = talkHint, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        talkRow.AddChild(field);
+        talkRow.AddChild(new Button { Text = "ui.card.point" });
+        talkRow.AddChild(new Button { Text = "ui.card.talk_send" });
+        content.AddChild(talkRow);
+        content.AddChild(new Label { Text = "ui.card.diary", ThemeTypeVariation = UiTheme.SubheaderLabel });
+        for (var i = 0; i < style.Tokens.Window.CardDiaryLines; i++)
+        {
+            content.AddChild(new Label { Text = line, ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        }
+
+        foreach (var key in barKeys)
+        {
+            var bar = new GwValueBar();
+            bar.Setup(key, translate: true, CardModel.KindOf(key, style.Tokens.Bars), style.Tokens.Window.CardBarWidth, style.FontPx(UiFontSizeId.Body));
+            bar.Show(10, BarLook.Bad, UiTheme.ToGodot(style.Color(UiColorId.Positive)), UiTheme.ToGodot(style.Color(UiColorId.Attention)));
+            content.AddChild(bar);
+        }
+
+        return (panel, field);
     }
 
     /// <summary>

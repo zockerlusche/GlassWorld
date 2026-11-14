@@ -14,6 +14,7 @@
     "min_font_px",
     "font_sizes",
     "spacing",
+    "bars",
     "window",
     "button",
     "table",
@@ -149,7 +150,8 @@
         "favor_bar_width",
         "middle_share",
         "season_icons",
-        "weather_icons"
+        "weather_icons",
+        "card_width"
       ],
       "properties": {
         "side_panel_width": {
@@ -237,6 +239,50 @@
           "items": {
             "$ref": "#/$defs/UiIconChoice"
           }
+        },
+        "card_width": {
+          "description": "Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.",
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 1600
+        }
+      }
+    },
+    "bars": {
+      "description": "One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_bad_below",
+        "state_good_from",
+        "burden_bad_from",
+        "moods"
+      ],
+      "properties": {
+        "state_bad_below": {
+          "description": "A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "state_good_from": {
+          "description": "A state value or an uplifting feeling from this on shows a thumb up.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "burden_bad_from": {
+          "description": "A burdening feeling (fear, sadness ...) from this on is in the bad range.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "moods": {
+          "description": "Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UiBarMood"
+          }
         }
       }
     }
@@ -301,7 +347,9 @@
         "diary_lines",
         "field_min_width",
         "settings_label_width",
-        "field_max_share"
+        "field_max_share",
+        "card_diary_lines",
+        "card_talk_lines"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -460,6 +508,18 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 1
+        },
+        "card_diary_lines": {
+          "description": "Diary entries the card shows at once (B2603: the last ones on top, more on a click).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "card_talk_lines": {
+          "description": "Last sentences of the conversation the card shows above the talk field (B2603: one conversation).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
         }
       }
     },
@@ -776,7 +836,33 @@
             "frost",
             "heat",
             "drought",
+            "thumb_up",
+            "thumb_down",
             "unknown"
+          ]
+        }
+      }
+    },
+    "UiBarMood": {
+      "description": "Whether a feeling uplifts or burdens (for the bar rule B2642).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "description": "Mood id of the vocabulary.",
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "description": "uplift: much is good; burden: much is bad.",
+          "type": "string",
+          "enum": [
+            "uplift",
+            "burden"
           ]
         }
       }

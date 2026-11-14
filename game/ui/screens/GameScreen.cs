@@ -19,6 +19,9 @@ public partial class GameScreen : CanvasLayer
 {
     private const string MarkNode = "QuestionMark";
 
+    // The card's fold of the other questions keeps its state under this name, like the other folds under their title key.
+    private const string OtherQuestionsFold = "ui.card.more_questions";
+
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Control _overlay = new() { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
     private int _relayoutFrames;
@@ -53,7 +56,6 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly HashSet<string> _hintedQuestions = new(StringComparer.Ordinal);
     private readonly Dictionary<string, QuestionEntry> _questionEntries = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, QuestionEntry> _cardQuestionEntries = new(StringComparer.Ordinal);
     private Label? _questionsEmpty;
     private Label? _questionsLater;
     private VBoxContainer? _cardQuestionBox;
@@ -70,11 +72,24 @@ public partial class GameScreen : CanvasLayer
     private int _chronicleToldShown;
     private long? _chronicleDay;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
-    private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, GwValueBar> _cardBars = new(StringComparer.Ordinal);
+    private GwPortrait? _cardPortrait;
+    private Label? _cardTrying;
+    private string? _cardTopQuestionId;
+    private Label? _cardTopQuestion;
+    private Label? _cardTopReason;
+    private FoldableContainer? _cardOtherQuestions;
+    private VBoxContainer? _cardOtherQuestionRows;
+    private VBoxContainer? _cardTalkLines;
+    private (string? Id, int Count, long Tick) _cardTalkShown;
+    private Button? _cardDiaryMore;
+    private bool _cardDiaryOpen;
+
+    // The top question the one talk field answers after 'whisper' (B2603: one conversation), or null.
+    private string? _whisperFor;
     private Label? _cardAction;
     private TextureRect? _cardActionIcon;
     private Dictionary<string, string>? _activities;
-    private Label? _cardQuestions;
     private LineEdit? _talkInput;
 
     // A1617 (B2678): pointing while writing - the inhabitant whose card waits for a click into the world, the type
@@ -383,10 +398,12 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        foreach (var key in new[] { "ui.card.wellbeing", "ui.card.feelings", "ui.card.character", "ui.card.diary" })
+        foreach (var key in new[] { "ui.card.wellbeing", "ui.card.feelings", "ui.card.character", OtherQuestionsFold })
         {
             _cardFolded[key] = !expand;
         }
+
+        _cardDiaryOpen = expand;
 
         _cardShape = string.Empty;
         ShowInhabitant(inhabitantId);
@@ -1471,7 +1488,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         var (value, max) = _feed.Favor();
-        _favor.Text = TextFill.Fill(Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = Number((long)Math.Floor(value)), ["max"] = Number((long)max) });
+        // In the corners the word only: bar and thumb show how much, the number is in the tooltip (TL #25508, B2642).
+        _favor.Text = _zones ? Tr("ui.favor.name") : TextFill.Fill(Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = Number((long)Math.Floor(value)), ["max"] = Number((long)max) });
+        if (!_zones)
+        {
+            _favor.TooltipText = "ui.favor.tooltip";
+            _favor.TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always;
+        }
 
         var calls = _feed.HelpCalls();
         var locale = HelpLocale();
@@ -2818,6 +2841,12 @@ public partial class GameScreen : CanvasLayer
         panel.Content.AddChild(new Label { Text = "ui.card.none", AutowrapMode = TextServer.AutowrapMode.WordSmart });
     }
 
+    /// <summary>
+    /// The inhabitant card (S2, D957 v4 section 2, A1683), from the top: a head with portrait, what it does and
+    /// whether it tries something for the first time; the question on top with whisper; one conversation; the
+    /// diary's newest lines; the bars after the one rule (B2642); its memories. Built once per shape, then only
+    /// the values change, so nothing jumps while the player reads or types (B2595).
+    /// </summary>
     private void FillCard(string inhabitantId)
     {
         var card = _feed?.Card(inhabitantId);
@@ -2846,206 +2875,196 @@ public partial class GameScreen : CanvasLayer
         {
             // Build only when the set of values changes (other inhabitant, a feeling appears/fades).
             _cardShape = shape;
-            _cardBars.Clear();
-            foreach (var child in content.GetChildren())
-            {
-                content.RemoveChild(child);
-                child.QueueFree();
-            }
-
-            // The player's favourite (B6 R19): a switch at the top; a logged command, the player's own mark.
-            var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
-            favourite.Toggled += on => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
-                on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
-            content.AddChild(favourite);
-
-            // Its memory page (B8 R16, B6 R19): what the world kept about it.
-            var memories = new Button { Text = "ui.card.memory" };
-            memories.Pressed += () => OpenMemory(inhabitantId);
-            content.AddChild(memories);
-
-            // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
-            // visible; the values below in sections the player can fold (the choice is kept while playing).
-            Section("ui.card.doing");
-            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-
-            // An invention the inhabitant is busy with shows its icon before the line (A1603).
-            var doing = new HBoxContainer();
-            _cardActionIcon = IconRect();
-            doing.AddChild(_cardActionIcon);
-            doing.AddChild(_cardAction);
-            content.AddChild(doing);
-            content.AddChild(_cardQuestions);
-
-            // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
-            Section("ui.card.talk");
-            var talkRow = new HBoxContainer();
-            var input = new LineEdit
-            {
-                PlaceholderText = "ui.card.talk_hint",
-                MaxLength = 280,
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-            };
-            input.PlaceholderText = Tr("ui.card.talk_hint");
-            _talkInput = input;
-            var send = new Button { Text = "ui.card.talk_send" };
-            void Submit()
-            {
-                if (Say(inhabitantId, input.Text, _pointedType))
-                {
-                    input.Clear();
-                    _pointedType = null;
-                    UpdatePointing();
-                }
-            }
-
-            input.TextSubmitted += _ => Submit();
-            send.Pressed += Submit;
-
-            // A1617 (B2678): 'Zeigen' - the next click into the world picks a thing the sentence points at.
-            _pointedType = null;
-            _pointingFor = null;
-            _pointButton = new Button { Text = "ui.card.point", TooltipText = "ui.card.point_tooltip", ToggleMode = true };
-            _pointButton.Pressed += () =>
-            {
-                _pointingFor = _pointingFor is null ? inhabitantId : null;
-                UpdatePointing();
-            };
-            talkRow.AddChild(input);
-            talkRow.AddChild(_pointButton);
-            talkRow.AddChild(send);
-            content.AddChild(talkRow);
-            _pointedChip = new HBoxContainer { Visible = false };
-            _pointedLabel = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-            var unpoint = new Button { Text = "×", TooltipText = "ui.common.close" };
-            unpoint.Pressed += () =>
-            {
-                _pointedType = null;
-                _pointingFor = null;
-                UpdatePointing();
-            };
-            _pointedChip.AddChild(_pointedLabel);
-            _pointedChip.AddChild(unpoint);
-            content.AddChild(_pointedChip);
-
-            // What occupies this inhabitant (W1726): its open questions, here too, with the whisper field.
-            _cardQuestionEntries.Clear();
-            _cardQuestionBox = new VBoxContainer { Visible = false };
-            _cardQuestionBox.AddChild(new Label { Text = TrFor("ui.card.musing", _feed?.SexOf(inhabitantId)), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
-            content.AddChild(_cardQuestionBox);
-
-            var wellbeing = Fold("ui.card.wellbeing", folded: false);
-            Bar(wellbeing, "ui.card.will_to_live");
-            foreach (var need in card.Needs)
-            {
-                Bar(wellbeing, need.Key, need);
-            }
-
-            var feelings = Fold("ui.card.feelings", folded: true);
-            foreach (var feeling in card.Feelings)
-            {
-                Bar(feelings, feeling.Key);
-            }
-
-            var character = Fold("ui.card.character", folded: true);
-            foreach (var trait in card.Traits)
-            {
-                Bar(character, trait.Key);
-            }
-
-            // What it did, one after the other (W1726); folded until the player wants to read it.
-            _cardDiaryBox = Fold("ui.card.diary", folded: true);
-            _cardDiaryShown = default;
+            BuildCard(content, card, inhabitantId);
         }
 
+        var good = UiTheme.ToGodot(_style.Color(UiColorId.Positive));
+        var bad = UiTheme.ToGodot(_style.Color(UiColorId.Attention));
         foreach (var (key, percent) in values)
         {
-            if (_cardBars.TryGetValue(key, out var bar) && (int)bar.Value != percent)
+            if (_cardBars.TryGetValue(key, out var bar))
             {
-                bar.Value = percent;
+                bar.Show(percent, CardModel.Judge(bar.Kind, percent, _style.Tokens.Bars), good, bad);
             }
         }
 
-        if (_talkInput is not null && _talkInput.PlaceholderText != Tr("ui.card.talk_hint"))
+        if (_talkInput is not null)
         {
-            _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
-        }
-
-        var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
-        if (_cardActionIcon is not null)
-        {
-            var target = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id)?.TargetId;
-            var icon = target is null ? null : InventionIcon(target);
-            _cardActionIcon.Texture = icon;
-            _cardActionIcon.Visible = icon is not null;
-        }
-
-        if (_cardAction is not null && _cardAction.Text != action)
-        {
-            _cardAction.Text = action;
-        }
-
-        if (_cardQuestionBox is not null && _feed is not null)
-        {
-            var own = _feed.Questions().Where(q => q.InhabitantId == inhabitantId).OrderBy(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal).ToList();
-            SyncQuestions(_cardQuestionEntries, _cardQuestionBox, own, [card.Row], _style.Tokens.Window.QuestionsShown, withName: false, _cardQuestionBox);
-            _cardQuestionBox.Visible = _cardQuestionEntries.Count > 0;
-        }
-
-        if (_cardDiaryBox is not null && _diary is not null && _cardDiaryShown != (inhabitantId, _diary.Version))
-        {
-            _cardDiaryShown = (inhabitantId, _diary.Version);
-            foreach (var child in _cardDiaryBox.GetChildren())
+            var hint = _whisperFor is not null ? TrFor("ui.question.answer_hint", _feed?.SexOf(inhabitantId)) : Tr("ui.card.talk_hint");
+            if (_talkInput.PlaceholderText != hint)
             {
-                _cardDiaryBox.RemoveChild(child);
-                child.QueueFree();
-            }
-
-            var lines = _diary.Of(inhabitantId, key => Tr(key), NameOfId);
-            if (lines.Count == 0)
-            {
-                _cardDiaryBox.AddChild(new Label { Text = "ui.card.diary_empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-            }
-
-            foreach (var line in lines)
-            {
-                var text = new Label
-                {
-                    Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
-                    AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                    SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                };
-
-                // A line about an invention shows its icon before it (A1603).
-                if (line.TargetType is { } type && InventionIcon(type) is { } icon)
-                {
-                    var row = new HBoxContainer();
-                    var rect = IconRect();
-                    rect.Texture = icon;
-                    row.AddChild(rect);
-                    row.AddChild(text);
-                    _cardDiaryBox.AddChild(row);
-                }
-                else
-                {
-                    _cardDiaryBox.AddChild(text);
-                }
+                _talkInput.PlaceholderText = hint;
             }
         }
 
-        var questions = TextFill.Fill(TrFor("ui.card.questions", _feed?.SexOf(card.Row.Id)), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
-        if (_cardQuestions is not null)
+        RefreshCardHead(card, inhabitantId);
+        RefreshCardQuestion(card.Row, inhabitantId);
+        RefreshCardTalk(inhabitantId);
+        RefreshCardDiary(inhabitantId);
+    }
+
+    /// <summary>Builds the card's rows (see <see cref="FillCard"/>); the values are filled after.</summary>
+    private void BuildCard(VBoxContainer content, InhabitantCard card, string inhabitantId)
+    {
+        var window = _style!.Tokens.Window;
+        _cardBars.Clear();
+        foreach (var child in content.GetChildren())
         {
-            // A line that only says "0" tells nothing (D705 B10).
-            _cardQuestions.Visible = card.Row.OpenQuestions > 0;
-            if (_cardQuestions.Text != questions)
+            content.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        // 1. Head: the portrait still of the corner list, then what it does now; a first try says so (#338, IsTrying).
+        var head = new HBoxContainer { Name = "CardHead" };
+        _cardPortrait = new GwPortrait { Name = "CardPortrait", SizeFlagsVertical = Control.SizeFlags.ShrinkBegin };
+        var portraitPx = (float)_style.Tokens.Zones.PortraitPx * 1.25f;
+        _cardPortrait.CustomMinimumSize = new Vector2(portraitPx, portraitPx);
+        head.AddChild(_cardPortrait);
+        var about = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+
+        // An invention the inhabitant is busy with shows its icon before the line (A1603).
+        var doing = new HBoxContainer();
+        _cardActionIcon = IconRect();
+        doing.AddChild(_cardActionIcon);
+        doing.AddChild(_cardAction);
+        about.AddChild(doing);
+        _cardTrying = new Label { Name = "CardTrying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, Visible = false };
+        about.AddChild(_cardTrying);
+
+        // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
+        var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
+        favourite.Toggled += on => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
+            on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
+        about.AddChild(favourite);
+        head.AddChild(about);
+        content.AddChild(head);
+
+        // 2. The question on top (B2595, B2596): one line in the inhabitant's own words, why, and 'whisper', which
+        // turns the one talk field below to it; the other questions folded, each thing once (D1060 find 14).
+        _cardTopQuestionId = null;
+        _cardQuestionBox = new VBoxContainer { Name = "CardQuestion", Visible = false };
+        _cardTopQuestion = new Label { ThemeTypeVariation = UiTheme.SubheaderLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        _cardTopReason = new Label { ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        var whisper = new Button { Name = "CardWhisper", Text = "ui.question.answer", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        whisper.Pressed += () =>
+        {
+            _whisperFor = _cardTopQuestionId;
+            _talkInput?.GrabFocus();
+            FillCard(inhabitantId);
+        };
+        _cardQuestionBox.AddChild(_cardTopQuestion);
+        _cardQuestionBox.AddChild(_cardTopReason);
+        _cardQuestionBox.AddChild(whisper);
+        _cardOtherQuestions = new FoldableContainer { Name = "CardOtherQuestions", Folded = _cardFolded.GetValueOrDefault(OtherQuestionsFold, true), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        _cardOtherQuestions.FoldingChanged += folded =>
+        {
+            _cardFolded[OtherQuestionsFold] = folded;
+            Layout();
+        };
+        _cardOtherQuestionRows = new VBoxContainer();
+        _cardOtherQuestions.AddChild(_cardOtherQuestionRows);
+        _cardQuestionBox.AddChild(_cardOtherQuestions);
+        content.AddChild(_cardQuestionBox);
+
+        // 3. One conversation (B2603: no second chat): its last sentences, then the one field with 'show' and 'say'.
+        Section("ui.card.talk");
+        _cardTalkLines = new VBoxContainer { Name = "CardTalkLines" };
+        _cardTalkShown = default;
+        content.AddChild(_cardTalkLines);
+        var talkRow = new HBoxContainer();
+        var input = new LineEdit
+        {
+            Name = "CardTalkField",
+            PlaceholderText = Tr("ui.card.talk_hint"),
+            MaxLength = 280,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+        };
+        _talkInput = input;
+        var send = new Button { Text = "ui.card.talk_send" };
+        void Submit()
+        {
+            if (Say(inhabitantId, input.Text, _pointedType))
             {
-                _cardQuestions.Text = questions;
+                input.Clear();
+                _pointedType = null;
+                _whisperFor = null;
+                UpdatePointing();
+                FillCard(inhabitantId);
             }
         }
+
+        input.TextSubmitted += _ => Submit();
+        send.Pressed += Submit;
+
+        // A1617 (B2678): 'Zeigen' - the next click into the world picks a thing the sentence points at.
+        _pointedType = null;
+        _pointingFor = null;
+        _whisperFor = null;
+        _pointButton = new Button { Text = "ui.card.point", TooltipText = "ui.card.point_tooltip", ToggleMode = true };
+        _pointButton.Pressed += () =>
+        {
+            _pointingFor = _pointingFor is null ? inhabitantId : null;
+            UpdatePointing();
+        };
+        talkRow.AddChild(input);
+        talkRow.AddChild(_pointButton);
+        talkRow.AddChild(send);
+        content.AddChild(talkRow);
+        _pointedChip = new HBoxContainer { Visible = false };
+        _pointedLabel = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var unpoint = new Button { Text = "×", TooltipText = "ui.common.close" };
+        unpoint.Pressed += () =>
+        {
+            _pointedType = null;
+            _pointingFor = null;
+            UpdatePointing();
+        };
+        _pointedChip.AddChild(_pointedLabel);
+        _pointedChip.AddChild(unpoint);
+        content.AddChild(_pointedChip);
+
+        // 4. The diary on top (B2603): its newest lines, more on a click.
+        Section("ui.card.diary");
+        _cardDiaryBox = new VBoxContainer { Name = "CardDiary" };
+        _cardDiaryShown = default;
+        content.AddChild(_cardDiaryBox);
+        _cardDiaryMore = new Button { Name = "CardDiaryMore", Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more", Flat = true, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, Visible = false };
+        _cardDiaryMore.Pressed += () =>
+        {
+            _cardDiaryOpen = !_cardDiaryOpen;
+            _cardDiaryMore.Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more";
+            _cardDiaryShown = default;
+            RefreshCardDiary(inhabitantId);
+            Layout();
+        };
+        content.AddChild(_cardDiaryMore);
+
+        // 5. The bars after the one rule (B2642): how it is open, feelings and character folded.
+        var wellbeing = Fold("ui.card.wellbeing", folded: false);
+        Bar(wellbeing, "ui.card.will_to_live");
+        foreach (var need in card.Needs)
+        {
+            Bar(wellbeing, need.Key, need);
+        }
+
+        var feelings = Fold("ui.card.feelings", folded: true);
+        foreach (var feeling in card.Feelings)
+        {
+            Bar(feelings, feeling.Key);
+        }
+
+        var character = Fold("ui.card.character", folded: true);
+        foreach (var trait in card.Traits)
+        {
+            Bar(character, trait.Key);
+        }
+
+        // 6. Its memory page (B8 R16, B6 R19): what the world kept about it.
+        var memories = new Button { Text = "ui.card.memory", SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        memories.Pressed += () => OpenMemory(inhabitantId);
+        content.AddChild(memories);
 
         void Section(string key) => content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
@@ -3056,7 +3075,7 @@ public partial class GameScreen : CanvasLayer
             section.FoldingChanged += isFolded =>
             {
                 _cardFolded[key] = isFolded;
-                FitCard(GetViewport().GetVisibleRect().Size);
+                Layout();
             };
             var rows = new VBoxContainer();
             section.AddChild(rows);
@@ -3066,23 +3085,225 @@ public partial class GameScreen : CanvasLayer
 
         void Bar(VBoxContainer into, string key, CardValue? value = null)
         {
-            var row = new HBoxContainer();
-
             // A need an invention brought has no text key: its name from the need register, in the player's
             // language (A1595); run empty it is shown greyed (not met lately - it can do no harm, #290).
-            var label = value?.Name is { } name
-                ? new Label { Text = TranslationServer.GetLocale().StartsWith("de", StringComparison.Ordinal) ? name.De : name.En, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled }
-                : new Label { Text = key };
-            label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            row.AddChild(label);
+            var row = new GwValueBar { Name = key.Replace('.', '_') };
+            var text = value?.Name is { } name ? (TranslationServer.GetLocale().StartsWith("de", StringComparison.Ordinal) ? name.De : name.En) : key;
+            row.Setup(text, translate: value?.Name is null, CardModel.KindOf(key, _style.Tokens.Bars), window.CardBarWidth, _style.FontPx(UiFontSizeId.Body));
             if (value?.Faded == true)
             {
-                row.Modulate = new Color(1, 1, 1, (float)(_style!.Tokens.Window.FadedAlpha ?? 0.5));
+                row.Modulate = new Color(1, 1, 1, (float)(window.FadedAlpha ?? 0.5));
             }
-            var bar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.CardBarWidth, 0) };
-            row.AddChild(bar);
+
             into.AddChild(row);
-            _cardBars[key] = bar;
+            _cardBars[key] = row;
+        }
+    }
+
+    /// <summary>The head's values: portrait, what it does, a first try.</summary>
+    private void RefreshCardHead(InhabitantCard card, string inhabitantId)
+    {
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
+        var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
+        if (_cardActionIcon is not null)
+        {
+            var icon = inhabitant?.TargetId is { } target ? InventionIcon(target) : null;
+            _cardActionIcon.Texture = icon;
+            _cardActionIcon.Visible = icon is not null;
+        }
+
+        if (_cardAction is not null && _cardAction.Text != action)
+        {
+            _cardAction.Text = action;
+        }
+
+        if (_cardTrying is not null)
+        {
+            var trying = _presenter?.Host is { } host && host.Inhabitants.All.FirstOrDefault(i => i.Id == inhabitantId) is { } living && host.Inhabitants.IsTrying(living);
+            _cardTrying.Visible = trying;
+            if (trying)
+            {
+                _cardTrying.Text = TrFor("ui.card.trying", _feed?.SexOf(inhabitantId));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The question on top (B2595): it stays while open; once answered or solved it says so while the mouse is on it,
+    /// then the next one moves up. The others below, folded, each thing once.
+    /// </summary>
+    private void RefreshCardQuestion(InhabitantRow row, string inhabitantId)
+    {
+        if (_cardQuestionBox is null || _cardTopQuestion is null || _cardTopReason is null || _feed is null)
+        {
+            return;
+        }
+
+        var own = _feed.Questions().Where(q => q.InhabitantId == inhabitantId).ToList();
+        var stillOpen = _cardTopQuestionId is not null && own.Any(q => q.Id == _cardTopQuestionId);
+        if (_cardTopQuestionId is not null && !stillOpen && InUse(_cardQuestionBox))
+        {
+            _cardTopReason.Text = Tr("ui.question.settled");
+            return;
+        }
+
+        var top = CardModel.TopQuestion(own, _cardTopQuestionId);
+        _cardQuestionBox.Visible = top is not null;
+        if (top is null)
+        {
+            _cardTopQuestionId = null;
+            _whisperFor = null;
+            return;
+        }
+
+        if (_whisperFor is not null && _whisperFor != top.Id)
+        {
+            _whisperFor = null;
+        }
+
+        _cardTopQuestionId = top.Id;
+        var (ask, reason) = QuestionLines(top, row);
+        if (_cardTopQuestion.Text != ask)
+        {
+            _cardTopQuestion.Text = ask;
+        }
+
+        if (_cardTopReason.Text != reason)
+        {
+            _cardTopReason.Text = reason;
+        }
+
+        var others = CardModel.OtherQuestions(own, top);
+        if (_cardOtherQuestions is not null && _cardOtherQuestionRows is not null)
+        {
+            _cardOtherQuestions.Visible = others.Count > 0;
+            _cardOtherQuestions.Title = TextFill.Fill(Tr("ui.card.more_questions"), new Dictionary<string, string> { ["count"] = Number(others.Count) });
+            var lines = others.Select(q => QuestionLines(q, row).Ask).ToList();
+            var shown = _cardOtherQuestionRows.GetChildren().OfType<Label>().Select(l => l.Text).ToList();
+            if (!lines.SequenceEqual(shown) && !InUse(_cardOtherQuestions))
+            {
+                foreach (var child in _cardOtherQuestionRows.GetChildren())
+                {
+                    _cardOtherQuestionRows.RemoveChild(child);
+                    child.QueueFree();
+                }
+
+                foreach (var line in lines)
+                {
+                    _cardOtherQuestionRows.AddChild(new Label { Text = line, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A question as one short line in the card, without the name the card already shows (D1060 find 14): 'Ponders:
+    /// What is that? (flint)', and why, in the form for the inhabitant's sex.
+    /// </summary>
+    private (string Ask, string Reason) QuestionLines(QuestionRow question, InhabitantRow row)
+    {
+        var args = new Dictionary<string, string>
+        {
+            ["name"] = DisplayName(row),
+            ["thing"] = question.TypeId is { } type ? ThingName(type) : string.Empty,
+        };
+        var sex = _feed?.SexOf(row.Id);
+        string Text(string key, string other)
+        {
+            var text = TrFor(key, sex);
+            return TextFill.Fill(text == key ? TrFor(other, sex) : text, args);
+        }
+
+        return (Text(QuestionKeys.CardAsk(question.Kind), QuestionKeys.CardAskOther), Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther));
+    }
+
+    /// <summary>The last sentences of the conversation with this inhabitant, above the talk field (B2603).</summary>
+    private void RefreshCardTalk(string inhabitantId)
+    {
+        if (_cardTalkLines is null || _presenter?.Host is not { } host || _style is null)
+        {
+            return;
+        }
+
+        var history = host.Conversation.HistoryOf(inhabitantId);
+        var mark = (inhabitantId, history.Count, history.Count > 0 ? history[^1].Tick : -1);
+        if (_cardTalkShown == mark)
+        {
+            return;
+        }
+
+        _cardTalkShown = mark;
+        foreach (var child in _cardTalkLines.GetChildren())
+        {
+            _cardTalkLines.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        var name = NameOfId(inhabitantId);
+        foreach (var line in CardModel.Last(history, _style.Tokens.Window.CardTalkLines))
+        {
+            var text = line.FromPlayer
+                ? TextFill.Fill(Tr("ui.card.talk_you"), new Dictionary<string, string> { ["text"] = line.Text })
+                : TextFill.Fill(Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = name, ["text"] = line.Text });
+            _cardTalkLines.AddChild(new Label { Text = text, ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
+        }
+
+        _cardTalkLines.Visible = _cardTalkLines.GetChildCount() > 0;
+    }
+
+    /// <summary>The diary's newest lines (B2603), all kept ones after 'more'.</summary>
+    private void RefreshCardDiary(string inhabitantId)
+    {
+        if (_cardDiaryBox is null || _diary is null || _style is null || _cardDiaryShown == (inhabitantId, _diary.Version))
+        {
+            return;
+        }
+
+        _cardDiaryShown = (inhabitantId, _diary.Version);
+        foreach (var child in _cardDiaryBox.GetChildren())
+        {
+            _cardDiaryBox.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        var all = _diary.Of(inhabitantId, key => Tr(key), NameOfId);
+        var few = _style.Tokens.Window.CardDiaryLines;
+        if (_cardDiaryMore is not null)
+        {
+            _cardDiaryMore.Visible = all.Count > few;
+        }
+
+        if (all.Count == 0)
+        {
+            _cardDiaryBox.AddChild(new Label { Text = "ui.card.diary_empty", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        }
+
+        foreach (var line in _cardDiaryOpen ? all : CardModel.Newest(all, few))
+        {
+            var text = new Label
+            {
+                Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
+                ThemeTypeVariation = UiTheme.SmallLabel,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+
+            // A line about an invention shows its icon before it (A1603).
+            if (line.TargetType is { } type && InventionIcon(type) is { } icon)
+            {
+                var row = new HBoxContainer();
+                var rect = IconRect();
+                rect.Texture = icon;
+                row.AddChild(rect);
+                row.AddChild(text);
+                _cardDiaryBox.AddChild(row);
+            }
+            else
+            {
+                _cardDiaryBox.AddChild(text);
+            }
         }
     }
 
@@ -3112,6 +3333,12 @@ public partial class GameScreen : CanvasLayer
                 ? TextFill.Fill(Tr("ui.card.pointed"), new Dictionary<string, string> { ["thing"] = ThingName(type) })
                 : string.Empty;
     }
+
+    /// <summary>UI tour only: sends what stands in the card's talk field, as Enter would.</summary>
+    public void SubmitTalkForShots() => _talkInput?.EmitSignal(LineEdit.SignalName.TextSubmitted, _talkInput.Text);
+
+    /// <summary>UI tour only: the card shows lines of the conversation above its talk field.</summary>
+    public bool CardShowsTalkForShots => _cardTalkLines is not null && IsInstanceValid(_cardTalkLines) && _cardTalkLines.GetChildCount() > 0;
 
     /// <summary>Screenshots only: the card scrolled to its talk field with a sentence in it.</summary>
     public void ShowTalkForShots(string sentence)

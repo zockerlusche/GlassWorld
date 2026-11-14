@@ -38,6 +38,9 @@ public static class UiTheme
     /// <summary>Panel type for hints and tooltips (Godot's built-in type name).</summary>
     public const string TooltipPanel = "TooltipPanel";
 
+    /// <summary>A value bar in the bad range (bar rule B2642): the fill in the attention colour.</summary>
+    public const string BadBar = "GwBadBar";
+
     /// <summary>Theme type variation for speech and thought bubbles.</summary>
     public const string BubblePanel = "GwBubblePanel";
 
@@ -257,6 +260,11 @@ public static class UiTheme
         theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetConstant("outline_size", "ProgressBar", 0);
+
+        // A value in the bad range (bar rule B2642): the fill leans toward the attention colour, so what is missing
+        // shows without reading; the text stays dark on it.
+        theme.SetTypeVariation(BadBar, "ProgressBar");
+        theme.SetStylebox("fill", BadBar, Box(panel.Lerp(ToGodot(style.Color(UiColorId.Attention)), 0.6f)));
 
         // Foldable sections of the card (W1688): the engine default drew a dark grey box behind them (seen in
         // the first window shots of the zones preview); title and body now use the palette like everything else.

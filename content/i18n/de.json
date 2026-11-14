@@ -2931,6 +2931,54 @@
       "text": "Tag {day}, {time} – {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Probiert es zum ersten Mal aus."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Grübelt: Was ist das? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Grübelt: Wer ist das?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Grübelt: Wer ist da?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Grübelt über etwas."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "Weitere Fragen ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "Du: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Gunst"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Gunst {value} von {max}. Sie wächst langsam nach; Gaben kosten Gunst."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Zeitleiste"
     },

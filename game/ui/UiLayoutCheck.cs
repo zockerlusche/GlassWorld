@@ -15,6 +15,9 @@ namespace GlassWorld.Game.Ui;
 /// </summary>
 public static class UiLayoutCheck
 {
+    // The card's bars: will to live and the needs under their card words (B2642).
+    private static readonly string[] CardBarKeys = ["ui.card.will_to_live", "ui.card.need.hunger", "ui.card.need.thirst", "ui.card.need.sleep", "ui.card.need.warmth", "ui.card.need.safety", "ui.card.need.company", "ui.card.need.fun", "ui.card.need.purpose"];
+
     private static readonly (int Width, int Height)[] Resolutions = [(1920, 1080), (3840, 1600)];
     private static readonly double[] UiScales = [0.75, 1.0, 2.0];
     private static readonly double[] TextScales = [1.0, 2.0];
@@ -84,7 +87,7 @@ public static class UiLayoutCheck
         host.AddChild(stage);
         var window = new GwWindow();
         window.Setup("ui.settings.title", style);
-        foreach (var key in new[] { "ui.card.need.hunger", "ui.card.need.thirst", "ui.card.need.sleep", "ui.card.need.warmth", "ui.card.need.safety", "ui.card.need.company", "ui.card.need.fun", "ui.card.need.purpose" })
+        foreach (var key in CardBarKeys.Skip(1))
         {
             window.Content.AddChild(new Label { Text = key });
         }
@@ -198,8 +201,7 @@ public static class UiLayoutCheck
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
         var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
-        var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
-        var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
+        var corner = GameScreen.CornerSample(style, choices, date, "23:59", host.Tr("ui.favor.name"));
         var portraits = new GwPortraitList();
         var log = new GwSidePanel();
         log.Setup("ui.log.title");
@@ -211,10 +213,16 @@ public static class UiLayoutCheck
             log.Content.AddChild(new Label { Text = "ui.log.no_answer", AutowrapMode = TextServer.AutowrapMode.WordSmart });
         }
 
+        // The card (A1683) with long texts: a long name, a long question, the hint of the talk field in the form for the inhabitant.
+        var longName = TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = "12" }) + " Maximiliane-Friederike";
+        var ask = TextFill.Fill(host.Tr(QuestionKeys.CardAsk("unknown_object")), new Dictionary<string, string> { ["thing"] = host.Tr("vocab.object.dry_wood") });
+        var talkLine = TextFill.Fill(host.Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = longName, ["text"] = host.Tr("ui.question.reason.unknown_inhabitant.female") });
+        var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, host.Tr("ui.card.talk_hint"), [.. CardBarKeys]);
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
         stage.AddChild(window);
+        stage.AddChild(card);
         portraits.Setup(style);
         var problems = new List<string>();
         var margin = style.Tokens.Window.SafeMargin;
@@ -222,13 +230,15 @@ public static class UiLayoutCheck
         var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, style.Tokens.Zones.MiddleShare);
         var middle = new Rect2((float)mx, (float)my, (float)mw, (float)mh);
         var activity = host.Tr("ui.activity.show.inhabitant_topic");
-        foreach (var count in new[] { 2, style.Tokens.Zones.PortraitsCompactFrom + 4 })
+        foreach (var (count, right, rightName) in new (int, GwSidePanel, string)[] { (2, window, "window"), (style.Tokens.Zones.PortraitsCompactFrom + 4, window, "window"), (2, card, "card") })
         {
+            window.Visible = right == window;
+            card.Visible = right == card;
             portraits.SetRows([.. Enumerable.Range(1, count).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))]);
             for (var pass = 0; pass < 2; pass++)
             {
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-                GameScreen.PlaceCorners(area, style, corner, portraits, log, [(window, 0f)]);
+                GameScreen.PlaceCorners(area, style, corner, portraits, log, [(right, 0f, right == card)]);
             }
 
             await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -237,7 +247,7 @@ public static class UiLayoutCheck
                 ("time block", new Rect2(corner.Position, corner.Size)),
                 ($"{count} portraits", new Rect2(portraits.Position, portraits.Size)),
                 ("log", new Rect2(log.Position, log.Size)),
-                ("window", new Rect2(window.Position, window.Size)),
+                (rightName, new Rect2(right.Position, right.Size)),
             };
             foreach (var (name, box) in parts)
             {
@@ -257,6 +267,17 @@ public static class UiLayoutCheck
                 if (a.Box.Intersects(b.Box))
                 {
                     problems.Add($"{a.Name} {a.Box} overlaps {b.Name} {b.Box}");
+                }
+            }
+
+            // The talk field shows its whole hint (D1060 find 7: 'Was mö…' in a card too narrow).
+            if (right == card && talkField.GetThemeFont("font") is { } font)
+            {
+                var hint = font.GetStringSize(talkField.PlaceholderText, HorizontalAlignment.Left, -1, talkField.GetThemeFontSize("font_size")).X;
+                var inner = talkField.Size.X - (talkField.GetThemeStylebox("normal")?.GetMinimumSize().X ?? 0);
+                if (hint > inner + 0.5f)
+                {
+                    problems.Add($"card: the talk field shows {inner:0} of {hint:0} px of its hint");
                 }
             }
 

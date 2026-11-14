@@ -118,6 +118,18 @@ public partial class Main
 
         screen.ShowCardForShots(ids[^1], expand: true);
         await take("30_karte_letzte_aufgeklappt");
+
+        // S2 (A1683): 'whisper' at the question on top turns the one talk field to it.
+        foreach (var id in ids)
+        {
+            screen.ShowCardForShots(id, expand: false);
+            if (ButtonWithKey(screen, "ui.question.answer") is { Disabled: false } && Press(screen, "ui.question.answer"))
+            {
+                await take("30_karte_zufluestern");
+                break;
+            }
+        }
+
         screen.ShowCardForShots(first, expand: false);
         screen.ShowTalkForShots("Hallo, was machst du gerade?");
         await take("31_gespraech_gesendet");
@@ -126,6 +138,15 @@ public partial class Main
             await take("31_zeigen_modus");
             Press(screen, "ui.card.point");
         }
+
+        // The sentence goes out; the conversation's last lines stand above the field (B2603: one conversation).
+        screen.SubmitTalkForShots();
+        for (var i = 0; i < 240 && !screen.CardShowsTalkForShots; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        await take("31_gespraech_verlauf");
 
         screen.ShowCardForShots(null, expand: false);
 

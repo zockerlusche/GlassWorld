@@ -188,6 +188,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("field_max_share")]
         public double FieldMaxShare { get; set; } = default!;
 
+        /// <summary>
+        /// Diary entries the card shows at once (B2603: the last ones on top, more on a click).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_diary_lines")]
+        public int CardDiaryLines { get; set; } = default!;
+
+        /// <summary>
+        /// Last sentences of the conversation the card shows above the talk field (B2603: one conversation).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_talk_lines")]
+        public int CardTalkLines { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -407,6 +419,28 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Whether a feeling uplifts or burdens (for the bar rule B2642).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiBarMood
+    {
+
+        /// <summary>
+        /// Mood id of the vocabulary.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// uplift: much is good; burden: much is bad.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UiBarMoodKind>))]
+        public UiBarMoodKind Kind { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -496,6 +530,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("zones")]
         public Zones Zones { get; set; } = new Zones();
+
+        /// <summary>
+        /// One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bars")]
+        public Bars Bars { get; set; } = new Bars();
 
     }
 
@@ -663,8 +703,30 @@ namespace GlassWorld.Contracts
         Drought = 19,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("thumb_up")]
+        Thumb_up = 20,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("thumb_down")]
+        Thumb_down = 21,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
-        Unknown = 20,
+        Unknown = 22,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum UiBarMoodKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("uplift")]
+        Uplift = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("burden")]
+        Burden = 1,
 
 
     }
@@ -780,6 +842,42 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("weather_icons")]
         public System.Collections.Generic.ICollection<UiIconChoice> WeatherIcons { get; set; } = new System.Collections.ObjectModel.Collection<UiIconChoice>();
+
+        /// <summary>
+        /// Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_width")]
+        public int CardWidth { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Bars
+    {
+
+        /// <summary>
+        /// A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state_bad_below")]
+        public int StateBadBelow { get; set; } = default!;
+
+        /// <summary>
+        /// A state value or an uplifting feeling from this on shows a thumb up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state_good_from")]
+        public int StateGoodFrom { get; set; } = default!;
+
+        /// <summary>
+        /// A burdening feeling (fear, sadness ...) from this on is in the bad range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("burden_bad_from")]
+        public int BurdenBadFrom { get; set; } = default!;
+
+        /// <summary>
+        /// Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moods")]
+        public System.Collections.Generic.ICollection<UiBarMood> Moods { get; set; } = new System.Collections.ObjectModel.Collection<UiBarMood>();
 
     }
 }
