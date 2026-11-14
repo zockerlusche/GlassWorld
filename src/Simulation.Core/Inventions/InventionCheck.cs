@@ -30,13 +30,34 @@ public sealed record InventionRules(
     /// </summary>
     public FrozenDictionary<string, FrozenSet<string>> BaseFunctions { get; init; } = FrozenDictionary<string, FrozenSet<string>>.Empty;
 
-    /// <summary>What a type made from <paramref name="invention"/> is: its own properties, what being made implies and what its base function grants.</summary>
-    public IEnumerable<string> PropertiesOf(Invention invention)
+    /// <summary>
+    /// Properties a made thing has only if one of its materials has them (process physics <c>no_new</c>: never food or
+    /// drink from nothing; D1096 #1). Empty without process data.
+    /// </summary>
+    public FrozenSet<string> NoNew { get; init; } = FrozenSet<string>.Empty;
+
+    /// <summary>
+    /// Properties a made thing keeps when one of its materials has them (process physics <c>never_remove</c>: poison
+    /// stays poison; D1096 #1). Empty without process data.
+    /// </summary>
+    public FrozenSet<string> NeverRemove { get; init; } = FrozenSet<string>.Empty;
+
+    /// <summary>
+    /// What a type made from <paramref name="invention"/> is: its own properties, what being made implies, what its base
+    /// function grants, and - with <paramref name="truth"/> (the world's true properties of a type) - what of
+    /// <see cref="NeverRemove"/> its materials have (the world knows the truth, D1096 #1).
+    /// </summary>
+    public IEnumerable<string> PropertiesOf(Invention invention, Func<string, IEnumerable<string>>? truth = null)
     {
         ArgumentNullException.ThrowIfNull(invention);
         var granted = invention.BaseFunction is { } function && BaseFunctions.TryGetValue(function, out var properties) ? properties : [];
-        return invention.Introduces.Concat(Settings.ImpliedProperties).Concat(granted).Distinct(StringComparer.Ordinal);
+        var kept = truth is null ? [] : MaterialsOf(invention).SelectMany(truth).Where(NeverRemove.Contains);
+        return invention.Introduces.Concat(Settings.ImpliedProperties).Concat(granted).Concat(kept).Distinct(StringComparer.Ordinal);
     }
+
+    /// <summary>Every material the invention names (its own and its steps'), each once.</summary>
+    internal static IEnumerable<string> MaterialsOf(Invention invention) =>
+        invention.Materials.Concat(invention.Steps.SelectMany(s => s.Materials)).Distinct(StringComparer.Ordinal);
 
     /// <summary>
     /// The world's tech level as a number: the position of <c>Settings.TechLevel</c> in the vocabulary
@@ -108,6 +129,9 @@ public static class InventionCheck
     /// <summary>Point 11 (D827 R31): no base function although the data require one (require_base_function).</summary>
     public const string MissingBaseFunction = "missing_base_function";
 
+    /// <summary>The invention claims a property none of its materials has though only materials can bring it (no_new, D1096 #1).</summary>
+    public const string PropertyWithoutSource = "property_without_source";
+
     /// <summary>A new need or ability names an action that is not in the vocabulary.</summary>
     public const string UnknownAction = "unknown_action";
 
@@ -116,7 +140,8 @@ public static class InventionCheck
     /// <param name="perceivedTypes">What the inventor saw.</param>
     /// <param name="rules">The rules of the data.</param>
     /// <param name="techLevel">The world's reached tech level (A1625); null = the start level of the data.</param>
-    public static IReadOnlyList<string> Check(InventionResult result, IReadOnlySet<string> perceivedTypes, InventionRules rules, string? techLevel = null)
+    /// <param name="truth">The world's true properties of a type (D1096 #1); null = not checked against the materials.</param>
+    public static IReadOnlyList<string> Check(InventionResult result, IReadOnlySet<string> perceivedTypes, InventionRules rules, string? techLevel = null, Func<string, IEnumerable<string>>? truth = null)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(perceivedTypes);
@@ -150,6 +175,16 @@ public static class InventionCheck
         if (invention.Materials.Concat(invention.Steps.SelectMany(s => s.Materials)).Any(m => !perceivedTypes.Contains(m)))
         {
             reasons.Add(MaterialNotPerceived);
+        }
+
+        // D1096 #1: what only materials can bring (no_new: food, drink) a made thing has only if a material has it.
+        if (truth is not null && rules.NoNew.Count > 0)
+        {
+            var fromMaterials = InventionRules.MaterialsOf(invention).SelectMany(truth).ToHashSet(StringComparer.Ordinal);
+            if (invention.Introduces.Any(p => rules.NoNew.Contains(p) && !fromMaterials.Contains(p)))
+            {
+                reasons.Add(PropertyWithoutSource);
+            }
         }
 
         // Point 11 (D827 R31): the thing is mapped to a base function of the fixed list (data); while the guard does not map

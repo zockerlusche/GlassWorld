@@ -909,6 +909,12 @@ public sealed class SimulationHost
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
 
+    /// <summary>
+    /// The snow on the ground at a place in millimetres (TL #25357, #25397): the island's cover of the nature
+    /// takt, none where a heat source warms the place (it melts there, B2700). 0 without a nature takt.
+    /// </summary>
+    public long SnowMmAt(Position at) => Nature is not { SnowMm: > 0 } nature || Fire.HeatAt(at) > 0 ? 0 : nature.SnowMm;
+
     /// <summary>Knowledge that fades when not used (D1017 G1).</summary>
     public ForgettingSystem Forgetting { get; private init; } = null!;
 
