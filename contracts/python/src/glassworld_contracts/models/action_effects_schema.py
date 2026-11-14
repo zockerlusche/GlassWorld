@@ -83,6 +83,14 @@ class ActionTiming(BaseModel):
         None,
         description='AK1a (D1046 v2): when the action ends, the inhabitant holds its target in its hand - only with a free hand and a thing nobody holds; the thing stays in the world and follows it. Omitted = no.',
     )
+    wears: bool | None = Field(
+        None,
+        description='K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.',
+    )
+    unwears: bool | None = Field(
+        None,
+        description='K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.',
+    )
     releases: bool | None = Field(
         None,
         description='AK1a: when the action ends, the inhabitant puts down what it holds (its target) at its feet. Omitted = no.',

@@ -69,6 +69,9 @@ public sealed record InhabitantSnapshot(
 
     /// <summary>Its age in life years (B9 R1), or null.</summary>
     public int? AgeYears { get; init; }
+
+    /// <summary>The thing it wears on its body (K4), or null - for the look.</summary>
+    public string? Worn { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -146,6 +149,7 @@ public static class WorldView
                 Held = i.Held,
                 LifeStage = i.LifeStage,
                 AgeYears = i.AgeYears,
+                Worn = i.Worn,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

@@ -134,6 +134,13 @@ namespace GlassWorld.Contracts
         public InhabitantTarget? TargetInhabitant { get; set; } = default!;
 
         /// <summary>
+        /// K4 (review GW1 #436): offered only while the inhabitant feels this sensation (vocabulary sensation, e.g. too_cold); omitted = always.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("when_felt")]
+        public string? WhenFelt { get; set; } = default!;
+
+        /// <summary>
         /// Need whose value is the curve input; null = constant input 1.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("need")]

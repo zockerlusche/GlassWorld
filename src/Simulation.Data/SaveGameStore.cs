@@ -444,6 +444,13 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("held", JsonSerializer.Serialize(held, Json)));
         }
 
+        // What inhabitants wear (K4); older saves have no entry.
+        var worn = s.Inhabitants.Where(i => i.Worn is not null).ToDictionary(i => i.Id, i => i.Worn!, StringComparer.Ordinal);
+        if (worn.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("worn", JsonSerializer.Serialize(worn, Json)));
+        }
+
         // Ticks of birth (B9 R1); older saves have no entry.
         var born = s.Inhabitants.Where(i => i.BornTick is not null).ToDictionary(i => i.Id, i => i.BornTick!.Value, StringComparer.Ordinal);
         if (born.Count > 0)
@@ -808,6 +815,9 @@ public static class SaveGameStore
         var ideas = meta.TryGetValue("ideas", out var ideaJson)
             ? JsonSerializer.Deserialize<Dictionary<string, SavedIdeas>>(ideaJson, Json) ?? []
             : [];
+        var wornThings = meta.TryGetValue("worn", out var wornJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, string>>(wornJson, Json) ?? []
+            : [];
         var heldThings = meta.TryGetValue("held", out var heldJson)
             ? JsonSerializer.Deserialize<Dictionary<string, string>>(heldJson, Json) ?? []
             : [];
@@ -855,7 +865,8 @@ public static class SaveGameStore
                     ideas.GetValueOrDefault(r.GetString(0)),
                     feltPlaces.GetValueOrDefault(r.GetString(0)),
                     heldThings.GetValueOrDefault(r.GetString(0)),
-                    bornTicks.TryGetValue(r.GetString(0), out var bornTick) ? bornTick : null)),
+                    bornTicks.TryGetValue(r.GetString(0), out var bornTick) ? bornTick : null,
+                    wornThings.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

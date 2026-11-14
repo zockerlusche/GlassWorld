@@ -23,7 +23,9 @@
     { "action": "approach", "destination": "here", "duration_minutes": 1, "reach_m": 2 },
     { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 },
     { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "known_only": true } },
-    { "action": "add_fuel", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "feeds": true } }
+    { "action": "add_fuel", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "feeds": true } },
+    { "action": "put_on", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "wears": true },
+    { "action": "take_off", "destination": "here", "duration_minutes": 1, "reach_m": 0, "unwears": true }
   ],
   "rules": [
     { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
@@ -94,7 +96,9 @@
     { "action": "talk_to", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "company", "delta": 0.06, "listener_share": 1 },
       { "kind": "need", "id": "fun", "delta": 0.02, "listener_share": 1 }
-    ] }
+    ] },
+    { "action": "put_on", "requires_property": "wearable", "consumes_target": false, "effects": [] },
+    { "action": "take_off", "requires_property": null, "consumes_target": false, "effects": [] }
   ],
   "event_effects": [
     { "event": "built", "effects": [{ "kind": "trait", "id": "drive", "delta": 0.02 }] },
