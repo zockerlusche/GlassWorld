@@ -1,0 +1,24 @@
+{
+  "contract_version": "0.2",
+  "job_id": "00000000-1583-4000-8000-000000000001",
+  "tick": 2600,
+  "kind": "milestone",
+  "state": "done",
+  "result": {
+    "milestone": {
+      "sentence": {
+        "locale": "de",
+        "text": "An einem stillen Abend schlugen Mira und Joro Funken, bis das trockene Gras brannte."
+      }
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "ollama",
+    "model": "qwen3.5:9b",
+    "prompt_version": "review/night.v1",
+    "seed": 4242,
+    "latency_ms": 9800,
+    "attempts": 1
+  }
+}
