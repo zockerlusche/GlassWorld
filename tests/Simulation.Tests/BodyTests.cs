@@ -31,7 +31,8 @@ public sealed class BodyTests
         Assert.Equal(1000, body.WetPermille(inhabitant.Id));
         Assert.True(host.Decisions.IsWet!(inhabitant));
         var cool = Content.Value.Body!.Wetness.CoolTenthC;
-        Assert.Equal(body.SunTenthC(host.World, inhabitant.Position) - cool, body.FeltTenthC(host.World, inhabitant));
+        var expected = body.SunTenthC(host.World, inhabitant.Position) - cool - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant);
+        Assert.Equal(expected, body.FeltTenthC(host.World, inhabitant));
 
         weather.Force("clear", host.World.Tick);
         host.World.Run(hour);
