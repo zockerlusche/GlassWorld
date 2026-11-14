@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "kind": "life_stage",
+  "entries": [
+    {
+      "id": "child",
+      "description": "Young, still growing."
+    },
+    {
+      "id": "youth",
+      "description": "Nearly grown."
+    },
+    {
+      "id": "adult",
+      "description": "Grown up."
+    },
+    {
+      "id": "elder",
+      "description": "Old."
+    }
+  ]
+}

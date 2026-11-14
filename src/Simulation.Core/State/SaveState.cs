@@ -53,7 +53,10 @@ public sealed record SavedInhabitant(
     IReadOnlyList<SavedImprint>? Imprints = null,
     SavedMemory? Memory = null,
     SavedIdeas? Ideas = null,
-    IReadOnlyList<SavedFeltPlace>? FeltPlaces = null);
+    IReadOnlyList<SavedFeltPlace>? FeltPlaces = null,
+    string? Held = null,
+    long? BornTick = null,
+    string? Worn = null);
 
 /// <summary>An inhabitant's ideas and intentions as saved (A1584): the running number and both lists.</summary>
 public sealed record SavedIdeas(long Counter, IReadOnlyList<Idea> Ideas, IReadOnlyList<Intention> Intentions);
@@ -177,6 +180,7 @@ public sealed record SaveState(
     /// <summary>The animal stocks (B4b K4); null = none.</summary>
     public Nature.AnimalStockState? Animals { get; init; }
 
+
     /// <summary>Things that came after the world start, with the tick they came (D711 section 5); null = none.</summary>
     public IReadOnlyList<Objects.PlacedThing>? Placed { get; init; }
 
@@ -229,7 +233,10 @@ public static class StateCodec
                 i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null,
                 i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
                 i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null,
-                i.FeltPlaces.Count > 0 ? [.. i.FeltPlaces.Select(p => new SavedFeltPlace(p.Key, p.Value.Felt, p.Value.Tick))] : null))],
+                i.FeltPlaces.Count > 0 ? [.. i.FeltPlaces.Select(p => new SavedFeltPlace(p.Key, p.Value.Felt, p.Value.Tick))] : null,
+                i.Held,
+                i.BornTick,
+                i.Worn))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId, q.PartnersOf(o.OptionId) is { Count: > 0 } p ? p : null))], q.RetryAtTick))],
             lastAsked,
@@ -360,6 +367,19 @@ public static class StateCodec
             }
 
             inhabitant.Repeat = saved.Repeat;
+            inhabitant.BornTick = saved.BornTick;
+            inhabitant.Held = saved.Held;
+            if (saved.Held is { } held)
+            {
+                host.Objects.SetHeld(held, inhabitant.Id);
+            }
+
+            inhabitant.Worn = saved.Worn;
+            if (saved.Worn is { } worn)
+            {
+                host.Objects.SetHeld(worn, inhabitant.Id);
+            }
+
             inhabitant.Resting.AddRange(saved.Resting ?? []);
 
             foreach (var place in saved.Places ?? [])
@@ -378,6 +398,9 @@ public static class StateCodec
         // B4a R8: the members of a start group have always met, also where a state carries no meetings
         // (review GW3 #207), so loading never makes partners meet a second time.
         host.Inhabitants.RememberStartGroups();
+
+        // B9 R1 (review GW3 #437): age and phase follow from the ticks of birth - set at once, not at the first step.
+        host.Aging?.Refresh(state.Tick);
 
         // Save games from before names (W1698): everyone gets an own name from the seed, nobody knows another's.
         if (!state.NamesSaved)

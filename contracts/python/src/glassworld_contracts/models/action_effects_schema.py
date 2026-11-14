@@ -79,6 +79,22 @@ class ActionTiming(BaseModel):
         None,
         description="B2681 (W1938): the action's effects work while it lasts - an equal share every tick - instead of all at its end (sleep: the value rises while sleeping, and one woken early keeps what it slept). Default false.",
     )
+    holds: bool | None = Field(
+        None,
+        description='AK1a (D1046 v2): when the action ends, the inhabitant holds its target in its hand - only with a free hand and a thing nobody holds; the thing stays in the world and follows it. Omitted = no.',
+    )
+    wears: bool | None = Field(
+        None,
+        description='K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.',
+    )
+    unwears: bool | None = Field(
+        None,
+        description='K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.',
+    )
+    releases: bool | None = Field(
+        None,
+        description='AK1a: when the action ends, the inhabitant puts down what it holds (its target) at its feet. Omitted = no.',
+    )
     wake_after_minutes: int | None = Field(
         None,
         description='B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.',

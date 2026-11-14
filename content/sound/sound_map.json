@@ -70,6 +70,16 @@
       "group": "using"
     },
     {
+      "action": "put_on",
+      "sound": "action.use",
+      "group": "using"
+    },
+    {
+      "action": "take_off",
+      "sound": "action.use",
+      "group": "using"
+    },
+    {
       "action": "build_step",
       "sound": "action.build_step",
       "group": "building"

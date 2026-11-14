@@ -176,6 +176,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>A1373 step 2 (set by the host): the options of a stuck building (inhabitant, invention type), fresh each time a request is built.</summary>
     public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? StuckOptions { get; set; }
 
+    /// <summary>Whether the asker's life phase allows an action (B9 R1, data); null = every action.</summary>
+    public Func<Inhabitant, string, bool>? ActionAllowed { get; set; }
+
     /// <summary>A1373 step 2 (set by the host): what a stuck building's request tells the decider (inhabitant, invention type).</summary>
     public Func<string, string, StuckBuilding?>? StuckContext { get; set; }
 
@@ -941,6 +944,12 @@ public sealed class DecisionsSystem : IWorldSystem
         inSight.Clear();
         for (var i = 0; i < all.Count; i++)
         {
+            // AK1a: what it holds is in its hand (distance 0); what another holds is no thing for it.
+            if (_objects.HeldBy(all[i].Id) is { } holder && holder != inhabitant.Id)
+            {
+                continue;
+            }
+
             var distance = Distance(position, all[i].Position);
             if (distance <= radius)
             {
@@ -1288,6 +1297,12 @@ public sealed class DecisionsSystem : IWorldSystem
 
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
+            // B9 R1: only what its life phase allows (data) - checked by the core, not the prompt.
+            if (ActionAllowed?.Invoke(asker, action) == false)
+            {
+                continue;
+            }
+
             if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
             {
                 continue;
@@ -1295,7 +1310,8 @@ public sealed class DecisionsSystem : IWorldSystem
 
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
+                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick)
+                    && Fits(asker, _actions.Timing(action), target.Id):
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
                         // A1379: fuel only for a burning thing that takes fuel (the data of its type).
@@ -1428,6 +1444,11 @@ public sealed class DecisionsSystem : IWorldSystem
         return [.. cut.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
 
+    /// <summary>AK1a: taking into the hand only with a free hand, putting down only the held thing; K4 the same for the body.</summary>
+    private static bool Fits(Inhabitant asker, Behaviour.ActionTimingInfo timing, string targetId) =>
+        (!timing.Holds || asker.Held is null) && (!timing.Releases || asker.Held == targetId)
+        && (!timing.Wears || asker.Worn is null) && (!timing.Unwears || asker.Worn == targetId);
+
     /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> or <see cref="Shuffled"/> undone (D1025).</summary>
     private static (string OptionId, string Action, string? TargetId)[] InDataOrder(OpenQuestion question, ulong worldSeed)
     {
@@ -1526,6 +1547,7 @@ public sealed class DecisionsSystem : IWorldSystem
                         Id = i.Id,
                         DistanceM = Distance(inhabitant.Position, i.Position),
                         Called = i.Name is { } name && inhabitant.KnownNames.Contains(i.Id) ? new CalledAs { Name = name, Label = null } : null,
+                        LifeStage = i.LifeStage,
                     })],
             },
             Options = [.. options.Select(o => new Option
