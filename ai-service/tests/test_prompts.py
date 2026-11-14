@@ -363,7 +363,11 @@ def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
         hits: list[str] = []
         for thing in things:
             word = re.escape(thing)
-            stem = word[:-1] + "(y|ies)" if word.endswith("y") else word + "(s|es|n|en)?"
+            # A name of two letters ("Ei") only as a whole word: with endings it would match "ein".
+            if len(thing) <= 2:
+                stem = word
+            else:
+                stem = word[:-1] + "(y|ies)" if word.endswith("y") else word + "(s|es|n|en)?"
             if re.search(rf"\b{stem}\b", text):
                 hits.append(thing)
         if hits and f"{name}.v{version}" not in NAMES_THINGS_PENDING:

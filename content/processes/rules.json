@@ -145,12 +145,12 @@
     "examples": {
       "works": [
         "Leaving wet laundry in the wind makes it dry.",
-        "Beating egg white for a long time turns it into stiff foam.",
+        "Whisking soap suds for a long time turns them into stiff foam.",
         "Rubbing a leather strap with fat makes it supple."
       ],
       "does_not": [
         "Soaking a coin changes nothing.",
-        "Heating a feather does not turn it into a tool.",
+        "Heating a paper clip does not turn it into a tool.",
         "Grinding a dry leaf does not make it food."
       ]
     }
