@@ -2103,6 +2103,42 @@
       "text": "Brand in der Nähe"
     },
     {
+      "key": "vocab.felt.cold",
+      "text": "Kalt"
+    },
+    {
+      "key": "vocab.felt.cool",
+      "text": "Kühl"
+    },
+    {
+      "key": "vocab.felt.mild",
+      "text": "Angenehm"
+    },
+    {
+      "key": "vocab.felt.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.felt.hot",
+      "text": "Heiß"
+    },
+    {
+      "key": "vocab.felt.wet",
+      "text": "Nass"
+    },
+    {
+      "key": "vocab.felt.dry_in_rain",
+      "text": "Trocken im Regen"
+    },
+    {
+      "key": "vocab.sensation.too_cold",
+      "text": "Zu kalt"
+    },
+    {
+      "key": "vocab.sensation.too_warm",
+      "text": "Zu warm"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },

@@ -2103,6 +2103,42 @@
       "text": "Fire close by"
     },
     {
+      "key": "vocab.felt.cold",
+      "text": "Cold"
+    },
+    {
+      "key": "vocab.felt.cool",
+      "text": "Cool"
+    },
+    {
+      "key": "vocab.felt.mild",
+      "text": "Pleasant"
+    },
+    {
+      "key": "vocab.felt.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.felt.hot",
+      "text": "Hot"
+    },
+    {
+      "key": "vocab.felt.wet",
+      "text": "Wet"
+    },
+    {
+      "key": "vocab.felt.dry_in_rain",
+      "text": "Dry in the rain"
+    },
+    {
+      "key": "vocab.sensation.too_cold",
+      "text": "Too cold"
+    },
+    {
+      "key": "vocab.sensation.too_warm",
+      "text": "Too warm"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Loam"
     },

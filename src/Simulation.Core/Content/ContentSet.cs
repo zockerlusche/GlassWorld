@@ -291,9 +291,7 @@ public sealed class ContentSet
             Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
                 ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
                 : null,
-            Body = File.Exists(Path.Combine(contentDirectory, "body", "settings.json"))
-                ? ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(Path.Combine(contentDirectory, "body", "settings.json")))
-                : null,
+            Body = LoadBody(contentDirectory, vocabularies),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
@@ -853,6 +851,29 @@ public sealed class ContentSet
         }
     }
 
+    /// <summary>The body data (B5-11/B5-12), if the file exists: the feelings of felt_places are in the vocabulary felt.</summary>
+    private static BodySettings? LoadBody(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies)
+    {
+        var path = Path.Combine(contentDirectory, "body", "settings.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var body = ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(path));
+        if (body.FeltPlaces is { } places)
+        {
+            var felt = vocabularies.TryGetValue(VocabularyKind.Felt, out var known) ? known.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : [];
+            var unknown = places.FromComfort.Select(f => f.Felt).Append(places.Wet).Append(places.KeptDry).OfType<string>().Where(id => !felt.Contains(id)).ToList();
+            if (unknown.Count > 0)
+            {
+                throw new InvalidDataException($"Body felt_places: unknown feelings [{string.Join(", ", unknown)}].");
+            }
+        }
+
+        return body;
+    }
+
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
         Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
 
@@ -915,6 +936,7 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.Select(d => d.Mood).Where(id => !moods.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
+            .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

@@ -2018,7 +2018,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <see cref="KnowledgeGained"/> when it is new. A finished action learns through it what its rules
     /// depend on; other systems name what their doing shows (building: that the thing is made, D9).
     /// </summary>
-    public void Experience(long tick, Inhabitant inhabitant, string action, string typeId, IEnumerable<string> properties)
+    public void Experience(long tick, Inhabitant inhabitant, string? action, string typeId, IEnumerable<string> properties)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(properties);

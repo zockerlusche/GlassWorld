@@ -12,6 +12,9 @@ public sealed record SavedBelief(string TypeId, string PropertyId, bool Value, d
 /// <summary>A remembered place as saved (TL #19921).</summary>
 public sealed record SavedPlace(string ObjectId, string TypeId, Position Position, long Tick);
 
+/// <summary>How a place felt to an inhabitant, as saved (B5 R32).</summary>
+public sealed record SavedFeltPlace(string Place, string Felt, long Tick);
+
 /// <summary>A relationship as saved (B4a R7).</summary>
 public sealed record SavedRelation(string Other, double Affection, double Trust, double Respect);
 
@@ -49,7 +52,8 @@ public sealed record SavedInhabitant(
     IReadOnlyList<string>? Met = null,
     IReadOnlyList<SavedImprint>? Imprints = null,
     SavedMemory? Memory = null,
-    SavedIdeas? Ideas = null);
+    SavedIdeas? Ideas = null,
+    IReadOnlyList<SavedFeltPlace>? FeltPlaces = null);
 
 /// <summary>An inhabitant's ideas and intentions as saved (A1584): the running number and both lists.</summary>
 public sealed record SavedIdeas(long Counter, IReadOnlyList<Idea> Ideas, IReadOnlyList<Intention> Intentions);
@@ -224,7 +228,8 @@ public static class StateCodec
                 i.Met.Count > 0 ? [.. i.Met] : null,
                 i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null,
                 i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
-                i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null))],
+                i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null,
+                i.FeltPlaces.Count > 0 ? [.. i.FeltPlaces.Select(p => new SavedFeltPlace(p.Key, p.Value.Felt, p.Value.Tick))] : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId, q.PartnersOf(o.OptionId) is { Count: > 0 } p ? p : null))], q.RetryAtTick))],
             lastAsked,
@@ -360,6 +365,11 @@ public static class StateCodec
             foreach (var place in saved.Places ?? [])
             {
                 inhabitant.Places[place.ObjectId] = new PlaceMemory(place.TypeId, place.Position, place.Tick);
+            }
+
+            foreach (var felt in saved.FeltPlaces ?? [])
+            {
+                inhabitant.FeltPlaces[felt.Place] = new FeltPlace(felt.Felt, felt.Tick);
             }
 
             host.Inhabitants.Add(inhabitant);
