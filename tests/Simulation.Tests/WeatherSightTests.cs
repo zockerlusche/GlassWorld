@@ -372,6 +372,7 @@ public sealed class WeatherSightTests : IDisposable
         var path = Path.Combine(_directory, "v7.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
         Assert.Equal(host.Inhabitants.All.Count(), StateCodec.Capture(host).Exploration!.Looks!.Count);
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();

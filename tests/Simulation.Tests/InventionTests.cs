@@ -271,6 +271,7 @@ public sealed class InventionTests : IDisposable
         SaveGameStore.Save(path, StateCodec.Capture(host));
 
         // Turn the file back into schema 1 (as written by the B1 build).
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
         {
             connection.Open();

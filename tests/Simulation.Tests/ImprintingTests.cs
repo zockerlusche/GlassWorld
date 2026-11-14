@@ -131,6 +131,7 @@ public sealed class ImprintingTests : IDisposable
         Directory.CreateDirectory(_directory);
         var path = Path.Combine(_directory, "old.sqlite");
         SaveGameStore.Save(path, StateCodec.Capture(host));
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
