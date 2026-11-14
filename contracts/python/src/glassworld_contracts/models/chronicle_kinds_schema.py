@@ -17,6 +17,27 @@ type ChronicleParam = Annotated[
 ]
 
 
+class ChronicleNarrativeSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_chars: int = Field(
+        ...,
+        description='Longest narrative in characters (at most the 280 of a generated text).',
+        ge=80,
+        le=280,
+    )
+    max_entries: int = Field(
+        ...,
+        description='At most this many entries go into one job (the newest when there are more).',
+        ge=1,
+        le=24,
+    )
+    job_priority: int = Field(
+        ..., description='Priority of the job (higher runs first).', ge=0, le=100
+    )
+
+
 class ChronicleKind(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -55,3 +76,4 @@ class ChronicleKinds(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     kinds: list[ChronicleKind] = Field(..., min_length=1)
+    narrative: ChronicleNarrativeSettings | None = None

@@ -1,6 +1,6 @@
 {
   "contract_version": "0.2",
-  "shapes": ["box", "cylinder", "sphere", "cone", "wedge", "plank", "ring", "bowl"],
+  "shapes": ["box", "cylinder", "sphere", "cone", "wedge", "plank", "ring", "hemisphere_open"],
   "colors": [
     { "id": "wood_light", "color": "#c9a26b" },
     { "id": "wood_dark", "color": "#8a5a3c" },

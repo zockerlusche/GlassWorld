@@ -1223,8 +1223,8 @@
       "text": "Ring"
     },
     {
-      "key": "vocab.shape.bowl",
-      "text": "Bowl"
+      "key": "vocab.shape.hemisphere_open",
+      "text": "Open half sphere"
     },
     {
       "key": "vocab.tech_level.gathering",
@@ -2513,10 +2513,6 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Off for now - these sounds are being remade."
-    },
-    {
-      "key": "msg.converse.no_answer",
-      "text": "Hm ... I have to think about that."
     },
     {
       "key": "ui.setup.model_image",

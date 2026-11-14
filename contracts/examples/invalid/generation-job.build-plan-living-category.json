@@ -46,7 +46,7 @@
         "tech_level": "building"
       },
       "shapes": [
-        "bowl"
+        "hemisphere_open"
       ],
       "colors": [
         "clay_brown"

@@ -45,7 +45,7 @@ public sealed class BaseSounds
     /// Base sound for a short English description (e.g. "wooden door creaks"): sound words count 2,
     /// context words (material, setting) 1; the best score wins, ties by id; a plural or verb "s"
     /// counts as the same word. Below the minimum score of the data the object stays silent rather than
-    /// sounding wrong ("a wooden bowl" names only a material; GW1 review #62 K2).
+    /// sounding wrong ("a wooden thing" names only a material; GW1 review #62 K2).
     /// </summary>
     public string? Fallback(string? description)
     {
