@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// One milestone. Exactly one of made_with and rule is set (checked at load).
+    /// One milestone. Exactly one of made_with and process is set (checked at load). Never a rule or a thing by name (D1096 #4).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Milestone
@@ -36,23 +36,23 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string>? MadeWith { get; set; } = default!;
 
         /// <summary>
-        /// Id of a combination rule (content/rules) or process rule (content/processes) whose first use is the milestone.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("rule")]
-        public string? Rule { get; set; } = default!;
-
-        /// <summary>
         /// Tech level (vocabulary tech_level) the world reaches with this milestone; omitted = none.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("raises_tech_level")]
         public string? RaisesTechLevel { get; set; } = default!;
 
+        /// <summary>
+        /// A process verb (vocabulary process): the milestone is its first successful use, whatever the rule (D1096 #4, B2746).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public string? Process { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// Data file content/milestones/catalog.json (B2598, D827 R12/R35, A1583/A1625): what counts as a milestone of the world. A milestone is reached the first time the inhabitants make a thing whose type has all properties of made_with (by building or by using things together), or the first time a rule of the data (combination or process rule) applies. The core recognises it itself, once per world, with tick and maker; the order is not given here, it follows from what the world allows. A milestone may raise the world's tech level: the reached tech level is the highest of the start level (content/invention/settings.json tech_level) and those of the reached milestones. Nothing in the code names a milestone.
+    /// Data file content/milestones/catalog.json (B2598, D827 R12/R35, A1583/A1625): what counts as a milestone of the world. A milestone is reached the first time the inhabitants make a thing whose type has all properties of made_with (by building or by using things together), or the first time a process of the vocabulary (a verb such as braid or melt) succeeds. The core recognises it itself, once per world, with tick and maker; the order is not given here, it follows from what the world allows. A milestone may raise the world's tech level: the reached tech level is the highest of the start level (content/invention/settings.json tech_level) and those of the reached milestones. Nothing in the code names a milestone.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class MilestoneCatalog

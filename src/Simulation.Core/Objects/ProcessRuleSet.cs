@@ -49,6 +49,9 @@ public sealed class ProcessRuleSet
     /// <summary>The heat levels, lowest first (B2700).</summary>
     public IReadOnlyList<string> HeatLevels { get; }
 
+    /// <summary>The process verb of a rule, or null for a rule this set does not have (D1096 #4: milestones by verb).</summary>
+    public string? ProcessOf(string ruleId) => _rules.FirstOrDefault(r => string.Equals(r.Id, ruleId, StringComparison.Ordinal))?.Process;
+
     /// <summary>Rule ids in specificity order.</summary>
     public IEnumerable<string> RuleIds => _rules.Select(r => r.Id);
 

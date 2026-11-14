@@ -24,7 +24,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 11;
+    public const int SchemaVersion = 12;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -122,6 +122,17 @@ public static class SaveGameStore
         CREATE TABLE IF NOT EXISTS memories(inhabitant TEXT PRIMARY KEY, summary TEXT NOT NULL, last_seq INTEGER NOT NULL, firsts TEXT NOT NULL, sealed_seq INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS memory_events(inhabitant TEXT NOT NULL, seq INTEGER NOT NULL, tick INTEGER NOT NULL, kind TEXT NOT NULL, about_kind TEXT, about_id TEXT,
           formative INTEGER NOT NULL, condensed INTEGER NOT NULL, times INTEGER NOT NULL DEFAULT 1, since INTEGER, outcome TEXT, PRIMARY KEY(inhabitant, seq));
+        """,
+
+        // 12 (B2744/B2746, D1096 #4): neutral stage names - the look epoch, the tech level of saved inventions and the
+        // ids of reached milestones get their new names. Logs keep what was written (history).
+        """
+        UPDATE meta SET value = CASE value WHEN 'wilderness' THEN 'gathering' WHEN 'tools' THEN 'shaping' WHEN 'hut' THEN 'building' WHEN 'workshop' THEN 'processing' WHEN 'metal' THEN 'smelting' ELSE value END WHERE key = 'look_epoch';
+        UPDATE inventions SET invention = json_set(invention, '$.tech_level', CASE json_extract(invention, '$.tech_level') WHEN 'wilderness' THEN 'gathering' WHEN 'tool' THEN 'shaping' WHEN 'hut' THEN 'building' WHEN 'workshop' THEN 'processing' WHEN 'metal' THEN 'smelting' ELSE json_extract(invention, '$.tech_level') END) WHERE json_extract(invention, '$.tech_level') IS NOT NULL;
+        UPDATE meta SET value = (
+          SELECT json_group_array(json(json_set(e.value, '$.Id', CASE json_extract(e.value, '$.Id') WHEN 'first_edge' THEN 'first_sharp' WHEN 'first_cord' THEN 'first_braid' WHEN 'fired_clay' THEN 'first_firing' WHEN 'charcoal' THEN 'first_charring' WHEN 'glass' THEN 'first_transparent' WHEN 'first_metal' THEN 'first_melting' ELSE json_extract(e.value, '$.Id') END)))
+          FROM json_each(meta.value) AS e)
+        WHERE key = 'milestones';
         """,
     ];
 

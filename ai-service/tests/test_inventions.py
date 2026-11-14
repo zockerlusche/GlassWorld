@@ -53,7 +53,7 @@ BOWL: dict[str, Any] = {
         {"process": "dry", "materials": ["clay_lump"]},
     ],
     "introduces": ["container"],
-    "tech_level": "hut",
+    "tech_level": "building",
 }
 
 
@@ -160,7 +160,7 @@ def test_approved_invention_with_sound(settings: Settings) -> None:
     ]["enum"]
     assert material_enum == ["clay_lump", "dry_branch"]
     levels = sent[0]["format"]["properties"]["invention"]["properties"]["tech_level"]["enum"]
-    assert levels == ["wilderness", "tool", "hut"]
+    assert levels == ["gathering", "shaping", "building"]
 
 
 def test_downsize_uses_the_guards_invention(settings: Settings) -> None:
@@ -198,7 +198,7 @@ def test_guard_rejects_an_invented_animal(settings: Settings) -> None:
 
 
 def test_unperceived_material_or_step_material_is_invalid(settings: Settings) -> None:
-    shape = invention_schema(_vocab(settings), ["clay_lump"], ["wilderness", "tool", "hut"], 1.0)
+    shape = invention_schema(_vocab(settings), ["clay_lump"], ["gathering", "shaping", "building"], 1.0)
     schema = inventor_schema(shape)
     with pytest.raises(InvalidOutputError):
         parse_inventor(proposal({**BOWL, "materials": ["iron_bar"]}), schema)

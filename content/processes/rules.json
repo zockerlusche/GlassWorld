@@ -2,10 +2,10 @@
   "contract_version": "0.2",
   "heat_levels": [
     "warm",
-    "embers",
-    "open_fire",
-    "kiln",
-    "furnace"
+    "glowing",
+    "flame",
+    "strong_heat",
+    "melting_heat"
   ],
   "physics": {
     "heat_processes": [
@@ -178,7 +178,7 @@
       },
       "heat_min": null,
       "duration_ticks": 30,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "sharp"
@@ -211,7 +211,7 @@
       },
       "heat_min": null,
       "duration_ticks": 40,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "sharp"
@@ -249,7 +249,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 60,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "portable"
@@ -283,7 +283,7 @@
       },
       "heat_min": null,
       "duration_ticks": 60,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "building_material"
@@ -308,7 +308,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 40,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "long_lasting"
@@ -340,7 +340,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 40,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "long_lasting"
@@ -368,7 +368,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 120,
-      "tech_level": "wilderness",
+      "tech_level": "gathering",
       "result": {
         "add_properties": [
           "burnable"
@@ -395,7 +395,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 60,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "container"
@@ -418,9 +418,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "kiln",
+      "heat_min": "strong_heat",
       "duration_ticks": 240,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "hard",
@@ -447,9 +447,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "embers",
+      "heat_min": "glowing",
       "duration_ticks": 300,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "smoulders"
@@ -476,9 +476,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "open_fire",
+      "heat_min": "flame",
       "duration_ticks": 120,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "fine_grained",
@@ -514,9 +514,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "furnace",
+      "heat_min": "melting_heat",
       "duration_ticks": 360,
-      "tech_level": "workshop",
+      "tech_level": "processing",
       "result": {
         "add_properties": [
           "transparent"
@@ -531,7 +531,7 @@
       }
     },
     {
-      "id": "melt_with_furnace",
+      "id": "melt_at_melting_heat",
       "process": "melt",
       "inputs": [
         {
@@ -551,9 +551,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "furnace",
+      "heat_min": "melting_heat",
       "duration_ticks": 360,
-      "tech_level": "metal",
+      "tech_level": "smelting",
       "result": {
         "add_properties": [
           "malleable",
@@ -578,9 +578,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "open_fire",
+      "heat_min": "flame",
       "duration_ticks": 60,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "hot"
@@ -606,9 +606,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "embers",
+      "heat_min": "glowing",
       "duration_ticks": 40,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "cooked"
@@ -640,9 +640,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "open_fire",
+      "heat_min": "flame",
       "duration_ticks": 90,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "cooked"
@@ -669,7 +669,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 600,
-      "tech_level": "wilderness",
+      "tech_level": "gathering",
       "result": {
         "add_properties": [
           "long_lasting"
@@ -702,7 +702,7 @@
       },
       "heat_min": null,
       "duration_ticks": 90,
-      "tech_level": "tool",
+      "tech_level": "shaping",
       "result": {
         "add_properties": [
           "fine_grained"
@@ -736,7 +736,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 40,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "milky",
@@ -776,7 +776,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 30,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "malleable"
@@ -805,9 +805,9 @@
         }
       ],
       "tool": null,
-      "heat_min": "embers",
+      "heat_min": "glowing",
       "duration_ticks": 120,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "cooked",
@@ -835,7 +835,7 @@
       "tool": null,
       "heat_min": null,
       "duration_ticks": 120,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "fatty"
@@ -862,7 +862,7 @@
       "tool": null,
       "heat_min": "warm",
       "duration_ticks": 600,
-      "tech_level": "hut",
+      "tech_level": "building",
       "result": {
         "add_properties": [
           "long_lasting",

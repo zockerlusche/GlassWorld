@@ -711,24 +711,24 @@
       "text": "Sumpf"
     },
     {
-      "key": "vocab.epoch.hut",
-      "text": "Hütte"
+      "key": "vocab.epoch.building",
+      "text": "Bauen"
     },
     {
-      "key": "vocab.epoch.metal",
-      "text": "Metall"
+      "key": "vocab.epoch.smelting",
+      "text": "Schmelzen"
     },
     {
-      "key": "vocab.epoch.tools",
-      "text": "Werkzeuge"
+      "key": "vocab.epoch.shaping",
+      "text": "Formen"
     },
     {
-      "key": "vocab.epoch.wilderness",
-      "text": "Wildnis"
+      "key": "vocab.epoch.gathering",
+      "text": "Sammeln"
     },
     {
-      "key": "vocab.epoch.workshop",
-      "text": "Werkstatt"
+      "key": "vocab.epoch.processing",
+      "text": "Verarbeiten"
     },
     {
       "key": "vocab.expression.back_away",
@@ -1163,36 +1163,36 @@
       "text": "Warm"
     },
     {
-      "key": "vocab.heat_level.embers",
+      "key": "vocab.heat_level.glowing",
       "text": "Glut"
     },
     {
-      "key": "vocab.heat_level.open_fire",
-      "text": "Offenes Feuer"
+      "key": "vocab.heat_level.flame",
+      "text": "Flamme"
     },
     {
-      "key": "vocab.heat_level.kiln",
-      "text": "Brennofen"
+      "key": "vocab.heat_level.strong_heat",
+      "text": "Starke Hitze"
     },
     {
-      "key": "vocab.heat_level.furnace",
-      "text": "Schmelzofen"
+      "key": "vocab.heat_level.melting_heat",
+      "text": "Schmelzhitze"
     },
     {
-      "key": "vocab.tech_level.tool",
-      "text": "Werkzeug"
+      "key": "vocab.tech_level.shaping",
+      "text": "Formen"
     },
     {
-      "key": "vocab.tech_level.hut",
-      "text": "Hütte"
+      "key": "vocab.tech_level.building",
+      "text": "Bauen"
     },
     {
-      "key": "vocab.tech_level.workshop",
-      "text": "Werkstatt"
+      "key": "vocab.tech_level.processing",
+      "text": "Verarbeiten"
     },
     {
-      "key": "vocab.tech_level.metal",
-      "text": "Metall"
+      "key": "vocab.tech_level.smelting",
+      "text": "Schmelzen"
     },
     {
       "key": "vocab.shape.box",
@@ -1227,8 +1227,8 @@
       "text": "Schale"
     },
     {
-      "key": "vocab.tech_level.wilderness",
-      "text": "Wildnis"
+      "key": "vocab.tech_level.gathering",
+      "text": "Sammeln"
     },
     {
       "key": "vocab.guard_reason.living_being",
@@ -1679,56 +1679,24 @@
       "text": "Meilenstein erreicht"
     },
     {
-      "key": "msg.milestone.first_edge",
-      "text": "Erste Schneide"
-    },
-    {
-      "key": "msg.milestone.first_cord",
-      "text": "Erste Schnur"
-    },
-    {
-      "key": "msg.milestone.first_handled_tool",
-      "text": "Erstes Werkzeug mit Griff"
-    },
-    {
       "key": "msg.milestone.first_fire",
       "text": "Erstes Feuer"
     },
     {
       "key": "msg.milestone.first_container",
-      "text": "Erstes Gefäß"
+      "text": "Etwas, das hält"
     },
     {
       "key": "msg.milestone.cooked_food",
-      "text": "Gekochtes Essen"
+      "text": "Gegartes"
     },
     {
       "key": "msg.milestone.first_shelter",
-      "text": "Erster Unterstand"
+      "text": "Schutz vor Wetter"
     },
     {
       "key": "msg.milestone.first_warming_thing",
-      "text": "Erstes wärmendes Ding"
-    },
-    {
-      "key": "msg.milestone.fired_clay",
-      "text": "Gebrannter Ton"
-    },
-    {
-      "key": "msg.milestone.charcoal",
-      "text": "Holzkohle"
-    },
-    {
-      "key": "msg.milestone.bread",
-      "text": "Brot"
-    },
-    {
-      "key": "msg.milestone.glass",
-      "text": "Glas"
-    },
-    {
-      "key": "msg.milestone.first_metal",
-      "text": "Erstes Metall"
+      "text": "Etwas Wärmendes"
     },
     {
       "key": "vocab.event.question_failed",
@@ -3193,6 +3161,30 @@
     {
       "key": "msg.learnlog.word_heard",
       "text": "{time} hört von dir das Wort „{word}“ für {thing}"
+    },
+    {
+      "key": "msg.milestone.first_sharp",
+      "text": "Etwas Scharfes"
+    },
+    {
+      "key": "msg.milestone.first_braid",
+      "text": "Erstes Flechten"
+    },
+    {
+      "key": "msg.milestone.first_firing",
+      "text": "Erstes Brennen"
+    },
+    {
+      "key": "msg.milestone.first_charring",
+      "text": "Erstes Verkohlen"
+    },
+    {
+      "key": "msg.milestone.first_transparent",
+      "text": "Etwas Durchsichtiges"
+    },
+    {
+      "key": "msg.milestone.first_melting",
+      "text": "Erstes Schmelzen"
     }
   ]
 }

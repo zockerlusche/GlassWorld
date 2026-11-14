@@ -247,7 +247,7 @@ public sealed class ContentSet
                 inventions.TechLevels,
                 inventions.Settings.TechLevel)
             : null;
-        var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
+        var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Process), inventions.TechLevels);
         return new ContentSet(
             calendar,
             objects,
@@ -815,7 +815,7 @@ public sealed class ContentSet
     /// The milestones (B2598), if the file exists: known properties, rules and tech levels, unique ids, and exactly
     /// one of made_with and rule per milestone.
     /// </summary>
-    private static MilestoneCatalog? LoadMilestones(string contentDirectory, HashSet<string> properties, HashSet<string> rules, IReadOnlyList<string> techLevels)
+    private static MilestoneCatalog? LoadMilestones(string contentDirectory, HashSet<string> properties, HashSet<string> processes, IReadOnlyList<string> techLevels)
     {
         var path = Path.Combine(contentDirectory, "milestones", "catalog.json");
         if (!File.Exists(path))
@@ -828,15 +828,15 @@ public sealed class ContentSet
         foreach (var milestone in catalog.Milestones)
         {
             var made = milestone.MadeWith is { Count: > 0 };
-            if (made == milestone.Rule is not null)
+            if (made == milestone.Process is not null)
             {
-                problems.Add($"'{milestone.Id}' needs exactly one of made_with and rule");
+                problems.Add($"'{milestone.Id}' needs exactly one of made_with and process");
             }
 
             problems.AddRange((milestone.MadeWith ?? []).Where(p => !properties.Contains(p)).Select(p => $"'{milestone.Id}' names unknown property '{p}'"));
-            if (milestone.Rule is { } rule && !rules.Contains(rule))
+            if (milestone.Process is { } process && !processes.Contains(process))
             {
-                problems.Add($"'{milestone.Id}' names unknown rule '{rule}'");
+                problems.Add($"'{milestone.Id}' names unknown process '{process}'");
             }
 
             if (milestone.RaisesTechLevel is { } level && !techLevels.Contains(level, StringComparer.Ordinal))

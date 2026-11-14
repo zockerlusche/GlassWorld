@@ -3,24 +3,24 @@
   "kind": "tech_level",
   "entries": [
     {
-      "id": "wilderness",
+      "id": "gathering",
       "description": "Nothing made yet; only what nature offers."
     },
     {
-      "id": "tool",
-      "description": "Simple tools from what lies around."
+      "id": "shaping",
+      "description": "Shaping what lies around by hand: cutting, knapping, braiding, binding."
     },
     {
-      "id": "hut",
-      "description": "Simple buildings and shelters."
+      "id": "building",
+      "description": "Putting things together into larger things that stand."
     },
     {
-      "id": "workshop",
-      "description": "A fixed place with fire, tools and stores."
+      "id": "processing",
+      "description": "Changing materials over time and with lasting heat."
     },
     {
-      "id": "metal",
-      "description": "Working with molten metal."
+      "id": "smelting",
+      "description": "Melting what only the strongest heat melts, and working it."
     }
   ]
 }

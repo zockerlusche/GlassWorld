@@ -384,7 +384,7 @@ public sealed class SimulationHost
         }
 
         // B2598, A1583/A1625: the world's milestones, recognised from what is made; the tech level rises with them.
-        var milestones = new MilestoneSystem(content.Milestones, content.Inventions.TechLevels, content.Inventions.Settings.TechLevel, types, objects, inhabitants);
+        var milestones = new MilestoneSystem(content.Milestones, content.Inventions.TechLevels, content.Inventions.Settings.TechLevel, types, objects, inhabitants, content.Processes is null ? null : rule => content.Processes.ProcessOf(rule));
         milestonesRef = milestones;
         inventions.Milestones = milestones;
         if (processes is not null)

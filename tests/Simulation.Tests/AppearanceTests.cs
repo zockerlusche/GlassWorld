@@ -23,7 +23,7 @@ public sealed class AppearanceTests : IDisposable
     [InlineData("summer")]
     public void OutfitsFitTheSeasonAndTheTechLevel(string season)
     {
-        var place = new ClothingContext(season, "temperate", "beach_sea", "tool");
+        var place = new ClothingContext(season, "temperate", "beach_sea", "shaping");
         var drawn = Many(place).Select(a => a.ClothingStyle).ToHashSet(StringComparer.Ordinal);
         var fitting = Data.Outfits.Where(o => place.Fits(o.When, "female")).Select(o => o.Id).ToHashSet(StringComparer.Ordinal);
         Assert.Subset(fitting, drawn);
@@ -43,7 +43,7 @@ public sealed class AppearanceTests : IDisposable
     [Fact]
     public void AnOutfitLimitedToOneSexIsOnlyWornByIt()
     {
-        var place = new ClothingContext("summer", "temperate", null, "tool");
+        var place = new ClothingContext("summer", "temperate", null, "shaping");
         var limited = Data.Outfits.Where(o => o.When?.Sexes is { Count: > 0 }).ToList();
         Assert.NotEmpty(limited);
         foreach (var sex in new[] { "female", "male" })
@@ -115,7 +115,7 @@ public sealed class AppearanceTests : IDisposable
         var womenOnly = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<LookAppearance>(
             File.ReadAllText(Path.Combine(ContentDirectory, "look", "appearance.json")));
         womenOnly.Outfits = [.. womenOnly.Outfits.Where(o => o.When?.Sexes is { Count: > 0 })];
-        var place = new ClothingContext("summer", "temperate", null, "tool");
+        var place = new ClothingContext("summer", "temperate", null, "shaping");
         Assert.NotNull(Appearance.Draw(womenOnly, Stream(1), Data.StartAgeDays, "female", place));
         Assert.Throws<InvalidDataException>(() => Appearance.Draw(womenOnly, Stream(1), Data.StartAgeDays, "male", place));
     }
@@ -134,7 +134,7 @@ public sealed class AppearanceTests : IDisposable
     [Fact]
     public void TheSameStreamGivesTheSameLookAndTheSexOnlyChangesProportionsAndOutfit()
     {
-        var place = new ClothingContext("spring", "temperate", null, "tool");
+        var place = new ClothingContext("spring", "temperate", null, "shaping");
         var woman = Appearance.Draw(Data, Stream(3), Data.StartAgeDays, "female", place);
         var again = Appearance.Draw(Data, Stream(3), Data.StartAgeDays, "female", place);
         var man = Appearance.Draw(Data, Stream(3), Data.StartAgeDays, "male", place);
@@ -176,7 +176,7 @@ public sealed class AppearanceTests : IDisposable
             case "unconditional":
                 foreach (var outfit in outfits)
                 {
-                    outfit!["when"] ??= new JsonObject { ["tech_levels"] = new JsonArray("tool") };
+                    outfit!["when"] ??= new JsonObject { ["tech_levels"] = new JsonArray("shaping") };
                 }
 
                 break;

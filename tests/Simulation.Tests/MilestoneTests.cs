@@ -46,20 +46,20 @@ public sealed class MilestoneTests
     }
 
     [Fact]
-    public void TheFirstUseOfARuleIsAMilestoneOnceAndRaisesTheTechLevelEverywhere()
+    public void TheFirstUseOfAProcessVerbIsAMilestoneOnceAndRaisesTheTechLevelEverywhere()
     {
         var host = World();
         var start = host.Milestones.TechLevelIndex;
         var levels = Content.Value.Inventions.TechLevels;
-        var milestone = Content.Value.Milestones!.Milestones.First(m => m.Rule is not null && m.RaisesTechLevel is { } l && IndexOf(levels, l) > start);
+        var milestone = Content.Value.Milestones!.Milestones.First(m => m.Process is not null && m.RaisesTechLevel is { } l && IndexOf(levels, l) > start);
         var maker = host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
         var events = new List<WorldEvent>();
         host.Inhabitants.Reported += events.Add;
 
-        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = "fire", Detail = milestone.Rule });
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = Plain, Detail = RuleOf(milestone.Process!) });
         host.World.Step();
         var reached = Assert.Single(events, e => e.Kind == MilestoneSystem.MilestoneReached);
-        Assert.Equal((maker.Id, milestone.Id, "fire"), (reached.InhabitantId, reached.Detail, reached.TargetType));
+        Assert.Equal((maker.Id, milestone.Id, Plain), (reached.InhabitantId, reached.Detail, reached.TargetType));
         Assert.True(host.Milestones.IsReached(milestone.Id));
 
         // The tech level rose with it: the inventions, the processes and the look epochs read the new one.
@@ -69,7 +69,7 @@ public sealed class MilestoneTests
         Assert.Equal(level, host.LookEpoch.ReachedTechLevel);
 
         // Again: no second milestone.
-        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = "fire", Detail = milestone.Rule });
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = Plain, Detail = RuleOf(milestone.Process!) });
         host.World.Run(2);
         Assert.Single(events, e => e.Kind == MilestoneSystem.MilestoneReached);
     }
@@ -103,9 +103,9 @@ public sealed class MilestoneTests
         var host = World();
         var start = host.Milestones.TechLevelIndex;
         var levels = Content.Value.Inventions.TechLevels;
-        var milestone = Content.Value.Milestones!.Milestones.First(m => m.Rule is not null && m.RaisesTechLevel is { } l && IndexOf(levels, l) > start);
+        var milestone = Content.Value.Milestones!.Milestones.First(m => m.Process is not null && m.RaisesTechLevel is { } l && IndexOf(levels, l) > start);
         var maker = host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
-        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = "fire", Detail = milestone.Rule });
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, host.World.Tick, maker.Id, "combine", null) { TargetType = Plain, Detail = RuleOf(milestone.Process!) });
         host.World.Run(2);
 
         var path = Path.Combine(Path.GetTempPath(), "gw-milestones-" + Guid.NewGuid().ToString("N") + ".sqlite");
@@ -175,4 +175,12 @@ public sealed class MilestoneTests
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
         return new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de");
     }
+
+    /// <summary>A process rule of the data with the milestone's verb (D1096 #4: milestones know verbs, rules tell theirs).</summary>
+    private static string RuleOf(string process) =>
+        Content.Value.Processes!.RuleIds.First(r => Content.Value.Processes.ProcessOf(r) == process);
+
+    /// <summary>A type that fits no made_with milestone, so only the process milestone is reached by the test's event.</summary>
+    private static string Plain => Content.Value.Objects.TypeIds.First(t => Content.Value.Milestones!.Milestones
+        .All(m => m.MadeWith is not { Count: > 0 } props || !props.All(p => Content.Value.Objects.TrueProperties(t).Contains(p))));
 }
