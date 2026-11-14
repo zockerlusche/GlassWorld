@@ -116,7 +116,13 @@ public sealed class WearTests : IDisposable
         var wrap = host.Objects.Spawn(Wrap, wearer.Position);
         host.Objects.SetHeld(wrap.Id, wearer.Id);
         wearer.Worn = wrap.Id;
-        Assert.Equal(bare + Content.Value.Body!.Worn!.WarmTenthC, host.Body.FeltTenthC(host.World, wearer));
+        var worn = host.Content.Body!.Worn!;
+        worn.UpToTenthC = 1000; // never warm enough to matter
+        Assert.Equal(bare + worn.WarmTenthC, host.Body.FeltTenthC(host.World, wearer));
+
+        // Review GW1 #436: when it is warm already, a worn thing adds nothing.
+        worn.UpToTenthC = -1000;
+        Assert.Equal(bare, host.Body.FeltTenthC(host.World, wearer));
     }
 
     [Fact]
@@ -142,21 +148,27 @@ public sealed class WearTests : IDisposable
         Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
     }
 
-    [Fact]
-    public void AColdInhabitantPutsOnAWearableThingBesideIt()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TheRoutinePutsOnAWearableThingOnlyWhenTooCold(bool cold)
     {
-        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
+        // Review GW1 #436: the warmth need falls in the heat as well - the routine offers putting on only while it feels
+        // too cold (the AI may still propose it; this is the routine's own offer, through the real felt check).
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
         Register(host);
+        var zone = host.Content.InhabitantModel.ComfortZone!;
+        (zone.MinTenthC, zone.MaxTenthC) = cold ? (900, 990) : (-990, -900); // everyone feels too cold / too warm
         var wearer = host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
         var wrap = host.Objects.Spawn(Wrap, wearer.Position);
+        wearer.Needs["warmth"] = 0.05; // low either way: cold and heat both lower it
+        wearer.Beliefs.Set(Wrap, "wearable", true, 1.0);
+        wearer.Beliefs.Set(Wrap, "crafted", true, 1.0);
 
-        for (var hour = 0; hour < 24 && wearer.Worn is null; hour++)
-        {
-            wearer.Needs["warmth"] = 0.05;
-            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
-        }
+        var scratch = new Behaviour.UtilityBrain.Scratch { Feels = host.Inhabitants.Feels };
+        var options = host.Content.Brain.Candidates(wearer, host.Inhabitants.InAim(wearer), new HashSet<string>(StringComparer.Ordinal), null, null, scratch);
 
-        Assert.Equal(wrap.Id, wearer.Worn);
+        Assert.Equal(cold, options.Any(o => o.Action == PutOn && o.TargetId == wrap.Id));
     }
 
     private static void Register(SimulationHost host)

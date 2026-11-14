@@ -136,6 +136,12 @@ class Consideration(BaseModel):
         None,
         description='Another inhabitant as the target (W1744): the action (vocabulary target inhabitant) is offered on every other inhabitant in sight that the inhabitant has met, that stands in this relation to it and that is not asleep, scored urgency x the distance factor (distance_falloff). The inhabitant acts on its own relationships only. Needs target_property null, no avoid_properties and no novelty_curve. Absent or null = no inhabitant target.',
     )
+    when_felt: str | None = Field(
+        None,
+        description='K4 (review GW1 #436): offered only while the inhabitant feels this sensation (vocabulary sensation, e.g. too_cold); omitted = always.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     need: common_schema.VocabId | None = Field(
         ..., description='Need whose value is the curve input; null = constant input 1.'
     )

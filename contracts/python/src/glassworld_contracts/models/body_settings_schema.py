@@ -40,6 +40,12 @@ class BodyWorn(BaseModel):
     warm_tenth_c: int = Field(
         ..., description='Tenths of a degree the wearer feels warmer.', ge=0, le=300
     )
+    up_to_tenth_c: int | None = Field(
+        None,
+        description='Review GW1 #436: the worn thing keeps warm only while the air and sun its wearer feels without it are below this (tenths of a degree) - on a hot day it adds nothing. Omitted = always.',
+        ge=-500,
+        le=600,
+    )
 
 
 class BodyWetness(BaseModel):

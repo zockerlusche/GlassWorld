@@ -1620,6 +1620,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // The options as the brain makes them, not sorted: the best one that the rules below let through is
         // looked for (UtilityBrain.Compare is the order a sorted list would have), and a rule is asked only
         // about an option that would be the best so far.
+        _scoring.Feels = Feels;
         var options = _brain.Candidates(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null, _scoring);
         if (RuntimeNeeds is { Added.Count: > 0 } runtime)
         {

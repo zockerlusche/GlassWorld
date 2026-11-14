@@ -524,6 +524,7 @@
   },
   "worn": {
     "property": "insulating",
-    "warm_tenth_c": 60
+    "warm_tenth_c": 60,
+    "up_to_tenth_c": 200
   }
 }

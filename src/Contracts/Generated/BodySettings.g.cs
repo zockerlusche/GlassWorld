@@ -28,6 +28,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("warm_tenth_c")]
         public int WarmTenthC { get; set; } = default!;
 
+        /// <summary>
+        /// Review GW1 #436: the worn thing keeps warm only while the air and sun its wearer feels without it are below this (tenths of a degree) - on a hot day it adds nothing. Omitted = always.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("up_to_tenth_c")]
+        public int? UpToTenthC { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
