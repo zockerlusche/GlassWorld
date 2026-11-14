@@ -68,7 +68,7 @@ GOOD: dict[str, Any] = {
         "remove_properties": [],
         "consumes": [],
         "heat_min": None,
-        "tech_level": "tool",
+        "tech_level": "shaping",
         "duration_ticks": 300,
     },
 }
@@ -138,7 +138,7 @@ def test_not_feasible_is_a_result() -> None:
     ("changes", "problem"),
     [
         ({"heat_min": "warm"}, "heat_min"),  # no heat available
-        ({"tech_level": "metal"}, "tech_level"),  # above the inhabitant's tech level
+        ({"tech_level": "smelting"}, "tech_level"),  # above the inhabitant's tech level
         ({"remove_properties": ["sharp"]}, "remove_properties"),  # no input has 'sharp'
         ({"consumes": [1]}, "consumes"),  # only one input: nothing else can be used up
         ({"add_properties": ["long_lasting"]}, "change something"),  # no real change
@@ -537,6 +537,22 @@ def test_v4_the_order_changes_from_try_to_try() -> None:
         values = build_values(GenerationJob.model_validate(data), CTX4)
         firsts.add(_listed(values["process"])[0])
     assert len(firsts) >= 3
+
+
+def test_v4_takes_every_process_the_core_may_send_now() -> None:
+    """#391 (GW4, review GW2): the core sends every process physics allows, up to 16. The job is
+    valid, every one physics lets through is listed, still in the neutral order, and the answer
+    schema's enum is the same list - no cut to 8 anywhere in the service."""
+    from glassworld_ai.process.judge import output_schema
+
+    every = sorted(Vocabulary.load(REPO / "content/vocabulary").ids("process"))
+    assert 8 < len(every) <= 16
+    job = _with_candidates(every)  # validates against maxItems 16
+    template = load_prompt(REPO / "prompts", "process/judge", 4)
+    shown = _listed(template.render(build_values(job, CTX4)).user)
+    assert len(shown) > 8 and set(shown) <= set(every)
+    assert shown == _listed(template.render(build_values(_with_candidates(every[::-1]), CTX4)).user)
+    assert output_schema(job, CTX4)["properties"]["process"]["enum"] == shown
 
 
 def test_v4_prompt_snapshot_with_neutral_examples(settings: Settings) -> None:

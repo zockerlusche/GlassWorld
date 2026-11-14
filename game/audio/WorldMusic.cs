@@ -15,7 +15,7 @@ namespace GlassWorld.Game.Audio;
 public partial class WorldMusic : Node
 {
     /// <summary>Epoch until the core keeps one (B9/B10): the first epoch of the look data.</summary>
-    public const string DefaultEpoch = "wilderness";
+    public const string DefaultEpoch = "gathering";
 
     private readonly AudioStreamPlayer[] _players = new AudioStreamPlayer[2];
     private readonly (double From, double To, double Start, double Length)[] _fades = new (double, double, double, double)[2];

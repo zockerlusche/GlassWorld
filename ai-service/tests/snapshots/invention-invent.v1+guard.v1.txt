@@ -37,7 +37,7 @@ You need something: thirst. Nothing you have helps.
 - dry_branch (you notice: burnable, portable)
 
 ## Tech level
-hut
+building
 
 ## Basic processes you know
 - bind (Tie things firmly together.)
@@ -149,7 +149,7 @@ Answer only with the JSON object requested. The note is one short English senten
 >  "introduces": [
 >   "container"
 >  ],
->  "tech_level": "hut"
+>  "tech_level": "building"
 > }
 
 ## Materials the inhabitant can see and reach
@@ -157,6 +157,6 @@ Answer only with the JSON object requested. The note is one short English senten
 - dry_branch (you notice: burnable, portable)
 
 ## Tech level allowed
-hut
+building
 
 Check it.

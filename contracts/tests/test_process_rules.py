@@ -70,27 +70,27 @@ def test_blade_and_axe() -> None:
 
 def test_clay_vessel() -> None:
     shaped = apply("shape", [CATALOG["clay"]])
-    vessel = apply("fire", [shaped], heat="kiln")
+    vessel = apply("fire", [shaped], heat="strong_heat")
     assert {"container", "hard"} <= vessel and "malleable" not in vessel
-    assert "hard" not in apply("fire", [shaped], heat="kiln") - vessel  # same result twice
+    assert "hard" not in apply("fire", [shaped], heat="strong_heat") - vessel  # same result twice
 
 
 def test_charcoal_ash_and_glass() -> None:
-    charcoal = apply("char", [CATALOG["dry_wood"]], heat="embers")
+    charcoal = apply("char", [CATALOG["dry_wood"]], heat="glowing")
     assert "smoulders" in charcoal
-    ash = apply("fire", [CATALOG["dry_grass"]], heat="open_fire")
+    ash = apply("fire", [CATALOG["dry_grass"]], heat="flame")
     assert {"fine_grained", "alkaline"} <= ash and "burnable" not in ash
     sand = {"fine_grained", "hard", "portable"}  # beach sand (catalog later, B2)
-    glass = apply("melt", [sand, ash], heat="furnace")
+    glass = apply("melt", [sand, ash], heat="melting_heat")
     assert "transparent" in glass
 
 
 def test_food_chains() -> None:
     flour = apply("grind", [CATALOG["wild_grain"]], tool=CATALOG["fieldstone"])
     dough = apply("mix", [flour, CATALOG["spring_water"]])
-    bread = apply("heat", [dough], heat="embers")
+    bread = apply("heat", [dough], heat="glowing")
     assert {"edible", "cooked"} <= bread and "malleable" not in bread
-    assert "cooked" in apply("heat", [CATALOG["hazelnut"]], heat="embers")  # roasting
+    assert "cooked" in apply("heat", [CATALOG["hazelnut"]], heat="glowing")  # roasting
     assert "long_lasting" in apply("dry", [CATALOG["apple"]])  # dried fruit
     nuts = CATALOG["hazelnut"] | {"fatty"}  # oily nuts (catalog entry by GW1, B2542)
     nut_flour = apply("grind", [nuts], tool=CATALOG["fieldstone"])
@@ -113,5 +113,5 @@ def test_dough_is_not_a_clay_pot() -> None:
 def test_the_most_specific_rule_wins() -> None:
     """Review GW1 #100: heating dry food in its own shell fits 'heat_water_container' (1 required
     property) and 'roast_food' (2): roasting is more specific and wins, in the test as in P3."""
-    result = apply("heat", [{"edible", "long_lasting", "container"}], heat="open_fire")
+    result = apply("heat", [{"edible", "long_lasting", "container"}], heat="flame")
     assert "cooked" in result and "hot" not in result

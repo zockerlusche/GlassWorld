@@ -49,6 +49,9 @@ public sealed class ProcessRuleSet
     /// <summary>The heat levels, lowest first (B2700).</summary>
     public IReadOnlyList<string> HeatLevels { get; }
 
+    /// <summary>The process verb of a rule, or null for a rule this set does not have (D1096 #4: milestones by verb).</summary>
+    public string? ProcessOf(string ruleId) => _rules.FirstOrDefault(r => string.Equals(r.Id, ruleId, StringComparison.Ordinal))?.Process;
+
     /// <summary>
     /// What a step of a plan makes of its materials by the data's rules (D1097): the most specific rule of the step's process
     /// that fits them - two materials as a pair, or one alone - at the given tech level and any heat (a plan does not say how

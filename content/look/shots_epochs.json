@@ -38,11 +38,11 @@
     "day"
   ],
   "epochs": [
-    "wilderness",
-    "tools",
-    "hut",
-    "workshop",
-    "metal"
+    "gathering",
+    "shaping",
+    "building",
+    "processing",
+    "smelting"
   ],
   "seasons": [
     "summer"

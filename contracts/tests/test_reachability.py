@@ -131,12 +131,12 @@ def test_without_the_spark_maker_fire_is_out_of_reach(tmp_path: Path) -> None:
 def test_a_heat_source_opens_the_rules_that_need_heat() -> None:
     # Once the data link things to heat levels, the rules behind them open: the hook for it.
     start = sources(CONTENT, PRESETS[0])
-    with_heat = analyse(CONTENT, Sources(start.preset, start.types, frozenset({"open_fire"})))
+    with_heat = analyse(CONTENT, Sources(start.preset, start.types, frozenset({"flame"})))
     assert {"roast_food", "burn_to_ash", "heat_water_container"} <= with_heat.processes
     # A kiln is hotter than an open fire, and cooking needs the hard vessel only a kiln gives.
     assert {"fire_shaped_clay", "cook_food"}.isdisjoint(with_heat.processes)
-    assert {"heat:warm", "heat:embers", "heat:open_fire"}.isdisjoint(with_heat.gaps)
-    assert "heat:kiln" in with_heat.gaps
+    assert {"heat:warm", "heat:glowing", "heat:flame"}.isdisjoint(with_heat.gaps)
+    assert "heat:strong_heat" in with_heat.gaps
 
 
 def test_a_tech_level_needs_the_levels_before_it(tmp_path: Path) -> None:
@@ -144,9 +144,9 @@ def test_a_tech_level_needs_the_levels_before_it(tmp_path: Path) -> None:
 
     def strip_tool_rules(data: dict[str, Any]) -> None:
         for rule in data["rules"]:
-            if rule["tech_level"] == "tool":
+            if rule["tech_level"] == "shaping":
                 rule["inputs"][0]["properties_all"] = ["transparent"]
 
     _edit(content / "processes/rules.json", strip_tool_rules)
     gaps = _gaps(content)
-    assert {"tech:tool", "tech:hut", "tech:workshop", "tech:metal"} <= gaps
+    assert {"tech:shaping", "tech:building", "tech:processing", "tech:smelting"} <= gaps

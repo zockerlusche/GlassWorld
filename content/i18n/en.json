@@ -711,24 +711,24 @@
       "text": "Swamp"
     },
     {
-      "key": "vocab.epoch.hut",
-      "text": "Hut"
+      "key": "vocab.epoch.building",
+      "text": "Building"
     },
     {
-      "key": "vocab.epoch.metal",
-      "text": "Metal"
+      "key": "vocab.epoch.smelting",
+      "text": "Smelting"
     },
     {
-      "key": "vocab.epoch.tools",
-      "text": "Tools"
+      "key": "vocab.epoch.shaping",
+      "text": "Shaping"
     },
     {
-      "key": "vocab.epoch.wilderness",
-      "text": "Wilderness"
+      "key": "vocab.epoch.gathering",
+      "text": "Gathering"
     },
     {
-      "key": "vocab.epoch.workshop",
-      "text": "Workshop"
+      "key": "vocab.epoch.processing",
+      "text": "Processing"
     },
     {
       "key": "vocab.expression.back_away",
@@ -1163,36 +1163,36 @@
       "text": "Warm"
     },
     {
-      "key": "vocab.heat_level.embers",
-      "text": "Embers"
+      "key": "vocab.heat_level.glowing",
+      "text": "Glowing"
     },
     {
-      "key": "vocab.heat_level.open_fire",
-      "text": "Open fire"
+      "key": "vocab.heat_level.flame",
+      "text": "Flame"
     },
     {
-      "key": "vocab.heat_level.kiln",
-      "text": "Kiln"
+      "key": "vocab.heat_level.strong_heat",
+      "text": "Strong heat"
     },
     {
-      "key": "vocab.heat_level.furnace",
-      "text": "Furnace"
+      "key": "vocab.heat_level.melting_heat",
+      "text": "Melting heat"
     },
     {
-      "key": "vocab.tech_level.tool",
-      "text": "Tool"
+      "key": "vocab.tech_level.shaping",
+      "text": "Shaping"
     },
     {
-      "key": "vocab.tech_level.hut",
-      "text": "Hut"
+      "key": "vocab.tech_level.building",
+      "text": "Building"
     },
     {
-      "key": "vocab.tech_level.workshop",
-      "text": "Workshop"
+      "key": "vocab.tech_level.processing",
+      "text": "Processing"
     },
     {
-      "key": "vocab.tech_level.metal",
-      "text": "Metal"
+      "key": "vocab.tech_level.smelting",
+      "text": "Smelting"
     },
     {
       "key": "vocab.shape.box",
@@ -1227,8 +1227,8 @@
       "text": "Open half sphere"
     },
     {
-      "key": "vocab.tech_level.wilderness",
-      "text": "Wilderness"
+      "key": "vocab.tech_level.gathering",
+      "text": "Gathering"
     },
     {
       "key": "vocab.guard_reason.living_being",
@@ -1679,56 +1679,24 @@
       "text": "Milestone reached"
     },
     {
-      "key": "msg.milestone.first_edge",
-      "text": "First edge"
-    },
-    {
-      "key": "msg.milestone.first_cord",
-      "text": "First cord"
-    },
-    {
-      "key": "msg.milestone.first_handled_tool",
-      "text": "First tool with a handle"
-    },
-    {
       "key": "msg.milestone.first_fire",
       "text": "First fire"
     },
     {
       "key": "msg.milestone.first_container",
-      "text": "First container"
+      "text": "Something that holds"
     },
     {
       "key": "msg.milestone.cooked_food",
-      "text": "Cooked food"
+      "text": "Cooked"
     },
     {
       "key": "msg.milestone.first_shelter",
-      "text": "First shelter"
+      "text": "Shelter from the weather"
     },
     {
       "key": "msg.milestone.first_warming_thing",
-      "text": "First warming thing"
-    },
-    {
-      "key": "msg.milestone.fired_clay",
-      "text": "Fired clay"
-    },
-    {
-      "key": "msg.milestone.charcoal",
-      "text": "Charcoal"
-    },
-    {
-      "key": "msg.milestone.bread",
-      "text": "Bread"
-    },
-    {
-      "key": "msg.milestone.glass",
-      "text": "Glass"
-    },
-    {
-      "key": "msg.milestone.first_metal",
-      "text": "First metal"
+      "text": "Something warming"
     },
     {
       "key": "vocab.event.question_failed",
@@ -3237,6 +3205,30 @@
     {
       "key": "msg.learnlog.word_heard",
       "text": "{time} hears the word \"{word}\" from you for {thing}"
+    },
+    {
+      "key": "msg.milestone.first_sharp",
+      "text": "Something sharp"
+    },
+    {
+      "key": "msg.milestone.first_braid",
+      "text": "First braiding"
+    },
+    {
+      "key": "msg.milestone.first_firing",
+      "text": "First firing"
+    },
+    {
+      "key": "msg.milestone.first_charring",
+      "text": "First charring"
+    },
+    {
+      "key": "msg.milestone.first_transparent",
+      "text": "Something transparent"
+    },
+    {
+      "key": "msg.milestone.first_melting",
+      "text": "First melting"
     }
   ]
 }

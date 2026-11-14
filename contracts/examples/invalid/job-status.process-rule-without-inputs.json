@@ -12,9 +12,9 @@
         "process": "char",
         "inputs": [],
         "tool": null,
-        "heat_min": "embers",
+        "heat_min": "glowing",
         "duration_ticks": 180,
-        "tech_level": "hut",
+        "tech_level": "building",
         "result": {
           "add_properties": [
             "burnable"

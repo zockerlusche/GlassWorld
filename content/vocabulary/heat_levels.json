@@ -4,23 +4,23 @@
   "entries": [
     {
       "id": "warm",
-      "description": "Warm like sun or a small fire's edge."
+      "description": "Warm like the sun or the edge of a fire (about 40 to 60 °C)."
     },
     {
-      "id": "embers",
-      "description": "Glowing embers of a fire."
+      "id": "glowing",
+      "description": "A glow without flames (about 300 to 600 °C)."
     },
     {
-      "id": "open_fire",
-      "description": "An open fire with flames."
+      "id": "flame",
+      "description": "Open flames (about 600 to 900 °C)."
     },
     {
-      "id": "kiln",
-      "description": "Strong heat held for a long time."
+      "id": "strong_heat",
+      "description": "Strong heat held for a long time (about 900 to 1100 °C)."
     },
     {
-      "id": "furnace",
-      "description": "The strongest heat, far beyond an open fire."
+      "id": "melting_heat",
+      "description": "The strongest heat (above about 1100 °C)."
     }
   ]
 }

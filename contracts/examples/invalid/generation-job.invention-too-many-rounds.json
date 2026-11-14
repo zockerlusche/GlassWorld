@@ -136,7 +136,7 @@
           ]
         }
       ],
-      "tech_level": "hut",
+      "tech_level": "building",
       "limits": {
         "max_size_m": 1.0,
         "max_parts": 12,
