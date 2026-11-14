@@ -723,7 +723,7 @@ class Invention(BaseModel):
     steps: list[InventionStep] = Field(..., max_length=8, min_length=2)
     introduces: list[VocabId] = Field(
         ...,
-        description='True properties of the new thing (property vocabulary only).',
+        description='What the inventor expects the new thing to be (property vocabulary only). Not the truth: the core derives the true properties from the materials and the steps (D1096 #1, D1097); the builder gets these as guesses.',
         max_length=6,
         min_length=0,
     )

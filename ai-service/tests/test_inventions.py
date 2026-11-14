@@ -422,3 +422,21 @@ def test_v6_says_what_the_inhabitant_knows_about_its_materials(settings: Setting
     named = GenerationJob.model_validate(data)
     user = v6.render(inventor_values(named, v6, vocab, "")).user
     assert 'inv_a1b2c3d4e5f6 (you call it "Lehmschale") is not edible' in user
+
+
+def test_v7_asks_for_what_the_inventor_expects(settings: Settings) -> None:
+    """D1096 #1 (D1097, B2746): the core derives what a made thing truly is; 'introduces' is only
+    the inventor's expectation. v7 says so and keeps it within what materials and steps can give;
+    everything else is v6 word for word."""
+    from glassworld_ai.invention.flow import inventor_values
+
+    vocab = _vocab(settings)
+    job = GenerationJob.model_validate(JOB_DATA)
+    v6 = load_prompt(settings.prompts_dir, "invention/invent", 6)
+    v7 = load_prompt(settings.prompts_dir, "invention/invent", 7)
+    r6 = v6.render(inventor_values(job, v6, vocab, ""))
+    r7 = v7.render(inventor_values(job, v7, vocab, ""))
+    assert "Only what it really has." in r6.system and "Only what it really has." not in r7.system
+    assert "what you EXPECT the new thing itself to be" in r7.system
+    assert "whether it\n  really is so shows when it is built and used." in r7.system
+    assert r6.user == r7.user
