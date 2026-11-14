@@ -46,7 +46,7 @@
         "tech_level": "hut"
       },
       "shapes": [
-        "bowl",
+        "hemisphere_open",
         "cylinder",
         "ring"
       ],
