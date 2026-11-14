@@ -3,34 +3,34 @@
   "functions": [
     {
       "id": "container",
-      "description": "Holds or carries something inside it (a vessel, basket, bag, box).",
+      "description": "Holds or carries something inside it.",
       "grants_properties": [
         "container"
       ]
     },
     {
       "id": "seat_bed",
-      "description": "Something to sit or lie on (a seat, bench, bed, mat).",
+      "description": "Something to sit or lie on.",
       "grants_properties": []
     },
     {
       "id": "heat_source",
-      "description": "Gives warmth (a hearth, an oven, a warming object).",
+      "description": "Can hold a fire or embers, or keep their warmth; warmth itself comes only from fire.",
       "grants_properties": []
     },
     {
       "id": "light_source",
-      "description": "Gives light (a lamp, a torch holder).",
+      "description": "Gives light.",
       "grants_properties": []
     },
     {
       "id": "sound_source",
-      "description": "Makes a sound or music (a drum, a rattle, a flute).",
+      "description": "Makes a sound or music.",
       "grants_properties": []
     },
     {
       "id": "shelter",
-      "description": "Protects from weather or gives a room (a roof, a hut, a screen).",
+      "description": "Protects from weather or gives a room.",
       "grants_properties": [
         "sheltering"
       ]
@@ -42,7 +42,7 @@
     },
     {
       "id": "closure",
-      "description": "Closes or covers something (a lid, a door, a stopper).",
+      "description": "Closes or covers an opening or a container.",
       "grants_properties": []
     }
   ]

@@ -79,8 +79,42 @@ public sealed class BodyTests
 
         Assert.True(host.Body!.InShade(host.World, behind));
         Assert.False(host.Body.InShade(host.World, before));
-        Assert.Equal(0, host.Body.SunTenthC(host.World, behind));
-        Assert.True(host.Body.SunTenthC(host.World, before) > 0);
+        // In the shade the sun warms by what the tree lets through in this season (TL #25357).
+        var open = host.Body.SunTenthC(host.World, before);
+        Assert.True(open > 0);
+        var through = 1000 - host.Body.CoverOf("deciduous_tree", host.World.Now.SeasonId);
+        Assert.InRange(host.Body.SunTenthC(host.World, behind), (open * through / 1000) - 1, (open * through / 1000) + 1);
+    }
+
+    [Fact]
+    public void ABroadLeavedTreeCoversLittleInWinterAndAConiferAllYear()
+    {
+        // TL #25357: the cover by species and season (data).
+        var (host, _) = Island();
+        var body = host.Body!;
+        Assert.True(body.CoverOf("deciduous_tree", "winter") < body.CoverOf("deciduous_tree", "summer"));
+        Assert.Equal(body.CoverOf("conifer_tree", "winter"), body.CoverOf("conifer_tree", "summer"));
+        Assert.Equal(1000, body.CoverOf("not_a_tree", "summer"));
+    }
+
+    [Fact]
+    public void UnderACrownLessRainComesThrough()
+    {
+        // GW1 #409: a tree's crown keeps part of the rain off, by its cover in the season.
+        var (host, inhabitant) = Island();
+        var near = new List<WorldObject>();
+        host.Objects.Within(inhabitant.Position, 20, near);
+        foreach (var thing in near)
+        {
+            host.Objects.Remove(thing.Id);
+        }
+
+        host.Objects.Spawn("conifer_tree", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(10);
+        var cover = host.Body!.CoverOf("conifer_tree", host.World.Now.SeasonId);
+        var open = Content.Value.Body!.Wetness.RainPerHour * 10 / host.World.Calendar.Settings.TicksPerHour;
+        Assert.InRange(host.Body.WetPermille(inhabitant.Id), 1, Math.Max(1, open * (1000 - cover) / 1000) + 1);
     }
 
     [Fact]

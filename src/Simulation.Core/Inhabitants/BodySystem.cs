@@ -29,6 +29,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     private readonly long _tallestCm;
     private readonly long _widestCm;
 
+    // Reused for the nearby things of one query (review GW1 #409: no list per tick).
+    private readonly List<WorldObject> _near = [];
+
     /// <summary>Creates the system.</summary>
     public BodySystem(BodySettings data, InhabitantsSystem inhabitants, WorldObjects objects, ObjectCatalog content, int ticksPerHour)
     {
@@ -88,24 +91,36 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         return SunTenthC(world, inhabitant.Position) - cool;
     }
 
-    /// <summary>The sun's warmth at a place now, in tenths of a degree: none at night, in shade or under full cloud.</summary>
+    /// <summary>
+    /// The sun's warmth at a place now, in tenths of a degree: none at night, less with clouds and in shade by
+    /// how much the caster covers in this season (TL #25357).
+    /// </summary>
     public int SunTenthC(World world, Position at)
     {
         ArgumentNullException.ThrowIfNull(world);
-        if (SunNow(world) is not { } sun || InShade(at, sun))
+        if (SunNow(world) is not { } sun)
         {
             return 0;
         }
 
         var cloud = Math.Clamp(CloudPermille?.Invoke(world) ?? 0, 0, 1000);
-        return (int)((long)_data.Sun.WarmTenthC * (1000 - cloud) / 1000);
+        var shade = ShadePermille(at, sun, world.Now.SeasonId);
+        return (int)((long)_data.Sun.WarmTenthC * (1000 - cloud) * (1000 - shade) / 1_000_000);
     }
 
     /// <summary>Whether a tree's shade falls on a place now (R29); at night nothing is in the sun anyway.</summary>
     public bool InShade(World world, Position at)
     {
         ArgumentNullException.ThrowIfNull(world);
-        return SunNow(world) is not { } sun || InShade(at, sun);
+        return SunNow(world) is not { } sun || ShadePermille(at, sun, world.Now.SeasonId) > 0;
+    }
+
+    /// <summary>How much a shade caster of a type covers in a season (data cover; not listed = fully).</summary>
+    public int CoverOf(string typeId, string season)
+    {
+        ArgumentNullException.ThrowIfNull(typeId);
+        var cover = _data.Cover?.FirstOrDefault(c => string.Equals(c.Type, typeId, StringComparison.Ordinal));
+        return cover?.Seasons.FirstOrDefault(s => string.Equals(s.Season, season, StringComparison.Ordinal))?.Permille ?? 1000;
     }
 
     /// <inheritdoc/>
@@ -127,7 +142,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
             var wet = _wet.GetValueOrDefault(inhabitant.Id);
             if (air.Precipitation && !Sheltered(inhabitant.Position))
             {
-                wet = Math.Min(1000, wet + Step(world.Tick, _data.Wetness.RainPerHour));
+                // Under a crown less rain comes through, by how much the tree covers now (GW1 #409, TL #25357).
+                var crown = CrownPermille(inhabitant.Position, world.Now.SeasonId);
+                wet = Math.Min(1000, wet + Step(world.Tick, (long)_data.Wetness.RainPerHour * (1000 - crown) / 1000));
             }
             else if (wet > 0)
             {
@@ -186,9 +203,36 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
     private bool Sheltered(Position at)
     {
-        var near = new List<WorldObject>();
-        _objects.Within(at, _data.Wetness.ShelterRadiusCm / 100.0, near);
-        return near.Any(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty));
+        _near.Clear();
+        _objects.Within(at, _data.Wetness.ShelterRadiusCm / 100.0, _near);
+        return _near.Any(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty));
+    }
+
+    /// <summary>How much the crowns over a place cover it now (the most covering one), 0 = open sky.</summary>
+    private int CrownPermille(Position at, string season)
+    {
+        if (_widestCm <= 0)
+        {
+            return 0;
+        }
+
+        _near.Clear();
+        _objects.Within(at, _widestCm / 100.0, _near);
+        var most = 0;
+        foreach (var thing in _near)
+        {
+            if (_content.Contains(thing.TypeId) && _content.Params(thing.TypeId) is { ShadeHeightCm: not null, CrownRadiusCm: { } crown })
+            {
+                var dx = thing.Position.X - at.X;
+                var dz = thing.Position.Z - at.Z;
+                if ((dx * dx) + (dz * dz) <= crown / 100.0 * (crown / 100.0))
+                {
+                    most = Math.Max(most, CoverOf(thing.TypeId, season));
+                }
+            }
+        }
+
+        return most;
     }
 
     /// <summary>The sun position of the season at the hour (the latest entry at or before it), or null while the sun is down.</summary>
@@ -209,21 +253,23 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>
-    /// Whether a place lies in a shade: under the crown of a shade caster or along its shadow, which reaches
-    /// its height times the shadow length toward the shadow direction, as wide as its crown.
+    /// How deep the shade at a place is (the most covering caster, by its cover in the season): a place lies in a
+    /// caster's shade under its crown or along its shadow, which reaches its height times the shadow length
+    /// toward the shadow direction, as wide as its crown. 0 = in the sun.
     /// </summary>
-    private bool InShade(Position at, SunPosition sun)
+    private int ShadePermille(Position at, SunPosition sun, string season)
     {
         // The farthest a shade falls now: the tallest caster at this sun's shadow length, plus the widest crown.
         var reachM = ((_tallestCm * sun.ShadowPermille / 1000) + _widestCm) / 100.0;
         if (reachM <= 0)
         {
-            return false;
+            return 0;
         }
 
-        var near = new List<WorldObject>();
-        _objects.Within(at, reachM, near);
-        foreach (var thing in near)
+        _near.Clear();
+        _objects.Within(at, reachM, _near);
+        var most = 0;
+        foreach (var thing in _near)
         {
             if (!_content.Contains(thing.TypeId) || _content.Params(thing.TypeId) is not { ShadeHeightCm: { } height, CrownRadiusCm: { } crown })
             {
@@ -236,11 +282,11 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
             var endZ = thing.Position.Z + (lengthM * sun.TowardZPermille!.Value / 1000.0);
             if (DistanceToSegment(at, thing.Position, new Position(endX, endZ)) <= crown / 100.0)
             {
-                return true;
+                most = Math.Max(most, CoverOf(thing.TypeId, season));
             }
         }
 
-        return false;
+        return most;
     }
 
     private static double DistanceToSegment(Position p, Position a, Position b)

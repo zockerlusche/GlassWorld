@@ -167,6 +167,7 @@ public sealed class InhabitantDiaryTests : IDisposable
         host.World.Run(Content.Value.Calendar.Settings.TicksPerHour * 6);
         var path = Path.Combine(_directory, "old.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
