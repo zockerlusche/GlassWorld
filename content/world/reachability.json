@@ -12,27 +12,27 @@
     { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
 
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },
-    { "gap": "heat:embers", "reason": "No data says which thing gives which heat level (see heat:warm)." },
-    { "gap": "heat:open_fire", "reason": "No data says which thing gives which heat level (see heat:warm)." },
-    { "gap": "heat:kiln", "reason": "No data says which thing gives which heat level (see heat:warm); nothing gives this one yet." },
-    { "gap": "heat:furnace", "reason": "No data says which thing gives which heat level (see heat:warm); a furnace is no object yet." },
+    { "gap": "heat:glowing", "reason": "No data says which thing gives which heat level (see heat:warm)." },
+    { "gap": "heat:flame", "reason": "No data says which thing gives which heat level (see heat:warm)." },
+    { "gap": "heat:strong_heat", "reason": "No data says which thing gives which heat level (see heat:warm); nothing gives it yet." },
+    { "gap": "heat:melting_heat", "reason": "No data says which thing gives which heat level (see heat:warm); nothing gives it yet." },
 
-    { "gap": "process:roast_food", "reason": "Needs heat level embers (see heat:embers)." },
-    { "gap": "process:bake_dough_to_bread", "reason": "Needs heat level embers (see heat:embers)." },
-    { "gap": "process:char_wood", "reason": "Needs heat level embers (see heat:embers)." },
-    { "gap": "process:burn_to_ash", "reason": "Needs heat level open_fire (see heat:open_fire)." },
-    { "gap": "process:cook_food", "reason": "Needs heat level open_fire (see heat:open_fire)." },
-    { "gap": "process:heat_water_container", "reason": "Needs heat level open_fire (see heat:open_fire)." },
-    { "gap": "process:fire_shaped_clay", "reason": "Needs heat level kiln (see heat:kiln)." },
-    { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level furnace, ash (burn_to_ash) and a thing that is fine_grained and hard: sand is only a soil, not an object (D643 question 4)." },
-    { "gap": "process:melt_with_furnace", "reason": "Needs heat level furnace and charcoal (char_wood). The rule melts sandstone or slate; there is no ore object (D643 question 2)." },
+    { "gap": "process:roast_food", "reason": "Needs heat level glowing (see heat:glowing)." },
+    { "gap": "process:bake_dough_to_bread", "reason": "Needs heat level glowing (see heat:glowing)." },
+    { "gap": "process:char_wood", "reason": "Needs heat level glowing (see heat:glowing)." },
+    { "gap": "process:burn_to_ash", "reason": "Needs heat level flame (see heat:flame)." },
+    { "gap": "process:cook_food", "reason": "Needs heat level flame (see heat:flame)." },
+    { "gap": "process:heat_water_container", "reason": "Needs heat level flame (see heat:flame)." },
+    { "gap": "process:fire_shaped_clay", "reason": "Needs heat level strong_heat (see heat:strong_heat)." },
+    { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level melting_heat, ash (burn_to_ash) and a thing that is fine_grained and hard: sand is only a soil, not an object (D643 question 4)." },
+    { "gap": "process:melt_at_melting_heat", "reason": "Needs heat level melting_heat and charcoal (char_wood). The rule melts sandstone or slate; there is no ore object (D643 question 2)." },
     { "gap": "process:curdle_milk_to_cheese", "reason": "Needs heat level warm; a milky thing is reachable since the hazelnut is fatty (A1575), the warm heat source is not." },
 
-    { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:embers)." },
-    { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:embers)." },
+    { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:glowing)." },
+    { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:glowing)." },
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
 
-    { "gap": "tech:workshop", "reason": "Its only rule is melt_sand_with_ash (see there)." },
-    { "gap": "tech:metal", "reason": "Follows workshop; its only rule is melt_with_furnace (see there)." }
+    { "gap": "tech:processing", "reason": "Its only rule is melt_sand_with_ash (see there)." },
+    { "gap": "tech:smelting", "reason": "Follows processing; its only rule is melt_at_melting_heat (see there)." }
   ]
 }

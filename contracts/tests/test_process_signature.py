@@ -29,7 +29,7 @@ def test_order_of_inputs_and_properties_does_not_matter() -> None:
     a = world_rule_id("bind", [["sharp", "hard"], ["fibrous"]], None, None)
     b = world_rule_id("bind", [["fibrous"], ["hard", "sharp"]], None, None)
     assert a == b
-    assert a != world_rule_id("bind", [["fibrous"], ["hard", "sharp"]], None, "embers")
+    assert a != world_rule_id("bind", [["fibrous"], ["hard", "sharp"]], None, "glowing")
 
 
 def test_consumes_points_to_existing_inputs() -> None:

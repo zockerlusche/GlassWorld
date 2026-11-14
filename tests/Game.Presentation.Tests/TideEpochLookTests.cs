@@ -187,7 +187,7 @@ public sealed class TideEpochLookTests
         wrong.Epochs.Last().Colors.Add(new LookColor { Id = "chrome", Color = "#ffffff" });
         Assert.Throws<InvalidDataException>(() => SeasonSlots.From(Palette, wrong));
         Assert.Throws<InvalidDataException>(() => EpochMix.Of(Epochs, Slots, "space_age"));
-        Assert.Throws<InvalidDataException>(() => EpochMix.Of(Epochs, SeasonSlots.From(Palette), "metal"));
+        Assert.Throws<InvalidDataException>(() => EpochMix.Of(Epochs, SeasonSlots.From(Palette), "smelting"));
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public sealed class TideEpochLookTests
 
         // A loaded world in a later epoch shows that epoch at once, without a blend from the base palette.
         var loaded = new EpochBlender(Epochs, Slots);
-        Assert.Equal(EpochMix.Of(Epochs, Slots, "metal"), loaded.Update("metal", 0.016));
-        Assert.Equal(new EpochBlend("metal", "metal", 1), loaded.Blend);
+        Assert.Equal(EpochMix.Of(Epochs, Slots, "smelting"), loaded.Update("smelting", 0.016));
+        Assert.Equal(new EpochBlend("smelting", "smelting", 1), loaded.Blend);
     }
 
     [Fact]
@@ -243,8 +243,8 @@ public sealed class TideEpochLookTests
     }
 
     [Theory]
-    [InlineData("metal", null)]
-    [InlineData("metal", "autumn")]
+    [InlineData("smelting", null)]
+    [InlineData("smelting", "autumn")]
     public void MovingTheEpochColoursInTheShaderShowsWhatARebuildWould(string epoch, string? season)
     {
         // The ground built once with the base palette, its epoch shares moved as the shader does, against
@@ -287,14 +287,14 @@ public sealed class TideEpochLookTests
         var duration = Epochs.BlendRealSeconds;
         Assert.True(duration > 0);
         var ground = Slots.IndexOf("ground");
-        var (from, to) = (EpochMix.Of(Epochs, Slots, "wilderness"), EpochMix.Of(Epochs, Slots, "tools"));
+        var (from, to) = (EpochMix.Of(Epochs, Slots, "gathering"), EpochMix.Of(Epochs, Slots, "shaping"));
         var season = SeasonMix.Of(Palette, Slots, "summer");
         var blender = new EpochBlender(Epochs, Slots);
-        blender.Update("wilderness", 0.016);
+        blender.Update("gathering", 0.016);
 
         // The change itself shows nothing yet (no jump); a paused game (0 seconds) holds the blend.
-        Assert.Equal(from.Over(season), blender.Update("tools", 0).Over(season));
-        Assert.Equal(new EpochBlend("wilderness", "tools", 0), blender.Blend);
+        Assert.Equal(from.Over(season), blender.Update("shaping", 0).Over(season));
+        Assert.Equal(new EpochBlend("gathering", "shaping", 0), blender.Blend);
 
         // Real seconds alone drive it (the game speed does not): half the time is half the way.
         const double dt = 1 / 60.0;
@@ -303,7 +303,7 @@ public sealed class TideEpochLookTests
         var frames = (int)Math.Round(duration / dt);
         for (var i = 1; i <= frames; i++)
         {
-            var now = blender.Update("tools", dt).Over(season).Colors[ground];
+            var now = blender.Update("shaping", dt).Over(season).Colors[ground];
             largest = Math.Max(largest, Math.Max(Math.Abs(now.R - before.R), Math.Max(Math.Abs(now.G - before.G), Math.Abs(now.B - before.B))));
             before = now;
             if (i == frames / 2)
@@ -311,18 +311,18 @@ public sealed class TideEpochLookTests
                 Assert.Equal(0.5, blender.Blend.T, 2);
                 Assert.Equal(0.5, blender.Shown.Hold[ground], 2);
                 Assert.Equal(0.5, blender.Shown.Detail("trodden_paths"), 2);
-                Assert.Equal(blender.Update("tools", 0), blender.Update("tools", 0));
+                Assert.Equal(blender.Update("shaping", 0), blender.Update("shaping", 0));
             }
         }
 
         // Calm: no frame moves a colour by more than a small part of the whole way; then the new epoch stands.
         var way = Math.Abs(to.Colors[ground].R - Slots.BaseColors[ground].R) + Math.Abs(to.Colors[ground].G - Slots.BaseColors[ground].G) + Math.Abs(to.Colors[ground].B - Slots.BaseColors[ground].B);
         Assert.True(way > 0 && largest < way * 2 * dt / duration * 1.5, $"largest step {largest} of {way}");
-        blender.Update("tools", dt);
+        blender.Update("shaping", dt);
         Assert.Equal(to, blender.Shown);
-        Assert.Equal(new EpochBlend("tools", "tools", 1), blender.Blend);
+        Assert.Equal(new EpochBlend("shaping", "shaping", 1), blender.Blend);
         Assert.Equal(1.0, blender.Shown.Detail("trodden_paths"));
-        Assert.Same(blender.Update("tools", dt), blender.Update("tools", dt));
+        Assert.Same(blender.Update("shaping", dt), blender.Update("shaping", dt));
     }
 
     [Fact]
@@ -331,25 +331,25 @@ public sealed class TideEpochLookTests
         var duration = Epochs.BlendRealSeconds;
         var season = SeasonMix.Of(Palette, Slots, "autumn");
         var blender = new EpochBlender(Epochs, Slots);
-        blender.Update("wilderness", 0.016);
-        blender.Update("workshop", 0);
+        blender.Update("gathering", 0.016);
+        blender.Update("processing", 0);
         const double dt = 1 / 60.0;
         for (var t = 0.0; t < duration * 0.4; t += dt)
         {
-            blender.Update("workshop", dt);
+            blender.Update("processing", dt);
         }
 
         // In the middle of the blend the epoch changes again: what is shown stays, the blend starts anew from it.
         var mid = blender.Shown;
         Assert.InRange(mid.Hold[Slots.IndexOf("bark")], 0.05, 0.95);
-        Assert.Equal(mid.Over(season), blender.Update("metal", 0).Over(season));
-        Assert.Equal(new EpochBlend("workshop", "metal", 0), blender.Blend);
+        Assert.Equal(mid.Over(season), blender.Update("smelting", 0).Over(season));
+        Assert.Equal(new EpochBlend("processing", "smelting", 0), blender.Blend);
 
         var before = blender.Shown.Over(season);
         var largest = 0f;
         for (var t = 0.0; t < duration + 1; t += dt)
         {
-            var now = blender.Update("metal", dt).Over(season);
+            var now = blender.Update("smelting", dt).Over(season);
             for (var i = 0; i < now.Colors.Count; i++)
             {
                 largest = Math.Max(largest, Math.Max(Math.Abs(now.Colors[i].R - before.Colors[i].R), Math.Max(Math.Abs(now.Colors[i].G - before.Colors[i].G), Math.Abs(now.Colors[i].B - before.Colors[i].B))));
@@ -361,9 +361,9 @@ public sealed class TideEpochLookTests
         }
 
         Assert.True(largest < 0.01f, $"largest colour step per frame {largest}");
-        Assert.Equal(EpochMix.Of(Epochs, Slots, "metal"), blender.Shown with { Details = [.. blender.Shown.Details.Where(d => d.Weight > 0)] });
+        Assert.Equal(EpochMix.Of(Epochs, Slots, "smelting"), blender.Shown with { Details = [.. blender.Shown.Details.Where(d => d.Weight > 0)] });
         Assert.Equal((1.0, 0.0), (blender.Shown.Detail("glow"), blender.Shown.Detail("no_such_detail")));
-        Assert.Equal(EpochMix.Of(Epochs, Slots, "metal").Over(season), blender.Shown.Over(season));
+        Assert.Equal(EpochMix.Of(Epochs, Slots, "smelting").Over(season), blender.Shown.Over(season));
     }
 
     [Fact]
@@ -391,9 +391,9 @@ public sealed class TideEpochLookTests
         // One view in the first and in a later epoch (the point forces its epoch; the set lists none).
         var rocks = plan.Where(s => s.Point.Id.StartsWith("rocks_", StringComparison.Ordinal)).ToList();
         Assert.Null(shots.Epochs);
-        Assert.Equal(new[] { Epochs.Epochs.First().Id, "metal" }, rocks.Select(s => s.Epoch));
-        Assert.Contains("_metal_", rocks[1].FileName(1280, 720), StringComparison.Ordinal);
-        Assert.NotEmpty(Epochs.Epochs.Single(e => e.Id == "metal").Colors);
+        Assert.Equal(new[] { Epochs.Epochs.First().Id, "smelting" }, rocks.Select(s => s.Epoch));
+        Assert.Contains("_smelting_", rocks[1].FileName(1280, 720), StringComparison.Ordinal);
+        Assert.NotEmpty(Epochs.Epochs.Single(e => e.Id == "smelting").Colors);
         (x, z) = (rocks[0].Point.TargetXPermille * map.WidthCells / 1000, rocks[0].Point.TargetZPermille * map.DepthCells / 1000);
         Assert.Equal("rocks_hills", map.BiomeIds[map.Cell(x, z).Biome]);
     }
@@ -405,10 +405,10 @@ public sealed class TideEpochLookTests
         Assert.True(shots.Epochs is { Count: > 1 });
         var free = ShotPlan.Build(shots, new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal));
         var point = shots.Points.First();
-        point.Epoch = "hut";
+        point.Epoch = "building";
         var forced = ShotPlan.Build(shots, new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal));
         Assert.Equal(free.Count(s => s.Point.Id == point.Id) / shots.Epochs!.Count, forced.Count(s => s.Point.Id == point.Id));
-        Assert.All(forced.Where(s => s.Point.Id == point.Id), s => Assert.Equal("hut", s.Epoch));
+        Assert.All(forced.Where(s => s.Point.Id == point.Id), s => Assert.Equal("building", s.Epoch));
         Assert.Equal(free.Count(s => s.Point.Id != point.Id), forced.Count(s => s.Point.Id != point.Id));
     }
 

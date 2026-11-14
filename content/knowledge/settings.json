@@ -56,11 +56,7 @@
     ],
     "inspect_confidence": 0.8,
     "guessed_confidence": 0.4,
-    "guesses": [
-      { "seen": "fruit", "property": "edible", "value": true },
-      { "seen": "mushroom", "property": "edible", "value": true },
-      { "seen": "water", "property": "drinkable", "value": true }
-    ],
+    "guesses": [],
     "place_memory_max": 32
   },
   "naming": {
