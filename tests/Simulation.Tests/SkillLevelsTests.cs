@@ -119,6 +119,68 @@ public sealed class SkillLevelsTests : IDisposable
     }
 
     [Fact]
+    public void LongPracticeLeavesAFloorShortPracticeHardlyAny()
+    {
+        // D1017 G2: forgetting stops at peak x share(days practised) - the data's table.
+        var (world, levels, skill, perDay, settings) = Bare();
+        var retention = settings.Retention!;
+        var share = new Behaviour.Curve(retention.FloorShareByDays);
+        const string Long = "inh-999998", Short = "inh-999999";
+        var longStart = levels.Level(Long, skill);
+        var shortStart = levels.Level(Short, skill);
+        var days = (int)retention.FloorShareByDays.Last().First();
+        for (var day = 0; day < days; day++)
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Long, "teach", null));
+            }
+
+            if (day == 0)
+            {
+                levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Short, "teach", null));
+            }
+
+            world.Run(perDay);
+        }
+
+        var peak = levels.Level(Long, skill) - longStart;
+        var shortPeak = shortStart + (levels.Capture().Single(g => g.InhabitantId == Short).Peak);
+
+        // Long without practice: down to its floor, not further.
+        var enough = (int)Math.Ceiling(peak / settings.ForgetPerDay) + 2;
+        world.Run(perDay * enough);
+        Assert.Equal(longStart + (peak * share.At(days)), levels.Level(Long, skill), 9);
+        Assert.True(levels.Level(Short, skill) < shortPeak);
+        Assert.Equal(shortStart + ((shortPeak - shortStart) * share.At(1)), levels.Level(Short, skill), 9);
+    }
+
+    [Fact]
+    public void RelearningWhatOneCouldOnceDoGoesFaster()
+    {
+        var (world, levels, skill, perDay, settings) = Bare();
+        const string Who = "inh-999999";
+        levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
+        var first = levels.Level(Who, skill) - levels.StartLevel(Who, skill);
+        world.Run(perDay * 3);
+        var faded = levels.Level(Who, skill);
+
+        levels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, world.Tick, Who, "teach", null));
+        Assert.Equal(first * settings.Retention!.RelearnFactor, levels.Level(Who, skill) - faded, 9);
+    }
+
+    /// <summary>The skill levels alone in an empty world: nobody else practises, days pass fast.</summary>
+    private static (World World, SkillLevelsSystem Levels, string Skill, long PerDay, Contracts.SkillLevelSettings Settings) Bare()
+    {
+        var host = Host(1);
+        var world = new World(1, host.Content.Calendar);
+        var perDay = world.Calendar.TicksPerDay;
+        var levels = new SkillLevelsSystem(host.Content.SkillLevels, host.Skills, 1, perDay);
+        world.Add(levels);
+        return (world, levels, host.Skills.PractisedBy("teach").Single().Skill, perDay, host.Content.SkillLevels);
+    }
+
+    [Fact]
     public void ASkillPractisedEveryDayDoesNotFade()
     {
         var host = Host(1);
