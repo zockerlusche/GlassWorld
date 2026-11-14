@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Nightly look back v2 (A1721, Marcel's test 14.11.): the memory no longer fills with tick numbers and prompt keys ('Tick 8453 showed me an egg', 'Driftwood t2 and t3'). The prompt shows no tick, the service keeps the formative events itself, and a summary, dream or thought with a tick, a number or a key is refused with the reason (the model answers again). config: review prompt 2.
 - Game start arguments for unattended runs (B2768): `--new-world=SEED[,SIZE,CLIMATE,FAVOR]` creates a world exactly as the menu's form does (saved after every day, learning log beside it) and `--run-s=SECONDS` runs it at the fastest speed that long, then quits saved.
 - The family interface (B9-1b, R26/R29/R30, A1387, D1049 v2): 23 family and culture actions in the vocabulary with DE/EN (not offered - no timing until their step makes them executable; animation placeholder, silent), nine new events (the existing died/born/quarrelled/reconciled/partnered/migrated stay), empty schemas and data files for family, culture and population, and the read-only `IFamilyView` (`SimulationHost.FamilyView`; the first generation stands alone in its tree).
 - A renamed process rule keeps its variants (GW1 #25742, after D1096 #2/#3): data rules may list their earlier ids (`was`, optional); a process variant's type id is hashed with the first one, so a save from before keeps one type per thing (e.g. reed braided stays `reed_v...` from `braid_two_fibres_to_cord`).
