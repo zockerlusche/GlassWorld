@@ -30,6 +30,11 @@
       "id": "off_want",
       "description": "Does not help with what the inhabitant wanted (B2668).",
       "only_when": "want_check"
+    },
+    {
+      "id": "beyond_knowledge",
+      "description": "Relies on a property of a material the inhabitant does not know - nothing it noticed, tried or heard says so (B2578, can it come to it).",
+      "only_when": "knowledge_check"
     }
   ]
 }

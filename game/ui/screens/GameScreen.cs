@@ -173,7 +173,9 @@ public partial class GameScreen : CanvasLayer
             [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
-        _log = new ConversationLog(style.Tokens.Window.LogLines);
+        _log = new ConversationLog(
+            style.Tokens.Window.LogLines,
+            presenter.Host.Content.Vocabularies[VocabularyKind.Action].Entries.Where(e => e.Spoken == true).Select(e => e.Id).ToHashSet(StringComparer.Ordinal));
         _diary = new ActivityDiary(style.Tokens.Window.DiaryLines, presenter.Host.World.Calendar);
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);

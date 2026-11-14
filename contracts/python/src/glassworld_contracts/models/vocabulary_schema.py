@@ -71,6 +71,10 @@ class VocabularyEntry(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    spoken: bool | None = Field(
+        None,
+        description="Actions only (A1510, W1728): the inhabitant's thought with this action is said aloud to the one it turns to (introducing, talking, warning, showing, teaching), so the log shows 'says' instead of 'thinks'. Absent = false (a thought).",
+    )
 
 
 class Vocabulary(BaseModel):

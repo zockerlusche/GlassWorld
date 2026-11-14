@@ -143,14 +143,14 @@
     },
     "examples": {
       "works": [
-        "Heating water in a vessel over a fire makes it hot.",
-        "Drying cut grass makes it burnable.",
-        "Striking a hard stone with another hard stone gives it a sharp edge."
+        "Leaving wet laundry in the wind makes it dry.",
+        "Beating egg white for a long time turns it into stiff foam.",
+        "Rubbing a leather strap with fat makes it supple."
       ],
       "does_not": [
-        "Wood never melts (it burns or chars).",
-        "Stones cannot be braided (only long fibres can).",
-        "Soaking a stone changes nothing."
+        "Soaking a coin changes nothing.",
+        "Heating a feather does not turn it into a tool.",
+        "Grinding a dry leaf does not make it food."
       ]
     }
   },

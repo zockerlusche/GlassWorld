@@ -84,6 +84,9 @@ public sealed class SimulationHost
     /// </summary>
     public InhabitantDiary Diary { get; private init; } = null!;
 
+    /// <summary>The learning log per game day (A1620), or null when the data switch it off.</summary>
+    public LearningLog? LearningLog { get; private init; }
+
     /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
     public Writing.WritingSystem Writing { get; }
 
@@ -436,6 +439,13 @@ public sealed class SimulationHost
         // Each inhabitant's diary (TL #20472): presentation-only history, saved but not a world system (not hashed).
         var diary = new InhabitantDiary(content.InhabitantModel.Diary, inhabitants, objects);
         inhabitants.Reported += diary.Observe;
+
+        // The learning log per game day (A1620, B2685): reads along like the diary; no world state.
+        var learningLog = content.LearningLog is { Enabled: true } log ? new LearningLog(log.Kinds.Select(k => k.Event), inhabitants, objects) : null;
+        if (learningLog is not null)
+        {
+            inhabitants.Reported += learningLog.Observe;
+        }
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
 
         // Skill levels per inhabitant (B5 part): finished actions practise their skills.
@@ -560,6 +570,7 @@ public sealed class SimulationHost
             Nature = nature,
             Conversation = conversation,
             Diary = diary,
+            LearningLog = learningLog,
             Favourites = favourites,
         };
 

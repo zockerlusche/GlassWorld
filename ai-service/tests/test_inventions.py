@@ -375,6 +375,22 @@ def test_v5_and_guard_v4_take_a_ripe_idea_as_the_want(settings: Settings) -> Non
     assert "its own idea" not in old.user
 
 
+def test_guard_v5_asks_whether_the_inhabitant_can_come_to_it(settings: Settings) -> None:
+    """A1582 (R9, B2578): the second question with its own reason code; v4 does not list it."""
+    from glassworld_ai.invention.flow import guard_values
+
+    vocab = _vocab(settings)
+    job = GenerationJob.model_validate(JOB_DATA)
+    safety = safety_categories(settings.content_dir)
+    g5 = load_prompt(settings.prompts_dir, "guard/invention", 5)
+    rendered = g5.render(guard_values(job, BOWL, 1, vocab, safety, g5.settings))
+    assert "- beyond_knowledge:" in rendered.system
+    assert "Can the inhabitant come to it?" in rendered.system
+    g4 = load_prompt(settings.prompts_dir, "guard/invention", 4)
+    old = g4.render(guard_values(job, BOWL, 1, vocab, safety, g4.settings))
+    assert "beyond_knowledge" not in old.system
+
+
 def test_v6_says_what_the_inhabitant_knows_about_its_materials(settings: Settings) -> None:
     """A1582 (R8): its own beliefs with their source, also a 'not'; never the truth (GW1 #372)."""
     from glassworld_ai.invention.flow import inventor_values
