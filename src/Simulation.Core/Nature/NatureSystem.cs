@@ -100,6 +100,13 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
     public long TaktTicks => _taktTicks;
 
     /// <summary>
+    /// GW3 K4 (#25247): a further growth factor of a group in permille, read when a takt opens (group id, takt
+    /// number), or null = none. The provider answers from its state at the takt's start (before its own step in
+    /// that tick), so a run, a replay and a loaded game agree. Multiplies the season and drought factor.
+    /// </summary>
+    public Func<string, long, int?>? FactorOf { get; set; }
+
+    /// <summary>
     /// Whether a used-up place of <paramref name="typeId"/>, gone since <paramref name="goneSince"/>, has grown
     /// back at <paramref name="now"/>: the growth of its group since then reaches <paramref name="regrowTicks"/> x 1000.
     /// A type without a group grows by the clock.
@@ -255,6 +262,12 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
             if (drought && group.DroughtPermille is { } inDrought)
             {
                 factor = factor * inDrought / 1000;
+            }
+
+            // GW3 K4 (#25247): a factor from outside, e.g. how full an animal stock is - read at the takt's start.
+            if (FactorOf?.Invoke(group.Id, takt) is { } outside)
+            {
+                factor = factor * Math.Max(0, outside) / 1000;
             }
 
             // A group that has only ever grown by the clock keeps no sums (golden hashes of worlds without nature).
