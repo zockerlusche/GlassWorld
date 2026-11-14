@@ -124,6 +124,9 @@ public sealed class ContentSet
     /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
     public NatureSettings? Nature { get; init; }
 
+    /// <summary>The animal stocks (content/nature/animals.json, B4b K4); null without the file.</summary>
+    public NatureAnimals? Animals { get; init; }
+
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
 
@@ -297,6 +300,7 @@ public sealed class ContentSet
             Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
                 ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
                 : null,
+            Animals = LoadAnimals(contentDirectory, Ids(vocabularies, VocabularyKind.Biome)),
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
@@ -639,6 +643,32 @@ public sealed class ContentSet
                 yield return "imprinting.full_at is below habit_from";
             }
         }
+    }
+
+    /// <summary>The animal stocks (B4b K4); every biome in the vocabulary, every growth group in the nature data.</summary>
+    private static NatureAnimals? LoadAnimals(string contentDirectory, HashSet<string> biomes)
+    {
+        var path = Path.Combine(contentDirectory, "nature", "animals.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var animals = ContractSerializer.Deserialize<NatureAnimals>(File.ReadAllText(path));
+        var natureFile = Path.Combine(contentDirectory, "nature", "settings.json");
+        var groups = File.Exists(natureFile)
+            ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(natureFile)).Groups.Select(g => g.Id).ToHashSet(StringComparer.Ordinal)
+            : [];
+        var problems = animals.Species.GroupBy(s => s.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"species '{g.Key}' twice")
+            .Concat(animals.Species.SelectMany(s => s.Biomes.Where(b => !biomes.Contains(b)).Select(b => $"species '{s.Id}' lives in unknown biome '{b}'")))
+            .Concat(animals.Species.SelectMany(s => s.Groups.Where(g => !groups.Contains(g)).Select(g => $"species '{s.Id}' feeds unknown growth group '{g}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Animals: " + string.Join("; ", problems) + ".");
+        }
+
+        return animals;
     }
 
     /// <summary>
