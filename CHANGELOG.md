@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The decider's options come in a shuffled order (D1025, TL TH142): in L1591 combine stood first in 61 of 67 requests and 9 of 15 combine choices were option 1. After the cut to the limit (which still keeps the intended option) the order is shuffled per question from the world seed and the question id - the same in a replay and when a question is sent again, with no random stream of the world.
 - A made thing can be used when there is time (GW2 D999, TL TH143): a free moment offers the decider 'use' on the made things in sight the inhabitant knows are made (#358), nearest first. Until now 'use' reached the decider only as the subject of a question, so a built thing waited for a low need and was never used in the 6-day run.
 - A night question about a thing the inhabitant knows nothing about goes out only when the thing shows something at a glance (GW2 D999): a conifer shows none of the visible properties, and with an empty perception the model guessed from memories of other things. Such a question waits until the inhabitant has looked or tried, as before.
 - The core's final check of inventions refuses slings (TL TH143, GW2 L1546: guard v5 once approved a hunting sling): `wurfschleuder*`, `*wurfschleuder`, `schleuderstein*`, `*schleuderstein`, EN `slingstone*`. Harmless words stay allowed (Honigschleuder, Tragschlinge, a carrying or arm sling).
