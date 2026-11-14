@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class FireDryingBand(BaseModel):
     model_config = ConfigDict(
@@ -71,6 +73,11 @@ class FireSpread(BaseModel):
         description='The type a thing turns into when it catches fire (a burning type of the catalog).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    spares: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Things with any of these TRUE properties never catch fire from a fire near them (review GW1 #396: what inhabitants built waits for the damage by quality, A1382 S2).',
+        max_length=8,
     )
 
 

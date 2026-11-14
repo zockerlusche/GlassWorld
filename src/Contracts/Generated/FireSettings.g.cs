@@ -76,6 +76,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("becomes")]
         public string Becomes { get; set; } = default!;
 
+        /// <summary>
+        /// Things with any of these TRUE properties never catch fire from a fire near them (review GW1 #396: what inhabitants built waits for the damage by quality, A1382 S2).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("spares")]
+        public System.Collections.Generic.ICollection<string>? Spares { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -14,7 +14,8 @@
     "wind_permille": 1500,
     "max_new": 1,
     "max_burning": 4,
-    "becomes": "fire"
+    "becomes": "fire",
+    "spares": ["crafted"]
   },
   "remains": [
     { "burnt": "fire", "left": "ash" }

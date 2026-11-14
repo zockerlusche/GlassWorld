@@ -209,8 +209,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             _objects.Within(source.Position, radius, near);
             foreach (var thing in near)
             {
-                if (_until.ContainsKey(thing.Id) || !IsFuel(thing.TypeId))
+                if (_until.ContainsKey(thing.Id) || !IsFuel(thing.TypeId)
+                    || (spread.Spares is { Count: > 0 } spares && _objects.Catalog.TrueProperties(thing.TypeId).Overlaps(spares)))
                 {
+                    // Built things wait for the damage by quality (review GW1 #396, A1382 S2).
                     continue;
                 }
 

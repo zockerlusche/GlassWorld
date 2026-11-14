@@ -95,6 +95,20 @@ public sealed class FireSpreadTests
     }
 
     [Fact]
+    public void WhatTheInhabitantsBuiltDoesNotCatchFireYet()
+    {
+        // Review GW1 #396: a built thing of burnable material waits for the damage by quality (A1382 S2).
+        var (host, at) = Island(sure: true);
+        host.Fire.Settings = Settings(dryingHours: 0, spares: ["crafted"]);
+        host.Types.Register("test_shelter", ["burnable", "crafted", "sheltering"]);
+        host.Objects.Spawn("fire", at);
+        var shelter = host.Objects.Spawn("test_shelter", new Position(at.X + 0.5, at.Z));
+
+        host.World.Run(10);
+        Assert.True(host.Objects.TryGet(shelter.Id, out _));
+    }
+
+    [Fact]
     public void ThePlaceholderWorldKeepsItsFiresToThemselves()
     {
         // Spreading, drying and remains need an island (weather, nature takt), like the other B5 systems.
@@ -129,7 +143,7 @@ public sealed class FireSpreadTests
     }
 
     /// <summary>The data's fire settings with a sure spread (every tick, always at the fire, one at a time, at most 3).</summary>
-    private static FireSettings Settings(int dryingHours)
+    private static FireSettings Settings(int dryingHours, ICollection<string>? spares = null)
     {
         var data = Content.Value.Fire!;
         return new FireSettings
@@ -137,7 +151,7 @@ public sealed class FireSpreadTests
             ContractVersion = data.ContractVersion,
             FuelProperty = data.FuelProperty,
             Drying = [new FireDryingBand { BelowTenthC = null, Hours = dryingHours }],
-            Spread = new FireSpread { EveryMinutes = 1, RadiusCm = 250, ChancePermille = 1000, WindPermille = 0, MaxNew = 1, MaxBurning = 3, Becomes = data.Spread!.Becomes },
+            Spread = new FireSpread { EveryMinutes = 1, RadiusCm = 250, ChancePermille = 1000, WindPermille = 0, MaxNew = 1, MaxBurning = 3, Becomes = data.Spread!.Becomes, Spares = spares ?? [] },
             Remains = data.Remains,
         };
     }

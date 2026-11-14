@@ -51,7 +51,14 @@
         "wind_permille": { "type": "integer", "minimum": 0, "maximum": 5000, "description": "Extra chance at full wind, in permille of the chance (wind 0..1 of the weather)." },
         "max_new": { "type": "integer", "minimum": 0, "maximum": 16, "description": "At most this many things catch fire in one check on the whole island." },
         "max_burning": { "type": "integer", "minimum": 0, "maximum": 64, "description": "No fire takes hold while this many things burn on the island." },
-        "becomes": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The type a thing turns into when it catches fire (a burning type of the catalog)." }
+        "becomes": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The type a thing turns into when it catches fire (a burning type of the catalog)." },
+        "spares": {
+          "description": "Things with any of these TRUE properties never catch fire from a fire near them (review GW1 #396: what inhabitants built waits for the damage by quality, A1382 S2).",
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
       }
     },
     "FireRemains": {
