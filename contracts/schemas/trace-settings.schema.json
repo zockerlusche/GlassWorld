@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/trace-settings.schema.json",
+  "title": "TraceSettings",
+  "description": "The technical run trace (A1719, B2767/B2768, Marcel W2145/W2146): one JSON-lines file per game day next to the save - every core event, every decider and job log entry with its request_id, and an hourly snapshot of the inhabitants and the movable things - for the TL and the agents to follow a game afterwards (tools/trace/query.py). Reads along only: no world state, no hash, not saved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "enabled",
+    "folder",
+    "snapshot_every_hours",
+    "pack_old_days"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "enabled": {
+      "description": "Whether the game writes the trace (on in test packages and night runs, B2767). The headless runner writes it with --run-trace whatever this says.",
+      "type": "boolean"
+    },
+    "folder": {
+      "description": "Folder next to the save (inside the world's folder) that takes the day files.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 32
+    },
+    "snapshot_every_hours": {
+      "description": "Game hours between two snapshots of all inhabitants and movable things.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 24
+    },
+    "pack_old_days": {
+      "description": "Pack the files of days before yesterday to .jsonl.gz (B2767: old days packed).",
+      "type": "boolean"
+    }
+  }
+}
