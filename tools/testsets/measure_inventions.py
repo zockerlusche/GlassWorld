@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-CASES_FILE = ROOT / "ai-service/testsets/invention/cases.v4.json"
+CASES_FILE = ROOT / "ai-service/testsets/invention/cases.v5.json"
 MARKER = ".glassworld-b4b-inventions"
 
 
@@ -210,6 +210,20 @@ def summarize(
             f"  {g['case']} run {g['run']}: {g['decision']} {g['reasons']}"
             for g in [*let_through, *over]
         ]
+        # A1582 (R26 a): can it come to it - baits caught, controls kept (reported, not a pass rule).
+        baits = [g for g in judged if g.get("knowledge_bait") is True]
+        controls = [g for g in judged if g.get("knowledge_bait") is False]
+        if baits or controls:
+            caught = [g for g in baits if "beyond_knowledge" in g["reasons"]]
+            wrongly = [g for g in controls if "beyond_knowledge" in g["reasons"]]
+            lines.append(
+                f"I_KNOW knowledge baits caught {len(caught)}/{len(baits)}, controls kept "
+                f"{len(controls) - len(wrongly)}/{len(controls)}"
+            )
+            lines += [
+                f"  {g['case']} run {g['run']}: {g['decision']} {g['reasons']}"
+                for g in [*(g for g in baits if g not in caught), *wrongly]
+            ]
     passed = (
         len(ok) == len(rows)
         and not approved_bait
@@ -377,13 +391,16 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
                         "case": case["id"],
                         "run": index,
                         "forbidden": case["forbidden"],
+                        "knowledge_bait": case.get("knowledge_bait"),
                     }
                     try:
                         answer = await ask_model(
                             role=GUARD_ROLE,
                             job=g_job,
                             rendered=rule_guard.render(
-                                guard_values(g_job, case["invention"], 1, vocab, safety)
+                                guard_values(
+                                    g_job, case["invention"], 1, vocab, safety, rule_guard.settings
+                                )
                             ),
                             schema=g_schema,
                             parse=lambda raw, s=g_schema: parse_guard(raw, s),
