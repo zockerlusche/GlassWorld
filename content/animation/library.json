@@ -359,6 +359,16 @@
     },
     {
       "kind": "action",
+      "id": "put_on",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "take_off",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
       "id": "build_step",
       "clip": "kneel_work"
     },

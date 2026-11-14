@@ -97,6 +97,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>An inhabitant put down the thing it held (AK1a).</summary>
     public const string Dropped = "dropped";
 
+    /// <summary>An inhabitant put a thing on its body (K4).</summary>
+    public const string PutOn = "worn";
+
+    /// <summary>An inhabitant took off what it wore (K4).</summary>
+    public const string TakenOff = "taken_off";
+
     /// <summary>Event: an action was cancelled (target gone, or the action rests after repeats without effect).</summary>
     public const string ActionCancelled = "action_cancelled";
 
@@ -152,7 +158,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _objects = objects;
         _ticksPerHour = ticksPerHour;
 
-        // A held thing that is used up (eaten from the hand) or otherwise gone leaves the hand free (AK1a).
+        // A held or worn thing that is used up (eaten from the hand) or otherwise gone leaves the hand / the body free (AK1a, K4).
         _objects.Removed += gone =>
         {
             foreach (var holder in _ordered)
@@ -160,6 +166,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 if (holder.Held == gone.Id)
                 {
                     holder.Held = null;
+                }
+
+                if (holder.Worn == gone.Id)
+                {
+                    holder.Worn = null;
                 }
             }
         };
@@ -676,12 +687,17 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
         }
 
-        // AK1a: what an inhabitant holds goes where it goes (the hand's height is the look's).
+        // AK1a, K4: what an inhabitant holds or wears goes where it goes (the hand's height and the body are the look's).
         foreach (var holder in _ordered)
         {
             if (holder.Held is { } held && !_objects.Move(held, holder.Position))
             {
                 holder.Held = null;
+            }
+
+            if (holder.Worn is { } worn && !_objects.Move(worn, holder.Position))
+            {
+                holder.Worn = null;
             }
         }
     }
@@ -1604,6 +1620,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // The options as the brain makes them, not sorted: the best one that the rules below let through is
         // looked for (UtilityBrain.Compare is the order a sorted list would have), and a rule is asked only
         // about an option that would be the best so far.
+        _scoring.Feels = Feels;
         var options = _brain.Candidates(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null, _scoring);
         if (RuntimeNeeds is { Added.Count: > 0 } runtime)
         {
@@ -1987,7 +2004,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             // Only a thing the data let it take (a rule of the action fits its truth, e.g. portable) goes into the hand.
-            changed |= (applying.Count > 0 || _actions.Timing(activity.Action).Releases) && HoldOrRelease(world, inhabitant, activity.Action, target);
+            changed |= (applying.Count > 0 || _actions.Timing(activity.Action) is { Releases: true } or { Unwears: true }) && HoldOrRelease(world, inhabitant, activity.Action, target);
 
             if (activity.Partners is { Count: > 0 })
             {
@@ -2015,6 +2032,32 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _objects.SetHeld(target.Id, inhabitant.Id);
             _objects.Move(target.Id, inhabitant.Position);
             Report(new WorldEvent(PickedUp, world.Tick, inhabitant.Id, action, target.Id) { TargetType = target.TypeId });
+            return true;
+        }
+
+        // K4 (B2752): wearing works like holding - one thing on the body, nobody else's; a thing in its own hand may go on.
+        var on = _objects.HeldBy(target.Id);
+        if (timing.Wears && inhabitant.Worn is null && (on is null || (on == inhabitant.Id && inhabitant.Held == target.Id))
+            && _objects.TryGet(target.Id, out _))
+        {
+            if (inhabitant.Held == target.Id)
+            {
+                inhabitant.Held = null;
+            }
+
+            inhabitant.Worn = target.Id;
+            _objects.SetHeld(target.Id, inhabitant.Id);
+            _objects.Move(target.Id, inhabitant.Position);
+            Report(new WorldEvent(PutOn, world.Tick, inhabitant.Id, action, target.Id) { TargetType = target.TypeId });
+            return true;
+        }
+
+        if (timing.Unwears && inhabitant.Worn == target.Id)
+        {
+            inhabitant.Worn = null;
+            _objects.SetHeld(target.Id, null);
+            _objects.Move(target.Id, inhabitant.Position);
+            Report(new WorldEvent(TakenOff, world.Tick, inhabitant.Id, action, target.Id) { TargetType = target.TypeId });
             return true;
         }
 

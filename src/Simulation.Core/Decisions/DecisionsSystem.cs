@@ -1444,9 +1444,10 @@ public sealed class DecisionsSystem : IWorldSystem
         return [.. cut.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
 
-    /// <summary>AK1a: taking into the hand only with a free hand, putting down only the held thing.</summary>
+    /// <summary>AK1a: taking into the hand only with a free hand, putting down only the held thing; K4 the same for the body.</summary>
     private static bool Fits(Inhabitant asker, Behaviour.ActionTimingInfo timing, string targetId) =>
-        (!timing.Holds || asker.Held is null) && (!timing.Releases || asker.Held == targetId);
+        (!timing.Holds || asker.Held is null) && (!timing.Releases || asker.Held == targetId)
+        && (!timing.Wears || asker.Worn is null) && (!timing.Unwears || asker.Worn == targetId);
 
     /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> or <see cref="Shuffled"/> undone (D1025).</summary>
     private static (string OptionId, string Action, string? TargetId)[] InDataOrder(OpenQuestion question, ulong worldSeed)

@@ -984,6 +984,7 @@ public sealed class SimulationHost
     /// <summary>The animal stocks (B4b K4); null without animal data or nature takt.</summary>
     public Nature.AnimalStockSystem? Animals { get; private init; }
 
+
     /// <summary>The biomes the island really has (a stock of a species lives only there).</summary>
     private static HashSet<string> BiomesOn(Map.WorldMap map)
     {

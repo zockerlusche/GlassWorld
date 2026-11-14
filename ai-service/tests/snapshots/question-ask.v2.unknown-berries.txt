@@ -99,8 +99,9 @@ Character:
 - transparent (You can see through it.)
 - water (Looks like water: a spring, a pool or the sea; seen by looking.)
 - waterproof (Tight: water does not seep through it.)
+- wearable (Can be worn on the body.)
 
 ## Things you could do (optional idea)
-add_fuel, apologize, approach, build_step, bury, care, carve, combine, court, cover, dance, drink, drop, eat, end_partnership, explore, found_settlement, gossip, idle, inspect, introduce, move_to, name_person, paint, perform_custom, pick_up, play, propose_partnership, quarrel, reconcile, sail, set_stone, show, sing, sleep, talk_to, teach, use, visit_grave, wake, wander, warn, wish_child
+add_fuel, approach, build_step, combine, drink, drop, eat, explore, idle, inspect, introduce, move_to, pick_up, put_on, show, sleep, take_off, talk_to, teach, use, wander, warn
 
 Write the thought in German, as one short sentence.

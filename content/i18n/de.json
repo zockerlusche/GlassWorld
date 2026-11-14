@@ -667,6 +667,14 @@
       "text": "Erkunden"
     },
     {
+      "key": "vocab.action.put_on",
+      "text": "Anziehen"
+    },
+    {
+      "key": "vocab.action.take_off",
+      "text": "Ablegen"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Benutzen"
     },
@@ -855,6 +863,10 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.base_function.worn",
+      "text": "Am Körper getragen"
+    },
+    {
       "key": "vocab.base_function.container",
       "text": "Behälter"
     },
@@ -953,6 +965,10 @@
     {
       "key": "vocab.property.poisonous",
       "text": "Giftig"
+    },
+    {
+      "key": "vocab.property.wearable",
+      "text": "Am Körper tragbar"
     },
     {
       "key": "vocab.property.portable",
@@ -1921,6 +1937,14 @@
     {
       "key": "vocab.event.dropped",
       "text": "Abgelegt"
+    },
+    {
+      "key": "vocab.event.worn",
+      "text": "Angelegt"
+    },
+    {
+      "key": "vocab.event.taken_off",
+      "text": "Abgenommen"
     },
     {
       "key": "vocab.event.combined",

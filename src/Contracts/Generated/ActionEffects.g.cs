@@ -82,6 +82,20 @@ namespace GlassWorld.Contracts
         public bool? Holds { get; set; } = default!;
 
         /// <summary>
+        /// K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wears")]
+        public bool? Wears { get; set; } = default!;
+
+        /// <summary>
+        /// K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unwears")]
+        public bool? Unwears { get; set; } = default!;
+
+        /// <summary>
         /// AK1a: when the action ends, the inhabitant puts down what it holds (its target) at its feet. Omitted = no.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
