@@ -36,7 +36,7 @@ public sealed class AppearanceTests : IDisposable
             Assert.Empty(drawn.Intersect(warmOnly));
         }
 
-        var later = Many(place with { TechLevel = "metal" }).Select(a => a.ClothingStyle).ToHashSet(StringComparer.Ordinal);
+        var later = Many(place with { TechLevel = "smelting" }).Select(a => a.ClothingStyle).ToHashSet(StringComparer.Ordinal);
         Assert.All(later, id => Assert.Null(Data.Outfits.First(o => o.Id == id).When));
     }
 
