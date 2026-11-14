@@ -393,5 +393,91 @@
         "shadow_permille": 0
       }
     ]
-  }
+  },
+  "cover": [
+    {
+      "type": "deciduous_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 700
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 600
+        },
+        {
+          "season": "winter",
+          "permille": 200
+        }
+      ]
+    },
+    {
+      "type": "fruit_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 600
+        },
+        {
+          "season": "summer",
+          "permille": 900
+        },
+        {
+          "season": "autumn",
+          "permille": 500
+        },
+        {
+          "season": "winter",
+          "permille": 150
+        }
+      ]
+    },
+    {
+      "type": "conifer_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 900
+        },
+        {
+          "season": "summer",
+          "permille": 900
+        },
+        {
+          "season": "autumn",
+          "permille": 900
+        },
+        {
+          "season": "winter",
+          "permille": 900
+        }
+      ]
+    },
+    {
+      "type": "palm_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 700
+        },
+        {
+          "season": "summer",
+          "permille": 700
+        },
+        {
+          "season": "autumn",
+          "permille": 700
+        },
+        {
+          "season": "winter",
+          "permille": 700
+        }
+      ]
+    }
+  ]
 }
