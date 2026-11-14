@@ -27,15 +27,15 @@ class Milestone(BaseModel):
         max_length=8,
         min_length=1,
     )
-    rule: str | None = Field(
-        None,
-        description='Id of a combination rule (content/rules) or process rule (content/processes) whose first use is the milestone.',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*$',
-    )
     raises_tech_level: str | None = Field(
         None,
         description='Tech level (vocabulary tech_level) the world reaches with this milestone; omitted = none.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    process: str | None = Field(
+        None,
+        description='A process verb (vocabulary process): the milestone is its first successful use, whatever the rule (D1096 #4, B2746).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

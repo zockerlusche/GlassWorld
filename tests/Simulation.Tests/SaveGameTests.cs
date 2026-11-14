@@ -175,6 +175,35 @@ public sealed class SaveGameTests : IDisposable
     }
 
     [Fact]
+    public void ASaveFromBeforeTheNeutralStageNamesLoadsWithTheNewNames()
+    {
+        // B2744/B2746, D1096 #4: the look epoch and the reached milestones get their neutral names; a dropped milestone stays.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 21, new MockDecisionPort(), "de");
+        var path = Path.Combine(_directory, "stages.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
+        using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            c.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = """
+                DELETE FROM meta WHERE key IN ('look_epoch', 'milestones');
+                INSERT INTO meta VALUES ('look_epoch', 'tools');
+                INSERT INTO meta VALUES ('milestones', '[{"Id":"first_edge","Tick":5,"InhabitantId":"inh-000001","TypeId":"glass"},{"Id":"bread","Tick":9,"InhabitantId":"inh-000001","TypeId":null}]');
+                PRAGMA user_version = 11;
+                """;
+            cmd.ExecuteNonQuery();
+        }
+
+        var state = SaveGameStore.Load(path);
+        Assert.Equal("shaping", state.LookEpoch);
+        Assert.Equal(["bread", "first_sharp"], state.Milestones!.Select(m => m.Id).Order(StringComparer.Ordinal));
+
+        // Only the id changes: a type id that happens to read like an old milestone stays.
+        Assert.Equal("glass", state.Milestones!.Single(m => m.Id == "first_sharp").TypeId);
+    }
+
+    [Fact]
     public void NewerSchemaIsRefused()
     {
         var path = Path.Combine(_directory, "future.db");

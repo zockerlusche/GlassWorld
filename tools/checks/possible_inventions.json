@@ -26,22 +26,7 @@
     { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/review/night.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
 
-    { "path": "content/vocabulary/tech_levels.json", "word": "hut", "status": "open", "owner": "TL", "reason": "tech level id 'hut' (D711 epochs): an era named after a possible invention - TL decides (B2741)" },
-    { "path": "content/vocabulary/epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id and description 'Simple huts and fireplaces' - TL decides (B2741)" },
-    { "path": "content/look/epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id 'hut' - follows the tech level decision" },
-    { "path": "content/look/shots_epochs.json", "word": "hut", "status": "open", "owner": "TL", "reason": "look epoch id 'hut' - follows the tech level decision" },
-    { "path": "content/milestones/catalog.json", "word": "hut", "status": "open", "owner": "TL", "reason": "raises_tech_level 'hut' - follows the tech level decision" },
-    { "path": "content/processes/rules.json", "word": "hut", "status": "open", "owner": "TL", "reason": "tech_level 'hut' of process rules - follows the tech level decision" },
-    { "path": "content/i18n/de.json", "word": "hut", "status": "open", "owner": "TL", "reason": "keys vocab.epoch.hut, vocab.tech_level.hut - follows the tech level decision" },
-    { "path": "content/i18n/en.json", "word": "hut", "status": "open", "owner": "TL", "reason": "keys vocab.epoch.hut, vocab.tech_level.hut, text 'Hut' - follows the tech level decision" },
-    { "path": "content/i18n/de.json", "word": "hütte", "status": "open", "owner": "TL", "reason": "visible name of tech level and epoch 'Hütte' - follows the tech level decision" },
 
-    { "path": "content/vocabulary/heat_levels.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "heat level id 'kiln' names an invention (a kiln) - a neutral id (e.g. glowing) would do; TL decides" },
-    { "path": "content/processes/rules.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "heat level 'kiln' in heat_levels and heat_min - follows the heat level decision" },
-    { "path": "content/world/reachability.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "gaps 'heat:kiln' - follows the heat level decision" },
-    { "path": "content/i18n/de.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "key vocab.heat_level.kiln - follows the heat level decision" },
-    { "path": "content/i18n/en.json", "word": "kiln", "status": "open", "owner": "TL", "reason": "key and visible text 'Kiln' - follows the heat level decision" },
-    { "path": "content/i18n/de.json", "word": "brennofen", "status": "open", "owner": "TL", "reason": "visible text 'Brennofen' of heat level kiln - follows the heat level decision" },
 
 
 
