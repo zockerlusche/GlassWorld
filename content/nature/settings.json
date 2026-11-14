@@ -1,0 +1,148 @@
+{
+  "contract_version": "0.2",
+  "takt_minutes": 60,
+  "groups": [
+    {
+      "id": "fruit",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 600
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 1000
+        },
+        {
+          "season": "winter",
+          "permille": 0
+        }
+      ],
+      "drought_permille": 300
+    },
+    {
+      "id": "mushroom",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 300
+        },
+        {
+          "season": "summer",
+          "permille": 500
+        },
+        {
+          "season": "autumn",
+          "permille": 1000
+        },
+        {
+          "season": "winter",
+          "permille": 0
+        }
+      ],
+      "drought_permille": 300
+    },
+    {
+      "id": "herb",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 1000
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 500
+        },
+        {
+          "season": "winter",
+          "permille": 100
+        }
+      ],
+      "drought_permille": 300
+    },
+    {
+      "id": "grass",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 500
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 1000
+        },
+        {
+          "season": "winter",
+          "permille": 300
+        }
+      ],
+      "drought_permille": 300
+    }
+  ],
+  "types": [
+    {
+      "type": "apple",
+      "group": "fruit"
+    },
+    {
+      "type": "blue_berry",
+      "group": "fruit"
+    },
+    {
+      "type": "red_berry",
+      "group": "fruit"
+    },
+    {
+      "type": "hazelnut",
+      "group": "fruit"
+    },
+    {
+      "type": "brown_mushroom",
+      "group": "mushroom"
+    },
+    {
+      "type": "red_mushroom",
+      "group": "mushroom"
+    },
+    {
+      "type": "flax",
+      "group": "herb"
+    },
+    {
+      "type": "nettle",
+      "group": "herb"
+    },
+    {
+      "type": "healing_herb",
+      "group": "herb"
+    },
+    {
+      "type": "wild_grain",
+      "group": "herb"
+    },
+    {
+      "type": "reed",
+      "group": "herb"
+    },
+    {
+      "type": "dry_grass",
+      "group": "grass"
+    }
+  ],
+  "influences": {
+    "heat_min_tenth_c": 280,
+    "wet_frost_takts": 6
+  }
+}

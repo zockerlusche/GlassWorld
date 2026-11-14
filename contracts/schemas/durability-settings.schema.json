@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/durability-settings.schema.json",
+  "title": "DurabilitySettings",
+  "description": "Data file content/durability/settings.json (D711 section 5, plan D1008, values TH147): how long things last by their material class. A class is found by TRUE properties (the first that fits); a thing lasts base_hours, its wear grows by one per tick plus the factors for each wet, frost, hot and frost-on-wet nature takt (R51); at 1000 permille it is gone. Things of the world start get a seeded age, so they do not all end on one day.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "classes"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "classes": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/MaterialClass" } }
+  },
+  "$defs": {
+    "MaterialClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "properties_all", "properties_none", "base_hours"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "properties_all": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "properties_none": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "base_hours": { "description": "Game hours a thing of this class lasts in plain conditions; null = it does not wear away by time (stone, fired clay).", "anyOf": [{ "type": "integer", "minimum": 1, "maximum": 1000000 }, { "type": "null" }] },
+        "wet_permille": { "description": "Extra ageing per wet nature takt, in permille of the takt (2000 = a wet takt ages three times as fast). Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
+        "frost_permille": { "description": "Extra ageing per frost takt. Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
+        "heat_permille": { "description": "Extra ageing per hot takt. Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
+        "wet_frost_permille": { "description": "Extra ageing per takt of frost on something wet (cracks). Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 100000 }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "contract_version": "0.2",
   "types": [
-    { "id": "apple", "description": "A sweet fruit from a tree.", "properties": ["fruit", "edible", "portable"] },
+    { "id": "apple", "description": "A sweet fruit from a tree.", "properties": ["fruit", "firm", "edible", "portable"] },
     { "id": "red_berry", "description": "Small shiny red berries on a bush.", "properties": ["fruit", "poisonous", "portable"] },
     { "id": "blue_berry", "description": "Small dark blue berries on a bush.", "properties": ["fruit", "edible", "portable"] },
     { "id": "spring_water", "description": "Clear fresh water from a spring.", "properties": ["water", "drinkable", "cooling"] },

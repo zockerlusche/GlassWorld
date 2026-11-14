@@ -170,6 +170,9 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// </summary>
     public int PrecipitationPermille => _states[Current].PrecipitationPermille;
 
+    /// <summary>Whether it is a drought now: the drought weather itself or joined after the dry days (A1380: growth slows).</summary>
+    public bool InDrought => DroughtJoins || string.Equals(Current, _data.DroughtWeather, StringComparison.Ordinal);
+
     /// <summary>Whether the drought weather has joined another main weather after the dry days of the data.</summary>
     private bool DroughtJoins => _droughtTicks > 0 && _dryTicks >= _droughtTicks && Current != _data.DroughtWeather;
 
