@@ -1507,6 +1507,10 @@
       "text": "Wildgetreide"
     },
     {
+      "key": "msg.hint.knock",
+      "text": "{name} klopft an die Scheibe."
+    },
+    {
       "key": "msg.hint.help_needed",
       "text": "{name} findet nichts gegen {need}."
     },
