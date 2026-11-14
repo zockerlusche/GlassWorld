@@ -25,6 +25,21 @@ public sealed partial class ChronicleBook
         return entry.Tick / calendar.TicksPerDay;
     }
 
+    /// <summary>
+    /// B8 R10 (A1355): the narrative the computing night wrote for a page's day, in the display language, or
+    /// null (none, or written in the other language: the base lines stand alone). The core counts the day it
+    /// tells from 1, the pages from 0.
+    /// </summary>
+    /// <param name="day">The page's absolute game day.</param>
+    /// <param name="narratives">The core's day narratives.</param>
+    /// <param name="locale">Display language (de/en).</param>
+    public static string? NarrativeOn(long day, IEnumerable<GlassWorld.Simulation.Night.DayNarrative> narratives, string locale)
+    {
+        ArgumentNullException.ThrowIfNull(narratives);
+        ArgumentNullException.ThrowIfNull(locale);
+        return narratives.FirstOrDefault(n => n.Day - 1 == day && locale.StartsWith(n.Locale, StringComparison.OrdinalIgnoreCase))?.Text;
+    }
+
     /// <summary>Days with entries, newest first.</summary>
     public IReadOnlyList<long> Days() => [.. Entries.Select(DayOf).Distinct().OrderDescending()];
 

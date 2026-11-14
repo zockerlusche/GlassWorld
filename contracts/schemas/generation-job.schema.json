@@ -110,6 +110,9 @@
         },
         "milestone": {
           "$ref": "#/$defs/MilestonePayload"
+        },
+        "chronicle": {
+          "$ref": "#/$defs/ChroniclePayload"
         }
       },
       "minProperties": 1,
@@ -876,6 +879,107 @@
     },
     "MilestoneName": {
       "description": "Something the sentence may name, by the name the maker knows it by (its label from its beliefs, never the truth id), with the id it stands for.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "ChroniclePayload": {
+      "description": "B8 R10 (A1355): the chronicle of one finished game day as a short narrative (family book) in the computing night, in the player's language. The entries are the day's base lines as data (text key, names, ids); the service words them only from these and the content guard checks the result. Null narrative = the base lines stay (no stand-in); a late or failed job leaves the day without a narrative for good.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "day",
+        "entries",
+        "max_chars"
+      ],
+      "properties": {
+        "day": {
+          "description": "The finished game day (1 = the first).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "entries": {
+          "description": "The day's chronicle entries, oldest first (at most the data's number).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/ChronicleDayLine"
+          }
+        },
+        "max_chars": {
+          "description": "Longest narrative (data; at most the 280 of a generated text).",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 280
+        }
+      }
+    },
+    "ChronicleDayLine": {
+      "description": "One base line of the day: the chronicle kind with its text key and what fills it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text_key",
+        "inhabitant",
+        "target",
+        "action"
+      ],
+      "properties": {
+        "kind": {
+          "description": "Chronicle kind (content/chronicle/kinds.json).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "text_key": {
+          "description": "The kind's text key (DE/EN).",
+          "type": "string",
+          "pattern": "^msg\\.chronicle\\.[a-z0-9_]+$",
+          "maxLength": 64
+        },
+        "inhabitant": {
+          "$ref": "#/$defs/ChronicleDayName"
+        },
+        "target": {
+          "description": "The thing or the other inhabitant, by the name the chronicle shows, or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChronicleDayName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action": {
+          "description": "The action of the entry (vocabulary), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ChronicleDayName": {
+      "description": "Someone or something a chronicle line names, by the name the chronicle shows (inhabitant names, thing labels), with the id it stands for.",
       "type": "object",
       "additionalProperties": false,
       "required": [

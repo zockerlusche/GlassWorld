@@ -5,37 +5,51 @@ namespace GlassWorld.Presentation.Tests;
 public sealed class ScreenZonesTests
 {
     [Fact]
-    public void EverySideWindowButTheLogBelongsToExactlyOneTheme()
+    public void EverySideWindowButTheLogAndHelpBelongsToExactlyOneRoundButton()
     {
         string[] windows = ["inhabitants", "card", "questions", "log", "chronicle", "timeline", "help", "mailbox"];
-        foreach (var window in windows.Where(w => w != ScreenZones.Pinned))
+        foreach (var window in windows.Where(w => w is not ScreenZones.Pinned and not ScreenZones.FromMenu))
         {
             Assert.Single(ScreenZones.Themes, t => t.Panels.Contains(window));
         }
 
+        // Help and gifts open from the menu (TL #23224); the log stays pinned.
+        Assert.Null(ScreenZones.ThemeOf(ScreenZones.FromMenu));
         Assert.Null(ScreenZones.ThemeOf(ScreenZones.Pinned));
         Assert.Null(ScreenZones.ThemeOf(null));
     }
 
     [Fact]
-    public void AThemeButtonOpensTheLastWindowOfItsThemeAndTogglesItsOwn()
+    public void TheRoundButtonsComeInTheOrderOfTheConcept()
     {
-        var contact = ScreenZones.Themes.Single(t => t.Id == "contact");
-        Assert.Equal("questions", ScreenZones.Open(contact, null, null));
-        Assert.Equal("mailbox", ScreenZones.Open(contact, "inhabitants", "mailbox"));
-        Assert.Equal("questions", ScreenZones.Open(contact, null, "chronicle"));
-        Assert.Null(ScreenZones.Open(contact, "help", "help"));
+        // D957 section 1: menu (its own button), then questions, mail, chronicle, inhabitants.
+        Assert.Equal(["questions", "mailbox", "chronicle", "people"], ScreenZones.Themes.Select(t => t.Id));
+        Assert.Equal(ScreenZones.Themes.Count, ScreenZones.Themes.Select(t => t.Icon).Distinct().Count());
+    }
+
+    [Fact]
+    public void ARoundButtonOpensTheLastWindowOfItsThemeAndTogglesItsOwn()
+    {
+        var chronicle = ScreenZones.Themes.Single(t => t.Id == "chronicle");
+        Assert.Equal("chronicle", ScreenZones.Open(chronicle, null, null));
+        Assert.Equal(ScreenZones.Timeline, ScreenZones.Open(chronicle, "inhabitants", ScreenZones.Timeline));
+        Assert.Equal("chronicle", ScreenZones.Open(chronicle, null, "mailbox"));
+        Assert.Null(ScreenZones.Open(chronicle, ScreenZones.Timeline, ScreenZones.Timeline));
 
         // The card is a tab of the people theme: its button closes it, and opens it again when it was last shown.
         var people = ScreenZones.Themes.Single(t => t.Id == "people");
         Assert.Null(ScreenZones.Open(people, ScreenZones.Card, ScreenZones.Card));
         Assert.Equal(ScreenZones.Card, ScreenZones.Open(people, null, ScreenZones.Card));
+
+        // Help from the menu stands in the same place: a round button replaces it.
+        var questions = ScreenZones.Themes.Single(t => t.Id == "questions");
+        Assert.Equal("questions", ScreenZones.Open(questions, ScreenZones.FromMenu, null));
     }
 
     [Theory]
     [InlineData("de")]
     [InlineData("en")]
-    public void EveryPanelOfAThemeHasItsTabAndTitleText(string language)
+    public void EveryRoundButtonAndTabHasItsText(string language)
     {
         // The keys are built from the panel's name, so the check of used keys does not see them: a panel
         // added to a theme without its texts would show the raw key (review GW1 #226).
@@ -46,8 +60,11 @@ public sealed class ScreenZonesTests
             Assert.Contains(theme.TitleKey, keys);
             foreach (var panel in theme.Panels)
             {
-                Assert.Contains(ScreenZones.TabKey(panel), keys);
                 Assert.Contains(ScreenZones.TitleKey(panel), keys);
+                if (theme.Panels.Count > 1)
+                {
+                    Assert.Contains(ScreenZones.TabKey(panel), keys);
+                }
             }
         }
     }

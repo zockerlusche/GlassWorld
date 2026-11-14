@@ -1,0 +1,45 @@
+{
+  "contract_version": "0.2",
+  "tick": 2600,
+  "seed": 4242,
+  "display_locale": "de",
+  "request_id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+  "kind": "chronicle",
+  "priority": 5,
+  "inhabitant": null,
+  "object": null,
+  "payload": {
+    "chronicle": {
+      "day": 3,
+      "entries": [
+        {
+          "kind": "first_meeting",
+          "text_key": "msg.chronicle.first_meeting",
+          "inhabitant": {
+            "id": "inh-000001",
+            "label": "Joro"
+          },
+          "target": {
+            "id": "inh-000002",
+            "label": "Rena"
+          },
+          "action": null
+        },
+        {
+          "kind": "first_use",
+          "text_key": "msg.chronicle.first_use",
+          "inhabitant": {
+            "id": "inh-000002",
+            "label": "Rena"
+          },
+          "target": {
+            "id": "obj-000017",
+            "label": "Feuerstein"
+          },
+          "action": null
+        }
+      ],
+      "max_chars": 280
+    }
+  }
+}

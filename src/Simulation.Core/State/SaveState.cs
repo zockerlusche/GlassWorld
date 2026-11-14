@@ -181,6 +181,9 @@ public sealed record SaveState(
 
     /// <summary>The reached milestones (B2598, A1583); null = none.</summary>
     public IReadOnlyList<Inventions.ReachedMilestone>? Milestones { get; init; }
+
+    /// <summary>The chronicle's day narratives and its open night job (B8 R10, A1355); null = none told yet.</summary>
+    public Night.ChronicleNightState? ChronicleNight { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -258,6 +261,7 @@ public static class StateCodec
             Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
+            ChronicleNight = host.ChronicleNight.HasState ? host.ChronicleNight.Capture() : null,
         };
     }
 
@@ -415,6 +419,7 @@ public static class StateCodec
         host.Durability?.Restore(state.Placed, state.Tick);
         host.Body?.Restore(state.Wet);
         host.Milestones.Restore(state.Milestones);
+        host.ChronicleNight.Restore(state.ChronicleNight);
         host.UseLoggedPlayerSettings();
         return host;
     }

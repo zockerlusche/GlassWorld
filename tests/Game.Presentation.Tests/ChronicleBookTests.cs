@@ -162,4 +162,14 @@ public sealed class ChronicleBookTests
 
         public InventionInfo? Invention(string typeId) => inventions.FirstOrDefault(i => i.TypeId == typeId);
     }
+
+    [Fact]
+    public void ADaysNarrativeStandsOnItsPageInItsLanguage()
+    {
+        // A1355: the core counts the told day from 1, the pages from 0; another language leaves the base lines alone.
+        var told = new[] { new GlassWorld.Simulation.Night.DayNarrative(3, 500, 4, 6, "de", "Am dritten Tag ...") };
+        Assert.Equal("Am dritten Tag ...", ChronicleBook.NarrativeOn(2, told, "de_DE"));
+        Assert.Null(ChronicleBook.NarrativeOn(3, told, "de"));
+        Assert.Null(ChronicleBook.NarrativeOn(2, told, "en"));
+    }
 }
