@@ -290,6 +290,19 @@ class KnowledgeReview(BaseModel):
 type DecayPerDay = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
+class FloorAfterItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: str = Field(
+        ...,
+        description='Memory kind (knowledge memory events: kind, or the action as kind).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    floor: float = Field(..., ge=0.0, le=1.0)
+
+
 class KnowledgeForgetting(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -300,6 +313,11 @@ class KnowledgeForgetting(BaseModel):
     )
     forgotten_below: float = Field(
         ..., description='Below this strength a belief is forgotten.', ge=0.0, le=1.0
+    )
+    floor_after: list[FloorAfterItem] | None = Field(
+        None,
+        description='D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.',
+        max_length=16,
     )
 
 

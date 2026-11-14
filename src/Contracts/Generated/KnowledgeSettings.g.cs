@@ -668,6 +668,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("forgotten_below")]
         public double ForgottenBelow { get; set; } = default!;
 
+        /// <summary>
+        /// D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("floor_after")]
+        public System.Collections.Generic.ICollection<Floor_after>? FloorAfter { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -876,6 +883,21 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("why")]
         Why = 4,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Floor_after
+    {
+
+        /// <summary>
+        /// Memory kind (knowledge memory events: kind, or the action as kind).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("floor")]
+        public double Floor { get; set; } = default!;
 
     }
 }

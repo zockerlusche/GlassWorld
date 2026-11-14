@@ -104,7 +104,8 @@
   },
   "forgetting": {
     "decay_per_day": { "experienced": 0.01, "seen": 0.02, "heard": 0.03, "read": 0.01, "guessed": 0.05 },
-    "forgotten_below": 0.25
+    "forgotten_below": 0.25,
+    "floor_after": [{ "kind": "felt_bad", "floor": 0.75 }]
   },
   "memory": {
     "condense_at": 4,

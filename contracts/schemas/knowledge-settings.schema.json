@@ -863,6 +863,20 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "floor_after": {
+          "description": "D1017 G1 (D1077): a formative memory of one of these kinds about a kind of thing (e.g. felt_bad) raises the floor of everything the inhabitant believes about that kind: its strength never falls below it, so what hurt is never forgotten. The highest floor counts; it stays.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "floor"],
+            "properties": {
+              "kind": { "description": "Memory kind (knowledge memory events: kind, or the action as kind).", "$ref": "common.schema.json#/$defs/VocabId" },
+              "floor": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
         }
       }
     }
