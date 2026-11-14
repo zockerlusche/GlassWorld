@@ -10,6 +10,105 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type Action = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+type ReachItem = Annotated[str, Field(..., pattern='^(low|mid|high)$')]
+
+
+type Arm = Annotated[str, Field(..., pattern='^(left|right)$')]
+
+
+type ToHeadItem = Annotated[float, Field(..., ge=-2.0, le=2.0)]
+
+
+type FromBodyItem = Annotated[float, Field(..., ge=-2.0, le=2.0)]
+
+
+type PoleItem = Annotated[float, Field(..., ge=-2.0, le=2.0)]
+
+
+class FigureGesture(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ..., description='Name of the gesture.', pattern='^[a-z][a-z0-9_]*$'
+    )
+    actions: list[Action] = Field(
+        ...,
+        description='Core actions the gesture shows (vocabulary actions).',
+        max_length=16,
+        min_length=1,
+    )
+    reach: list[ReachItem] | None = Field(
+        None,
+        description="Only for targets of these reach heights (look objects 'reach'); missing = any, also without a target.",
+        max_length=3,
+        min_length=1,
+    )
+    arms: list[Arm] = Field(
+        ..., description='Which arms move.', max_length=2, min_length=1
+    )
+    rise_s: float = Field(
+        ...,
+        description='Real seconds the arm needs to reach its first point.',
+        ge=0.05,
+        le=10.0,
+    )
+    dip_s: float | None = Field(
+        None,
+        description='Real seconds at the start point before the hands move to the head (0 or missing: straight to the head).',
+        ge=0.0,
+        le=10.0,
+    )
+    lift_s: float | None = Field(
+        None,
+        description='Real seconds from the start point to the head.',
+        ge=0.0,
+        le=10.0,
+    )
+    hold_s: float = Field(
+        ...,
+        description='Real seconds the hand stays at the head (mouth).',
+        ge=0.0,
+        le=10.0,
+    )
+    lower_s: float = Field(
+        ..., description='Real seconds back to the pose of the clip.', ge=0.05, le=10.0
+    )
+    rest_s: float = Field(
+        ...,
+        description='Real seconds before the next cycle (chewing, swallowing).',
+        ge=0.0,
+        le=30.0,
+    )
+    influence: float = Field(
+        ...,
+        description='How strongly the gesture overrides the clip at its peak (0..1).',
+        ge=0.0,
+        le=1.0,
+    )
+    to_head: list[ToHeadItem] = Field(
+        ...,
+        description='Target of the hand relative to the head bone (metres, figure frame), e.g. in front of the mouth.',
+        max_length=3,
+        min_length=3,
+    )
+    from_body: list[FromBodyItem] | None = Field(
+        None,
+        description="Start point relative to the figure's root (metres, figure frame), e.g. the water in front of the knees; missing: none, the hand goes to the head at once.",
+        max_length=3,
+        min_length=3,
+    )
+    pole: list[PoleItem] = Field(
+        ...,
+        description="Where the elbow points, relative to the figure's root (metres, figure frame), for the right arm.",
+        max_length=3,
+        min_length=3,
+    )
+
+
 type Clip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
@@ -565,6 +664,11 @@ class LookFigures(BaseModel):
         description='Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).',
         max_length=32,
         min_length=1,
+    )
+    gestures: list[FigureGesture] | None = Field(
+        None,
+        description='Arm gestures over the running pose (D958 D2): the first gesture whose action and reach fit the shown action clip moves the arms by two-bone IK. Frame, not outcome: the core says what is done, this only shows it.',
+        max_length=32,
     )
     sitting: FigureSitting = Field(
         ...,

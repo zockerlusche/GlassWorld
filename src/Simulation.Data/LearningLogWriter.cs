@@ -105,8 +105,7 @@ public static class LearningLogWriter
 
         var time = host.World.Calendar.At(entry.Tick);
         // '{is} {property}' once per fact of the line, joined (the text keys keep the two placeholders together).
-        var facts = string.Join(", ", same.Where(e => e.Property is not null).Select(e =>
-            Text(texts, e.Value == false ? "msg.learnlog.is.false" : "msg.learnlog.is.true") + " " + Lower(Vocab(texts, "property", e.Property!))));
+        var facts = string.Join(", ", same.Where(e => e.Property is not null).Select(e => Fact(texts, e.Property!, e.Value != false)));
         return Text(texts, key)
             .Replace("{time}", string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"), StringComparison.Ordinal)
             .Replace("{thing}", entry.TypeId is { } type ? ThingName(host, texts, type) : string.Empty, StringComparison.Ordinal)
@@ -129,6 +128,15 @@ public static class LearningLogWriter
         texts.GetValueOrDefault("vocab." + kind + "." + id) ?? id;
 
     private static string Text(IReadOnlyDictionary<string, string> texts, string key) => texts.GetValueOrDefault(key) ?? key;
+
+    /// <summary>
+    /// One fact: 'is' or 'is not' and the property's label in lower case ('ist essbar'). A label that is a noun or a
+    /// verb has its own phrase per language and truth (<c>msg.learnlog.fact.&lt;property&gt;.true|false</c>, e.g.
+    /// 'ist Stein', 'schlägt keine Funken'), so the log never reads 'ist stein' or 'ist schlägt funken'.
+    /// </summary>
+    private static string Fact(IReadOnlyDictionary<string, string> texts, string property, bool value) =>
+        texts.GetValueOrDefault("msg.learnlog.fact." + property + (value ? ".true" : ".false"))
+        ?? Text(texts, value ? "msg.learnlog.is.true" : "msg.learnlog.is.false") + " " + Lower(Vocab(texts, "property", property));
 
     private static string Lower(string word) =>
         word.Length > 0 && char.IsUpper(word[0]) ? char.ToLower(word[0], CultureInfo.InvariantCulture) + word[1..] : word;

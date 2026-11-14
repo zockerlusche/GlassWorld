@@ -23,6 +23,13 @@
       "loop": false
     },
     {
+      "id": "crouch_act",
+      "source": "asset",
+      "loop": true,
+      "asset": "Crouch_Idle",
+      "speed": 0.9
+    },
+    {
       "id": "crouch_inspect",
       "source": "asset",
       "loop": true,
@@ -272,28 +279,28 @@
       "id": "inspect",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "eat",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "drink",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "combine",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
