@@ -70,6 +70,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     /// <summary>Wind 0..1 at a tick (dries faster); null = calm.</summary>
     public Func<long, double>? WindAt { get; init; }
 
+    /// <summary>B5 R37: the things that warm a place and by how much (the fire); null = none.</summary>
+    public Func<Position, IEnumerable<(WorldObject Thing, int TenthC)>>? HeatFrom { get; init; }
+
     /// <inheritdoc/>
     public string Name => "body";
 
@@ -164,6 +167,47 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
                 _wet.Remove(inhabitant.Id);
             }
         }
+
+        TakeIn(world);
+    }
+
+    /// <summary>
+    /// B5 R37: every few minutes each inhabitant takes in what it feels near things - a thing that warms it
+    /// enough, a thing that keeps it dry in the rain - as a belief about the thing's true property (source
+    /// experienced, the same path as finding out by eating). Only what was felt near what; no rule what to do.
+    /// </summary>
+    private void TakeIn(World world)
+    {
+        var every = Math.Max(1L, (long)(_data.ExperienceEveryMinutes ?? 10) * _ticksPerHour / 60);
+        if (world.Tick % every != 0)
+        {
+            return;
+        }
+
+        var experiences = _data.Experiences ?? [];
+        foreach (var inhabitant in _inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal))
+        {
+            RememberHowItFelt(world, inhabitant);
+            var action = inhabitant.Activity?.Action;
+            foreach (var experience in experiences)
+            {
+                if (experience.Felt == BodyExperienceFelt.Warmth && HeatFrom is { } heatFrom)
+                {
+                    foreach (var (thing, tenth) in heatFrom(inhabitant.Position))
+                    {
+                        if (tenth >= (experience.MinTenthC ?? 0))
+                        {
+                            _inhabitants.Experience(world.Tick, inhabitant, action, thing.TypeId, [experience.Property]);
+                        }
+                    }
+                }
+                else if (experience.Felt == BodyExperienceFelt.Kept_dry && AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true }
+                    && ShelterOf(inhabitant.Position) is { } shelter)
+                {
+                    _inhabitants.Experience(world.Tick, inhabitant, action, shelter.TypeId, [experience.Property]);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -200,12 +244,59 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         return (int)((perHour * (inHour + 1) / _ticksPerHour) - (perHour * inHour / _ticksPerHour));
     }
 
+    /// <summary>
+    /// B5 R32 (D1099): the inhabitant remembers how its place feels now - kept dry in the rain by a thing there, else
+    /// wet, else its comfort level, each mapped to a feeling by the data - when the feeling changed since the last
+    /// one it remembered. Only what it felt there; no rule what to do.
+    /// </summary>
+    private void RememberHowItFelt(World world, Inhabitant inhabitant)
+    {
+        if (_data.FeltPlaces is not { } places)
+        {
+            return;
+        }
+
+        string? felt = null;
+        var rain = AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true };
+        if (rain && places.KeptDry is { } dry && ShelterOf(inhabitant.Position) is not null)
+        {
+            felt = dry;
+        }
+        else if (places.Wet is { } wet && WetPermille(inhabitant.Id) >= (_data.Wetness.WetFromPermille ?? 1))
+        {
+            felt = wet;
+        }
+        else if (_inhabitants.ComfortLevelOf(world, inhabitant) is { } level)
+        {
+            felt = places.FromComfort.FirstOrDefault(f => string.Equals(f.Level, level, StringComparison.Ordinal))?.Felt;
+        }
+
+        // Only a change of feeling is remembered (review GW1 #427): walking on in the same feeling does not push
+        // the older, telling places out of the bounded memory.
+        if (felt is null || (inhabitant.FeltPlaces.Count > 0 && string.Equals(inhabitant.FeltPlaces.Values.MaxBy(f => f.Tick).Felt, felt, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        var x = (long)Math.Floor(inhabitant.Position.X / places.CellM);
+        var z = (long)Math.Floor(inhabitant.Position.Z / places.CellM);
+        var place = x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" + z.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        inhabitant.RememberFelt(place, new FeltPlace(felt, world.Tick), places.Max, (long)places.ForgetHours * _ticksPerHour);
+    }
+
     /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
-    private bool Sheltered(Position at)
+    private bool Sheltered(Position at) => ShelterOf(at) is not null;
+
+    /// <summary>The nearest thing with the shelter property within the shelter radius (ties by id), or null.</summary>
+    private WorldObject? ShelterOf(Position at)
     {
         _near.Clear();
         _objects.Within(at, _data.Wetness.ShelterRadiusCm / 100.0, _near);
-        return _near.Any(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty));
+        return _near
+            .Where(o => _objects.Catalog.Contains(o.TypeId) && _objects.Catalog.TrueProperties(o.TypeId).Contains(_data.Wetness.ShelterProperty))
+            .OrderBy(o => ((o.Position.X - at.X) * (o.Position.X - at.X)) + ((o.Position.Z - at.Z) * (o.Position.Z - at.Z)))
+            .ThenBy(o => o.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     /// <summary>How much the crowns over a place cover it now (the most covering one), 0 = open sky.</summary>

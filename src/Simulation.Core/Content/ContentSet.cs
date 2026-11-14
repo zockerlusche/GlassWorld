@@ -124,6 +124,9 @@ public sealed class ContentSet
     /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
     public NatureSettings? Nature { get; init; }
 
+    /// <summary>The animal stocks (content/nature/animals.json, B4b K4); null without the file.</summary>
+    public NatureAnimals? Animals { get; init; }
+
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
 
@@ -260,6 +263,8 @@ public sealed class ContentSet
                 inventions.TechLevels,
                 inventions.Settings.TechLevel)
             : null;
+        // D1097: what a plan's steps make of its materials, by the same rules as everywhere.
+        inventions = inventions with { StepRules = processes };
         var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
         return new ContentSet(
             calendar,
@@ -286,15 +291,14 @@ public sealed class ContentSet
             Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
                 ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
                 : null,
-            Body = File.Exists(Path.Combine(contentDirectory, "body", "settings.json"))
-                ? ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(Path.Combine(contentDirectory, "body", "settings.json")))
-                : null,
+            Body = LoadBody(contentDirectory, vocabularies),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
             Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
                 ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
                 : null,
+            Animals = LoadAnimals(contentDirectory, Ids(vocabularies, VocabularyKind.Biome)),
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
@@ -639,6 +643,32 @@ public sealed class ContentSet
         }
     }
 
+    /// <summary>The animal stocks (B4b K4); every biome in the vocabulary, every growth group in the nature data.</summary>
+    private static NatureAnimals? LoadAnimals(string contentDirectory, HashSet<string> biomes)
+    {
+        var path = Path.Combine(contentDirectory, "nature", "animals.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var animals = ContractSerializer.Deserialize<NatureAnimals>(File.ReadAllText(path));
+        var natureFile = Path.Combine(contentDirectory, "nature", "settings.json");
+        var groups = File.Exists(natureFile)
+            ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(natureFile)).Groups.Select(g => g.Id).ToHashSet(StringComparer.Ordinal)
+            : [];
+        var problems = animals.Species.GroupBy(s => s.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"species '{g.Key}' twice")
+            .Concat(animals.Species.SelectMany(s => s.Biomes.Where(b => !biomes.Contains(b)).Select(b => $"species '{s.Id}' lives in unknown biome '{b}'")))
+            .Concat(animals.Species.SelectMany(s => s.Groups.Where(g => !groups.Contains(g)).Select(g => $"species '{s.Id}' feeds unknown growth group '{g}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Animals: " + string.Join("; ", problems) + ".");
+        }
+
+        return animals;
+    }
+
     /// <summary>
     /// The base functions (D827 R31, content/invention/base_functions.json; none without the file): every id once, every
     /// granted property in the property vocabulary.
@@ -821,6 +851,29 @@ public sealed class ContentSet
         }
     }
 
+    /// <summary>The body data (B5-11/B5-12), if the file exists: the feelings of felt_places are in the vocabulary felt.</summary>
+    private static BodySettings? LoadBody(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies)
+    {
+        var path = Path.Combine(contentDirectory, "body", "settings.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var body = ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(path));
+        if (body.FeltPlaces is { } places)
+        {
+            var felt = vocabularies.TryGetValue(VocabularyKind.Felt, out var known) ? known.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : [];
+            var unknown = places.FromComfort.Select(f => f.Felt).Append(places.Wet).Append(places.KeptDry).OfType<string>().Where(id => !felt.Contains(id)).ToList();
+            if (unknown.Count > 0)
+            {
+                throw new InvalidDataException($"Body felt_places: unknown feelings [{string.Join(", ", unknown)}].");
+            }
+        }
+
+        return body;
+    }
+
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
         Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
 
@@ -883,6 +936,7 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.Select(d => d.Mood).Where(id => !moods.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
+            .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

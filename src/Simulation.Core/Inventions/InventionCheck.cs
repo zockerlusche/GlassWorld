@@ -42,6 +42,12 @@ public sealed record InventionRules(
     /// </summary>
     public FrozenSet<string> NeverRemove { get; init; } = FrozenSet<string>.Empty;
 
+    /// <summary>The data's process rules: what a plan's steps make of its materials (D1097); null = steps add nothing.</summary>
+    public Objects.ProcessRuleSet? StepRules { get; init; }
+
+    /// <summary>Whether the core derives a made thing's truth and introduces are only the inventor's expectation (D1097).</summary>
+    public bool Derives => Settings.MaterialTransfer is not null;
+
     /// <summary>
     /// What a type made from <paramref name="invention"/> is: its own properties, what being made implies, what its base
     /// function grants, and - with <paramref name="truth"/> (the world's true properties of a type) - what of
@@ -52,7 +58,42 @@ public sealed record InventionRules(
         ArgumentNullException.ThrowIfNull(invention);
         var granted = invention.BaseFunction is { } function && BaseFunctions.TryGetValue(function, out var properties) ? properties : [];
         var kept = truth is null ? [] : MaterialsOf(invention).SelectMany(truth).Where(NeverRemove.Contains);
-        return invention.Introduces.Concat(Settings.ImpliedProperties).Concat(granted).Concat(kept).Distinct(StringComparer.Ordinal);
+        var own = Derives ? Transferred(invention, truth) : invention.Introduces;
+        return own.Concat(Settings.ImpliedProperties).Concat(granted).Concat(kept).Distinct(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// D1097: what of its materials a made thing has as a whole (material_transfer) - a material a step works on counts as
+    /// what the step's rule makes of it; the others as they are.
+    /// </summary>
+    private IEnumerable<string> Transferred(Invention invention, Func<string, IEnumerable<string>>? truth)
+    {
+        if (truth is null || Settings.MaterialTransfer is not { } transfer)
+        {
+            return [];
+        }
+
+        FrozenSet<string> Of(string type) => truth(type).ToFrozenSet(StringComparer.Ordinal);
+        var worked = new HashSet<string>(StringComparer.Ordinal);
+        var properties = new HashSet<string>(StringComparer.Ordinal);
+        var tech = TechLevels.ToList().IndexOf(invention.TechLevel);
+        foreach (var step in invention.Steps)
+        {
+            var materials = step.Materials.ToList();
+            if (StepRules?.StepResult(step.Process, [.. materials.Select(Of)], tech < 0 ? null : tech) is { } result)
+            {
+                // Only the step's target and what it uses up are changed; its other materials count as they are (review GW2 #424).
+                properties.UnionWith(result.Made);
+                worked.UnionWith(result.Worked.Select(i => materials[i]));
+            }
+        }
+
+        foreach (var material in MaterialsOf(invention).Where(m => !worked.Contains(m)))
+        {
+            properties.UnionWith(truth(material));
+        }
+
+        return properties.Where(transfer.Contains);
     }
 
     /// <summary>Every material the invention names (its own and its steps'), each once.</summary>

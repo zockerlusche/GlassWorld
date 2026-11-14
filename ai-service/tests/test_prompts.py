@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -208,6 +208,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v11",
         "decider/decide.v12",
         "decider/decide.v13",
+        "decider/decide.v14",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -530,6 +531,23 @@ def test_v10_is_v9_without_an_occasion_and_ignores_one_it_has_no_words_for() -> 
     assert plain == _render(_leisure(None), version=9).split("=== user ===")[1]
     assert _render(_leisure("festival"), version=10).split("=== user ===")[1] == plain
     assert "Right now" not in _render(_leisure(), version=9)  # v9 does not read it
+
+
+def test_v14_names_trying_as_possible_without_a_value() -> None:
+    """D1096 #9 (B2745 e): v13 said a try not yet made is 'often worth more' and listed in a free
+    moment what one could try - that steers to one kind of action. v14 says trying is possible
+    and that any option or resting is fine; nothing else changes."""
+    v13 = _render(_leisure(), version=13)
+    v14 = _render(_leisure(), version=14)
+    assert "often worth more" in v13 and "often worth more" not in v14
+    assert "You can learn by trying." in v14 and "Nobody tells\n  you what works." in v14
+    assert "look around, inspect, try things" in v13 and "look around, inspect" not in v14
+    block = v14.split("## Right now")[1].split("## Options")[0]
+    assert "Any of the options is fine, and so is resting" in block
+    assert "try something" not in block and "look closer" not in block
+    # Without an occasion only the trying paragraph differs from v13.
+    plain13 = _render(_leisure(None), version=13).split("=== user ===")[1]
+    assert plain13 == _render(_leisure(None), version=14).split("=== user ===")[1]
 
 
 def test_no_prompt_in_use_names_a_season() -> None:

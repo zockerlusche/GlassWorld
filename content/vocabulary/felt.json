@@ -1,0 +1,34 @@
+{
+  "contract_version": "0.2",
+  "kind": "felt",
+  "entries": [
+    {
+      "id": "cold",
+      "description": "It felt cold here."
+    },
+    {
+      "id": "cool",
+      "description": "It felt cool here."
+    },
+    {
+      "id": "mild",
+      "description": "It felt pleasant here, neither cold nor warm."
+    },
+    {
+      "id": "warm",
+      "description": "It felt warm here."
+    },
+    {
+      "id": "hot",
+      "description": "It felt hot here."
+    },
+    {
+      "id": "wet",
+      "description": "One got wet here."
+    },
+    {
+      "id": "dry_in_rain",
+      "description": "One stayed dry here in the rain."
+    }
+  ]
+}

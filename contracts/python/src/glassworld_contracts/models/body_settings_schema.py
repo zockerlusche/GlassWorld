@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -19,6 +20,11 @@ class BodyDryingBand(BaseModel):
         ge=0,
         le=100000,
     )
+
+
+class Felt(StrEnum):
+    warmth = 'warmth'
+    kept_dry = 'kept_dry'
 
 
 class BodyWetness(BaseModel):
@@ -43,6 +49,12 @@ class BodyWetness(BaseModel):
         ge=0,
         le=5000,
     )
+    wet_from_permille: int | None = Field(
+        None,
+        description='From this wetness on an inhabitant counts as wet in its request to the AI (environment.wet). Omitted = 1.',
+        ge=1,
+        le=1000,
+    )
     cool_tenth_c: int = Field(
         ...,
         description='How much colder it feels when fully wet, in tenths of a degree (linear with the wetness).',
@@ -57,6 +69,87 @@ class BodyWetness(BaseModel):
     )
     shelter_radius_cm: int = Field(
         ..., description='How near such a thing must be.', ge=0, le=2000
+    )
+
+
+class FromComfortItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    felt: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class BodyFeltPlaces(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cell_m: int = Field(
+        ...,
+        description='Size of a place: a grid square of this many metres (floor of the position).',
+        ge=1,
+        le=200,
+    )
+    max: int = Field(
+        ...,
+        description='Places remembered per inhabitant; beyond it the oldest is forgotten (ties by place).',
+        ge=0,
+        le=256,
+    )
+    forget_hours: int = Field(
+        ...,
+        description='A remembered feeling is forgotten after this many game hours.',
+        ge=1,
+        le=100000,
+    )
+    from_comfort: list[FromComfortItem] = Field(
+        ...,
+        description='Which feeling (vocabulary felt) a comfort level gives.',
+        max_length=8,
+    )
+    wet: str | None = Field(
+        None,
+        description='The feeling while it is wet there (before the comfort level); omitted = none.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    kept_dry: str | None = Field(
+        None,
+        description='The feeling when a thing there kept it dry in the rain (before everything else); omitted = none.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class BodyExperience(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    felt: Felt = Field(
+        ...,
+        description='warmth: a thing near warms the inhabitant by at least min_tenth_c; kept_dry: in the rain a thing near keeps it dry.',
+    )
+    property: str = Field(
+        ...,
+        description='The property it finds out about the thing (its truth, as the world has it).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_tenth_c: int | None = Field(
+        None,
+        description='warmth: how much warmer at least, in tenths of a degree.',
+        ge=0,
+        le=500,
     )
 
 
@@ -146,6 +239,21 @@ class BodySettings(BaseModel):
     )
     wetness: BodyWetness
     sun: BodySun
+    experiences: list[BodyExperience] | None = Field(
+        None,
+        description="B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -> seek fire': only what was felt near what.",
+        max_length=16,
+    )
+    felt_places: BodyFeltPlaces | None = Field(
+        None,
+        description='B5 R32 (D1099): the inhabitant remembers how a place felt - the latest feeling per grid square, a few places, forgotten after a while. Absent = no such memory.',
+    )
+    experience_every_minutes: int | None = Field(
+        None,
+        description='How often, in game minutes, what is felt near things is taken in.',
+        ge=1,
+        le=1440,
+    )
     cover: list[BodyCover] | None = Field(
         None,
         description='How much a shade caster covers, by type and season (TL #25357: a broad-leaved tree in winter little): it dims the sun in its shade and the rain under its crown. A caster or season not listed covers fully (1000).',

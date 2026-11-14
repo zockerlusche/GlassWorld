@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/nature-animals.schema.json",
+  "title": "NatureAnimals",
+  "description": "Data file content/nature/animals.json (B4b K4, D711 §2, B2645): animals as a stock per species and biome - one number that grows towards a limit, no animal of its own, no killing (B2481). How full a stock is scales the growth groups of what the animals leave behind (egg, wool, feather, dung) in the nature takt. All numbers are placeholders (B2649).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "species"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "species": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/AnimalSpecies"
+      }
+    }
+  },
+  "$defs": {
+    "AnimalSpecies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "groups",
+        "biomes",
+        "cap_per_biome",
+        "start_permille",
+        "growth_per_day_permille"
+      ],
+      "properties": {
+        "id": {
+          "description": "Species id (internal; never shown, no animal is drawn).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "groups": {
+          "description": "Growth groups of content/nature/settings.json whose factor this stock scales (stock / limit).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "biomes": {
+          "description": "Biomes the species lives in (vocabulary biome); a biome the island does not have holds none.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "cap_per_biome": {
+          "description": "Upper limit of the stock in each of its biomes on the island (animals).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "start_permille": {
+          "description": "Stock of a new world as a share of the limit (permille).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "growth_per_day_permille": {
+          "description": "Logistic growth per game day (permille of the stock, slowing towards the limit).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "seasons": {
+          "description": "Growth factor per season (permille; a season not named grows at 1000): young in spring, little in winter.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/AnimalSeasonFactor"
+          }
+        }
+      }
+    },
+    "AnimalSeasonFactor": {
+      "description": "Growth factor of a stock in one season (permille).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "permille"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3000
+        }
+      }
+    }
+  }
+}

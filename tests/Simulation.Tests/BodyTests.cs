@@ -29,6 +29,7 @@ public sealed class BodyTests
         weather.Force("rain", host.World.Tick);
         host.World.Run(hour);
         Assert.Equal(1000, body.WetPermille(inhabitant.Id));
+        Assert.True(host.Decisions.IsWet!(inhabitant));
         var cool = Content.Value.Body!.Wetness.CoolTenthC;
         Assert.Equal(body.SunTenthC(host.World, inhabitant.Position) - cool, body.FeltTenthC(host.World, inhabitant));
 
@@ -118,6 +119,81 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void NearAFireAnInhabitantFindsOutThatItIsHot()
+    {
+        // B5 R37: what it felt near what becomes a belief with source experienced (no rule what to do about it).
+        var (host, inhabitant) = Island();
+        host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 0.5, inhabitant.Position.Z));
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        Assert.True(inhabitant.Beliefs.TryGet("fire", "hot", out var hot));
+        Assert.True(hot.Value);
+        Assert.Equal(KnowledgeSources.Experienced, hot.Source);
+    }
+
+    [Fact]
+    public void InTheRainAnInhabitantFindsOutThatARockNicheKeepsItDry()
+    {
+        var (host, inhabitant) = Island();
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        Assert.True(inhabitant.Beliefs.TryGet("rock_niche", "sheltering", out var sheltering));
+        Assert.True(sheltering.Value);
+        Assert.Equal(KnowledgeSources.Experienced, sheltering.Source);
+    }
+
+    [Fact]
+    public void TooColdAndTooWarmFollowTheComfortLevel()
+    {
+        // B5 R31: the comfort sensations of the data are felt exactly at their levels.
+        var (host, inhabitant) = Island();
+        var felt = Content.Value.InhabitantModel.ComfortZone!.Felt!;
+        for (var hour = 0; hour < 24; hour++)
+        {
+            var level = host.Inhabitants.ComfortLevelOf(host.World, inhabitant);
+            foreach (var sensation in felt)
+            {
+                Assert.Equal(level is not null && sensation.Levels.Contains(level), host.Inhabitants.FeelsComfort(host.World, inhabitant, sensation.Sensation));
+            }
+
+            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+        }
+    }
+
+    [Fact]
+    public void AnInhabitantRemembersHowItsPlaceFeltAndForgetsItLater()
+    {
+        // B5 R32 (D1099): the latest feeling per grid square, bounded and forgotten after the data's time.
+        var (host, inhabitant) = Island();
+        var places = Content.Value.Body!.FeltPlaces!;
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(Content.Value.Body!.ExperienceEveryMinutes!.Value * host.World.Calendar.Settings.TicksPerHour / 60 + 1);
+
+        var place = $"{(long)Math.Floor(inhabitant.Position.X / places.CellM)}/{(long)Math.Floor(inhabitant.Position.Z / places.CellM)}";
+        Assert.Equal(places.KeptDry, inhabitant.FeltPlaces[place].Felt);
+
+        inhabitant.RememberFelt("far/away", new FeltPlace("cold", host.World.Tick), places.Max, (long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour);
+        inhabitant.RememberFelt("later/on", new FeltPlace("warm", host.World.Tick + ((long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour)), places.Max, (long)places.ForgetHours * host.World.Calendar.Settings.TicksPerHour);
+        Assert.DoesNotContain("far/away", inhabitant.FeltPlaces.Keys);
+        Assert.Contains("later/on", inhabitant.FeltPlaces.Keys);
+    }
+
+    [Fact]
+    public void FeltPlacesAreBoundedPerInhabitant()
+    {
+        var (_, inhabitant) = Island();
+        for (var i = 0; i < 10; i++)
+        {
+            inhabitant.RememberFelt($"{i}/0", new FeltPlace("mild", 100 + i), 3, 1_000_000);
+        }
+
+        Assert.Equal(["7/0", "8/0", "9/0"], inhabitant.FeltPlaces.Keys);
+    }
+
+    [Fact]
     public void AWetInhabitantStaysWetAcrossSavingAndLoading()
     {
         var (host, inhabitant) = Island();
@@ -134,6 +210,7 @@ public sealed class BodyTests
             var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new SilentPort(), "de"), SaveGameStore.Load(path));
             Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
             Assert.Equal(wet, loaded.Body!.WetPermille(inhabitant.Id));
+            Assert.Equal(inhabitant.FeltPlaces, loaded.Inhabitants.Get(inhabitant.Id).FeltPlaces);
         }
         finally
         {
