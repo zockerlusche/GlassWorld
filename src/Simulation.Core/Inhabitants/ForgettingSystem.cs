@@ -171,7 +171,16 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
             && detail.IndexOf('/', StringComparison.Ordinal) is var cut and > 0)
         {
             // Learned (again): fresh, as sure as it was just learned.
-            _fading.Remove((inhabitant.Id, learnedType, detail[..cut]));
+            var property = detail[..cut];
+            _fading.Remove((inhabitant.Id, learnedType, property));
+
+            // Telling uses the teller's knowledge too (review GW2 #392): the listener's belief names who told it.
+            if (inhabitant.Beliefs.TryGet(learnedType, property, out var heard) && heard.ToldBy is { } tellerId
+                && _inhabitants.TryGet(tellerId, out var teller))
+            {
+                Use(teller, learnedType, property, e.Tick);
+            }
+
             return;
         }
 
@@ -187,16 +196,28 @@ public sealed class ForgettingSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
-        foreach (var (propertyId, belief) in inhabitant.Beliefs.About(type).ToList())
+        foreach (var (propertyId, _) in inhabitant.Beliefs.About(type).ToList())
         {
-            var key = (inhabitant.Id, type, propertyId);
-            if (_fading.TryGetValue(key, out var known))
-            {
-                inhabitant.Beliefs.Set(type, propertyId, belief.Value, known.Original, belief.Source, belief.ToldBy, belief.Tick);
-            }
-
-            _fading[key] = (_fading.TryGetValue(key, out var k) ? k.Original : belief.Confidence, e.Tick);
+            Use(inhabitant, type, propertyId, e.Tick);
         }
+    }
+
+    /// <summary>A belief used now: as sure as before it faded, its last use now.</summary>
+    private void Use(Inhabitant inhabitant, string type, string propertyId, long tick)
+    {
+        if (!inhabitant.Beliefs.TryGet(type, propertyId, out var belief))
+        {
+            return;
+        }
+
+        var key = (inhabitant.Id, type, propertyId);
+        var original = _fading.TryGetValue(key, out var known) ? known.Original : belief.Confidence;
+        if (Math.Abs(original - belief.Confidence) > 1e-12)
+        {
+            inhabitant.Beliefs.Set(type, propertyId, belief.Value, original, belief.Source, belief.ToldBy, belief.Tick);
+        }
+
+        _fading[key] = (original, tick);
     }
 
     private sealed class KeyOrder : IComparer<(string Inhabitant, string Type, string Property)>

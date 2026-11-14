@@ -60,6 +60,29 @@ public sealed class ForgettingTests
     }
 
     [Fact]
+    public void TellingSomeoneUsesTheTellersKnowledgeToo()
+    {
+        // Review GW2 #392: the listener's belief names the teller; hearing it makes the teller's belief as sure as before.
+        var (host, a) = World();
+        var model = Content.Value.InhabitantModel;
+        var b = new Inhabitant("inh-000002", "male", 1, new Position(1, 0),
+            model.Needs.ToDictionary(n => n.Id, _ => 1.0, StringComparer.Ordinal),
+            model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal),
+            model.Start.Traits.ToDictionary(t => t.Id, t => (t.Min + t.Max) / 2, StringComparer.Ordinal),
+            model.WillToLive.Start);
+        host.Inhabitants.Add(b);
+        b.Activity = new Activity("idle", null, b.Position, 100_000_000);
+        a.Beliefs.Set(Thing, Property, true, 0.8, KnowledgeSources.Heard, null, 0);
+        host.World.Run((host.World.Calendar.TicksPerDay * 3) + 1);
+        Assert.True(a.Beliefs.TryGet(Thing, Property, out var weaker) && weaker.Confidence < 0.8);
+
+        b.Beliefs.Set(Thing, Property, true, 0.6, KnowledgeSources.Heard, a.Id, host.World.Tick);
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, host.World.Tick, b.Id, "teach", Thing) { Detail = Property + "/" + KnowledgeSources.Heard });
+        Assert.True(a.Beliefs.TryGet(Thing, Property, out var again));
+        Assert.Equal(0.8, again.Confidence, 9);
+    }
+
+    [Fact]
     public void FadingAndForgottenKnowledgeSurviveSavingAndLoadingWithTheSameHash()
     {
         var (host, a) = World();
