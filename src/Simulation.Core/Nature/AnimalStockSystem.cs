@@ -113,7 +113,9 @@ public sealed class AnimalStockSystem : IWorldSystem, IOptionalWorldState
 
                 // Logistic: the stock grows by its rate and the season, slower the nearer it is to the limit; never past it.
                 var cap = _cap[key];
-                var growth = stock * species.GrowthPerDayPermille / 1000 * factor / 1000 * (cap - stock) / cap;
+                // One division at the end (review GW4 #422): rounding in each step let a small stock stop growing. Int128
+                // keeps the product exact (stock and limit in thousandths x rate x season x room).
+                var growth = (long)((Int128)stock * species.GrowthPerDayPermille * factor * (cap - stock) / ((Int128)1_000_000 * cap));
                 _stock[key] = Math.Clamp(stock + growth, 0, cap);
             }
         }
