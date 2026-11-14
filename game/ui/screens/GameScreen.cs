@@ -117,6 +117,9 @@ public partial class GameScreen : CanvasLayer
     private PanelContainer? _topBar;
     private Label? _date;
 
+    // The card a window replaced (D957 v4): that window's '×' leads back to it.
+    private string? _cardBeforeWindow;
+
     // B2759: game day and year beside the season (a label of its own, so a narrow bar wraps between them).
     private Label? _day;
     private Label? _favor;
@@ -258,7 +261,13 @@ public partial class GameScreen : CanvasLayer
             }
             else
             {
-                _sideBar.Open(_zones && _cardId is not null ? ScreenZones.Card : null);
+                var back = _zones && _cardBeforeWindow is { } id && _feed?.Card(id) is not null;
+                if (back)
+                {
+                    _lastCardId = _cardBeforeWindow;
+                }
+
+                _sideBar.Open(back ? ScreenZones.Card : null);
             }
 
             Layout();
@@ -496,8 +505,14 @@ public partial class GameScreen : CanvasLayer
 
             if (_sideBar.OpenKey != ScreenZones.Card)
             {
-                // Another window took the place (or none): the card is closed.
+                // Another window took the place (or none): the card is closed; the window's '×' leads back to it
+                // (D957 v4), closing the place forgets it.
+                _cardBeforeWindow = _sideBar.OpenKey is null ? null : _cardId ?? _cardBeforeWindow;
                 _cardId = null;
+            }
+            else
+            {
+                _cardBeforeWindow = null;
             }
             else if (_cardId is null)
             {
