@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,6 +41,11 @@ class UiScaleRange(BaseModel):
     max: float = Field(..., ge=0.25, le=4.0)
     step: float = Field(..., ge=0.01, le=1.0)
     default: float = Field(..., ge=0.25, le=4.0)
+
+
+type WorldCheckGround = Annotated[
+    str, Field(..., pattern='^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$')
+]
 
 
 class UiWindowTokens(BaseModel):
@@ -195,6 +200,23 @@ class UiWindowTokens(BaseModel):
         description='Outline of text that stands on the world without a box (the corners top left and bottom left, D795).',
         ge=0,
         le=32,
+    )
+    scrim_alpha: float = Field(
+        ...,
+        description='Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).',
+        ge=0.0,
+        le=1.0,
+    )
+    scrim_soft_px: int = Field(
+        ...,
+        description='How far that dark ground fades out at its edges (a soft gradient, no box).',
+        ge=0,
+        le=128,
+    )
+    world_check_grounds: list[WorldCheckGround] = Field(
+        ...,
+        description='Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).',
+        min_length=1,
     )
 
 

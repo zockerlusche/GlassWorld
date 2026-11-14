@@ -252,7 +252,11 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season}, Tag {day}, Jahr {year}"
+      "text": "{season} {day}/{days} · Tag {game_day} · Jahr {year}"
+    },
+    {
+      "key": "ui.clock.date_tooltip",
+      "text": "{season}: Tag {day} von {days}. Eine Jahreszeit hat {days} Tage, ein Jahr {year_days}.\nTag {game_day} seit der Gründung, im Jahr {year}."
     },
     {
       "key": "ui.common.cancel",

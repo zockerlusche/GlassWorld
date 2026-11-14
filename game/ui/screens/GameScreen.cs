@@ -474,7 +474,7 @@ public partial class GameScreen : CanvasLayer
         ArgumentNullException.ThrowIfNull(choices);
         var bar = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
         var row = new HFlowContainer();
-        var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
         var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
         row.AddChild(date);
         row.AddChild(time);
@@ -2376,11 +2376,19 @@ public partial class GameScreen : CanvasLayer
         RefreshLog(rows);
 
         var clock = _feed.Clock();
-        _date.Text = TextFill.Fill(Tr("ui.clock.date"), new Dictionary<string, string>
+        // B2759 (TL #25773): season with its progress, the running game day and the year; the tooltip says the lengths.
+        var values = new Dictionary<string, string>
         {
             ["season"] = Tr(clock.SeasonKey),
             ["day"] = Number(clock.Day),
+            ["days"] = Number(clock.DaysPerSeason),
+            ["game_day"] = Number(clock.GameDay),
             ["year"] = Number(clock.Year),
+        };
+        _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
+        _date.TooltipText = TextFill.Fill(Tr("ui.clock.date_tooltip"), new Dictionary<string, string>(values)
+        {
+            ["year_days"] = Number(clock.DaysPerYear),
         });
         _time.Text = clock.Time;
         RefreshCorners(rows, clock);

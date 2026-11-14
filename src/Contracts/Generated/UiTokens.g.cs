@@ -212,6 +212,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("world_outline_px")]
         public int WorldOutlinePx { get; set; } = default!;
 
+        /// <summary>
+        /// Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_alpha")]
+        public double ScrimAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// How far that dark ground fades out at its edges (a soft gradient, no box).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_soft_px")]
+        public int ScrimSoftPx { get; set; } = default!;
+
+        /// <summary>
+        /// Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("world_check_grounds")]
+        public System.Collections.Generic.ICollection<string> WorldCheckGrounds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

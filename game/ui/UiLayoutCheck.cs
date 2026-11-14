@@ -197,7 +197,7 @@ public static class UiLayoutCheck
     {
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
-        var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
+        var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" });
         var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
         var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
         var portraits = new GwPortraitList();
@@ -266,7 +266,12 @@ public static class UiLayoutCheck
             }
 
             // TL #25715: the text on the world reads over snow, sand and light grass (the grounds of the data).
-            problems.AddRange(WorldTextProblems(style, "portraits", portraits));
+            if (!portraits.Compact)
+            {
+                // Compact rows show the portraits only, no names.
+                problems.AddRange(WorldTextProblems(style, "portraits", portraits));
+            }
+
             problems.AddRange(WorldTextProblems(style, "log", log));
             problems.AddRange(WorldTextProblems(style, "time block", corner));
 
@@ -319,7 +324,7 @@ public static class UiLayoutCheck
     private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
     {
         var (bar, date, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
+        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["days"] = "28", ["game_day"] = "9999", ["year"] = "120" });
         time.Text = "23:59";
         var side = new GwSideBar();
         side.Add("inhabitants", "ui.inhabitants.title");
