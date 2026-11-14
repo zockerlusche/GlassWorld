@@ -198,7 +198,9 @@ def test_guard_rejects_an_invented_animal(settings: Settings) -> None:
 
 
 def test_unperceived_material_or_step_material_is_invalid(settings: Settings) -> None:
-    shape = invention_schema(_vocab(settings), ["clay_lump"], ["gathering", "shaping", "building"], 1.0)
+    shape = invention_schema(
+        _vocab(settings), ["clay_lump"], ["gathering", "shaping", "building"], 1.0
+    )
     schema = inventor_schema(shape)
     with pytest.raises(InvalidOutputError):
         parse_inventor(proposal({**BOWL, "materials": ["iron_bar"]}), schema)
