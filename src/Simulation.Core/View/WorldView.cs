@@ -60,6 +60,9 @@ public sealed record InhabitantSnapshot(
     /// (W1698); null only if it has none. Read-only copy for the presentation, not part of the state hash.
     /// </summary>
     public string? Name { get; init; }
+
+    /// <summary>The thing it holds in its hand (AK1a), or null - for the look (hand point, carrying while walking).</summary>
+    public string? Held { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -134,6 +137,7 @@ public static class WorldView
                 Facing = inhabitants.FacingOf(i),
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
                 Name = i.Name,
+                Held = i.Held,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

@@ -33,6 +33,9 @@ public sealed class WorldObjects : IWorldSystem
     // ordinal order. Whoever asks about a kind of thing (the nearest thing of a type nobody knows) walks
     // the objects of that type instead of every object of the world.
     private readonly List<ObjectsOfType> _byType = [];
+
+    // Index, not state (it follows from the inhabitants' Held, AK1a): which inhabitant holds a thing.
+    private readonly Dictionary<string, string> _heldBy = new(StringComparer.Ordinal);
     private readonly List<List<WorldObject>> _lists = [];
 
     /// <summary>Creates the registry for a type truth (the world's catalog, or a content catalog in tests).</summary>
@@ -66,6 +69,12 @@ public sealed class WorldObjects : IWorldSystem
         var limit = radius * radius;
         foreach (var obj in _ordered)
         {
+            // A held thing is in a hand, not on the ground (AK1a, D1046 v2): fire, shade, rain and perception skip it.
+            if (_heldBy.ContainsKey(obj.Id))
+            {
+                continue;
+            }
+
             var dx = centre.X - obj.Position.X;
             var dz = centre.Z - obj.Position.Z;
             if ((dx * dx) + (dz * dz) <= limit)
@@ -106,6 +115,46 @@ public sealed class WorldObjects : IWorldSystem
     /// <summary>Looks up an object.</summary>
     public bool TryGet(string id, out WorldObject obj) => _objects.TryGetValue(id, out obj!);
 
+    /// <summary>Who holds a thing (AK1a), or null when it lies in the world.</summary>
+    public string? HeldBy(string id) => _heldBy.TryGetValue(id, out var who) ? who : null;
+
+    /// <summary>Marks a thing as held by an inhabitant, or as lying again (null). Not state: it follows the inhabitants.</summary>
+    public void SetHeld(string id, string? inhabitantId)
+    {
+        if (inhabitantId is null)
+        {
+            _heldBy.Remove(id);
+        }
+        else
+        {
+            _heldBy[id] = inhabitantId;
+        }
+    }
+
+    /// <summary>
+    /// Moves an object to another place, keeping its id, type and everything that knows it (a carried thing follows
+    /// its carrier, AK1a). No removal and no spawn is reported. False when it is not there.
+    /// </summary>
+    public bool Move(string id, Position to)
+    {
+        if (!_objects.TryGetValue(id, out var obj))
+        {
+            return false;
+        }
+
+        if (obj.Position == to)
+        {
+            return true;
+        }
+
+        var moved = obj with { Position = to };
+        _objects[id] = moved;
+        var ofType = OfType(obj.TypeId);
+        ofType[Place(ofType, id)] = moved;
+        _ordered[Place(_ordered, id)] = moved;
+        return true;
+    }
+
     /// <summary>Removes an object (used up, eaten …). Its id is never given out again.</summary>
     public bool Remove(string id)
     {
@@ -117,6 +166,7 @@ public sealed class WorldObjects : IWorldSystem
         Removed?.Invoke(obj);
 
         _objects.Remove(id);
+        _heldBy.Remove(id);
 
         var ofType = OfType(obj.TypeId);
         ofType.RemoveAt(Place(ofType, id));

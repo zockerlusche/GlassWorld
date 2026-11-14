@@ -80,7 +80,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         _occurrences.Clear();
         _occurrences.AddRange(occurrences);
         _growing.Clear();
-        _growing.UnionWith(_occurrences.Select(o => o.ObjectId));
+        // A place that is empty (eaten or picked, AK1a) has no thing growing there: a picked fruit ages after a load too.
+        _growing.UnionWith(_occurrences.Where(o => o.GoneSinceTick is null).Select(o => o.ObjectId));
     }
 
     /// <summary>Hash of the generated data, computed once (the grid never changes).</summary>
@@ -266,9 +267,11 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             var place = _occurrences[i];
             if (place.GoneSinceTick is null)
             {
-                if (!_objects.TryGet(place.ObjectId, out _))
+                // Eaten, or picked (held, AK1a): the place is empty and grows again; a picked fruit ages like any thing.
+                if (!_objects.TryGet(place.ObjectId, out _) || _objects.HeldBy(place.ObjectId) is not null)
                 {
                     _occurrences[i] = place with { GoneSinceTick = world.Tick };
+                    _growing.Remove(place.ObjectId);
                 }
 
                 continue;
