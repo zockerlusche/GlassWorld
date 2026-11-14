@@ -80,7 +80,7 @@
         "fade_minutes": { "type": "integer", "minimum": 0, "maximum": 600, "description": "The last game minutes of its fuel, in which it fades down to the embers' strength." },
         "embers_minutes": { "type": "integer", "minimum": 0, "maximum": 1440, "description": "How long the embers glow after the fuel is used up; then the fire has burnt down." },
         "embers_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Strength of the embers (heat and spreading scale with it; no flame)." },
-        "embers_heat_level": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The heat level the embers give for processing (B2700), e.g. embers." }
+        "embers_heat_level": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The heat level the embers give for processing (B2700), e.g. glowing." }
       }
     },
     "FireFelt": {
