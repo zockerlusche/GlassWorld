@@ -353,6 +353,12 @@ class LookObjects(BaseModel):
         ge=1,
         le=32,
     )
+    invention_min_shown_m: float | None = Field(
+        None,
+        description='A1715 (D1112 #6): a built invention whose largest extent is below this is drawn uniformly larger up to it, so a cup of 8 cm can be seen at all. Look only - the core keeps its true size. Omitted = true size. Placeholder value (TL).',
+        gt=0.0,
+        le=5.0,
+    )
     min_footprint_m: float = Field(
         ...,
         description='Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.',

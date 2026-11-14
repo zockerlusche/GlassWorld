@@ -6,6 +6,7 @@
   "ground_tolerance_m": 0.06,
   "max_lights": 8,
   "turn_tries": 8,
+  "invention_min_shown_m": 0.4,
   "min_footprint_m": 0.05,
   "fallback": {
     "shape": "marker",
