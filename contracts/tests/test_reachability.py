@@ -124,7 +124,7 @@ def test_without_the_spark_maker_fire_is_out_of_reach(tmp_path: Path) -> None:
     gaps = _gaps(content)
     assert {"type:pyrite", "type:spark", "type:fire"} <= gaps
     assert "combination:fire_from_spark_and_dry_grass" in gaps
-    # Warmth no longer hangs on fire alone: insulating found things (wool, feather; K4) keep warm without it.
+    # Warmth no longer hangs on fire alone: insulating found things (wool, feather; K4) keep warm.
     assert "goal:warmth" not in gaps
 
 
