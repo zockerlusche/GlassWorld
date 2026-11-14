@@ -11,7 +11,8 @@
     "takt_minutes": { "description": "Game minutes of one nature takt; season and weather are read at its start and hold for the whole takt.", "type": "integer", "minimum": 1, "maximum": 1440 },
     "groups": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/NatureGroup" } },
     "types": { "description": "Which object types belong to which growth group; a regrowing type without a group grows by the clock.", "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/NatureType" } },
-    "influences": { "description": "The influence sums for durability (R51); omitted = none kept.", "$ref": "#/$defs/NatureInfluences" }
+    "influences": { "description": "The influence sums for durability (R51); omitted = none kept.", "$ref": "#/$defs/NatureInfluences" },
+    "snow": { "description": "The island's snow cover (TL #25357): each takt that opens with precipitation below 0 °C adds to it, each takt above 0 °C melts it by the degree; omitted = no snow cover kept. Needs influences (the weather reading).", "$ref": "#/$defs/NatureSnowCover" }
   },
   "$defs": {
     "NatureGroup": {
@@ -40,6 +41,16 @@
       "properties": {
         "type": { "$ref": "common.schema.json#/$defs/VocabId" },
         "group": { "$ref": "common.schema.json#/$defs/VocabId" }
+      }
+    },
+    "NatureSnowCover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["per_takt_mm", "melt_per_degree_mm", "max_mm"],
+      "properties": {
+        "per_takt_mm": { "description": "Snow added by a takt with precipitation in frost, in millimetres.", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "melt_per_degree_mm": { "description": "Snow melted by a takt per whole degree above 0 °C, in millimetres.", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "max_mm": { "description": "The deepest the cover gets (calm world).", "type": "integer", "minimum": 0, "maximum": 5000 }
       }
     },
     "NatureInfluences": {
