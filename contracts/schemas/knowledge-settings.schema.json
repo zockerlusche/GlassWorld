@@ -117,6 +117,9 @@
     "review": {
       "description": "The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.",
       "$ref": "#/$defs/KnowledgeReview"
+    },
+    "forgetting": {
+      "$ref": "#/$defs/KnowledgeForgetting"
     }
   },
   "$defs": {
@@ -830,6 +833,32 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        }
+      }
+    },
+    "KnowledgeForgetting": {
+      "description": "D1017 G1 (B2707): knowledge fades when it is not used. Once a game day every belief's strength is 1 - decay_per_day[its source] x days since it was last used (learned, acted on); the inhabitant is then as sure as before times the strength (a fading belief reaches the AI as a weaker one), below forgotten_below the belief leaves its mind and is kept as forgotten (nothing is deleted). A source not listed never fades. Absent = nothing fades.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decay_per_day",
+        "forgotten_below"
+      ],
+      "properties": {
+        "decay_per_day": {
+          "description": "Strength lost per game day without use, by knowledge source (vocabulary knowledge_source).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "forgotten_below": {
+          "description": "Below this strength a belief is forgotten.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

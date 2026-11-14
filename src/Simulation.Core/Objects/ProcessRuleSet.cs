@@ -18,8 +18,15 @@ public sealed record ProcessMatch(ProcessRule Rule, IReadOnlyList<int> Inputs, i
 /// </summary>
 public sealed class ProcessRuleSet
 {
-    /// <summary>At most this many candidate processes go to the judge (contract: 1..8).</summary>
-    public const int MaxCandidates = 8;
+    /// <summary>The most candidate processes the contract allows (D1025, GW2 #25006).</summary>
+    public const int ContractMaxCandidates = 16;
+
+    /// <summary>
+    /// At most this many candidate processes go to the judge: <c>physics.max_candidates</c> of the data, else 8.
+    /// Large enough for every process physics allows, so the ranking by our data rules only orders them and never
+    /// decides which ones the judge sees (D1025).
+    /// </summary>
+    public int MaxCandidates => Math.Clamp(_physics?.MaxCandidates ?? 8, 1, ContractMaxCandidates);
 
     private readonly IReadOnlyList<ProcessRule> _rules;
     private IReadOnlyList<string> _processes = [];

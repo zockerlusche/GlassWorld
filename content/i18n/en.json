@@ -1403,6 +1403,10 @@
       "text": "Red mushroom"
     },
     {
+      "key": "vocab.object.ash",
+      "text": "Ash"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Fieldstone"
     },
@@ -2069,6 +2073,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
+    },
+    {
+      "key": "vocab.event.caught_fire",
+      "text": "Something caught fire"
     },
     {
       "key": "vocab.soil.loam",
@@ -2977,6 +2985,10 @@
     {
       "key": "ui.card.musing.male",
       "text": "What occupies them"
+    },
+    {
+      "key": "vocab.guard_reason.beyond_knowledge",
+      "text": "Builds on something the inhabitant does not know"
     },
     {
       "key": "msg.learnlog.title",

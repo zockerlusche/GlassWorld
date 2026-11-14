@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -280,6 +280,22 @@ class KnowledgeReview(BaseModel):
         description='Actions an intention may name (vocabulary); the core offers an intention later only with these.',
         max_length=32,
         min_length=1,
+    )
+
+
+type DecayPerDay = Annotated[float, Field(..., ge=0.0, le=1.0)]
+
+
+class KnowledgeForgetting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    decay_per_day: dict[str, DecayPerDay] = Field(
+        ...,
+        description='Strength lost per game day without use, by knowledge source (vocabulary knowledge_source).',
+    )
+    forgotten_below: float = Field(
+        ..., description='Below this strength a belief is forgotten.', ge=0.0, le=1.0
     )
 
 
@@ -576,3 +592,4 @@ class KnowledgeSettings(BaseModel):
         None,
         description='The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.',
     )
+    forgetting: KnowledgeForgetting | None = None

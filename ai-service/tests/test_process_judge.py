@@ -479,12 +479,77 @@ def test_v3_prompt_snapshot_with_the_examples_from_the_data(settings: Settings) 
     assert text == snapshot.read_text(encoding="utf-8")
 
 
-def test_the_service_builds_the_v3_context_from_the_config(settings: Settings) -> None:
+def test_the_service_builds_the_v4_context_from_the_config(settings: Settings) -> None:
     from glassworld_ai.app import _judge_context  # pyright: ignore[reportPrivateUsage]
 
     ctx = _judge_context(settings)
-    assert settings.process_prompt_version == 3
-    assert ctx.combine and ctx.guard == CTX3.guard
+    assert settings.process_prompt_version == 4
+    assert ctx.combine and ctx.neutral_order and ctx.guard == CTX3.guard
+
+
+CTX4 = JudgeContext(
+    REPO / "content",
+    Vocabulary.load(REPO / "content/vocabulary"),
+    combine=True,
+    physics_from_data=True,
+    neutral_order=True,
+)
+
+
+def _with_candidates(candidates: list[str]) -> GenerationJob:
+    data = json.loads(json.dumps(COMBINE_DATA))
+    data["payload"]["process"]["candidates"] = candidates
+    return GenerationJob.model_validate(data)
+
+
+def _listed(text: str) -> list[str]:
+    return [line[2:].split(":")[0] for line in text.splitlines() if line.startswith("- ")]
+
+
+def test_v4_lists_the_candidates_in_an_order_from_the_try_not_from_the_core() -> None:
+    """D1025: the core ranks the candidates by how close our data rules come; v4 shows them in an
+    order that follows from the try alone, the same however the core sent them (and in a replay)."""
+    from glassworld_ai.process.judge import output_schema
+
+    candidates = ["strike", "split", "cut", "grind", "soak", "bind"]
+    template = load_prompt(REPO / "prompts", "process/judge", 4)
+    assert template.settings.get("neutral_order") is True
+    shown = template.render(build_values(_with_candidates(candidates), CTX4)).user
+    backwards = template.render(build_values(_with_candidates(candidates[::-1]), CTX4)).user
+    assert shown == backwards
+    order = _listed(shown)
+    assert sorted(order) == sorted(candidates) and order != candidates
+    enum = output_schema(_with_candidates(candidates), CTX4)["properties"]["process"]["enum"]
+    assert enum == order  # the answer schema lists them the same way
+    # v3 as it was: the core's order.
+    v3 = load_prompt(REPO / "prompts", "process/judge", 3)
+    assert _listed(v3.render(build_values(_with_candidates(candidates), CTX3)).user) == candidates
+
+
+def test_v4_the_order_changes_from_try_to_try() -> None:
+    """Not one fixed order (alphabetical would always put bind first): each try its own order."""
+    candidates = ["strike", "split", "cut", "grind", "soak", "bind"]
+    firsts: set[str] = set()
+    for n in range(12):
+        data = json.loads(json.dumps(COMBINE_DATA))
+        data["payload"]["process"]["candidates"] = candidates
+        data["payload"]["process"]["signature"]["inputs"][0] = [*WOOD, "extra_" + chr(97 + n)]
+        values = build_values(GenerationJob.model_validate(data), CTX4)
+        firsts.add(_listed(values["process"])[0])
+    assert len(firsts) >= 3
+
+
+def test_v4_prompt_snapshot_with_neutral_examples(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "process/judge", 4)
+    rendered = template.render(build_values(COMBINE, CTX4))
+    for example in CTX4.examples["works"] + CTX4.examples["does_not"]:
+        assert f"  - {example}" in rendered.system
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    snapshot = SNAPSHOTS / "process-judge.v4.combine-flint-driftwood.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
+    assert text == snapshot.read_text(encoding="utf-8")
 
 
 def test_physics_from_data_without_data_fails_at_start(tmp_path: Path) -> None:

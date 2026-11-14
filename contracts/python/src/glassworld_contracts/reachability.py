@@ -100,6 +100,16 @@ def analyse(content: Path, start: Sources) -> Reach:
         for path in sorted((content / "rules").glob("*.json"))
         for rule in json.loads(path.read_text(encoding="utf-8"))["rules"]
     ]
+    # B5-10: a fire that burns down leaves its remains (content/fire/settings.json).
+    fire_path = content / "fire/settings.json"
+    remains = (
+        cast(
+            list[dict[str, str]],
+            json.loads(fire_path.read_text(encoding="utf-8")).get("remains", []),
+        )
+        if fire_path.exists()
+        else []
+    )
     process_data = _load(content, "processes/rules.json")
     processes = cast(list[dict[str, Any]], process_data["rules"])
     heat_order = [str(h) for h in process_data["heat_levels"]]
@@ -147,6 +157,12 @@ def analyse(content: Path, start: Sources) -> Reach:
                         raise RuntimeError("The processing rules produce too many things.")
                     things.add(made)
                     changed = True
+
+        for left in remains:
+            if left["burnt"] in types and left["left"] in catalog and left["left"] not in types:
+                types.add(left["left"])
+                things.add(catalog[left["left"]])
+                changed = True
 
     properties: set[str] = {p for thing in things for p in thing}
     # Properties an invention carries by the data count as reachable

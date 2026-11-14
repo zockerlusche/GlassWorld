@@ -32,7 +32,6 @@
 
     { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:embers)." },
     { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:embers)." },
-    { "gap": "property:alkaline", "reason": "Only made by burn_to_ash, which needs heat (see heat:open_fire)." },
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
     { "gap": "property:fatty", "reason": "No object type carries it and only churn_milk_to_butter makes it (D643)." },
     { "gap": "property:milky", "reason": "Only made by grind_nuts_with_water_to_milk (see there)." },
