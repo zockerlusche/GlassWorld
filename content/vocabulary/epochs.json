@@ -3,24 +3,24 @@
   "kind": "epoch",
   "entries": [
     {
-      "id": "wilderness",
-      "description": "Untouched nature, nothing made by hand yet."
+      "id": "gathering",
+      "description": "Nothing made yet; only what nature offers."
     },
     {
-      "id": "tools",
-      "description": "First tools, trodden paths."
+      "id": "shaping",
+      "description": "Shaping what lies around by hand: cutting, knapping, braiding, binding."
     },
     {
-      "id": "hut",
-      "description": "Simple huts and fireplaces."
+      "id": "building",
+      "description": "Putting things together into larger things that stand."
     },
     {
-      "id": "workshop",
-      "description": "Workplaces where things are made."
+      "id": "processing",
+      "description": "Changing materials over time and with lasting heat."
     },
     {
-      "id": "metal",
-      "description": "Metal is worked."
+      "id": "smelting",
+      "description": "Melting what only the strongest heat melts, and working it."
     }
   ]
 }

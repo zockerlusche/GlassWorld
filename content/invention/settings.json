@@ -9,7 +9,7 @@
     "idea_ripe_at": 0.7
   },
   "retry_after_minutes": 60,
-  "tech_level": "tool",
+  "tech_level": "shaping",
   "limits": {
     "max_size_m": 3,
     "max_parts": 12,

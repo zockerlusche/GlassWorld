@@ -56,7 +56,7 @@ public sealed class ProcessTests
         // + sharp, + crafted (B2700: what was processed is made).
         Assert.Equal(host.Types.TrueProperties("pyrite").Count + 2, host.Types.TrueProperties(changed.TypeId).Count);
         Assert.Contains("crafted", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
-        Assert.Equal("strike_hard_stone_to_edge", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.Equal("strike_hard_stone", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
         Assert.True(host.Inhabitants.Get(Actor).Beliefs.TryGet(changed.TypeId, "sharp", out var sharp) && sharp.Value);
 
         // The same change of the same type is one variant: a second stone becomes the same type.
@@ -79,7 +79,7 @@ public sealed class ProcessTests
         Assert.Equal("reed", host.Processes!.RootOf(cord.TypeId));
         Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
         Assert.False(host.Objects.TryGet(other.Id, out _));
-        Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.Equal("braid_two_fibres", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class ProcessTests
         // The fire burns and gives its heat level; at that level roast_food fits the nut with the fire as the heat.
         var table = Content.Value.Processes!;
         var level = host.Fire.HeatLevelOf(fire, table.HeatLevels);
-        Assert.Equal(table.HeatIndex("open_fire"), level);
+        Assert.Equal(table.HeatIndex("flame"), level);
         var truth0 = new[] { nut, fire }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
         Assert.Equal("roast_food", table.Match(truth0, null, level, 1)?.Rule.Id);
 
@@ -337,7 +337,7 @@ public sealed class ProcessTests
         rule["inputs"] = new JsonArray(Condition(changing), Condition(other));
         rule["tool"] = null;
         rule["heat_min"] = null;
-        rule["tech_level"] = "tool";
+        rule["tech_level"] = "shaping";
         rule["result"] = new JsonObject
         {
             ["add_properties"] = new JsonArray(add),

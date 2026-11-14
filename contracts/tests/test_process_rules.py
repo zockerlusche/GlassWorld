@@ -11,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 CONTENT = Path(__file__).resolve().parents[2] / "content"
 _DATA: dict[str, Any] = json.loads((CONTENT / "processes/rules.json").read_text("utf-8"))
 
@@ -61,36 +63,41 @@ def test_rule_ids_are_unique() -> None:
     assert len(ids) == len(set(ids))
 
 
-def test_blade_and_axe() -> None:
+def test_a_split_stone_gets_an_edge_and_no_tool_is_a_recipe() -> None:
+    """Splitting is material physics (sharp). Binding an edge to a stick is no data rule any more
+    (D1096 #2, B2741): a hafted tool exists only as the inhabitants' invention."""
     blade = apply("split", [CATALOG["slate"]], tool=CATALOG["fieldstone"])
     assert "sharp" in blade
-    axe = apply("bind", [blade, CATALOG["dry_wood"], CATALOG["flax"]])
-    assert {"sharp", "hard", "portable"} <= axe
+    with pytest.raises(AssertionError, match="no bind rule"):
+        apply("bind", [blade, CATALOG["dry_wood"], CATALOG["flax"]])
 
 
-def test_clay_vessel() -> None:
-    shaped = apply("shape", [CATALOG["clay"]])
-    vessel = apply("fire", [shaped], heat="kiln")
-    assert {"container", "hard"} <= vessel and "malleable" not in vessel
-    assert "hard" not in apply("fire", [shaped], heat="kiln") - vessel  # same result twice
+def test_clay_hardens_in_strong_heat_and_shaping_makes_no_vessel() -> None:
+    """Material physics only (D1096 #3): malleable clay that hardens in fire becomes hard in strong
+    heat. Shaping it makes no container - a vessel is the inhabitants' invention (B2741)."""
+    clay = CATALOG["clay"]
+    with pytest.raises(AssertionError, match="no shape rule"):
+        apply("shape", [clay])
+    fired = apply("fire", [clay], heat="strong_heat")
+    assert "hard" in fired and "malleable" not in fired and "container" not in fired
 
 
 def test_charcoal_ash_and_glass() -> None:
-    charcoal = apply("char", [CATALOG["dry_wood"]], heat="embers")
+    charcoal = apply("char", [CATALOG["dry_wood"]], heat="glowing")
     assert "smoulders" in charcoal
-    ash = apply("fire", [CATALOG["dry_grass"]], heat="open_fire")
+    ash = apply("fire", [CATALOG["dry_grass"]], heat="flame")
     assert {"fine_grained", "alkaline"} <= ash and "burnable" not in ash
     sand = {"fine_grained", "hard", "portable"}  # beach sand (catalog later, B2)
-    glass = apply("melt", [sand, ash], heat="furnace")
+    glass = apply("melt", [sand, ash], heat="melting_heat")
     assert "transparent" in glass
 
 
 def test_food_chains() -> None:
     flour = apply("grind", [CATALOG["wild_grain"]], tool=CATALOG["fieldstone"])
     dough = apply("mix", [flour, CATALOG["spring_water"]])
-    bread = apply("heat", [dough], heat="embers")
+    bread = apply("heat", [dough], heat="glowing")
     assert {"edible", "cooked"} <= bread and "malleable" not in bread
-    assert "cooked" in apply("heat", [CATALOG["hazelnut"]], heat="embers")  # roasting
+    assert "cooked" in apply("heat", [CATALOG["hazelnut"]], heat="glowing")  # roasting
     assert "long_lasting" in apply("dry", [CATALOG["apple"]])  # dried fruit
     nuts = CATALOG["hazelnut"] | {"fatty"}  # oily nuts (catalog entry by GW1, B2542)
     nut_flour = apply("grind", [nuts], tool=CATALOG["fieldstone"])
@@ -113,5 +120,5 @@ def test_dough_is_not_a_clay_pot() -> None:
 def test_the_most_specific_rule_wins() -> None:
     """Review GW1 #100: heating dry food in its own shell fits 'heat_water_container' (1 required
     property) and 'roast_food' (2): roasting is more specific and wins, in the test as in P3."""
-    result = apply("heat", [{"edible", "long_lasting", "container"}], heat="open_fire")
+    result = apply("heat", [{"edible", "long_lasting", "container"}], heat="flame")
     assert "cooked" in result and "hot" not in result

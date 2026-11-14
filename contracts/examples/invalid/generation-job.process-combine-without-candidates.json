@@ -27,7 +27,7 @@
       ],
       "tool": null,
       "heat_level": null,
-      "tech_level": "hut",
+      "tech_level": "building",
       "inhabitant": {
         "id": "inh-0001",
         "needs": [
