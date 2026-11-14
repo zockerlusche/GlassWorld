@@ -52,6 +52,63 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortNeedModifier
+    {
+
+        /// <summary>
+        /// Comfort level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        /// <summary>
+        /// The need whose decay changes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on its decay per hour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("factor")]
+        public double Factor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortPaceFactor
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the walking pace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("factor")]
+        public double Factor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortLossPoint
+    {
+
+        /// <summary>
+        /// Whole degrees outside the zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("degrees")]
+        public int Degrees { get; set; } = default!;
+
+        /// <summary>
+        /// Loss of the need per hour there.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
+        public double PerHour { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ComfortFelt
     {
 
@@ -188,6 +245,34 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("precipitation_cold_factor")]
         public double? PrecipitationColdFactor { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R5/R6: at a comfort level other needs fall faster or slower (cold: hunger and sleep faster; hot: thirst faster) - factors on their decay. Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("need_modifiers")]
+        public System.Collections.Generic.ICollection<ComfortNeedModifier>? NeedModifiers { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R6: the walking pace at a comfort level (cold: slower). Omitted = unchanged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("pace_factors")]
+        public System.Collections.Generic.ICollection<ComfortPaceFactor>? PaceFactors { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R5: the warmth need's loss per hour by whole degrees below the zone, as points (linear between, the last holds beyond); replaces cold_loss_per_hour_per_degree when given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cold_loss_table")]
+        public System.Collections.Generic.ICollection<ComfortLossPoint>? ColdLossTable { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R5: as cold_loss_table, by degrees above the zone; replaces heat_loss_per_hour_per_degree when given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_loss_table")]
+        public System.Collections.Generic.ICollection<ComfortLossPoint>? HeatLossTable { get; set; } = default!;
 
         /// <summary>
         /// B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.
