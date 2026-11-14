@@ -67,7 +67,8 @@ from glassworld_contracts import GenerationJob
 ROLE = "review"
 _ID_LIKE = re.compile(r"[a-z0-9]+(?:[_-][a-z0-9]+)+")
 # A1721: what a plain text never holds - a tick ('Tick 8453', 'ticks 1, 2'), a key of the prompt
-# ('t2', 'k1', 'i3') or a long number (a tick written without the word).
+# ('t2', 'k1', 'i3') or a long number (a tick written without the word). Any number of 3+ digits
+# counts, also an innocent '100' - an island day needs none (review GW1 #445).
 _NOT_PLAIN = re.compile(r"\bticks?\b\s*\d|\b[tki]\d{1,3}\b|\d{3,}", re.IGNORECASE)
 
 
