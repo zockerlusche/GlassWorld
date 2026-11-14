@@ -1437,7 +1437,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>AK1a: taking into the hand only with a free hand, putting down only the held thing.</summary>
     private static bool Fits(Inhabitant asker, Behaviour.ActionTimingInfo timing, string targetId) =>
-        (!timing.Holds || (asker.Held is null && targetId != asker.Held)) && (!timing.Releases || asker.Held == targetId);
+        (!timing.Holds || asker.Held is null) && (!timing.Releases || asker.Held == targetId);
 
     /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> or <see cref="Shuffled"/> undone (D1025).</summary>
     private static (string OptionId, string Action, string? TargetId)[] InDataOrder(OpenQuestion question, ulong worldSeed)
