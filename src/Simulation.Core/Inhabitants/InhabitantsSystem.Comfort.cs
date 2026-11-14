@@ -62,7 +62,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(world, inhabitant, air);
+        var felt = FeltOnce(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         return below > 0 ? levels[below <= band ? 1 : 0]
@@ -72,6 +72,25 @@ public sealed partial class InhabitantsSystem
 
     // B5 R5/R6: the comfort level of the inhabitant being updated in this tick (derived, set before its needs fall).
     private (string Id, string? Level) _levelNow;
+
+    // Review GW3 #435: the felt temperature of the last inhabitant asked, for its tick and place (derived, not state) -
+    // the comfort level, the warmth need and the request ask for it in one tick; the body's sun, wind and shade
+    // scans then run once.
+    private (string Id, long Tick, Position At, int Air, int Felt)? _feltOnce;
+
+    /// <summary>The felt temperature (<see cref="Felt"/>), computed once per inhabitant, tick and place.</summary>
+    private int FeltOnce(World world, Inhabitant inhabitant, Air air)
+    {
+        if (_feltOnce is { } known && known.Tick == world.Tick && known.At == inhabitant.Position && known.Air == air.TemperatureTenthC
+            && string.Equals(known.Id, inhabitant.Id, StringComparison.Ordinal))
+        {
+            return known.Felt;
+        }
+
+        var felt = Felt(world, inhabitant, air);
+        _feltOnce = (inhabitant.Id, world.Tick, inhabitant.Position, air.TemperatureTenthC, felt);
+        return felt;
+    }
 
     /// <summary>B5 R5/R6: the factor on a need's decay at the inhabitant's comfort level now (data need_modifiers).</summary>
     private double NeedFactor(Inhabitant inhabitant, string need)
@@ -189,7 +208,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(world, inhabitant, air);
+        var felt = FeltOnce(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         if (below <= 0 && above <= 0)

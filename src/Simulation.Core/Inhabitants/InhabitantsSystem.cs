@@ -1967,6 +1967,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>Metres the inhabitant walks this tick on flat ground, by its gait (data, F5264).</summary>
+    // B5 R6: the comfort pace applies to the inhabitant being updated in this tick (Act runs in that loop); asked for
+    // anyone else (planning a route budget outside the loop) the pace factor is 1 (review GW3 #435).
     private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait) * PaceFactor(inhabitant);
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
