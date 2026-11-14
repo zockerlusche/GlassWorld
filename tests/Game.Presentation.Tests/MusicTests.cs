@@ -21,7 +21,7 @@ public sealed class MusicTests
         var moods = new List<string>();
         for (long t = 0; t < Calendar.TicksPerDay; t += Calendar.Settings.TicksPerHour / 4)
         {
-            var mood = director.MoodAt(Calendar.At(t), "wilderness");
+            var mood = director.MoodAt(Calendar.At(t), "gathering");
             if (moods.Count == 0 || moods[^1] != mood)
             {
                 moods.Add(mood);
@@ -29,10 +29,10 @@ public sealed class MusicTests
         }
 
         Assert.True(moods.Distinct().Count() >= 3, string.Join(" > ", moods));
-        Assert.Equal("night", director.MoodFor("night", "spring", "wilderness"));
-        Assert.Equal("day", director.MoodFor("day", "summer", "wilderness"));
-        Assert.Equal("dawn", director.MoodFor("dawn", "summer", "wilderness"));
-        Assert.Equal("night", director.MoodFor("day", "winter", "wilderness"));
+        Assert.Equal("night", director.MoodFor("night", "spring", "gathering"));
+        Assert.Equal("day", director.MoodFor("day", "summer", "gathering"));
+        Assert.Equal("dawn", director.MoodFor("dawn", "summer", "gathering"));
+        Assert.Equal("night", director.MoodFor("day", "winter", "gathering"));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class MusicTests
         for (long t = 0; t < Calendar.TicksPerDay; t++)
         {
             var now = t * secondsPerTick;
-            if (director.Update(now, director.MoodAt(Calendar.At(t), "wilderness")) is { Start: not null, FadeOutS: > 0 })
+            if (director.Update(now, director.MoodAt(Calendar.At(t), "gathering")) is { Start: not null, FadeOutS: > 0 })
             {
                 starts.Add(now);
             }

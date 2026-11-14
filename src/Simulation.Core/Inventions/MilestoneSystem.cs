@@ -36,6 +36,7 @@ public sealed class MilestoneSystem : IWorldSystem, IOptionalWorldState
     private readonly InhabitantsSystem _inhabitants;
     private readonly SortedDictionary<string, ReachedMilestone> _reached = new(StringComparer.Ordinal);
     private readonly List<ReachedMilestone> _pending = [];
+    private readonly Func<string, string?>? _processOf;
 
     /// <summary>Creates the system; it listens to the inhabitants' events.</summary>
     /// <param name="catalog">The milestones of the data (checked at load), or null for none.</param>
@@ -44,7 +45,8 @@ public sealed class MilestoneSystem : IWorldSystem, IOptionalWorldState
     /// <param name="truth">The world's type truth (runtime types included).</param>
     /// <param name="objects">The world's things.</param>
     /// <param name="inhabitants">Where the events come from and go to.</param>
-    public MilestoneSystem(MilestoneCatalog? catalog, IReadOnlyList<string> techLevels, string startTechLevel, ITypeTruth truth, WorldObjects objects, InhabitantsSystem inhabitants)
+    /// <param name="processOf">The process verb of a rule (process rules), or null for none.</param>
+    public MilestoneSystem(MilestoneCatalog? catalog, IReadOnlyList<string> techLevels, string startTechLevel, ITypeTruth truth, WorldObjects objects, InhabitantsSystem inhabitants, Func<string, string?>? processOf = null)
     {
         ArgumentNullException.ThrowIfNull(techLevels);
         _milestones = [.. catalog?.Milestones ?? []];
@@ -53,6 +55,7 @@ public sealed class MilestoneSystem : IWorldSystem, IOptionalWorldState
         _truth = truth ?? throw new ArgumentNullException(nameof(truth));
         _objects = objects ?? throw new ArgumentNullException(nameof(objects));
         _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
+        _processOf = processOf;
         TechLevelIndex = _start;
         _inhabitants.Reported += Observe;
     }
@@ -136,10 +139,11 @@ public sealed class MilestoneSystem : IWorldSystem, IOptionalWorldState
         }
 
         var type = e.TargetType ?? (e.TargetId is { } id && _objects.TryGet(id, out var thing) ? thing.TypeId : null);
-        var rule = e.Kind == InhabitantsSystem.Combined ? e.Detail : null;
+        // D1096 #4: a milestone knows a process verb, never a rule - the rule that applied tells its verb.
+        var process = e.Kind == InhabitantsSystem.Combined && e.Detail is { } rule ? _processOf?.Invoke(rule) : null;
         foreach (var milestone in _milestones)
         {
-            if (_reached.ContainsKey(milestone.Id) || !Fits(milestone, type, rule))
+            if (_reached.ContainsKey(milestone.Id) || !Fits(milestone, type, process))
             {
                 continue;
             }
@@ -150,11 +154,11 @@ public sealed class MilestoneSystem : IWorldSystem, IOptionalWorldState
         }
     }
 
-    private bool Fits(Milestone milestone, string? type, string? rule)
+    private bool Fits(Milestone milestone, string? type, string? process)
     {
-        if (milestone.Rule is { } wanted)
+        if (milestone.Process is { } wanted)
         {
-            return rule is not null && string.Equals(wanted, rule, StringComparison.Ordinal);
+            return process is not null && string.Equals(wanted, process, StringComparison.Ordinal);
         }
 
         return type is not null && milestone.MadeWith is { Count: > 0 } properties && properties.All(p => _truth.HasProperty(type, p));

@@ -28,7 +28,7 @@ public sealed class ShotPlanTests
     public void ListsMultiplyThePlanWithDeterministicNamesAndNoteWhatHasNoLook()
     {
         var shots = Shots();
-        shots.Epochs = ["wilderness", "metal"];
+        shots.Epochs = ["gathering", "smelting"];
         shots.Seasons = ["winter"];
         shots.Weather = ["clear", "rain"];
         var plan = ShotPlan.Build(shots, Seasons(), new HashSet<string>(["clear"], StringComparer.Ordinal));
@@ -36,8 +36,8 @@ public sealed class ShotPlanTests
         Assert.Equal(2 * 1 * 2 * 2 * 2 * 2, plan.Count);
         var names = plan.Select(s => s.FileName(800, 600)).ToList();
         Assert.Equal(names.Count, names.Distinct().Count());
-        Assert.Contains("island_close_orthographic_dusk_metal_winter_rain-nolook_800x600.png", names);
-        Assert.Contains("island_start_perspective_day_wilderness_winter_clear_800x600.png", names);
+        Assert.Contains("island_close_orthographic_dusk_smelting_winter_rain-nolook_800x600.png", names);
+        Assert.Contains("island_start_perspective_day_gathering_winter_clear_800x600.png", names);
 
         // One epoch and season after the other, so the island is recoloured only when they change.
         var changes = plan.Zip(plan.Skip(1)).Count(p => (p.First.Epoch, p.First.Season) != (p.Second.Epoch, p.Second.Season));
@@ -61,9 +61,9 @@ public sealed class ShotPlanTests
         var plain = ShotPlan.PaletteFor(palette, epochs, null, null);
         Assert.Equal(palette.Colors.Select(c => (c.Id, c.Color)), plain.Colors.Select(c => (c.Id, c.Color)));
 
-        var metal = epochs.Epochs.Single(e => e.Id == "metal").Colors.Single(c => c.Id == "rock").Color;
+        var metal = epochs.Epochs.Single(e => e.Id == "smelting").Colors.Single(c => c.Id == "rock").Color;
         var autumn = palette.Seasons.Single(s => s.Season == "autumn").Colors.Single(c => c.Id == "foliage").Color;
-        var both = ShotPlan.PaletteFor(palette, epochs, "metal", "autumn");
+        var both = ShotPlan.PaletteFor(palette, epochs, "smelting", "autumn");
         Assert.Equal((metal, autumn), (Color(both, "rock"), Color(both, "foliage")));
         Assert.Equal(palette.Colors.Count, both.Colors.Count);
 
@@ -92,7 +92,7 @@ public sealed class ShotPlanTests
             .Concat([terrain.CliffColor, terrain.BedColor, terrain.Water.SeaShallow, terrain.Water.SeaDeep, terrain.Water.Fresh, terrain.Water.Swamp])
             .ToHashSet(StringComparer.Ordinal);
         var plain = LookOf(null);
-        Assert.Equal(Colors(plain), Colors(LookOf("wilderness")));
+        Assert.Equal(Colors(plain), Colors(LookOf("gathering")));
         foreach (var epoch in epochs.Epochs.Where(e => e.Colors.Any(c => used.Contains(c.Id))))
         {
             var look = LookOf(epoch.Id);

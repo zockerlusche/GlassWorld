@@ -68,7 +68,7 @@ GOOD: dict[str, Any] = {
         "remove_properties": [],
         "consumes": [],
         "heat_min": None,
-        "tech_level": "tool",
+        "tech_level": "shaping",
         "duration_ticks": 300,
     },
 }
@@ -138,7 +138,7 @@ def test_not_feasible_is_a_result() -> None:
     ("changes", "problem"),
     [
         ({"heat_min": "warm"}, "heat_min"),  # no heat available
-        ({"tech_level": "metal"}, "tech_level"),  # above the inhabitant's tech level
+        ({"tech_level": "smelting"}, "tech_level"),  # above the inhabitant's tech level
         ({"remove_properties": ["sharp"]}, "remove_properties"),  # no input has 'sharp'
         ({"consumes": [1]}, "consumes"),  # only one input: nothing else can be used up
         ({"add_properties": ["long_lasting"]}, "change something"),  # no real change

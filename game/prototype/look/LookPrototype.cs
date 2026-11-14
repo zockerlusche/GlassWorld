@@ -667,7 +667,7 @@ public partial class LookPrototype : Node3D
                     >= 8 => stages[^1].FromAgeDays + 1,
                     _ => a.StartAgeDays,
                 };
-                var place = new ClothingContext(seasons[i % seasons.Length], "temperate", null, "tool");
+                var place = new ClothingContext(seasons[i % seasons.Length], "temperate", null, "shaping");
                 people.Add((sex, Appearance.Draw(a, new RandomStreams(seed).Get($"inhabitant/{i}/appearance"), age, sex, place)));
             }
 

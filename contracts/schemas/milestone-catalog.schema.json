@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/milestone-catalog.schema.json",
   "title": "MilestoneCatalog",
-  "description": "Data file content/milestones/catalog.json (B2598, D827 R12/R35, A1583/A1625): what counts as a milestone of the world. A milestone is reached the first time the inhabitants make a thing whose type has all properties of made_with (by building or by using things together), or the first time a rule of the data (combination or process rule) applies. The core recognises it itself, once per world, with tick and maker; the order is not given here, it follows from what the world allows. A milestone may raise the world's tech level: the reached tech level is the highest of the start level (content/invention/settings.json tech_level) and those of the reached milestones. Nothing in the code names a milestone.",
+  "description": "Data file content/milestones/catalog.json (B2598, D827 R12/R35, A1583/A1625): what counts as a milestone of the world. A milestone is reached the first time the inhabitants make a thing whose type has all properties of made_with (by building or by using things together), or the first time a process of the vocabulary (a verb such as braid or melt) succeeds. The core recognises it itself, once per world, with tick and maker; the order is not given here, it follows from what the world allows. A milestone may raise the world's tech level: the reached tech level is the highest of the start level (content/invention/settings.json tech_level) and those of the reached milestones. Nothing in the code names a milestone.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,7 +23,7 @@
   },
   "$defs": {
     "Milestone": {
-      "description": "One milestone. Exactly one of made_with and rule is set (checked at load).",
+      "description": "One milestone. Exactly one of made_with and process is set (checked at load). Never a rule or a thing by name (D1096 #4).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -52,14 +52,12 @@
             "$ref": "common.schema.json#/$defs/VocabId"
           }
         },
-        "rule": {
-          "description": "Id of a combination rule (content/rules) or process rule (content/processes) whose first use is the milestone.",
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9_]*$",
-          "maxLength": 64
-        },
         "raises_tech_level": {
           "description": "Tech level (vocabulary tech_level) the world reaches with this milestone; omitted = none.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "process": {
+          "description": "A process verb (vocabulary process): the milestone is its first successful use, whatever the rule (D1096 #4, B2746).",
           "$ref": "common.schema.json#/$defs/VocabId"
         }
       }

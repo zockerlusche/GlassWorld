@@ -35,7 +35,7 @@
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,
-      "epoch": "wilderness",
+      "epoch": "gathering",
       "revealed_permille": 1000
     },
     {
@@ -45,7 +45,7 @@
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,
-      "epoch": "metal",
+      "epoch": "smelting",
       "revealed_permille": 1000
     }
   ],
