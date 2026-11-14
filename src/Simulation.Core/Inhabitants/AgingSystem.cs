@@ -21,15 +21,17 @@ public sealed class AgingSystem : IWorldSystem
     private readonly InhabitantsSystem _inhabitants;
     private readonly ulong _seed;
     private readonly long _ticksPerDay;
+    private readonly double _daysPerYear;
     private readonly List<LifePhase> _phases;
 
-    /// <summary>Creates the system for a world with <paramref name="seed"/>.</summary>
-    public AgingSystem(LifeAging data, InhabitantsSystem inhabitants, ulong seed, long ticksPerDay)
+    /// <summary>Creates the system for a world with <paramref name="seed"/>; <paramref name="calendarDaysPerYear"/> is the calendar's year.</summary>
+    public AgingSystem(LifeAging data, InhabitantsSystem inhabitants, ulong seed, long ticksPerDay, double calendarDaysPerYear)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
         _seed = seed;
         _ticksPerDay = Math.Max(1, ticksPerDay);
+        _daysPerYear = data.DaysPerLifeYear is { } days and > 0 ? days : Math.Max(1, calendarDaysPerYear);
         _phases = [.. data.Phases.OrderBy(p => p.FromYears)];
     }
 
@@ -37,7 +39,7 @@ public sealed class AgingSystem : IWorldSystem
     public string Name => "aging";
 
     /// <summary>Game ticks per life year.</summary>
-    public double TicksPerYear => _data.DaysPerLifeYear * _ticksPerDay;
+    public double TicksPerYear => _daysPerYear * _ticksPerDay;
 
     /// <inheritdoc/>
     public void Advance(World world)
@@ -67,6 +69,21 @@ public sealed class AgingSystem : IWorldSystem
     public void WriteState(StateHasher hasher)
     {
         // The ticks of birth are hashed with the inhabitants; age and phase follow from them.
+    }
+
+    /// <summary>
+    /// Sets age and phase of every inhabitant with a tick of birth for <paramref name="tick"/> (after a load, review GW3 #437):
+    /// they follow from the state, so a loaded world asks the same as the running one from its first tick.
+    /// </summary>
+    public void Refresh(long tick)
+    {
+        foreach (var inhabitant in _inhabitants.Ordered)
+        {
+            if (inhabitant.BornTick is not null)
+            {
+                Refresh(inhabitant, tick);
+            }
+        }
     }
 
     /// <summary>Whether the inhabitant's life phase allows an action (data: the phase's actions, '*' = all); true without a phase.</summary>

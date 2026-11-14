@@ -48,8 +48,11 @@ class LifeAging(BaseModel):
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
-    days_per_life_year: float = Field(
-        ..., description='Game days per life year.', gt=0.0, le=3650.0
+    days_per_life_year: float | None = Field(
+        None,
+        description="Game days per life year; omitted = the calendar's year (days per season x seasons, TL B2763), so the age matches the shown year.",
+        gt=0.0,
+        le=3650.0,
     )
     start_age_years: StartAgeYears = Field(
         ...,

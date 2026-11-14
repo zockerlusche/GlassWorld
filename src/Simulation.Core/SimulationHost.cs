@@ -608,12 +608,14 @@ public sealed class SimulationHost
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
 
+        AgingSystem? agingSystem = null;
         // B9 R1: inhabitants age (data: life/aging.json) - after the core systems; the phase decides which actions the
         // decider may offer.
         if (content.Aging is { } agingData)
         {
-            var aging = new AgingSystem(agingData, inhabitants, world.Seed, world.Calendar.TicksPerDay);
+            var aging = new AgingSystem(agingData, inhabitants, world.Seed, world.Calendar.TicksPerDay, world.Calendar.TicksPerSeason * world.Calendar.Settings.Seasons.Count / (double)world.Calendar.TicksPerDay);
             world.Add(aging);
+            agingSystem = aging;
             decisions.ActionAllowed = aging.Allows;
         }
         memory.Remembered = forgetting.Remembered;
@@ -640,6 +642,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Aging = agingSystem,
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
@@ -944,6 +947,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>How inhabitants age (B9 R1), or null without aging data.</summary>
+    public AgingSystem? Aging { get; private init; }
 
     /// <summary>
     /// The snow on the ground at a place in millimetres (TL #25357, #25397): the island's cover of the nature

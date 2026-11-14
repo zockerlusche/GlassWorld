@@ -382,6 +382,9 @@ public static class StateCodec
         // (review GW3 #207), so loading never makes partners meet a second time.
         host.Inhabitants.RememberStartGroups();
 
+        // B9 R1 (review GW3 #437): age and phase follow from the ticks of birth - set at once, not at the first step.
+        host.Aging?.Refresh(state.Tick);
+
         // Save games from before names (W1698): everyone gets an own name from the seed, nobody knows another's.
         if (!state.NamesSaved)
         {

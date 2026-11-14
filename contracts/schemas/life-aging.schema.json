@@ -2,12 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/life-aging.schema.json",
   "title": "LifeAging",
-  "description": "Data file content/life/aging.json (B9 R1, D1049 v2): how inhabitants age. Each has a tick of birth; its age in life years and its life phase follow from the clock and these values. Start inhabitants draw their age from start_age_years. Which actions a phase allows is data ('*' = all). All numbers are placeholders (B2649).",
+  "description": "Data file content/life/aging.json (B9 R1, D1049 v2): how inhabitants age. Each has a tick of birth; its age in life years and its life phase follow from the clock and these values (a life year is the calendar's year unless days_per_life_year says otherwise). Start inhabitants draw their age from start_age_years. Which actions a phase allows is data ('*' = all). All numbers are placeholders (B2649).",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "contract_version",
-    "days_per_life_year",
     "start_age_years",
     "phases"
   ],
@@ -16,7 +15,7 @@
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "days_per_life_year": {
-      "description": "Game days per life year.",
+      "description": "Game days per life year; omitted = the calendar's year (days per season x seasons, TL B2763), so the age matches the shown year.",
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 3650

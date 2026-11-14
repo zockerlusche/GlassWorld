@@ -25,7 +25,7 @@ public sealed class AgingTests
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 9, new MockDecisionPort(), "de");
         host.World.Step();
-        var perYear = Data.DaysPerLifeYear * host.World.Calendar.TicksPerDay;
+        var perYear = host.Aging!.TicksPerYear;
         foreach (var inhabitant in host.Inhabitants.All)
         {
             Assert.NotNull(inhabitant.BornTick);
@@ -47,7 +47,7 @@ public sealed class AgingTests
         host.World.Step();
         var who = host.Inhabitants.All.First();
         var next = Data.Phases.OrderBy(p => p.FromYears).First(p => p.FromYears > who.AgeYears);
-        var perYear = Data.DaysPerLifeYear * host.World.Calendar.TicksPerDay;
+        var perYear = host.Aging!.TicksPerYear;
 
         // Born so that it reaches the next phase half a day from now.
         who.BornTick = host.World.Tick - (long)(next.FromYears * perYear) + (host.World.Calendar.TicksPerDay / 2);
@@ -57,6 +57,15 @@ public sealed class AgingTests
         var changed = Assert.Single(events, e => e.Kind == AgingSystem.StageChanged && e.InhabitantId == who.Id);
         Assert.Equal(next.Id, changed.Detail);
         Assert.Equal(next.Id, who.LifeStage);
+    }
+
+    [Fact]
+    public void ALifeYearIsTheCalendarsYear()
+    {
+        // TL B2763: age and the shown year go together.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 9, new MockDecisionPort(), "de");
+        Assert.Null(Data.DaysPerLifeYear);
+        Assert.Equal(host.World.Calendar.TicksPerSeason * host.World.Calendar.Settings.Seasons.Count, host.Aging!.TicksPerYear, 6);
     }
 
     [Fact]
@@ -71,8 +80,9 @@ public sealed class AgingTests
             var loaded = StateCodec.Restore(Factory(), SaveGameStore.Load(path));
             Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
             Assert.Equal(host.Inhabitants.All.Select(i => i.BornTick), loaded.Inhabitants.All.Select(i => i.BornTick));
-            loaded.World.Step();
+            // Age and phase are there right after the load (review GW3 #437), before any step.
             Assert.Equal(host.Inhabitants.All.Select(i => i.LifeStage), loaded.Inhabitants.All.Select(i => i.LifeStage));
+            Assert.Equal(host.Inhabitants.All.Select(i => i.AgeYears), loaded.Inhabitants.All.Select(i => i.AgeYears));
         }
         finally
         {
@@ -92,7 +102,7 @@ public sealed class AgingTests
             StartAgeYears = Data.StartAgeYears,
             Phases = [new LifePhase { Id = Data.Phases.First().Id, FromYears = 0, Actions = ["idle"] }],
         };
-        var aging = new AgingSystem(narrow, host.Inhabitants, 9, host.World.Calendar.TicksPerDay);
+        var aging = new AgingSystem(narrow, host.Inhabitants, 9, host.World.Calendar.TicksPerDay, 28);
         var model = Content.Value.InhabitantModel;
         var who = new Inhabitant("inh-000001", "female", 1, new Position(0, 0),
             model.Needs.ToDictionary(n => n.Id, _ => 1.0, StringComparer.Ordinal),

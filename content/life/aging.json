@@ -1,6 +1,5 @@
 {
   "contract_version": "0.2",
-  "days_per_life_year": 10,
   "start_age_years": {
     "min": 18,
     "max": 35

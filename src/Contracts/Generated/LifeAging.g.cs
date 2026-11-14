@@ -31,7 +31,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data file content/life/aging.json (B9 R1, D1049 v2): how inhabitants age. Each has a tick of birth; its age in life years and its life phase follow from the clock and these values. Start inhabitants draw their age from start_age_years. Which actions a phase allows is data ('*' = all). All numbers are placeholders (B2649).
+    /// Data file content/life/aging.json (B9 R1, D1049 v2): how inhabitants age. Each has a tick of birth; its age in life years and its life phase follow from the clock and these values (a life year is the calendar's year unless days_per_life_year says otherwise). Start inhabitants draw their age from start_age_years. Which actions a phase allows is data ('*' = all). All numbers are placeholders (B2649).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LifeAging
@@ -41,10 +41,11 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// Game days per life year.
+        /// Game days per life year; omitted = the calendar's year (days per season x seasons, TL B2763), so the age matches the shown year.
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("days_per_life_year")]
-        public double DaysPerLifeYear { get; set; } = default!;
+        public double? DaysPerLifeYear { get; set; } = default!;
 
         /// <summary>
         /// Age of the start inhabitants, drawn per inhabitant from its own stream.
