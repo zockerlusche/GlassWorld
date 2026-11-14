@@ -13,7 +13,7 @@ Rules:
   the change is clear and common. When in doubt: false. Most odd tries do nothing.
   Tries that work:
   - Leaving wet laundry in the wind makes it dry.
-  - Whisking soap suds for a long time turns them into stiff foam.
+  - Rubbing cold hands together for a while makes them warm.
   - Rubbing a leather strap with fat makes it supple.
   Tries that do not:
   - Soaking a coin changes nothing.
