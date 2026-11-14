@@ -164,6 +164,12 @@ public sealed record SaveState(
     /// <summary>Burning things with the tick they burn down (B2687 K3); null = none.</summary>
     public IReadOnlyList<Objects.BurningThing>? Burning { get; init; }
 
+    /// <summary>The nature takt's sums (A1380); null = none.</summary>
+    public Nature.NatureState? Nature { get; init; }
+
+    /// <summary>Things that came after the world start, with the tick they came (D711 section 5); null = none.</summary>
+    public IReadOnlyList<Objects.PlacedThing>? Placed { get; init; }
+
     /// <summary>The reached milestones (B2598, A1583); null = none.</summary>
     public IReadOnlyList<Inventions.ReachedMilestone>? Milestones { get; init; }
 }
@@ -237,6 +243,8 @@ public static class StateCodec
             NightJobs = host.NightJobs.HasState ? host.NightJobs.Capture() : null,
             Processes = host.Processes is { HasState: true } processes ? processes.Capture() : null,
             Burning = host.Fire.HasState ? host.Fire.Capture() : null,
+            Nature = host.Nature is { HasState: true } nature ? nature.Capture() : null,
+            Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
         };
     }
@@ -389,6 +397,8 @@ public static class StateCodec
         host.NightJobs.Restore(state.NightJobs);
         host.Processes?.Restore(state.Processes);
         host.Fire.Restore(state.Burning);
+        host.Nature?.Restore(state.Nature);
+        host.Durability?.Restore(state.Placed, state.Tick);
         host.Milestones.Restore(state.Milestones);
         host.UseLoggedPlayerSettings();
         return host;
