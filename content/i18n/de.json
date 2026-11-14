@@ -855,6 +855,38 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.base_function.container",
+      "text": "Behälter"
+    },
+    {
+      "key": "vocab.base_function.seat_bed",
+      "text": "Sitz oder Lager"
+    },
+    {
+      "key": "vocab.base_function.heat_source",
+      "text": "Wärmequelle"
+    },
+    {
+      "key": "vocab.base_function.light_source",
+      "text": "Lichtquelle"
+    },
+    {
+      "key": "vocab.base_function.sound_source",
+      "text": "Klangquelle"
+    },
+    {
+      "key": "vocab.base_function.shelter",
+      "text": "Schutz und Raum"
+    },
+    {
+      "key": "vocab.base_function.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.base_function.closure",
+      "text": "Verschluss"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },

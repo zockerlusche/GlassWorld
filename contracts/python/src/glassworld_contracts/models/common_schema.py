@@ -709,6 +709,12 @@ class Invention(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    base_function: str | None = Field(
+        None,
+        description="The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     introduces_needs: list[NewNeed] | None = Field(
         None, description='Optional (B4b R11).', max_length=2
     )
