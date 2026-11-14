@@ -408,6 +408,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("burning", JsonSerializer.Serialize(s.Burning, Json)));
         }
 
+        if (s.Forgetting is not null)
+        {
+            // Fading and forgotten knowledge (D1017 G1); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("forgetting", JsonSerializer.Serialize(s.Forgetting, Json)));
+        }
+
         if (s.Nature is not null)
         {
             // The nature takt's sums (A1380); no entry = none.
@@ -694,6 +700,7 @@ public static class SaveGameStore
             NightJobs = meta.TryGetValue("night_jobs", out var nightJobs) ? JsonSerializer.Deserialize<Simulation.Night.NightJobsState>(nightJobs, Json) : null,
             Processes = meta.TryGetValue("processes", out var processes) ? JsonSerializer.Deserialize<Simulation.Objects.ProcessState>(processes, Json) : null,
             Burning = meta.TryGetValue("burning", out var burning) ? JsonSerializer.Deserialize<List<Simulation.Objects.BurningThing>>(burning, Json) : null,
+            Forgetting = meta.TryGetValue("forgetting", out var forgetting) ? JsonSerializer.Deserialize<Simulation.Inhabitants.ForgettingState>(forgetting, Json) : null,
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,

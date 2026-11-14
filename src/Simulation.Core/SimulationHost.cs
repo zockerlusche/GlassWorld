@@ -529,6 +529,10 @@ public sealed class SimulationHost
 
         // Out of the hash while nothing burns.
         world.Add(fire);
+
+        // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
+        var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
+        world.Add(forgetting);
         if (durability is not null)
         {
             // Out of the hash while only things of the world start exist.
@@ -550,6 +554,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Forgetting = forgetting,
             Durability = durability,
             Milestones = milestones,
             Nature = nature,
@@ -848,6 +853,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>Knowledge that fades when not used (D1017 G1).</summary>
+    public ForgettingSystem Forgetting { get; private init; } = null!;
 
     /// <summary>How things wear away (D711 section 5); null without durability data.</summary>
     public DurabilitySystem? Durability { get; private init; }
