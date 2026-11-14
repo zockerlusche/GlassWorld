@@ -1181,7 +1181,7 @@ public sealed class DecisionsSystem : IWorldSystem
         _passable.Clear();
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
-            ? [.. stuck(inhabitant.Id, subject).Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))]
+            ? Shuffled(stuck(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
             : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
@@ -1417,14 +1417,20 @@ public sealed class DecisionsSystem : IWorldSystem
         return [.. kept.Select(o => (o.OptionId, o.Action, o.TargetId))];
     }
 
-    /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> undone (D1025).</summary>
-    private static IReadOnlyList<(string OptionId, string Action, string? TargetId)> InDataOrder(OpenQuestion question, ulong worldSeed)
+    /// <summary>
+    /// The options of a stuck building, cut to the contract's limit and shuffled like every question's (D1096 #7, D1025): the
+    /// position in the list says nothing, so 'take something else' is not always first.
+    /// </summary>
+    private static List<(string OptionId, string Action, string? TargetId)> Shuffled(IReadOnlyList<(string Action, string? TargetId)> options, int seed)
     {
-        if (question.Kind == BuildStuck)
-        {
-            return question.Options; // the stuck options are never shuffled
-        }
+        var cut = options.Take(MaxOptions).ToList();
+        Shuffle(cut, seed);
+        return [.. cut.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
+    }
 
+    /// <summary>A question's options in the data's order: the shuffle of <see cref="BuildOptions"/> or <see cref="Shuffled"/> undone (D1025).</summary>
+    private static (string OptionId, string Action, string? TargetId)[] InDataOrder(OpenQuestion question, ulong worldSeed)
+    {
         var positions = Enumerable.Range(0, question.Options.Count).ToList();
         Shuffle(positions, OrderSeed(worldSeed, question.Id));
         var original = new (string OptionId, string Action, string? TargetId)[question.Options.Count];
