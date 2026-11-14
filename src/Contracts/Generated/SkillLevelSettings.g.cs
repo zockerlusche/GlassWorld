@@ -46,5 +46,30 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_level")]
         public double MaxLevel { get; set; } = default!;
 
+        /// <summary>
+        /// D1017 G2 (D1077): what long practice leaves. The highest gain ever reached (peak) and the number of game days practised are kept; forgetting never takes the gain below peak x floor_share_by_days(days), and practice while below the peak counts relearn_factor times (relearning is faster). Absent = no floor, no relearning bonus (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("retention")]
+        public Retention? Retention { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Retention
+    {
+
+        /// <summary>
+        /// Points [days practised, share of the peak kept] with ascending days; linear in between, constant outside.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("floor_share_by_days")]
+        public System.Collections.Generic.ICollection<System.Collections.Generic.ICollection<double>> FloorShareByDays { get; set; } = new System.Collections.ObjectModel.Collection<System.Collections.Generic.ICollection<double>>();
+
+        /// <summary>
+        /// Practice gain factor while the gain is below its peak (at least 1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relearn_factor")]
+        public double RelearnFactor { get; set; } = default!;
+
     }
 }

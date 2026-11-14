@@ -39,6 +39,16 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "retention": {
+      "description": "D1017 G2 (D1077): what long practice leaves. The highest gain ever reached (peak) and the number of game days practised are kept; forgetting never takes the gain below peak x floor_share_by_days(days), and practice while below the peak counts relearn_factor times (relearning is faster). Absent = no floor, no relearning bonus (as before).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floor_share_by_days", "relearn_factor"],
+      "properties": {
+        "floor_share_by_days": { "description": "Points [days practised, share of the peak kept] with ascending days; linear in between, constant outside.", "type": "array", "minItems": 2, "maxItems": 16, "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 10000 } } },
+        "relearn_factor": { "description": "Practice gain factor while the gain is below its peak (at least 1).", "type": "number", "minimum": 1, "maximum": 10 }
+      }
     }
   }
 }
