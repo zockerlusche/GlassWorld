@@ -426,6 +426,13 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("ideas", JsonSerializer.Serialize(ideas, Json)));
         }
 
+        // How places felt (B5 R32) by inhabitant id; older saves have no entry.
+        var felt = s.Inhabitants.Where(i => i.FeltPlaces is not null).ToDictionary(i => i.Id, i => i.FeltPlaces!, StringComparer.Ordinal);
+        if (felt.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("felt_places", JsonSerializer.Serialize(felt, Json)));
+        }
+
         var places = s.Inhabitants.Where(i => i.Places is { Count: > 0 }).ToDictionary(i => i.Id, i => i.Places!, StringComparer.Ordinal);
         if (places.Count > 0)
         {
@@ -546,6 +553,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("nature", JsonSerializer.Serialize(s.Nature, Json)));
         }
 
+        if (s.Animals is not null)
+        {
+            // The animal stocks (B4b K4); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("animals", JsonSerializer.Serialize(s.Animals, Json)));
+        }
+
         if (s.Placed is not null)
         {
             // Things that came after the world start (durability, D711 section 5); no entry = none.
@@ -562,6 +575,12 @@ public static class SaveGameStore
         {
             // Reached milestones (B2598); no entry = none.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("milestones", JsonSerializer.Serialize(s.Milestones, Json)));
+        }
+
+        if (s.ChronicleNight is not null)
+        {
+            // The chronicle's day narratives (B8 R10); no entry = none told yet.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("chronicle_night", JsonSerializer.Serialize(s.ChronicleNight, Json)));
         }
 
         if (s.ContentFingerprint is not null)
@@ -764,6 +783,9 @@ public static class SaveGameStore
         var ideas = meta.TryGetValue("ideas", out var ideaJson)
             ? JsonSerializer.Deserialize<Dictionary<string, SavedIdeas>>(ideaJson, Json) ?? []
             : [];
+        var feltPlaces = meta.TryGetValue("felt_places", out var feltJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, List<SavedFeltPlace>>>(feltJson, Json) ?? []
+            : [];
         var names = meta.TryGetValue("names", out var nameJson)
             ? JsonSerializer.Deserialize<Dictionary<string, SavedNames>>(nameJson, Json) ?? []
             : [];
@@ -799,7 +821,8 @@ public static class SaveGameStore
                     met[r.GetString(0)].ToList() is { Count: > 0 } metList ? metList : null,
                     imprints[r.GetString(0)].ToList() is { Count: > 0 } imprintList ? imprintList : null,
                     memories.GetValueOrDefault(r.GetString(0)),
-                    ideas.GetValueOrDefault(r.GetString(0)))),
+                    ideas.GetValueOrDefault(r.GetString(0)),
+                    feltPlaces.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -834,9 +857,11 @@ public static class SaveGameStore
             Burning = meta.TryGetValue("burning", out var burning) ? JsonSerializer.Deserialize<List<Simulation.Objects.BurningThing>>(burning, Json) : null,
             Forgetting = meta.TryGetValue("forgetting", out var forgetting) ? JsonSerializer.Deserialize<Simulation.Inhabitants.ForgettingState>(forgetting, Json) : null,
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
+            Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
+            ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),

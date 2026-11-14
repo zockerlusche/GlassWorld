@@ -222,6 +222,19 @@ class MilestoneName(BaseModel):
     label: str = Field(..., max_length=64, min_length=1)
 
 
+class ChronicleDayName(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    label: str = Field(..., max_length=64, min_length=1)
+
+
 class QuestionPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -438,6 +451,53 @@ class MilestonePayload(BaseModel):
     )
 
 
+class ChronicleDayLine(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: str = Field(
+        ...,
+        description='Chronicle kind (content/chronicle/kinds.json).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    text_key: str = Field(
+        ...,
+        description="The kind's text key (DE/EN).",
+        max_length=64,
+        pattern='^msg\\.chronicle\\.[a-z0-9_]+$',
+    )
+    inhabitant: ChronicleDayName
+    target: ChronicleDayName | None = Field(
+        ...,
+        description='The thing or the other inhabitant, by the name the chronicle shows, or null.',
+    )
+    action: common_schema.VocabId | None = Field(
+        ..., description='The action of the entry (vocabulary), or null.'
+    )
+
+
+class ChroniclePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    day: int = Field(
+        ..., description='The finished game day (1 = the first).', ge=1, le=1000000
+    )
+    entries: list[ChronicleDayLine] = Field(
+        ...,
+        description="The day's chronicle entries, oldest first (at most the data's number).",
+        max_length=24,
+        min_length=1,
+    )
+    max_chars: int = Field(
+        ...,
+        description='Longest narrative (data; at most the 280 of a generated text).',
+        ge=80,
+        le=280,
+    )
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -453,6 +513,7 @@ class JobPayload(BaseModel):
     model3d: Model3dPayload | None = None
     review: ReviewPayload | None = None
     milestone: MilestonePayload | None = None
+    chronicle: ChroniclePayload | None = None
 
 
 class GenerationJob(BaseModel):

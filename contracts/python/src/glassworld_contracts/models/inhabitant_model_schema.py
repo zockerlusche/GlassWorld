@@ -46,6 +46,24 @@ class MoodModel(BaseModel):
     )
 
 
+class ComfortFelt(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sensation: str = Field(
+        ...,
+        description='Sensation of the vocabulary.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    levels: list[common_schema.VocabId] = Field(
+        ...,
+        description='Comfort levels at which it is felt.',
+        max_length=5,
+        min_length=1,
+    )
+
+
 class MoodDriver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -317,6 +335,11 @@ class ComfortZone(BaseModel):
         description='Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.',
         ge=0.0,
         le=10.0,
+    )
+    felt: list[ComfortFelt] | None = Field(
+        None,
+        description='B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.',
+        max_length=8,
     )
     action_factors: list[ComfortZoneActionFactor] | None = Field(
         None,

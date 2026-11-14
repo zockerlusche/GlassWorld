@@ -16,8 +16,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId)
 {
     /// <summary>
-    /// Text for the player (thought bubble), already in the player's language; for no_answer the text key of the
-    /// calm line (the game translates it); null for most events.
+    /// Text for the player (thought bubble), already in the player's language; null for most events - also for
+    /// no_answer, which puts no words in the inhabitant's mouth (D1096 #8).
     /// </summary>
     public string? Text { get; init; }
 
@@ -2018,7 +2018,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <see cref="KnowledgeGained"/> when it is new. A finished action learns through it what its rules
     /// depend on; other systems name what their doing shows (building: that the thing is made, D9).
     /// </summary>
-    public void Experience(long tick, Inhabitant inhabitant, string action, string typeId, IEnumerable<string> properties)
+    public void Experience(long tick, Inhabitant inhabitant, string? action, string typeId, IEnumerable<string> properties)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(properties);

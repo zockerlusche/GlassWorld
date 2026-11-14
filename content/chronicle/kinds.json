@@ -1,5 +1,10 @@
 {
   "contract_version": "0.2",
+  "narrative": {
+    "max_chars": 280,
+    "max_entries": 24,
+    "job_priority": 5
+  },
   "kinds": [
     {
       "id": "invented",

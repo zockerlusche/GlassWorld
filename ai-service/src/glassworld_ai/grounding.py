@@ -1,7 +1,7 @@
 """Talk only about what is there (Marcel W1737, D675): the inhabitant's answer to the player may
 name only things it sees, knows or is doing, and the world's general words. A sentence that names
-something else ("Ich lese ein Buch") is not said: the whole reply is replaced by a stand-in
-about what it really does (a strict start; only the offending sentence could go later).
+something else ("Ich lese ein Buch") is not said: the reply is left out (B2644, Marcel
+F5296 = B); no stand-in sentence takes its place.
 
 The check is deterministic and works where nouns can be told apart: in German they start with a
 capital letter. Words at the start of a sentence are not judged (they are capitalised anyway). For

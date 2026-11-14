@@ -45,6 +45,15 @@
         "return_per_hour": { "description": "How fast the feeling returns to its baseline.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "ComfortFelt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sensation", "levels"],
+      "properties": {
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
+        "levels": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }, "description": "Comfort levels at which it is felt." }
+      }
+    },
     "MoodDriver": {
       "description": "While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).",
       "type": "object",
@@ -87,6 +96,10 @@
         "recover_per_hour": { "description": "Gain of the need per hour while the air is inside the zone.", "type": "number", "minimum": 0, "maximum": 1 },
         "floor": { "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
         "precipitation_cold_factor": { "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
+        "felt": {
+          "description": "B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.",
+          "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/ComfortFelt" }
+        },
         "action_factors": {
           "description": "Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.",
           "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ComfortZoneActionFactor" }

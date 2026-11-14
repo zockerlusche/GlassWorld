@@ -57,7 +57,7 @@
       "asset": "Idle"
     },
     {
-      "id": "hammer",
+      "id": "kneel_work",
       "source": "asset",
       "loop": false,
       "asset": "Fixing_Kneeling"
@@ -355,7 +355,7 @@
     {
       "kind": "action",
       "id": "build_step",
-      "clip": "hammer"
+      "clip": "kneel_work"
     },
     {
       "kind": "action",
@@ -365,7 +365,7 @@
     {
       "kind": "action",
       "id": "build_smaller",
-      "clip": "hammer"
+      "clip": "kneel_work"
     },
     {
       "kind": "action",
@@ -475,8 +475,8 @@
     },
     {
       "kind": "work",
-      "id": "hammer",
-      "clip": "hammer"
+      "id": "kneel_work",
+      "clip": "kneel_work"
     },
     {
       "kind": "work",
