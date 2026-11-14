@@ -33,6 +33,7 @@ GUARD = TextGuard.from_file(REPO / "content/safety/rules.json")
 TEXTS = TextCatalog.load(REPO / "content/i18n")
 MOODS = Vocabulary.load(REPO / "content/vocabulary").ids("mood")
 TEMPLATE = load_prompt(REPO / "prompts", "review/night", 1)
+TEMPLATE_V2 = load_prompt(REPO / "prompts", "review/night", 2)
 
 
 def _answer(**changes: Any) -> str:
@@ -158,3 +159,55 @@ def test_the_mock_invents_no_idea_and_fits_the_contract() -> None:
     assert schema["properties"]["ideas"]["items"]["properties"]["roots"]["items"]["enum"] == list(
         known(JOB)
     )
+
+
+def _parse_v2(raw: str) -> tuple[dict[str, Any], list[str]]:
+    return parse_review(raw, JOB, GUARD, MOODS, TEXTS, TEMPLATE_V2.settings)
+
+
+def _answer_v2(**changes: Any) -> str:
+    data = json.loads(_answer(**changes))
+    data.pop("kept", None)
+    return json.dumps(data, ensure_ascii=False)
+
+
+def test_v2_shows_no_tick_and_keeps_the_formative_events_itself() -> None:
+    """A1721 (Marcel's test 14.11.: 'Tick 8453 showed me an egg'): no tick reaches the model, and
+    the model is not asked for them - the service keeps every formative event."""
+    values = build_values(JOB, TEMPLATE_V2, TEXTS)
+    rendered = TEMPLATE_V2.render(values)
+    assert "[tick" not in rendered.user and "ticks of" not in rendered.system
+    assert "1900" not in rendered.system + rendered.user
+    assert "FORMATIVE" in values["events"]
+    schema = output_schema(JOB, MOODS, TEXTS, TEMPLATE_V2.settings)
+    assert "kept" not in schema["properties"] and "kept" not in schema["required"]
+    result, notes = _parse_v2(_answer_v2())
+    assert notes == [] and result["kept"] == [1900]
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        "Tick 8453 showed me an egg.",
+        "Ticks 15362, 18155 marked my steps.",
+        "Driftwood t2 and t3 waited by the shore.",
+        "Formative moments kept: 28654.",
+    ],
+)
+def test_v2_refuses_a_summary_with_a_tick_a_key_or_a_number(summary: str) -> None:
+    with pytest.raises(InvalidOutputError, match="names a tick, a number or a key"):
+        _parse_v2(_answer_v2(summary=summary))
+
+
+def test_v2_a_dream_with_a_key_is_left_out_the_rest_holds() -> None:
+    result, notes = _parse_v2(
+        _answer_v2(dream={"text": "Ich sehe t2 am Strand.", "tone": "calm", "about": None})
+    )
+    assert result["dream"] is None and result["summary"]
+    assert any("a number or key (t2)" in n for n in notes)
+
+
+def test_v1_still_asks_for_kept() -> None:
+    """Released versions stay as they were: v1 keeps its ticks and its 'kept'."""
+    assert "[tick 1900]" in build_values(JOB, TEMPLATE, TEXTS)["events"]
+    assert "kept" in output_schema(JOB, MOODS, TEXTS, TEMPLATE.settings)["required"]

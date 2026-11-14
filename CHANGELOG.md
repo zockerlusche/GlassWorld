@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Nightly look back v2 (A1721, Marcel's test 14.11.): the memory no longer fills with tick numbers and prompt keys ('Tick 8453 showed me an egg', 'Driftwood t2 and t3'). The prompt shows no tick, the service keeps the formative events itself, and a summary, dream or thought with a tick, a number or a key is refused with the reason (the model answers again). config: review prompt 2.
 - A renamed process rule keeps its variants (GW1 #25742, after D1096 #2/#3): data rules may list their earlier ids (`was`, optional); a process variant's type id is hashed with the first one, so a save from before keeps one type per thing (e.g. reed braided stays `reed_v...` from `braid_two_fibres_to_cord`).
 - The conversation knows the speaker's life phase (D1049, B9 R1/R27): `Speaker.life_stage` (optional, vocabulary life_stage; contract stays 0.2), so a talk with a minor can follow the youth-protection rules once children are born (B9-4). The core fills it after #437 (GW1).
 - Inhabitants age (B9-1a, R1, A1387, D1049 v2): a tick of birth per inhabitant (saved, hashed); age in life years and life phase follow from it and `content/life/aging.json` (10 days per life year, start ages 18-35, phases child/youth/adult/elder - placeholders for the TL). Start inhabitants draw their age from their own stream. A new phase is reported (`stage_changed`); the phase decides which actions the decider may offer (data, '*' = all). `life_stage` and `age_years` reach the AI and the snapshot.
