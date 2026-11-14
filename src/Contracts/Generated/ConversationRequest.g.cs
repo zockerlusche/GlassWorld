@@ -84,6 +84,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sees_labels")]
         public System.Collections.Generic.ICollection<SeenLabel>? SeesLabels { get; set; } = default!;
 
+        /// <summary>
+        /// B9 R1/R27 (D1049): the speaker's life phase, an id of the vocabulary 'life_stage' (child, youth, adult, elder), so the conversation knows when it talks with a minor (youth protection). Optional; absent = not stated (a world without aging, an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("life_stage")]
+        public string? LifeStage { get; set; } = default!;
+
     }
 
     /// <summary>
