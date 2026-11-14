@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A failed world step no longer endangers the save game (B2712, TL #24641): an exception inside a step stops the world, the half advanced state is never saved over the last good save game (neither by the daily autosave nor on closing), it goes once to a rescue file next to it (`<world>.rescue.db`), and a calm notice says so.
 - The night is darker (TL #24642, TH143; D1050 find 5): night ambient light 0.4 -> 0.18 (and its floor `night_min_brightness` 0.3 -> 0.18, else the floor would keep 0.3) and moonlight 0.6 -> 0.2 in `content/look/daylight.json`. Right after the computing night the world looked almost like day: the night begins at 22:00, the light blends 40 minutes into it, and the night values themselves were bright.
 - The start hint 'an AI needs you' no longer comes for an image AI that was never set up (no ComfyUI folder named; D1050 find 2, TL #24591): the world shows simple pictures without it, and the hint came with every new world. Its line under Settings > AI still says what to do; once a folder is named, its problems give the hint again.
 - The Windows export prepares the AI service's environment (`uv sync --frozen` in the repository; TL #24536): before, uv built it at the first start of a test package while the game waited only 60 s, so the first start 'with AI' ran without AI. `SKIP_UV_SYNC=1` skips it.
