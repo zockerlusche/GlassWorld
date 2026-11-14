@@ -18,7 +18,7 @@ class Vocabulary:
     # kind -> ids kept for a later step (reserved, B9 R26): never listed in a prompt (GW3 #25889).
     reserved: dict[str, set[str]] = field(default_factory=dict[str, set[str]])
     # R26 (B9-1b, GW1 #439), the second guard: the actions the core can carry out (with timing in
-    # content/effects); None = not known (a vocabulary loaded without the effects), every action counts
+    # content/effects); None = not known (loaded without the effects), every action counts
     timed_actions: frozenset[str] | None = None
 
     def ids(self, kind: str) -> list[str]:
