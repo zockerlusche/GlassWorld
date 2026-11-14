@@ -3,5 +3,6 @@
   "talent_min": 0.5,
   "talent_max": 1.5,
   "forget_per_day": 0.001,
-  "max_level": 1.0
+  "max_level": 1.0,
+  "retention": { "floor_share_by_days": [[0, 0.0], [3, 0.25], [10, 0.5], [30, 0.75]], "relearn_factor": 2.0 }
 }
