@@ -238,6 +238,15 @@ public sealed class SimulationHost
             world.Add(nature);
         }
 
+        // B4b K4: the animal stocks scale what the animals leave behind; after the takt, so it reads them at its start.
+        Nature.AnimalStockSystem? animals = null;
+        if (content.Animals is { } animalData && nature is not null && map is not null)
+        {
+            animals = new Nature.AnimalStockSystem(animalData, world.Calendar.TicksPerDay, BiomesOn(map.Map));
+            nature.FactorOf = animals.FactorOf;
+            world.Add(animals);
+        }
+
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
@@ -622,6 +631,7 @@ public sealed class SimulationHost
             Body = body,
             Milestones = milestones,
             Nature = nature,
+            Animals = animals,
             ChronicleNight = chronicleNight,
             Conversation = conversation,
             Diary = diary,
@@ -941,6 +951,24 @@ public sealed class SimulationHost
 
     /// <summary>The nature takt (A1380); null on worlds without an island or nature data.</summary>
     public Nature.NatureSystem? Nature { get; private init; }
+
+    /// <summary>The animal stocks (B4b K4); null without animal data or nature takt.</summary>
+    public Nature.AnimalStockSystem? Animals { get; private init; }
+
+    /// <summary>The biomes the island really has (a stock of a species lives only there).</summary>
+    private static HashSet<string> BiomesOn(Map.WorldMap map)
+    {
+        var present = new HashSet<string>(StringComparer.Ordinal);
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                present.Add(map.BiomeAt(x, z));
+            }
+        }
+
+        return present;
+    }
 
     /// <summary>The chronicle's day narratives (B8 R10, A1355).</summary>
     public Night.ChronicleNightSystem ChronicleNight { get; private init; } = null!;

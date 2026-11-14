@@ -1010,7 +1010,7 @@ def _build_benchmark(settings: Settings, client: httpx.AsyncClient, app: FastAPI
     if settings.image_backend == "comfyui" and image_handler is not None and plan is not None:
         width, height = load_image_settings(settings.content_dir).sizes["icon"]
         image_payload: dict[str, object] = {
-            "subject": "a round clay bowl",
+            "subject": "a smooth round pebble",  # D1096 #12: nature, no possible invention
             "purpose": "icon",
             "style": "warm_comic",
             "width": width,
