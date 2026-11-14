@@ -11,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 CONTENT = Path(__file__).resolve().parents[2] / "content"
 _DATA: dict[str, Any] = json.loads((CONTENT / "processes/rules.json").read_text("utf-8"))
 
@@ -61,18 +63,23 @@ def test_rule_ids_are_unique() -> None:
     assert len(ids) == len(set(ids))
 
 
-def test_blade_and_axe() -> None:
+def test_a_split_stone_gets_an_edge_and_no_tool_is_a_recipe() -> None:
+    """Splitting is material physics (sharp). Binding an edge to a stick is no data rule any more
+    (D1096 #2, B2741): a hafted tool exists only as the inhabitants' invention."""
     blade = apply("split", [CATALOG["slate"]], tool=CATALOG["fieldstone"])
     assert "sharp" in blade
-    axe = apply("bind", [blade, CATALOG["dry_wood"], CATALOG["flax"]])
-    assert {"sharp", "hard", "portable"} <= axe
+    with pytest.raises(AssertionError, match="no bind rule"):
+        apply("bind", [blade, CATALOG["dry_wood"], CATALOG["flax"]])
 
 
-def test_clay_vessel() -> None:
-    shaped = apply("shape", [CATALOG["clay"]])
-    vessel = apply("fire", [shaped], heat="strong_heat")
-    assert {"container", "hard"} <= vessel and "malleable" not in vessel
-    assert "hard" not in apply("fire", [shaped], heat="strong_heat") - vessel  # same result twice
+def test_clay_hardens_in_strong_heat_and_shaping_makes_no_vessel() -> None:
+    """Material physics only (D1096 #3): malleable clay that hardens in fire becomes hard in strong
+    heat. Shaping it makes no container - a vessel is the inhabitants' invention (B2741)."""
+    clay = CATALOG["clay"]
+    with pytest.raises(AssertionError, match="no shape rule"):
+        apply("shape", [clay])
+    fired = apply("fire", [clay], heat="strong_heat")
+    assert "hard" in fired and "malleable" not in fired and "container" not in fired
 
 
 def test_charcoal_ash_and_glass() -> None:
