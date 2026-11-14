@@ -11,7 +11,9 @@ namespace GlassWorld.Game.Ui.Components;
 public partial class GwSidePanel : PanelContainer
 {
     private const string CloseSymbol = "×";
-    private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    // A long title (an inhabitant's long name) ends in an ellipsis beside the '×' and shows whole as a tooltip, so it never
+    // widens the window into the free middle.
+    private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel, SizeFlagsHorizontal = SizeFlags.ExpandFill, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis, MouseFilter = MouseFilterEnum.Pass };
     private readonly Button _close = new() { Name = "Close", Text = CloseSymbol, Flat = true, TooltipText = "ui.common.close", SizeFlagsVertical = SizeFlags.ShrinkBegin };
 
     // Docks again in one frame at most this often: a layout that does not settle stops instead of filling the call
@@ -81,6 +83,7 @@ public partial class GwSidePanel : PanelContainer
     {
         _title.AutoTranslateMode = AutoTranslateModeEnum.Inherit;
         _title.Text = titleKey;
+        _title.TooltipText = string.Empty;
     }
 
     /// <summary>Sets the title to finished text (e.g. an inhabitant's name) that is never translated.</summary>
@@ -88,6 +91,7 @@ public partial class GwSidePanel : PanelContainer
     {
         _title.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         _title.Text = text;
+        _title.TooltipText = text;
     }
 
     /// <summary>Places the panel at the right edge of <paramref name="area"/> (logical pixels).</summary>
