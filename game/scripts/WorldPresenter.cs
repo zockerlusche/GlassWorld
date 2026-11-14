@@ -213,12 +213,41 @@ public partial class WorldPresenter : Node3D
     /// B2712: a world step threw. The world stops (speed 0, no more steps), the state goes once to the rescue file
     /// (never over the save game), and the player is told calmly. The last good save game stays as it was.
     /// </summary>
+    /// <summary>Runs ticks of the world unless it is faulted; an exception from a step faults it (B2712).</summary>
+    internal void RunGuarded(long ticks)
+    {
+        if (_host is null || ticks <= 0 || IsFaulted)
+        {
+            return;
+        }
+
+        try
+        {
+            _host.World.Run(ticks);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            Fault(e);
+        }
+    }
+
+    /// <summary>The smoke's fault check (TL #24690): the expected failure is logged as a line, not as an error.</summary>
+    internal bool QuietFaults { get; set; }
+
     private void Fault(Exception e)
     {
         IsFaulted = true;
         Speed = 0;
         _accumulator = 0;
-        GD.PushError($"WORLD_STEP_FAILED {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+        if (QuietFaults)
+        {
+            GD.Print($"WORLD_STEP_FAILED (expected by the check) {e.GetType().Name}: {e.Message}");
+        }
+        else
+        {
+            GD.PushError($"WORLD_STEP_FAILED {e.GetType().Name}: {e.Message}\n{e.StackTrace}");
+        }
+
         string? rescue = null;
         if (_host is not null && RescuePath is { } path)
         {
@@ -347,17 +376,7 @@ public partial class WorldPresenter : Node3D
         var ticks = Math.Min((long)_accumulator, calendar.Settings.MaxTicksPerFrame);
         _accumulator -= ticks;
         _accumulator = Math.Min(_accumulator, calendar.Settings.MaxTicksPerFrame);
-        if (ticks > 0 && !IsFaulted)
-        {
-            try
-            {
-                _host.World.Run(ticks);
-            }
-            catch (Exception e) when (e is not OutOfMemoryException)
-            {
-                Fault(e);
-            }
-        }
+        RunGuarded(ticks);
 
         if (Mode == WorldLookMode.Island)
         {
