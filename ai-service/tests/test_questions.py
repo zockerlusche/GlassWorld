@@ -525,7 +525,7 @@ def test_an_action_word_without_timing_is_no_idea(tmp_path: Path) -> None:
     (tmp_path / "effects").mkdir()
     actions = json.loads((REPO / "content/vocabulary/actions.json").read_text(encoding="utf-8"))
     actions["entries"].append(
-        {"id": "sing", "description": "Make a long sound with the voice.", "target": "none"}
+        {"id": "hum_test_word", "description": "Hum quietly.", "target": "none"}
     )
     (tmp_path / "vocabulary" / "actions.json").write_text(json.dumps(actions), encoding="utf-8")
     (tmp_path / "effects" / "a.json").write_text(
@@ -533,7 +533,7 @@ def test_an_action_word_without_timing_is_no_idea(tmp_path: Path) -> None:
     )
     vocab = Vocabulary.load(tmp_path / "vocabulary")
     assert vocab.general_ids("action") == ["eat", "inspect"]
-    assert "sing" in vocab.ids("action")  # still a known word, only not offered
+    assert "hum_test_word" in vocab.ids("action")  # still a known word, only not offered
 
     real = Vocabulary.load(REPO / "content/vocabulary")
     assert real.timed_actions is not None
