@@ -56,7 +56,7 @@ public sealed class ProcessTests
         // + sharp, + crafted (B2700: what was processed is made).
         Assert.Equal(host.Types.TrueProperties("pyrite").Count + 2, host.Types.TrueProperties(changed.TypeId).Count);
         Assert.Contains("crafted", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
-        Assert.Equal("strike_hard_stone_to_edge", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.Equal("strike_hard_stone", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
         Assert.True(host.Inhabitants.Get(Actor).Beliefs.TryGet(changed.TypeId, "sharp", out var sharp) && sharp.Value);
 
         // The same change of the same type is one variant: a second stone becomes the same type.
@@ -79,7 +79,7 @@ public sealed class ProcessTests
         Assert.Equal("reed", host.Processes!.RootOf(cord.TypeId));
         Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
         Assert.False(host.Objects.TryGet(other.Id, out _));
-        Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.Equal("braid_two_fibres", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
     }
 
     [Fact]

@@ -134,7 +134,7 @@ def test_a_heat_source_opens_the_rules_that_need_heat() -> None:
     with_heat = analyse(CONTENT, Sources(start.preset, start.types, frozenset({"flame"})))
     assert {"roast_food", "burn_to_ash", "heat_water_container"} <= with_heat.processes
     # A kiln is hotter than an open fire, and cooking needs the hard vessel only a kiln gives.
-    assert {"fire_shaped_clay", "cook_food"}.isdisjoint(with_heat.processes)
+    assert {"fire_malleable_hard", "cook_food"}.isdisjoint(with_heat.processes)
     assert {"heat:warm", "heat:glowing", "heat:flame"}.isdisjoint(with_heat.gaps)
     assert "heat:strong_heat" in with_heat.gaps
 
