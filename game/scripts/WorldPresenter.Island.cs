@@ -33,6 +33,7 @@ public partial class WorldPresenter
 
     // The inventions drawn from their building plans (A1375): built things and building sites.
     private Build.InventionsView? _inventionsView;
+    private double _thingFocusM = 10;
     private GrassView? _grassView;
     private CloudCover? _cover;
     private NatureLook? _nature;
@@ -229,6 +230,9 @@ public partial class WorldPresenter
         _rig.Model.StopFollowing();
     }
 
+    /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
+    public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
+
     /// <summary>
     /// Check runs (A1375): the camera looks at a spot of the island from <paramref name="distanceM"/>, as if the
     /// player had taken it (the observer stands back). False on the placeholder.
@@ -346,7 +350,7 @@ public partial class WorldPresenter
         _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         _objectsView.Looks.RootOf = typeId => _host?.Processes?.RootOf(typeId);
         AddChild(_objectsView);
-        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground);
+        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground, objectLooks.InventionMinShownM);
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
@@ -379,6 +383,7 @@ public partial class WorldPresenter
         var depth = map.Map.DepthCells * terrain.CellM;
         var seaLevel = (float)_seaLevelM;
         var camera = Read<LookCamera>(content, "look", "camera.json");
+        _thingFocusM = camera.ThingFocusDistanceM ?? camera.FollowDistanceM;
         AttachRig(
             camera,
             CameraRig.Create(camera, width, depth, () => _islandNodes.Select(f => (f.Key, f.Value.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z))),
