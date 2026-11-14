@@ -778,6 +778,11 @@ class ProcessRule(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     result: ProcessOutcome
+    was: list[VocabId] | None = Field(
+        None,
+        description='Earlier ids of this data rule, oldest first (GW1 #25742). A renamed rule keeps its process variants: their type id is hashed with the first (oldest) id, so a save from before keeps one type per thing. Optional; absent = the rule never had another id. Never on a world rule.',
+        max_length=8,
+    )
 
 
 class ObservedThing(BaseModel):

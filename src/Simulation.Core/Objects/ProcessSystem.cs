@@ -295,7 +295,8 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                 // B2700: what was processed is made - it carries the implied properties (crafted) like an invention.
                 properties = [.. properties.Union(Implied.Where(_types.PropertyVocabulary.Contains), StringComparer.Ordinal).Order(StringComparer.Ordinal)];
                 var thing = things[first];
-                var variant = VariantFor(thing.TypeId, rule.Id, properties);
+                // GW1 #25742: hashed with the rule's first id (data 'was'), so a renamed rule keeps its variants.
+                var variant = VariantFor(thing.TypeId, rule.Was?.FirstOrDefault() ?? rule.Id, properties);
                 _objects.ChangeType(thing.Id, variant);
                 _inhabitants.Experience(world.Tick, inhabitant, action, variant, _types.TrueProperties(variant));
                 _inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, world.Tick, inhabitant.Id, action, thing.Id) { TargetType = variant, Detail = rule.Id });

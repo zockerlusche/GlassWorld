@@ -795,6 +795,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("result")]
         public ProcessOutcome Result { get; set; } = new ProcessOutcome();
 
+        /// <summary>
+        /// Earlier ids of this data rule, oldest first (GW1 #25742). A renamed rule keeps its process variants: their type id is hashed with the first (oldest) id, so a save from before keeps one type per thing. Optional; absent = the rule never had another id. Never on a world rule.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("was")]
+        public System.Collections.Generic.ICollection<string>? Was { get; set; } = default!;
+
     }
 
     /// <summary>
