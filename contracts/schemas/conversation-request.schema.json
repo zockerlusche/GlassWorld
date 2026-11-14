@@ -150,6 +150,10 @@
           "items": {
             "$ref": "#/$defs/SeenLabel"
           }
+        },
+        "life_stage": {
+          "description": "B9 R1/R27 (D1049): the speaker's life phase, an id of the vocabulary 'life_stage' (child, youth, adult, elder), so the conversation knows when it talks with a minor (youth protection). Optional; absent = not stated (a world without aging, an older core).",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     },
