@@ -106,6 +106,62 @@ public sealed class UiTests
         Assert.Contains("text on Panel", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void ABadBarThatDiffersOnlyInHueIsRejected(int palette)
+    {
+        // S1b (A1708): Marcel sees colours weakly; the bad range must stand out in brightness too. A bad bar as bright
+        // as the good one (only another hue) is refused.
+        var tokens = JsonNode.Parse(TokensJson)!;
+        var colors = tokens["palettes"]![palette]!["colors"]!.AsArray();
+        var fill = (string)colors.Single(c => (string)c!["id"]! == "bar_fill")!["rgba"]!;
+        colors.Single(c => (string)c!["id"]! == "bar_bad")!["rgba"] = fill;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("Bar_bad on Bar_fill", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, "#2E2A2633")]
+    [InlineData(1, "#00000033")]
+    public void TextOnTheWorldWithAThinOutlineOverSnowIsRejected(int palette, string outline)
+    {
+        // TL #25715: light text on the world must read over sand and snow; an outline that lets the light ground through
+        // does not hold it.
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["palettes"]![palette]!["colors"]!.AsArray().Single(c => (string)c!["id"]! == "world_outline")!["rgba"] = outline;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("World_text in its outline over the ground", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextOnTheWorldWithoutOutlineIsRejected()
+    {
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["window"]!["world_outline_px"] = 0;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("text on the world needs its outline", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AFourthFontSizeIsRejected()
+    {
+        // Three steps (D1076 section 6): title, text, small.
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["font_sizes"]![2]!["px"] = 24;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("font sizes; at most 3", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RoomOffTheGridIsRejected()
+    {
+        var tokens = JsonNode.Parse(TokensJson)!;
+        tokens["zones"]!["panel_padding"] = 6;
+        var ex = Assert.Throws<InvalidDataException>(() => UiStyle.FromJson(tokens.ToJsonString(), FramesJson));
+        Assert.Contains("zones.panel_padding (6) is not on the 4 px grid", ex.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void FontBelowMinimumIsRejected()
     {

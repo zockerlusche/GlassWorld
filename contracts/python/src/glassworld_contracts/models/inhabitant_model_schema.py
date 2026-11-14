@@ -46,6 +46,54 @@ class MoodModel(BaseModel):
     )
 
 
+class ComfortNeedModifier(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    level: str = Field(
+        ...,
+        description='Comfort level.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    need: str = Field(
+        ...,
+        description='The need whose decay changes.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    factor: float = Field(
+        ..., description='Factor on its decay per hour.', ge=0.0, le=5.0
+    )
+
+
+class ComfortPaceFactor(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    factor: float = Field(
+        ..., description='Factor on the walking pace.', ge=0.1, le=2.0
+    )
+
+
+class ComfortLossPoint(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    degrees: int = Field(
+        ..., description='Whole degrees outside the zone.', ge=0, le=80
+    )
+    per_hour: float = Field(
+        ..., description='Loss of the need per hour there.', ge=0.0, le=1.0
+    )
+
+
 class ComfortFelt(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -335,6 +383,26 @@ class ComfortZone(BaseModel):
         description='Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.',
         ge=0.0,
         le=10.0,
+    )
+    need_modifiers: list[ComfortNeedModifier] | None = Field(
+        None,
+        description='B5 R5/R6: at a comfort level other needs fall faster or slower (cold: hunger and sleep faster; hot: thirst faster) - factors on their decay. Omitted = none.',
+        max_length=32,
+    )
+    pace_factors: list[ComfortPaceFactor] | None = Field(
+        None,
+        description='B5 R6: the walking pace at a comfort level (cold: slower). Omitted = unchanged.',
+        max_length=8,
+    )
+    cold_loss_table: list[ComfortLossPoint] | None = Field(
+        None,
+        description="B5 R5: the warmth need's loss per hour by whole degrees below the zone, as points (linear between, the last holds beyond); replaces cold_loss_per_hour_per_degree when given.",
+        max_length=16,
+    )
+    heat_loss_table: list[ComfortLossPoint] | None = Field(
+        None,
+        description='B5 R5: as cold_loss_table, by degrees above the zone; replaces heat_loss_per_hour_per_degree when given.',
+        max_length=16,
     )
     felt: list[ComfortFelt] | None = Field(
         None,

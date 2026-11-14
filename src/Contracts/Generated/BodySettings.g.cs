@@ -251,6 +251,20 @@ namespace GlassWorld.Contracts
         public BodySun Sun { get; set; } = new BodySun();
 
         /// <summary>
+        /// B5 R4: wind feels colder (at full wind cool_tenth_c), less where a thing with wind_block_permille stands within block_radius_cm. Absent = wind is not felt.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wind")]
+        public Wind? Wind { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("others_warmth")]
+        public OthersWarmth? OthersWarmth { get; set; } = default!;
+
+        /// <summary>
         /// B5 R37: what an inhabitant finds out from what it feels near a thing - a belief with source experienced about the thing's TRUE property, by the one path of experience (B2672 F8). Nowhere a rule like 'cold -&gt; seek fire': only what was felt near what.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -325,6 +339,30 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("permille")]
         public int Permille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Wind
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("cool_tenth_c")]
+        public int CoolTenthC { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("block_radius_cm")]
+        public int BlockRadiusCm { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class OthersWarmth
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tenth_c")]
+        public int TenthC { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cm")]
+        public int RadiusCm { get; set; } = default!;
 
     }
 }

@@ -188,6 +188,48 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("field_max_share")]
         public double FieldMaxShare { get; set; } = default!;
 
+        /// <summary>
+        /// Soft shadow around windows (S1b, D1076 section 6: lifted from the world instead of a hard box).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_px")]
+        public int ShadowPx { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of that shadow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_alpha")]
+        public double ShadowAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// Corner radius of buttons and fields: a shape of their own, apart from the rounder windows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("button_radius")]
+        public int ButtonRadius { get; set; } = default!;
+
+        /// <summary>
+        /// Outline of text that stands on the world without a box (the corners top left and bottom left, D795).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("world_outline_px")]
+        public int WorldOutlinePx { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_alpha")]
+        public double ScrimAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// How far that dark ground fades out at its edges (a soft gradient, no box).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_soft_px")]
+        public int ScrimSoftPx { get; set; } = default!;
+
+        /// <summary>
+        /// Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("world_check_grounds")]
+        public System.Collections.Generic.ICollection<string> WorldCheckGrounds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -575,6 +617,26 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("bubble_player")]
         Bubble_player = 11,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("field")]
+        Field = 12,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("world_text")]
+        World_text = 13,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("world_outline")]
+        World_outline = 14,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bar_fill")]
+        Bar_fill = 15,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bar_bad")]
+        Bar_bad = 16,
 
 
     }

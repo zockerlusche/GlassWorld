@@ -80,6 +80,11 @@ public sealed class ProcessTests
         Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
         Assert.False(host.Objects.TryGet(other.Id, out _));
         Assert.Equal("braid_two_fibres", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+
+        // GW1 #25742: the variant id is hashed with the rule's first id (data 'was'), so the rename of D1096 #2/#3 keeps
+        // the type a save from before knows: reed + braid_two_fibres_to_cord.
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("reed|braid_two_fibres_to_cord"));
+        Assert.Equal("reed_v" + Convert.ToHexStringLower(hash.AsSpan(0, 6)), cord.TypeId);
     }
 
     [Fact]

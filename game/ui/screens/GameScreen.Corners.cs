@@ -15,7 +15,7 @@ namespace GlassWorld.Game.Ui.Screens;
 /// </summary>
 public partial class GameScreen
 {
-    private readonly PanelContainer _corner = new() { Name = "Corner", Visible = false, ThemeTypeVariation = UiTheme.CompactPanel };
+    private readonly PanelContainer _corner = new() { Name = "Corner", Visible = false, ThemeTypeVariation = UiTheme.WorldPanel };
     private readonly HBoxContainer _cornerSpeed = new() { Name = "Speeds" };
     private readonly HBoxContainer _cornerDate = new() { Name = "Date" };
     private readonly HBoxContainer _cornerFavor = new() { Name = "Favor" };
@@ -40,9 +40,11 @@ public partial class GameScreen
     private void BuildCorners()
     {
         var px = _style!.Tokens.Zones.RoundButtonPx;
+        // S1b (D795, TL #25715): the whole time block stands on the world on its soft dark ground, no beige box; the speed
+        // and round buttons keep their own form, date, weather and favour take the world's light text.
         var column = new VBoxContainer { Name = "Column" };
-        column.AddChild(_cornerSpeed);
-        column.AddChild(_cornerDate);
+        column.AddThemeConstantOverride("separation", _style.Tokens.Window.Gap / 2);
+        column.AddChild(TimeBox(_cornerSpeed, _cornerDate));
         column.AddChild(_cornerFavor);
         column.AddChild(_cornerButtons);
         _corner.AddChild(column);
@@ -78,7 +80,7 @@ public partial class GameScreen
     /// </summary>
     private void MoveClockParts(bool corners)
     {
-        if (_topBar is null || _date is null || _time is null || _favor is null)
+        if (_topBar is null || _date is null || _day is null || _time is null || _favor is null)
         {
             return;
         }
@@ -88,8 +90,9 @@ public partial class GameScreen
         {
             Move(_seasonIcon, _cornerDate, 0);
             Move(_date, _cornerDate, 1);
-            Move(_time, _cornerDate, 2);
-            Move(_weatherIcon, _cornerDate, 3);
+            Move(_day, _cornerDate, 2);
+            Move(_time, _cornerDate, 3);
+            Move(_weatherIcon, _cornerDate, 4);
             for (var i = 0; i < _timeButtons.Count; i++)
             {
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
@@ -100,18 +103,47 @@ public partial class GameScreen
             return;
         }
 
-        // The old order: date, time, speeds, favour, menu (the corner's symbols wait outside the tree).
+        // The old order: date, day, time, speeds, favour, menu (the corner's symbols wait outside the tree).
         Move(_date, _topRow, 0);
-        Move(_time, _topRow, 1);
+        Move(_day, _topRow, 1);
+        Move(_time, _topRow, 2);
         for (var i = 0; i < _timeButtons.Count; i++)
         {
-            Move(_timeButtons[i].Button, _topRow, 2 + i);
+            Move(_timeButtons[i].Button, _topRow, 3 + i);
         }
 
-        Move(_favor, _topRow, 2 + _timeButtons.Count);
+        Move(_favor, _topRow, 3 + _timeButtons.Count);
         Move(_seasonIcon, _cornerDate, 0);
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
+    }
+
+    /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
+    private static VBoxContainer TimeBox(Control speeds, Control date)
+    {
+        var rows = new VBoxContainer { Name = "TimeBox", SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd };
+        rows.AddChild(speeds);
+        rows.AddChild(date);
+        return rows;
+    }
+
+    /// <summary>
+    /// The parts that stand on the world without a box take its theme (S1b, D795): the portraits, the log (corner
+    /// layout only) and the favour row. Again after a style change, which builds a new theme.
+    /// </summary>
+    private void ApplyWorldTheme()
+    {
+        if (_worldTheme is null)
+        {
+            return;
+        }
+
+        _portraits.Theme = _worldTheme;
+        _cornerFavor.Theme = _worldTheme;
+        _cornerDate.Theme = _worldTheme;
+        var log = _sideBar.PanelOf(ScreenZones.Pinned);
+        log.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
+        log.Theme = _zones ? _worldTheme : null;
     }
 
     private static void Move(Control part, Node to, int index)
@@ -368,7 +400,7 @@ public partial class GameScreen
 
         foreach (var (panel, contentPx) in windows)
         {
-            panel.Dock(area, style, 0, below, widthPx: zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom);
+            panel.Dock(area, style, 0, below, widthPx: zones.SidePanelWidth, contentPx: contentPx, maxWidth: rightRoom, fitContent: true);
         }
 
         // The log at the bottom left, below the portraits (it gets its own corner shape in step 3).
@@ -385,8 +417,8 @@ public partial class GameScreen
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(choices);
         var px = style.Tokens.Zones.RoundButtonPx;
-        var (bar, _, _) = CreateTopBar(style, choices, _ => { });
-        var block = new PanelContainer { Name = "CornerSample", ThemeTypeVariation = UiTheme.CompactPanel };
+        var (bar, _, _, _) = CreateTopBar(style, choices, _ => { });
+        var block = new PanelContainer { Name = "CornerSample", ThemeTypeVariation = UiTheme.WorldPanel };
         var column = new VBoxContainer();
         var speeds = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         foreach (var button in bar.GetChild(0).GetChildren().OfType<Button>().ToList())
@@ -417,8 +449,11 @@ public partial class GameScreen
             buttons.AddChild(round);
         }
 
-        column.AddChild(speeds);
-        column.AddChild(dateRow);
+        var world = UiTheme.BuildWorld(style);
+        favorRow.Theme = world;
+        dateRow.Theme = world;
+        column.AddThemeConstantOverride("separation", style.Tokens.Window.Gap / 2);
+        column.AddChild(TimeBox(speeds, dateRow));
         column.AddChild(favorRow);
         column.AddChild(buttons);
         block.AddChild(column);
