@@ -510,12 +510,9 @@ public partial class GameScreen : CanvasLayer
                 _cardBeforeWindow = _sideBar.OpenKey is null ? null : _cardId ?? _cardBeforeWindow;
                 _cardId = null;
             }
-            else
-            {
-                _cardBeforeWindow = null;
-            }
             else if (_cardId is null)
             {
+                _cardBeforeWindow = null;
                 // The card tab opened by its tab or theme button: the inhabitant last shown, else how to choose one.
                 if (_lastCardId is { } last && _feed?.Card(last) is not null)
                 {
