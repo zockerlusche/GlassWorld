@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Said or thought (A1510, W1728): the action vocabulary marks the actions whose line is said aloud to the other one (spoken: introduce, talk to, warn, show, teach); the conversation log shows those as 'says' instead of 'thinks'.
 - Reach heights for actions on things (A1632, D958 D1, part 1): every thing's look says where a hand meets it - `reach` low (on the ground), mid (bushes, trunks, reeds) or high (look/objects visuals, data) - and the animation mappings may choose by it (`reach` with target object, wins over the target kind alone). Looking at, eating, drinking at or combining a thing on the ground now crouches (`crouch_inspect`) instead of reaching forward at table height. Reaching up for high things (IK) follows in part 2.
 - The decider's options come in a shuffled order (D1025, TL TH142): in L1591 combine stood first in 61 of 67 requests and 9 of 15 combine choices were option 1. After the cut to the limit (which still keeps the intended option) the order is shuffled per question from the world seed and the question id - the same in a replay and when a question is sent again, with no random stream of the world.
 - A failed world step no longer endangers the save game (B2712, TL #24641): an exception inside a step stops the world, the half advanced state is never saved over the last good save game (neither by the daily autosave nor on closing), it goes once to a rescue file next to it (`<world>.rescue.db`), and a calm notice says so.
