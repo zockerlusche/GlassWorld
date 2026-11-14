@@ -10,13 +10,19 @@ namespace GlassWorld.Game.Ui;
 /// <summary>
 /// Headless layout check of the UI standard (D366 section 14): a sample window in both reference
 /// resolutions (KR5), at UI size 75/100/200 % and text size 100/200 %, in DE and EN. It must stay in
-/// the safe area, keep its header readable and fit the allowed share of the screen.
+/// the safe area, keep its header readable and fit the allowed share of the screen. The corners of Variante A
+/// (A1682) are checked in three resolutions at UI size 75-200 %: nothing overlaps, the middle stays free.
 /// </summary>
 public static class UiLayoutCheck
 {
     private static readonly (int Width, int Height)[] Resolutions = [(1920, 1080), (3840, 1600)];
     private static readonly double[] UiScales = [0.75, 1.0, 2.0];
     private static readonly double[] TextScales = [1.0, 2.0];
+
+    // The corners of Variante A (A1682, D957 v4 section 5): three resolutions (the third a window with borders),
+    // UI size 75-200 %, and the largest text size at 100 %.
+    private static readonly (int Width, int Height)[] CornerResolutions = [(1920, 1080), (1887, 1043), (3840, 1600)];
+    private static readonly (double Ui, double Text)[] CornerSizes = [(0.75, 1.0), (1.0, 1.0), (1.5, 1.0), (2.0, 1.0), (1.0, 2.0)];
 
     /// <summary>Runs all cases below <paramref name="host"/>; returns the problems (empty if fine).</summary>
     /// <param name="host">Node the check stages are added to.</param>
@@ -47,6 +53,18 @@ public static class UiLayoutCheck
                             var label = $"{locale} {width}x{height} ui {uiScale:P0} text {textScale:P0}";
                             problems.AddRange((await CheckOne(host, style, new Vector2((float)w, (float)h), timeChoices, windows)).Select(p => $"{label}: {p}"));
                         }
+                    }
+                }
+
+                foreach (var (width, height) in CornerResolutions)
+                {
+                    foreach (var (uiScale, textScale) in CornerSizes)
+                    {
+                        cases++;
+                        var style = baseStyle.With(baseStyle.Settings with { UiScale = uiScale, TextScale = textScale });
+                        var (w, h) = UiScaling.LogicalSize(width, height, style.Tokens, style.ContentScaleFactor);
+                        var label = $"{locale} corners {width}x{height} ui {uiScale:P0} text {textScale:P0}";
+                        problems.AddRange((await CheckCorners(host, style, new Vector2((float)w, (float)h), timeChoices)).Select(p => $"{label}: {p}"));
                     }
                 }
             }
@@ -167,6 +185,88 @@ public static class UiLayoutCheck
             window.Free();
         }
 
+        return problems;
+    }
+
+    /// <summary>
+    /// The corners (A1682): time block, portraits (a few with names, many as portraits only), the log and an open
+    /// window placed by the game's own rule stay in the safe area, do not overlap, and leave the rectangle in the
+    /// middle free; the many portraits turn compact.
+    /// </summary>
+    private static async Task<IReadOnlyList<string>> CheckCorners(Node host, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
+    {
+        var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
+        host.AddChild(stage);
+        var date = TextFill.Fill(host.Tr("ui.clock.date"), new Dictionary<string, string> { ["season"] = host.Tr("time.season.autumn"), ["day"] = "28", ["year"] = "120" });
+        var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
+        var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
+        var portraits = new GwPortraitList();
+        var log = new GwSidePanel();
+        log.Setup("ui.log.title");
+        var window = new GwSidePanel();
+        window.Setup("ui.inhabitants.title");
+        for (var i = 0; i < 26; i++)
+        {
+            window.Content.AddChild(new Label { Text = "ui.card.need.company", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            log.Content.AddChild(new Label { Text = "ui.log.no_answer", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        }
+
+        stage.AddChild(corner);
+        stage.AddChild(portraits);
+        stage.AddChild(log);
+        stage.AddChild(window);
+        portraits.Setup(style);
+        var problems = new List<string>();
+        var margin = style.Tokens.Window.SafeMargin;
+        var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin));
+        var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, style.Tokens.Zones.MiddleShare);
+        var middle = new Rect2((float)mx, (float)my, (float)mw, (float)mh);
+        var activity = host.Tr("ui.activity.show.inhabitant_topic");
+        foreach (var count in new[] { 2, style.Tokens.Zones.PortraitsCompactFrom + 4 })
+        {
+            portraits.SetRows([.. Enumerable.Range(1, count).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))]);
+            for (var pass = 0; pass < 2; pass++)
+            {
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+                GameScreen.PlaceCorners(area, style, corner, portraits, log, [(window, 0f)]);
+            }
+
+            await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+            var parts = new (string Name, Rect2 Box)[]
+            {
+                ("time block", new Rect2(corner.Position, corner.Size)),
+                ($"{count} portraits", new Rect2(portraits.Position, portraits.Size)),
+                ("log", new Rect2(log.Position, log.Size)),
+                ("window", new Rect2(window.Position, window.Size)),
+            };
+            foreach (var (name, box) in parts)
+            {
+                if (!safe.Grow(0.5f).Encloses(box))
+                {
+                    problems.Add($"{name} {box} leaves the safe area of {area}");
+                }
+
+                if (box.Intersects(middle))
+                {
+                    problems.Add($"{name} {box} reaches into the free middle {middle}");
+                }
+            }
+
+            foreach (var (a, b) in parts.SelectMany((a, i) => parts.Skip(i + 1).Select(b => (a, b))))
+            {
+                if (a.Box.Intersects(b.Box))
+                {
+                    problems.Add($"{a.Name} {a.Box} overlaps {b.Name} {b.Box}");
+                }
+            }
+
+            if (portraits.Compact != (count >= style.Tokens.Zones.PortraitsCompactFrom))
+            {
+                problems.Add($"{count} portraits: compact is {portraits.Compact}");
+            }
+        }
+
+        stage.QueueFree();
         return problems;
     }
 

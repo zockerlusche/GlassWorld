@@ -19,6 +19,9 @@
       "items": {
         "$ref": "#/$defs/ChronicleKind"
       }
+    },
+    "narrative": {
+      "$ref": "#/$defs/ChronicleNarrativeSettings"
     }
   },
   "$defs": {
@@ -62,6 +65,36 @@
       "description": "inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text), other = a second inhabitant (the event target, by name). A pattern, not an enum: generated C# cannot read arrays of enums.",
       "type": "string",
       "pattern": "^(inhabitant|target|action|other)$"
+    },
+    "ChronicleNarrativeSettings": {
+      "description": "B8 R10 (A1355): the day's narrative (family book) in the computing night. At nightfall the core sends the chronicle entries since the last nightfall as one job of kind chronicle; the answer (content guard, length) stands above the day's base lines. Left out = no narrative is asked for.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_chars",
+        "max_entries",
+        "job_priority"
+      ],
+      "properties": {
+        "max_chars": {
+          "description": "Longest narrative in characters (at most the 280 of a generated text).",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 280
+        },
+        "max_entries": {
+          "description": "At most this many entries go into one job (the newest when there are more).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        },
+        "job_priority": {
+          "description": "Priority of the job (higher runs first).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
     }
   }
 }

@@ -100,9 +100,6 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Reason: the inhabitant has not answered the last sentence yet.</summary>
     public const string ReasonOpen = "msg.command.conversation_open";
 
-    /// <summary>Text key of the calm line when no answer came (timeout, error, service stopping); DE/EN in content/i18n.</summary>
-    public const string NoAnswerKey = "msg.converse.no_answer";
-
     /// <summary>Other id of the player in an inhabitant's relationships.</summary>
     public const string PlayerId = "player";
 
@@ -571,8 +568,9 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             Change(inhabitant, OutcomeChangeOutcome.No_answer, null);
         }
 
-        // A calm line instead of nothing (W1701): the text is a key, the game shows it in the player's language.
-        _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null) { Text = NoAnswerKey });
+        // Nothing is said (D1096 #8, PR2/B2644): no fixed sentence in the inhabitant's mouth. The game shows a wordless
+        // '…' and a neutral log line ('did not answer'); the event carries no text.
+        _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null));
     }
 
     /// <summary>Event: the player's praise reached an inhabitant (A1538).</summary>

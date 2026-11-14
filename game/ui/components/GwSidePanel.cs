@@ -54,7 +54,8 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="heightShare">Share of the free height the panel takes (1 = all).</param>
     /// <param name="widthPx">Width at the reference size; 0 = the side panel width of the window tokens.</param>
     /// <param name="contentPx">Width the content asks for in pixels as measured (a table's headers), without the panel's frame; 0 = no wish. Capped at the room like the token width.</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0)
+    /// <param name="maxWidth">Widest the panel may be (corner layout: never into the free middle, A1682); 0 = no cap but the room.</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
@@ -75,6 +76,10 @@ public partial class GwSidePanel : PanelContainer
         }
 
         var width = Math.Min(wanted, area.X - (2 * margin) - rightOffset);
+        if (maxWidth > 0)
+        {
+            width = Math.Min(width, maxWidth);
+        }
         // A wrapping label measures itself at its current width (one letter per line before the first
         // layout), so wrap the title only when it really does not fit.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;

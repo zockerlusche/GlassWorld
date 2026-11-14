@@ -246,8 +246,8 @@ public sealed class ConversationTests : IDisposable
         Say(host, id, "Hallo?");
         var hours = (long)Math.Ceiling(host.Content.Conversation.NoAnswerAfterHours * host.World.Calendar.Settings.TicksPerHour);
         host.World.Run(hours + 2);
-        // W1701: a calm line (text key, the game translates it) instead of nothing.
-        Assert.Contains(events, e => e.Kind == "no_answer" && e.InhabitantId == id && e.Text == ConversationSystem.NoAnswerKey);
+        // W1701 with D1096 #8: a calm event without words - no fixed sentence in the inhabitant's mouth.
+        Assert.Contains(events, e => e.Kind == "no_answer" && e.InhabitantId == id && e.Text is null);
         Assert.False(host.Conversation.IsWaiting(id));
         Assert.True(host.Player.Favor >= favor - 1e-9, $"favour {host.Player.Favor} back to at least {favor}");
     }

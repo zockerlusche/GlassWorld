@@ -127,7 +127,7 @@
           "step": 3
         },
         {
-          "shape": "bowl",
+          "shape": "hemisphere_open",
           "size_m": {
             "x": 0.4,
             "y": 0.3,
