@@ -40,5 +40,7 @@ public sealed class FamilyViewTests
         string[] family = ["court", "propose_partnership", "wish_child", "care", "bury", "name_person", "sail"];
         Assert.All(family, a => Assert.Contains(a, actions));
         Assert.DoesNotContain(Content.Value.Actions.OfferedActions, a => family.Contains(a));
+        Assert.All(family, a => Assert.True(Content.Value.Vocabularies[VocabularyKind.Action].Entries.Single(e => e.Id == a).Reserved == true));
+        Assert.DoesNotContain(family, a => Content.Value.Inventions.Actions.Contains(a));
     }
 }

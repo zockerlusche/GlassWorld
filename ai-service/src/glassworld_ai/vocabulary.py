@@ -15,6 +15,8 @@ class Vocabulary:
     # kind -> id -> occasion: an entry offered only on that occasion (only_when, e.g. the
     # actions of a stuck building, A1373 step 2)
     occasions: dict[str, dict[str, str]] = field(default_factory=dict[str, dict[str, str]])
+    # kind -> ids kept for a later step (reserved, B9 R26): never listed in a prompt (GW3 #25889).
+    reserved: dict[str, set[str]] = field(default_factory=dict[str, set[str]])
 
     def ids(self, kind: str) -> list[str]:
         return sorted(self.entries.get(kind, {}))
@@ -23,7 +25,8 @@ class Vocabulary:
         """The ids without an occasion: what a prompt may offer in general (review GW2 #295 -
         'give up' is no idea for an unknown berry)."""
         bound = self.occasions.get(kind, {})
-        return [i for i in self.ids(kind) if i not in bound]
+        kept = self.reserved.get(kind, set())
+        return [i for i in self.ids(kind) if i not in bound and i not in kept]
 
     def describe(self, kind: str, entry_id: str) -> str | None:
         return self.entries.get(kind, {}).get(entry_id)
@@ -32,6 +35,7 @@ class Vocabulary:
     def load(cls, directory: Path) -> Vocabulary:
         entries: dict[str, dict[str, str]] = {}
         occasions: dict[str, dict[str, str]] = {}
+        reserved: dict[str, set[str]] = {}
         for path in sorted(directory.glob("*.json")):
             data = VocabularyFile.model_validate(json.loads(path.read_text(encoding="utf-8")))
             kind = str(data.kind.value if hasattr(data.kind, "value") else data.kind)
@@ -43,4 +47,6 @@ class Vocabulary:
                 occasion: object = getattr(entry, "only_when", None)
                 if occasion is not None:
                     occasions.setdefault(kind, {})[entry.id] = str(occasion)
-        return cls(entries=entries, occasions=occasions)
+                if getattr(entry, "reserved", None):
+                    reserved.setdefault(kind, set()).add(entry.id)
+        return cls(entries=entries, occasions=occasions, reserved=reserved)
