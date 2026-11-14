@@ -1403,6 +1403,10 @@
       "text": "Roter Pilz"
     },
     {
+      "key": "vocab.object.ash",
+      "text": "Asche"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
@@ -2069,6 +2073,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
+    },
+    {
+      "key": "vocab.event.caught_fire",
+      "text": "Etwas hat Feuer gefangen"
     },
     {
       "key": "vocab.soil.loam",
