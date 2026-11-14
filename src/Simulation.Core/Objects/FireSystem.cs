@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Nature;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Objects;
@@ -7,7 +8,8 @@ namespace GlassWorld.Simulation.Objects;
 /// <summary>A burning thing as saved: it goes out at <paramref name="Until"/> unless rain puts it out first.</summary>
 /// <param name="Id">Object id.</param>
 /// <param name="Until">Tick at which it has burnt down.</param>
-public sealed record BurningThing(string Id, long Until);
+/// <param name="Caught">Whether it took hold from a fire near it (B5 R46) rather than being made (review GW2 #398).</param>
+public sealed record BurningThing(string Id, long Until, bool Caught = false);
 
 /// <summary>
 /// B2687 K3 (spec Bogen 30 R7, A1379 part): fire as a thing of the world. Every thing whose type has
@@ -15,7 +17,12 @@ public sealed record BurningThing(string Id, long Until);
 /// when the time is up; precipitation where it lies puts it out at once. A type with
 /// <c>params.heat_tenth_c</c>/<c>heat_radius_cm</c> warms the air around it, falling off linearly to nothing
 /// at the radius (R4: what the inhabitants feel). All numbers come from the type data; the code knows no
-/// fire by name. Deterministic: objects in id order, whole ticks, no randomness.
+/// fire by name. Deterministic: objects in id order, whole ticks.
+/// B5-10 (R45-R47, D1084; data <c>content/fire/settings.json</c>): a thing stays wet for the drying hours of the
+/// air temperature after the last rain on the island (a pure function of the nature takt, no state); wet things
+/// neither catch fire nor feed one. A warm burning thing takes hold of dry things with the fuel property near it
+/// by a chance that falls off with the distance and grows with the wind (stream <c>fire</c>), capped per check
+/// and on the island; a fire that burnt down leaves its remains (ash). Nothing harms an inhabitant (B2472).
 /// </summary>
 public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 {
@@ -24,6 +31,9 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     private readonly Func<string, string?> _rootOf;
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, long> _until = new(StringComparer.Ordinal);
+
+    // Burning things that took hold from a fire near them (B5 R46) - only they make a big fire (review GW2 #398).
+    private readonly SortedSet<string> _caught = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ObjectParams?> _params = new(StringComparer.Ordinal);
 
     /// <summary>Creates the system.</summary>
@@ -53,6 +63,21 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>The air at a place (precipitation puts fires out); null = no weather, fires only burn down.</summary>
     public Func<World, Position, Air?>? AirAt { get; init; }
+
+    /// <summary>Drying, spreading and remains (B5-10); null = fires only burn down or go out (as before).</summary>
+    public FireSettings? Settings { get; set; }
+
+    /// <summary>The nature takt: how long the island has been dry (R51); null = things are wet only while it rains.</summary>
+    public NatureSystem? Nature { get; init; }
+
+    /// <summary>Wind 0..1 at a tick (the weather); null = calm.</summary>
+    public Func<long, double>? WindAt { get; init; }
+
+    /// <summary>Told when a thing caught fire: the thing (already gone from the world) and the fire it became.</summary>
+    public Action<World, WorldObject, WorldObject>? Caught { get; set; }
+
+    /// <summary>Event: a thing caught fire from a fire near it (B5 R46; vocabulary event).</summary>
+    public const string CaughtFire = "caught_fire";
 
     /// <inheritdoc/>
     public string Name => "fire";
@@ -102,6 +127,11 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             {
                 _objects.Remove(id);
                 (done ??= []).Add(id);
+                if (burnt && Settings?.Remains?.FirstOrDefault(r => string.Equals(r.Burnt, thing.TypeId, StringComparison.Ordinal)) is { } remains)
+                {
+                    _objects.Spawn(remains.Left, thing.Position);
+                }
+
                 Ended?.Invoke(world, thing, burnt ? BurnedOut : PutOut);
             }
         }
@@ -109,6 +139,168 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var id in done ?? [])
         {
             _until.Remove(id);
+            _caught.Remove(id);
+        }
+
+        if (Settings?.Spread is { } spread)
+        {
+            TakeHold(world, spread);
+        }
+    }
+
+    /// <summary>
+    /// Whether a thing at a place is wet (B5 R45): while it rains there, and for the drying hours of the air
+    /// temperature after the last rain on the island. Without drying data or weather nothing is wet.
+    /// </summary>
+    public bool IsWet(World world, Position at)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (Settings is not { } data || AirAt?.Invoke(world, at) is not { } air)
+        {
+            return false;
+        }
+
+        if (air.Precipitation)
+        {
+            return true;
+        }
+
+        if (Nature?.InfluencesSince(world.Tick, world.Tick).DryTakts is not { } dryTakts)
+        {
+            return false;
+        }
+
+        var band = data.Drying.FirstOrDefault(b => b.BelowTenthC is not { } below || air.TemperatureTenthC < below);
+        return band is not null && dryTakts * Nature.TaktTicks < (long)band.Hours * _ticksPerHour;
+    }
+
+    /// <summary>B5 R45: whether a thing lacks the fuel property right now because it is wet (it does not burn in a combination either).</summary>
+    public bool Lacks(World world, WorldObject thing, string property)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        return Settings is { } data && string.Equals(property, data.FuelProperty, StringComparison.Ordinal) && IsWet(world, thing.Position);
+    }
+
+    /// <summary>
+    /// B5 R47: whether a sensation of the fire data is felt at a place - at least min_burning burning things
+    /// within its radius (a campfire alone is not a big fire). Unknown sensations: false.
+    /// </summary>
+    public bool Feels(Position at, string sensation)
+    {
+        if (Settings?.Felt is not { Count: > 0 } felt || felt.FirstOrDefault(f => string.Equals(f.Sensation, sensation, StringComparison.Ordinal)) is not { } rule)
+        {
+            return false;
+        }
+
+        var radius = rule.RadiusCm / 100.0;
+        var count = 0;
+        foreach (var id in rule.CaughtOnly == true ? _caught : (IEnumerable<string>)_until.Keys)
+        {
+            if (_objects.TryGet(id, out var burning))
+            {
+                var dx = burning.Position.X - at.X;
+                var dz = burning.Position.Z - at.Z;
+                if ((dx * dx) + (dz * dz) <= radius * radius && ++count >= rule.MinBurning)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether a thing feeds a fire and can catch one: its type has the fuel property (TRUE properties).</summary>
+    private bool IsFuel(string typeId) =>
+        Settings is { } data && _objects.Catalog.Contains(typeId) && _objects.Catalog.TrueProperties(typeId).Contains(data.FuelProperty);
+
+    /// <summary>
+    /// B5 R46: each warm burning thing (heat radius) may set dry fuel near it alight; the chance falls off
+    /// linearly to nothing at the radius and grows with the wind; at most max_new per check, none while
+    /// max_burning things burn. Candidates in id order, one draw each from the stream <c>fire</c>.
+    /// </summary>
+    private void TakeHold(World world, FireSpread spread)
+    {
+        var every = Math.Max(1L, (long)spread.EveryMinutes * _ticksPerHour / 60);
+        if (world.Tick % every != 0 || _until.Count == 0 || _until.Count >= spread.MaxBurning || spread.MaxNew <= 0)
+        {
+            return;
+        }
+
+        var sources = new List<WorldObject>();
+        foreach (var id in _until.Keys)
+        {
+            if (_objects.TryGet(id, out var burning) && ParamsOf(burning.TypeId) is { HeatRadiusCm: > 0 })
+            {
+                sources.Add(burning);
+            }
+        }
+
+        if (sources.Count == 0)
+        {
+            return;
+        }
+
+        var radius = spread.RadiusCm / 100.0;
+        var near = new List<WorldObject>();
+        var closest = new SortedDictionary<string, (WorldObject Thing, double Distance)>(StringComparer.Ordinal);
+        foreach (var source in sources)
+        {
+            near.Clear();
+            _objects.Within(source.Position, radius, near);
+            foreach (var thing in near)
+            {
+                if (_until.ContainsKey(thing.Id) || !IsFuel(thing.TypeId)
+                    || (spread.Spares is { Count: > 0 } spares && _objects.Catalog.TrueProperties(thing.TypeId).Overlaps(spares)))
+                {
+                    // Built things wait for the damage by quality (review GW1 #396, A1382 S2).
+                    continue;
+                }
+
+                var dx = thing.Position.X - source.Position.X;
+                var dz = thing.Position.Z - source.Position.Z;
+                var distance = Math.Sqrt((dx * dx) + (dz * dz));
+                if (distance < radius && (!closest.TryGetValue(thing.Id, out var known) || distance < known.Distance))
+                {
+                    closest[thing.Id] = (thing, distance);
+                }
+            }
+        }
+
+        if (closest.Count == 0)
+        {
+            return;
+        }
+
+        var windPermille = (long)Math.Round(Math.Clamp(WindAt?.Invoke(world.Tick) ?? 0, 0, 1) * 1000);
+        var rng = world.Random.Get("fire");
+        var lit = 0;
+        foreach (var (thing, distance) in closest.Values)
+        {
+            if (lit >= spread.MaxNew || _until.Count >= spread.MaxBurning)
+            {
+                break;
+            }
+
+            if (IsWet(world, thing.Position))
+            {
+                continue;
+            }
+
+            var restCm = Math.Max(0L, spread.RadiusCm - (long)Math.Round(distance * 100));
+            var chance = (long)spread.ChancePermille * restCm / spread.RadiusCm * (1000 + (windPermille * spread.WindPermille / 1000)) / 1000;
+            if (rng.NextInt(0, 1000) >= chance)
+            {
+                continue;
+            }
+
+            _objects.Remove(thing.Id);
+            var fire = _objects.Spawn(spread.Becomes, thing.Position);
+            var minutes = ParamsOf(fire.TypeId)?.BurnMinutes ?? 0;
+            _until[fire.Id] = world.Tick + Math.Max(1L, (long)minutes * _ticksPerHour / 60);
+            _caught.Add(fire.Id);
+            lit++;
+            Caught?.Invoke(world, thing, fire);
         }
     }
 
@@ -140,6 +332,36 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         return (int)Math.Round(total, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// B5 R37: each thing that warms a place and by how much, in tenths of a degree (the parts of
+    /// <see cref="HeatAt"/>), in id order.
+    /// </summary>
+    public IEnumerable<(WorldObject Thing, int TenthC)> HeatFrom(Position at)
+    {
+        var parts = new List<(WorldObject, int)>();
+        foreach (var ofType in _objects.ByType)
+        {
+            if (ofType.Objects.Count == 0 || ParamsOf(ofType.TypeId) is not { HeatTenthC: { } heat, HeatRadiusCm: { } radiusCm } || radiusCm <= 0)
+            {
+                continue;
+            }
+
+            var radius = radiusCm / 100.0;
+            foreach (var thing in ofType.Objects)
+            {
+                var dx = thing.Position.X - at.X;
+                var dz = thing.Position.Z - at.Z;
+                var distance = Math.Sqrt((dx * dx) + (dz * dz));
+                if (distance < radius)
+                {
+                    parts.Add((thing, (int)Math.Round(heat * (1.0 - (distance / radius)), MidpointRounding.AwayFromZero)));
+                }
+            }
+        }
+
+        return parts.OrderBy(p => p.Item1.Id, StringComparer.Ordinal);
     }
 
     /// <summary>The heat level a burning thing gives for processing (B2700): position of its type's heat_level in <paramref name="levels"/>, or null.</summary>
@@ -199,8 +421,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     {
         ArgumentNullException.ThrowIfNull(world);
         if (!_until.TryGetValue(fireId, out var until) || !_objects.TryGet(fireId, out var fire) || !_objects.TryGet(fuelId, out var fuel)
-            || ParamsOf(fire.TypeId) is not { TakesFuel: true } fireParams || ParamsOf(fuel.TypeId)?.FuelMinutes is not { } minutes)
+            || ParamsOf(fire.TypeId) is not { TakesFuel: true } fireParams || ParamsOf(fuel.TypeId)?.FuelMinutes is not { } minutes
+            || IsWet(world, fuel.Position))
         {
+            // B5 R45: wet fuel does not burn.
             return false;
         }
 
@@ -230,10 +454,20 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         {
             hasher.Write(id).Write(until);
         }
+
+        // Only worlds where fire took hold carry the mark (hashes of other worlds stay as they were).
+        if (_caught.Count > 0)
+        {
+            hasher.Write("caught").Write(_caught.Count);
+            foreach (var id in _caught)
+            {
+                hasher.Write(id);
+            }
+        }
     }
 
     /// <summary>The burning things for a save game.</summary>
-    public IReadOnlyList<BurningThing> Capture() => [.. _until.Select(b => new BurningThing(b.Key, b.Value))];
+    public IReadOnlyList<BurningThing> Capture() => [.. _until.Select(b => new BurningThing(b.Key, b.Value, _caught.Contains(b.Key)))];
 
     /// <summary>Restores the burning things of a save game.</summary>
     public void Restore(IReadOnlyList<BurningThing>? burning)
@@ -241,6 +475,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var thing in burning ?? [])
         {
             _until[thing.Id] = thing.Until;
+            if (thing.Caught)
+            {
+                _caught.Add(thing.Id);
+            }
         }
     }
 

@@ -620,9 +620,11 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private void AskAtLeisure(World world, LeisureSettings leisure)
     {
-        var every = (long)(leisure.EveryHours * world.Calendar.Settings.TicksPerHour);
         foreach (var inhabitant in _inhabitants.Ordered)
         {
+            // D1086 (B2728): drive makes free moments come more often and with less strength - how often, never what.
+            var every = (long)(leisure.EveryHours / Math.Max(0.01, TraitFactor.Of(leisure.EveryHoursByTrait, inhabitant.Traits)) * world.Calendar.Settings.TicksPerHour);
+            var needsAtLeast = leisure.NeedsAtLeast * TraitFactor.Of(leisure.NeedsAtLeastByTrait, inhabitant.Traits);
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
             if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
@@ -637,7 +639,7 @@ public sealed class DecisionsSystem : IWorldSystem
             var presses = false;
             foreach (var (need, value) in inhabitant.Needs)
             {
-                if (value < leisure.NeedsAtLeast && PressingNeeds.Contains(need))
+                if (value < needsAtLeast && PressingNeeds.Contains(need))
                 {
                     presses = true;
                     break;
@@ -1005,10 +1007,11 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool MayAsk(World world, Inhabitant inhabitant, string subject, string kind)
     {
+        // A free moment keeps its own every_hours (scaled by drive, D1086); ask_cooldown_hours would hold it to at least that.
         var questions = _openOf.GetValueOrDefault(inhabitant.Id);
         return HasRoom(inhabitant, kind)
             && !(questions is not null && HasSubject(questions, string.Empty, subject))
-            && !CoolingDown(world, inhabitant, subject);
+            && (kind == Leisure || !CoolingDown(world, inhabitant, subject));
     }
 
     /// <summary>Whether the inhabitant asked about the subject less than ask_cooldown_hours ago.</summary>
@@ -1463,6 +1466,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
 
+    /// <summary>B5 R30: whether an inhabitant is wet (environment.wet); null = not stated. Set by the host.</summary>
+    public Func<Inhabitant, bool>? IsWet { get; set; }
+
     private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing, Inhabitant? knower = null) =>
         things.Where(o => o.Id != target.Id && (knower is null || knower.Beliefs.About(o.TypeId).Any()))
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
@@ -1486,7 +1492,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -1498,6 +1504,9 @@ public sealed class DecisionsSystem : IWorldSystem
 
                 // A1379: how warm it feels to this inhabitant, the same felt value its warmth need uses.
                 Comfort = _inhabitants.ComfortLevelOf(world, inhabitant),
+
+                // B5 R30 (GW2 #25455): whether it is wet; the prompt says it in words (v15), without a hint what to do.
+                Wet = IsWet?.Invoke(inhabitant),
             },
             Perception = new Perception
             {

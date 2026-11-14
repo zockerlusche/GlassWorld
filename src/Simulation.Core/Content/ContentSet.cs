@@ -124,8 +124,17 @@ public sealed class ContentSet
     /// <summary>The nature takt (content/nature/settings.json, A1380); null without the file.</summary>
     public NatureSettings? Nature { get; init; }
 
+    /// <summary>The animal stocks (content/nature/animals.json, B4b K4); null without the file.</summary>
+    public NatureAnimals? Animals { get; init; }
+
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
+
+    /// <summary>Rain, drying and sun on the body (B5-11, D1084); null = only the air is felt.</summary>
+    public BodySettings? Body { get; init; }
+
+    /// <summary>Drying, spreading and remains of fire (B5-10, D1084); null = fires only burn down or go out.</summary>
+    public FireSettings? Fire { get; init; }
 
     /// <summary>The milestones of the world (content/milestones/catalog.json, B2598); null = none.</summary>
     public MilestoneCatalog? Milestones { get; init; }
@@ -150,7 +159,8 @@ public sealed class ContentSet
         var model = ContractSerializer.Deserialize<InhabitantModel>(File.ReadAllText(Path.Combine(contentDirectory, "inhabitants", "model.json")));
         var needs = Ids(vocabularies, VocabularyKind.Need);
         var moods = Ids(vocabularies, VocabularyKind.Mood);
-        CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait));
+        CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait),
+            vocabularies.TryGetValue(VocabularyKind.Sensation, out var sensations) ? sensations.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : []);
         var conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json")));
         if (conversation.Praise is { } praise && !moods.Contains(praise.Mood))
         {
@@ -173,7 +183,8 @@ public sealed class ContentSet
             needs,
             moods,
             calendar.Settings.TicksPerHour,
-            Ids(vocabularies, VocabularyKind.Event));
+            Ids(vocabularies, VocabularyKind.Event),
+            model.Start.Traits.Select(t => t.Id).ToHashSet(StringComparer.Ordinal));
         var knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model);
         var brain = new UtilityBrain(
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
@@ -210,7 +221,10 @@ public sealed class ContentSet
                 jobPhases.NightDayPhases.ToFrozenSet(StringComparer.Ordinal),
                 ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json"))),
                 ContractSerializer.Deserialize<ImageGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "image", "generation.json"))),
-                jobPhases.WaitForSleepersHours));
+                jobPhases.WaitForSleepersHours))
+        {
+            BaseFunctions = LoadBaseFunctions(contentDirectory, objects.PropertyVocabulary),
+        };
         // GW2 D971: what a thing is by being made is not assumed for a found thing.
         brain.MadeProperties = inventions.Settings.ImpliedProperties.ToFrozenSet(StringComparer.Ordinal);
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
@@ -228,14 +242,29 @@ public sealed class ContentSet
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         var names = LoadNames(contentDirectory);
-        var processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+        var processData = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+            ? ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json")))
+            : null;
+        if (processData?.Physics is { } physics)
+        {
+            // D1096 #1: the process physics' no_new / never_remove hold for inventions too.
+            inventions = inventions with
+            {
+                NoNew = physics.NoNew.ToFrozenSet(StringComparer.Ordinal),
+                NeverRemove = physics.NeverRemove.ToFrozenSet(StringComparer.Ordinal),
+            };
+        }
+
+        var processes = processData is not null
             ? ProcessRuleSet.Create(
-                ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                processData,
                 objects,
                 inventions.Processes,
                 inventions.TechLevels,
                 inventions.Settings.TechLevel)
             : null;
+        // D1097: what a plan's steps make of its materials, by the same rules as everywhere.
+        inventions = inventions with { StepRules = processes };
         var milestones = LoadMilestones(contentDirectory, Ids(vocabularies, VocabularyKind.Property), [.. combinations.RuleIds, .. processes?.RuleIds ?? []], inventions.TechLevels);
         return new ContentSet(
             calendar,
@@ -259,12 +288,17 @@ public sealed class ContentSet
             Conversation = conversation,
             Processes = processes,
             Milestones = milestones,
+            Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
+                ? ContractSerializer.Deserialize<FireSettings>(File.ReadAllText(Path.Combine(contentDirectory, "fire", "settings.json")))
+                : null,
+            Body = LoadBody(contentDirectory, vocabularies),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
             Nature = File.Exists(Path.Combine(contentDirectory, "nature", "settings.json"))
                 ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(Path.Combine(contentDirectory, "nature", "settings.json")))
                 : null,
+            Animals = LoadAnimals(contentDirectory, Ids(vocabularies, VocabularyKind.Biome)),
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
@@ -470,12 +504,18 @@ public sealed class ContentSet
         if (data.Looking is { } looking)
         {
             // What a thing is by being made (the invention data's implied properties) is seen: a made thing looks made (TL #23489).
-            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties;
+            // So is what its base function grants (D827 R31): a made container looks like a container.
+            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties
+                .Concat(LoadBaseFunctions(contentDirectory, objects.PropertyVocabulary).Values.SelectMany(p => p)).ToHashSet(StringComparer.Ordinal);
             problems.AddRange(LookingProblems(looking, data, actions, objects, effects, made));
         }
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
         problems.AddRange(MemoryProblems(data, actions, Ids(vocabularies, VocabularyKind.Event), model));
+        if (data.Review?.IdeaGrowByTrait is { } ideaCurve && !model.Start.Traits.Any(t => t.Id == ideaCurve.Trait))
+        {
+            problems.Add($"review idea_grow_by_trait names trait '{ideaCurve.Trait}' the inhabitants do not have");
+        }
 
         if (problems.Count > 0)
         {
@@ -603,11 +643,61 @@ public sealed class ContentSet
         }
     }
 
+    /// <summary>The animal stocks (B4b K4); every biome in the vocabulary, every growth group in the nature data.</summary>
+    private static NatureAnimals? LoadAnimals(string contentDirectory, HashSet<string> biomes)
+    {
+        var path = Path.Combine(contentDirectory, "nature", "animals.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var animals = ContractSerializer.Deserialize<NatureAnimals>(File.ReadAllText(path));
+        var natureFile = Path.Combine(contentDirectory, "nature", "settings.json");
+        var groups = File.Exists(natureFile)
+            ? ContractSerializer.Deserialize<NatureSettings>(File.ReadAllText(natureFile)).Groups.Select(g => g.Id).ToHashSet(StringComparer.Ordinal)
+            : [];
+        var problems = animals.Species.GroupBy(s => s.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"species '{g.Key}' twice")
+            .Concat(animals.Species.SelectMany(s => s.Biomes.Where(b => !biomes.Contains(b)).Select(b => $"species '{s.Id}' lives in unknown biome '{b}'")))
+            .Concat(animals.Species.SelectMany(s => s.Groups.Where(g => !groups.Contains(g)).Select(g => $"species '{s.Id}' feeds unknown growth group '{g}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Animals: " + string.Join("; ", problems) + ".");
+        }
+
+        return animals;
+    }
+
+    /// <summary>
+    /// The base functions (D827 R31, content/invention/base_functions.json; none without the file): every id once, every
+    /// granted property in the property vocabulary.
+    /// </summary>
+    private static FrozenDictionary<string, FrozenSet<string>> LoadBaseFunctions(string contentDirectory, FrozenSet<string> properties)
+    {
+        var path = Path.Combine(contentDirectory, "invention", "base_functions.json");
+        if (!File.Exists(path))
+        {
+            return FrozenDictionary<string, FrozenSet<string>>.Empty;
+        }
+
+        var functions = ContractSerializer.Deserialize<InventionBaseFunctions>(File.ReadAllText(path)).Functions;
+        var problems = functions.GroupBy(f => f.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"base function '{g.Key}' twice")
+            .Concat(functions.SelectMany(f => f.GrantsProperties.Where(p => !properties.Contains(p)).Select(p => $"base function '{f.Id}' grants unknown property '{p}'")))
+            .ToList();
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Base functions: " + string.Join("; ", problems) + ".");
+        }
+
+        return functions.ToFrozenDictionary(f => f.Id, f => f.GrantsProperties.ToFrozenSet(StringComparer.Ordinal), StringComparer.Ordinal);
+    }
+
     /// <summary>
     /// Looking (TL #19921) teaches what can be seen, never an effect: no visible property may be one an
     /// action's effect depends on - except what a thing is by being made (implied properties): a made thing looks made; what is seen is less sure than what is tried, a guess at most guessed_cap.
     /// </summary>
-    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, ICollection<string> made)
+    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, HashSet<string> made)
     {
         if (!actions.TryGetValue(looking.Action, out var action) || action.Target != VocabularyEntryTarget.Object)
         {
@@ -761,6 +851,29 @@ public sealed class ContentSet
         }
     }
 
+    /// <summary>The body data (B5-11/B5-12), if the file exists: the feelings of felt_places are in the vocabulary felt.</summary>
+    private static BodySettings? LoadBody(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies)
+    {
+        var path = Path.Combine(contentDirectory, "body", "settings.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var body = ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(path));
+        if (body.FeltPlaces is { } places)
+        {
+            var felt = vocabularies.TryGetValue(VocabularyKind.Felt, out var known) ? known.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : [];
+            var unknown = places.FromComfort.Select(f => f.Felt).Append(places.Wet).Append(places.KeptDry).OfType<string>().Where(id => !felt.Contains(id)).ToList();
+            if (unknown.Count > 0)
+            {
+                throw new InvalidDataException($"Body felt_places: unknown feelings [{string.Join(", ", unknown)}].");
+            }
+        }
+
+        return body;
+    }
+
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
         Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
 
@@ -807,11 +920,23 @@ public sealed class ContentSet
         return catalog;
     }
 
-    private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits)
+    private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits, HashSet<string> sensations)
     {
+        // A mood driver follows exactly one of: a need below a threshold, a sensation (B5 R47).
+        static bool ByNeed(MoodDriver d) => d.Need is not null && d.Below is not null && d.Sensation is null;
+        static bool BySensation(MoodDriver d) => d.Sensation is not null && d.Need is null && d.Below is null;
+        var badDrivers = model.MoodDrivers.Where(d => !ByNeed(d) && !BySensation(d)).ToList();
+        if (badDrivers.Count > 0)
+        {
+            throw new InvalidDataException($"Inhabitant model: a mood driver needs either need and below or a sensation ({string.Join(", ", badDrivers.Select(d => d.Mood))}).");
+        }
+
         var unknown = model.Needs.Select(n => n.Id).Where(id => !needs.Contains(id))
             .Concat(model.Moods.Select(m => m.Id).Where(id => !moods.Contains(id)))
-            .Concat(model.MoodDrivers.SelectMany(d => new[] { d.Need, d.Mood }).Where(id => !needs.Contains(id) && !moods.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Mood).Where(id => !moods.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
+            .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

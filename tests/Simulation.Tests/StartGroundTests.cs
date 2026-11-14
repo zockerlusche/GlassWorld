@@ -286,12 +286,14 @@ public sealed class StartGroundTests
     [Fact]
     public void WithoutDryGroundTheGeneratorIsVersionFour()
     {
-        const string golden = "4548de3716ce0b7cde86b0ce7d25e02d827457a04a1043a5a6f4af9646faa012";
+        const string golden = "26ce085fd8542f017f4d87511d6354bf9311e69e3ce4caaba6442f4a79e93b11";
         var content = ContentSet.Load(ContentDirectory);
         var preset = content.WorldGen.Presets[Preset];
         preset.Start.DryGround = null;
         preset.GeneratorVersion = 4;
-        Assert.Equal(golden, WorldGenerator.Generate(content.WorldGen, content.Objects, Preset, 7).Hash());
+        // The full hash in the message, so a deliberate world change can be taken over (like the golden world hashes).
+        var hash = WorldGenerator.Generate(content.WorldGen, content.Objects, Preset, 7).Hash();
+        Assert.True(hash == golden, $"version-4 hash changed: {hash}");
 
         var wide = WorldGenContent.Load(ContentDirectory, content.Vocabularies, content.Objects, content.Calendar, minSeparationM: 2.5);
         var widePreset = wide.Presets[Preset];

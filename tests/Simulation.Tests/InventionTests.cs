@@ -109,14 +109,16 @@ public sealed class InventionTests : IDisposable
         var host = World(port, 12);
         RunUntilJob(host, port);
         var job = port.Submitted.Single();
-        var introduces = new[] { "container", "drinkable" };
+        // Nothing only materials can bring (no_new: drinkable ...), D1096 #1 - that is refused unless a material has it.
+        var introduces = new[] { "container", "portable" };
         port.Answer(job, Approved(job, introduces));
         host.World.Step();
 
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
         Assert.True(host.Types.Contains(typeId));
-        // Its own properties plus those every invention has (implied_properties, data).
-        var expected = introduces.Concat(Content.Value.Inventions.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        // What the core derives (D1097): implied, its base function, what its materials pass on - never just the claim.
+        var approved = Approved(job, introduces).Result!.Invention!.Invention!;
+        var expected = Content.Value.Inventions.PropertiesOf(approved, t => host.Types.Contains(t) ? host.Types.TrueProperties(t) : []).Order(StringComparer.Ordinal);
         Assert.Equal(expected, host.Types.TrueProperties(typeId).Order(StringComparer.Ordinal));
         var info = Assert.IsType<InventionInfo>(host.Inventions.Invention(typeId));
         Assert.Equal(host.Inhabitants.All.Single().Id, info.InhabitantId);
@@ -151,8 +153,9 @@ public sealed class InventionTests : IDisposable
         // The rules know the new type by its true properties only.
         var obj = host.Objects.Spawn(typeId, host.Inhabitants.All.Single().Position);
         Assert.Equal(typeId, obj.TypeId);
+        // Drinkable it is not (none of its materials is, D1096 #1): the drink rules for drinkable things do not apply to it.
         var drinkable = Content.Value.Actions.WithTruth(host.Types).Applying("drink", typeId);
-        Assert.Contains(drinkable, r => r.RequiresProperty == "drinkable");
+        Assert.DoesNotContain(drinkable, r => r.RequiresProperty == "drinkable");
         Assert.DoesNotContain(drinkable, r => r.RequiresProperty == "salty");
         Assert.Throws<KeyNotFoundException>(() => Content.Value.Actions.Applying("drink", typeId));
     }
@@ -271,6 +274,7 @@ public sealed class InventionTests : IDisposable
         SaveGameStore.Save(path, StateCodec.Capture(host));
 
         // Turn the file back into schema 1 (as written by the B1 build).
+        File.Delete(path + ".sha256"); // edited like a save from before B2712: such saves have no checksum
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
         {
             connection.Open();
@@ -305,6 +309,115 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void ABaseFunctionGivesItsPropertiesToTheNewTypeAndNothingElse()
+    {
+        // D827 R31: the effect comes only through granted properties; a function without fitting properties is only recorded.
+        var rules = Content.Value.Inventions;
+        var invention = Result([]).Invention!;
+        invention.BaseFunction = "shelter";
+        Assert.Contains("sheltering", rules.PropertiesOf(invention));
+        Assert.Superset(rules.Settings.ImpliedProperties.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(invention).ToHashSet(StringComparer.Ordinal));
+        invention.BaseFunction = "tool";
+        Assert.Equal(rules.Settings.ImpliedProperties.Order(StringComparer.Ordinal), rules.PropertiesOf(invention).Order(StringComparer.Ordinal));
+
+        // Every function has its name in both languages.
+        foreach (var language in new[] { "de", "en" })
+        {
+            var catalogue = File.ReadAllText(Path.Combine(TestData.Root, "content", "i18n", language + ".json"));
+            Assert.All(rules.BaseFunctions.Keys, id => Assert.Contains($"\"vocab.base_function.{id}\"", catalogue, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void FoodComesOnlyFromMaterialsAndPoisonStaysPoison()
+    {
+        // D1096 #1: the process physics' no_new / never_remove hold for inventions too - the world knows the truth.
+        var rules = Content.Value.Inventions;
+        var objects = Content.Value.Objects;
+        IEnumerable<string> Truth(string type) => objects.Contains(type) ? objects.TrueProperties(type) : [];
+        var food = rules.NoNew.First();
+        var plain = NearbyTypes.Where(t => !objects.TrueProperties(t).Contains(food)).ToArray();
+        var withFood = objects.TypeIds.First(t => objects.TrueProperties(t).Contains(food));
+        Assert.Contains(InventionCheck.PropertyWithoutSource, InventionCheck.Check(Result([food], plain), plain.ToHashSet(StringComparer.Ordinal), rules, truth: Truth));
+        string[] fed = [withFood, plain[0]];
+        Assert.DoesNotContain(InventionCheck.PropertyWithoutSource, InventionCheck.Check(Result([food], fed), fed.ToHashSet(StringComparer.Ordinal), rules, truth: Truth));
+
+        // A thing made with a poisonous material is poisonous too, whatever the AI said.
+        var keep = rules.NeverRemove.First(p => !rules.NoNew.Contains(p) && objects.TypeIds.Any(t => objects.TrueProperties(t).Contains(p)));
+        var source = objects.TypeIds.First(t => objects.TrueProperties(t).Contains(keep));
+        var made = Result([], [source, plain[0]]).Invention!;
+        Assert.Contains(keep, rules.PropertiesOf(made, Truth));
+        Assert.DoesNotContain(keep, rules.PropertiesOf(made));
+    }
+
+    [Fact]
+    public void AMadeThingIsWhatItsMaterialsAndStepsMakeItWhatTheInventorClaimsIsItsGuess()
+    {
+        // D1097 (D1096 #1, B2746): the truth comes from the core; introduces is only what the inventor expects.
+        var rules = Content.Value.Inventions;
+        Assert.True(rules.Derives);
+        var objects = Content.Value.Objects;
+        IEnumerable<string> Truth(string type) => objects.Contains(type) ? objects.TrueProperties(type) : [];
+        var transfer = rules.Settings.MaterialTransfer!.ToHashSet(StringComparer.Ordinal);
+
+        // A claim no material and no step backs is not the truth.
+        var claim = transfer.First(p => !NearbyTypes.Any(t => objects.TrueProperties(t).Contains(p)));
+        var invention = Result([claim]).Invention!;
+        invention.Steps.Clear();
+        Assert.DoesNotContain(claim, rules.PropertiesOf(invention, Truth));
+
+        // What a material has and the list passes on, the thing has; what the list does not pass on, it has not.
+        var material = objects.TypeIds.First(t => objects.TrueProperties(t).Any(transfer.Contains));
+        var made = Result([], [material, material]).Invention!;
+        made.Steps.Clear();
+        var expected = objects.TrueProperties(material).Where(transfer.Contains);
+        Assert.Superset(expected.ToHashSet(StringComparer.Ordinal), rules.PropertiesOf(made, Truth).ToHashSet(StringComparer.Ordinal));
+        Assert.DoesNotContain(rules.PropertiesOf(made, Truth), p => objects.TrueProperties(material).Contains(p) && !transfer.Contains(p) && !rules.NeverRemove.Contains(p) && !rules.Settings.ImpliedProperties.Contains(p));
+    }
+
+    [Fact]
+    public void AStepChangesItsTargetAndWhatItUsesUpTheToolStaysAsItIs()
+    {
+        // Review GW2 #424: a tool a step works with is not worked on - its properties count as they are.
+        var objects = Content.Value.Objects;
+        var steps = Content.Value.Processes!;
+        var types = objects.TypeIds.Select(t => (Id: t, Properties: objects.TrueProperties(t))).ToList();
+        foreach (var process in Content.Value.Vocabularies[VocabularyKind.Process].Entries.Select(e => e.Id))
+        {
+            foreach (var a in types)
+            {
+                foreach (var b in types.Where(b => b.Id != a.Id))
+                {
+                    if (steps.StepResult(process, [a.Properties, b.Properties], null) is { } result && result.Worked.Count == 1)
+                    {
+                        // The other material is not worked on: its properties are not replaced by the step's result.
+                        Assert.DoesNotContain(1 - result.Worked[0], result.Worked);
+                        return;
+                    }
+                }
+            }
+        }
+
+        Assert.Fail("the data have no step with a material that is not worked on (a tool)");
+    }
+
+    [Fact]
+    public void AnInventionMappedToAShelterShelters()
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 16);
+        RunUntilJob(host, port);
+        var job = port.Submitted.Single();
+        var answer = Approved(job, []);
+        answer.Result!.Invention!.Invention!.BaseFunction = "shelter";
+        port.Answer(job, answer);
+        host.World.Run(30);
+        var type = InventionSystem.TypeIdFor(job.RequestId);
+        Assert.True(host.Types.HasProperty(type, "sheltering"));
+        Assert.Equal("shelter", host.Inventions.Invention(type)?.BaseFunction);
+    }
+
+    [Fact]
     public void TheFinalCheckRefusesWhatTheDataForbid()
     {
         var rules = Content.Value.Inventions;
@@ -333,6 +446,13 @@ public sealed class InventionTests : IDisposable
         // B2531: a property the data mark as one of living beings is refused.
         var living = rules with { Settings = Copy(rules.Settings, s => s.LivingProperties = ["container"]) };
         Assert.Contains(InventionCheck.LivingProperty, InventionCheck.Check(Result(["container"]), perceived, living));
+
+        // Point 11 (D827 R31): a base function from the list passes, one outside it never; a missing one only while the data allow it.
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, rules));
+        Assert.Contains(InventionCheck.UnknownBaseFunction, InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "no_such_function"), perceived, rules));
+        var strict = rules with { Settings = Copy(rules.Settings, s => s.RequireBaseFunction = true) };
+        Assert.Contains(InventionCheck.MissingBaseFunction, InventionCheck.Check(Result(["container"]), perceived, strict));
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.BaseFunction = "container"), perceived, strict));
 
         InventionResult Mutate(Action<InventionResult> change)
         {

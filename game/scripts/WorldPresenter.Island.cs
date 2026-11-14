@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Game.Prototype.Look;
 using GlassWorld.Game.World;
 using GlassWorld.Presentation.World;
 using GlassWorld.Simulation.View;
@@ -132,6 +133,36 @@ public partial class WorldPresenter
         }
 
         return (figure, placeholderHeightM, null);
+    }
+
+    /// <summary>
+    /// Portrait only (A1682, D957 v4 step 1): a fresh copy of an inhabitant's figure as it looks now, built like the
+    /// one in the world but never added to it (no motion, no seats), for a still picture rendered once. Null on the
+    /// placeholder world, without an appearance, or when the figure cannot be built (the portrait then shows a letter).
+    /// </summary>
+    public Node3D? PortraitFigure(string inhabitantId)
+    {
+        if (Mode != WorldLookMode.Island || _host is null || _figuresLook is null || _appearanceLook is null)
+        {
+            return null;
+        }
+
+        var inhabitant = _host.Snapshot().Inhabitants.FirstOrDefault(i => i.Id == inhabitantId);
+        if (inhabitant?.Appearance is not { } appearance)
+        {
+            return null;
+        }
+
+        try
+        {
+            var spec = FigureSpec.From(appearance, inhabitant.Sex, _figuresLook, _appearanceLook);
+            return FigureFactory.Build(FigureLook.From(spec), GD.Load<Shader>("res://shaders/figure_comic.gdshader"), null).Root;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushWarning($"PORTRAIT_NO_FIGURE {inhabitantId}: {e.Message}");
+            return null;
+        }
     }
 
     /// <summary>

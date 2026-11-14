@@ -232,6 +232,10 @@
         "label": {
           "description": "What THIS inhabitant calls the kind of thing the belief is about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
           "$ref": "#/$defs/LocalizedName"
+        },
+        "sure": {
+          "description": "D1017 G1: false while the belief fades - the inhabitant is no longer sure of it; the prompt says 'you think so'. Absent (or true): sure. A forgotten belief is not sent at all. Optional (absent also from an older core).",
+          "type": "boolean"
         }
       }
     },
@@ -739,6 +743,10 @@
         },
         "tech_level": {
           "description": "Tech level the invention needs (vocabulary tech_level).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "base_function": {
+          "description": "The base function the guard maps the thing to (B2616, D827 R31; list content/invention/base_functions.json). Its effect in the world comes only through the properties the function grants; the core checks it against the list (final check point 11). Set by the service from the guard's verdict, not by the inventor.",
           "$ref": "#/$defs/VocabId"
         },
         "introduces_needs": {
@@ -1298,6 +1306,37 @@
       "description": "A readable proper name invented by the AI (B9 R11): one word in Latin letters, the same in DE and EN, no translated text; the core and the guard check length, readability and youth protection.",
       "type": "string",
       "pattern": "^[A-Z][a-z]{1,15}$"
+    },
+    "TraitCurve": {
+      "description": "D1086 (B2728): how a trait of the inhabitant scales a value - a factor read from a point table over the trait's value (linear in between, constant outside). Only how often or how readily, never what (PR2). An inhabitant without the trait gets factor 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trait",
+        "curve"
+      ],
+      "properties": {
+        "trait": {
+          "description": "Trait id (vocabulary trait).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "curve": {
+          "description": "Points [trait value, factor] with ascending trait value in 0..1.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4
+            }
+          }
+        }
+      }
     }
   }
 }

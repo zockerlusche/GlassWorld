@@ -118,10 +118,24 @@ namespace GlassWorld.Contracts
         public int MaxMaterials { get; set; } = default!;
 
         /// <summary>
+        /// Final check point 11 (D827 R31): when true, an invention without a base function is refused (missing_base_function). False while the guard does not map things yet; a base function that is not in the list is always refused.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("require_base_function")]
+        public bool? RequireBaseFunction { get; set; } = default!;
+
+        /// <summary>
         /// Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("implied_properties")]
         public System.Collections.Generic.ICollection<string> ImpliedProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// D1097 (D1096 #1, B2746): properties of its materials (and of what its steps make of them by the process rules) that a made thing has as a whole. With this list the truth of an invented type comes from the core - implied_properties, its base function, what its materials never lose and these - and introduces is only what the inventor expects (the builder's guesses when the thing is built). Absent = introduces are the truth (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("material_transfer")]
+        public System.Collections.Generic.ICollection<string>? MaterialTransfer { get; set; } = default!;
 
         /// <summary>
         /// B2531: properties only living beings have. An invention that brings one of them is refused by the core. Empty while the property vocabulary has none.

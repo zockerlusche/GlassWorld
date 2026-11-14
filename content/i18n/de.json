@@ -855,6 +855,38 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.base_function.container",
+      "text": "Behälter"
+    },
+    {
+      "key": "vocab.base_function.seat_bed",
+      "text": "Sitz oder Lager"
+    },
+    {
+      "key": "vocab.base_function.heat_source",
+      "text": "Wärmequelle"
+    },
+    {
+      "key": "vocab.base_function.light_source",
+      "text": "Lichtquelle"
+    },
+    {
+      "key": "vocab.base_function.sound_source",
+      "text": "Klangquelle"
+    },
+    {
+      "key": "vocab.base_function.shelter",
+      "text": "Schutz und Raum"
+    },
+    {
+      "key": "vocab.base_function.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.base_function.closure",
+      "text": "Verschluss"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },
@@ -1013,6 +1045,10 @@
     {
       "key": "vocab.trait.diligence",
       "text": "Fleiß"
+    },
+    {
+      "key": "vocab.trait.drive",
+      "text": "Tatendrang"
     },
     {
       "key": "vocab.trait.kindness",
@@ -1187,8 +1223,8 @@
       "text": "Ring"
     },
     {
-      "key": "vocab.shape.bowl",
-      "text": "Schale"
+      "key": "vocab.shape.hemisphere_open",
+      "text": "Offene Halbkugel"
     },
     {
       "key": "vocab.tech_level.wilderness",
@@ -1403,6 +1439,10 @@
       "text": "Roter Pilz"
     },
     {
+      "key": "vocab.object.ash",
+      "text": "Asche"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
@@ -1425,6 +1465,22 @@
     {
       "key": "vocab.object.driftwood",
       "text": "Treibholz"
+    },
+    {
+      "key": "vocab.object.egg",
+      "text": "Ei"
+    },
+    {
+      "key": "vocab.object.wool",
+      "text": "Wolle"
+    },
+    {
+      "key": "vocab.object.feather",
+      "text": "Feder"
+    },
+    {
+      "key": "vocab.object.dung",
+      "text": "Dung"
     },
     {
       "key": "vocab.object.shell",
@@ -2071,6 +2127,50 @@
       "text": "Feuer vom Regen gelöscht"
     },
     {
+      "key": "vocab.event.caught_fire",
+      "text": "Etwas hat Feuer gefangen"
+    },
+    {
+      "key": "vocab.sensation.near_fire",
+      "text": "Brand in der Nähe"
+    },
+    {
+      "key": "vocab.felt.cold",
+      "text": "Kalt"
+    },
+    {
+      "key": "vocab.felt.cool",
+      "text": "Kühl"
+    },
+    {
+      "key": "vocab.felt.mild",
+      "text": "Angenehm"
+    },
+    {
+      "key": "vocab.felt.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.felt.hot",
+      "text": "Heiß"
+    },
+    {
+      "key": "vocab.felt.wet",
+      "text": "Nass"
+    },
+    {
+      "key": "vocab.felt.dry_in_rain",
+      "text": "Trocken im Regen"
+    },
+    {
+      "key": "vocab.sensation.too_cold",
+      "text": "Zu kalt"
+    },
+    {
+      "key": "vocab.sensation.too_warm",
+      "text": "Zu warm"
+    },
+    {
       "key": "vocab.soil.loam",
       "text": "Lehmerde"
     },
@@ -2483,10 +2583,6 @@
       "text": "Gerade aus – diese Klänge werden neu gemacht."
     },
     {
-      "key": "msg.converse.no_answer",
-      "text": "Hm ... da muss ich erst nachdenken."
-    },
-    {
       "key": "ui.setup.model_image",
       "text": "Bild-KI: zeichnet Bilder neuer Dinge in der Rechennacht (in deinem ComfyUI)"
     },
@@ -2763,20 +2859,40 @@
       "text": "{name} hat nicht geantwortet."
     },
     {
-      "key": "ui.settings.zones_preview",
-      "text": "Neuer Bildschirmaufbau (Vorschau)"
+      "key": "ui.settings.classic_layout",
+      "text": "Alter Bildschirmaufbau (Rückfall)"
     },
     {
       "key": "ui.zone.people",
       "text": "Bewohner"
     },
     {
-      "key": "ui.zone.world",
-      "text": "Welt"
+      "key": "ui.zone.chronicle",
+      "text": "Chronik"
     },
     {
-      "key": "ui.zone.contact",
-      "text": "Kontakt"
+      "key": "ui.zone.questions",
+      "text": "Was sie beschäftigt"
+    },
+    {
+      "key": "ui.zone.mailbox",
+      "text": "Postfach"
+    },
+    {
+      "key": "ui.pause.help",
+      "text": "Hilfe und Gaben"
+    },
+    {
+      "key": "ui.corner.brooding",
+      "text": "Grübelt über eine Frage"
+    },
+    {
+      "key": "ui.corner.portrait_tip",
+      "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.weather",
+      "text": "Wetter: {weather}"
     },
     {
       "key": "ui.card.title",
@@ -2907,18 +3023,6 @@
       "text": "Zeitleiste"
     },
     {
-      "key": "ui.zone.tab.questions",
-      "text": "Was sie beschäftigt"
-    },
-    {
-      "key": "ui.zone.tab.help",
-      "text": "Hilfe"
-    },
-    {
-      "key": "ui.zone.tab.mailbox",
-      "text": "Postfach"
-    },
-    {
       "key": "msg.hint.questions_many",
       "text": "{name} fragt sich mehreres."
     },
@@ -2979,6 +3083,10 @@
       "text": "Was ihn beschäftigt"
     },
     {
+      "key": "vocab.property.waterproof",
+      "text": "Wasserdicht"
+    },
+    {
       "key": "vocab.guard_reason.beyond_knowledge",
       "text": "Baut auf etwas, das der Bewohner nicht weiß"
     },
@@ -2997,6 +3105,70 @@
     {
       "key": "msg.learnlog.is.false",
       "text": "ist nicht"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.true",
+      "text": "ist Baumaterial"
+    },
+    {
+      "key": "msg.learnlog.fact.building_material.false",
+      "text": "ist kein Baumaterial"
+    },
+    {
+      "key": "msg.learnlog.fact.container.true",
+      "text": "ist ein Behälter"
+    },
+    {
+      "key": "msg.learnlog.fact.container.false",
+      "text": "ist kein Behälter"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.true",
+      "text": "härtet im Feuer"
+    },
+    {
+      "key": "msg.learnlog.fact.hardens_in_fire.false",
+      "text": "härtet nicht im Feuer"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.true",
+      "text": "schlägt Funken"
+    },
+    {
+      "key": "msg.learnlog.fact.sparks.false",
+      "text": "schlägt keine Funken"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.true",
+      "text": "glüht lange"
+    },
+    {
+      "key": "msg.learnlog.fact.smoulders.false",
+      "text": "glüht nicht lange"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.true",
+      "text": "ist ein Pilz"
+    },
+    {
+      "key": "msg.learnlog.fact.mushroom.false",
+      "text": "ist kein Pilz"
+    },
+    {
+      "key": "msg.learnlog.fact.water.true",
+      "text": "ist Wasser"
+    },
+    {
+      "key": "msg.learnlog.fact.water.false",
+      "text": "ist kein Wasser"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.true",
+      "text": "ist Stein"
+    },
+    {
+      "key": "msg.learnlog.fact.stone.false",
+      "text": "ist kein Stein"
     },
     {
       "key": "msg.learnlog.night",

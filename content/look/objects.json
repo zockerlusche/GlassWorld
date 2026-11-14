@@ -256,6 +256,22 @@
       "footprint_m": 0.35
     },
     {
+      "id": "ash", "reach": "low",
+      "types": [
+        "ash"
+      ],
+      "shape": "stone",
+      "colors": [
+        "ash"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.2,
+      "lift_m": -0.06,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.3
+    },
+    {
       "id": "clay", "reach": "low",
       "types": [
         "clay"
@@ -682,6 +698,70 @@
       "rest": "centre",
       "align": "ground",
       "footprint_m": 0.12
+    },
+    {
+      "id": "egg", "reach": "low",
+      "types": [
+        "egg"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "egg"
+      ],
+      "size_m": 0.45,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "wool", "reach": "low",
+      "types": [
+        "wool"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "wool"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "feather", "reach": "low",
+      "types": [
+        "feather"
+      ],
+      "shape": "shell",
+      "colors": [
+        "feather"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.08
+    },
+    {
+      "id": "dung", "reach": "low",
+      "types": [
+        "dung"
+      ],
+      "shape": "stone",
+      "colors": [
+        "dung"
+      ],
+      "size_m": 0.4,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.22
     },
     {
       "id": "decor_grass",

@@ -51,18 +51,45 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortFelt
+    {
+
+        /// <summary>
+        /// Sensation of the vocabulary.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sensation")]
+        public string Sensation { get; set; } = default!;
+
+        /// <summary>
+        /// Comfort levels at which it is felt.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("levels")]
+        public System.Collections.Generic.ICollection<string> Levels { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
     /// <summary>
-    /// While a need is below a threshold, a feeling changes per hour (may be negative).
+    /// While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class MoodDriver
     {
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("need")]
-        public string Need { get; set; } = default!;
+        public string? Need { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("below")]
-        public double Below { get; set; } = default!;
+        public double? Below { get; set; } = default!;
+
+        /// <summary>
+        /// A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sensation")]
+        public string? Sensation { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("mood")]
         public string Mood { get; set; } = default!;
@@ -161,6 +188,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("precipitation_cold_factor")]
         public double? PrecipitationColdFactor { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("felt")]
+        public System.Collections.Generic.ICollection<ComfortFelt>? Felt { get; set; } = default!;
 
         /// <summary>
         /// Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.

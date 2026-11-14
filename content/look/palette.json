@@ -138,6 +138,10 @@
       "color": "#b9805b"
     },
     {
+      "id": "ash",
+      "color": "#9a9894"
+    },
+    {
       "id": "peat",
       "color": "#76604a"
     },
@@ -160,6 +164,22 @@
     {
       "id": "forest_floor",
       "color": "#5f9a52"
+    },
+    {
+      "id": "egg",
+      "color": "#efe6d2"
+    },
+    {
+      "id": "wool",
+      "color": "#e8e1d3"
+    },
+    {
+      "id": "feather",
+      "color": "#d6cdbd"
+    },
+    {
+      "id": "dung",
+      "color": "#5b4632"
     }
   ],
   "ramp": [

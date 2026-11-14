@@ -103,10 +103,19 @@ class InventionSettings(BaseModel):
         ge=1,
         le=16,
     )
+    require_base_function: bool | None = Field(
+        None,
+        description='Final check point 11 (D827 R31): when true, an invention without a base function is refused (missing_base_function). False while the guard does not map things yet; a base function that is not in the list is always refused.',
+    )
     implied_properties: list[common_schema.VocabId] = Field(
         ...,
         description='Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).',
         max_length=16,
+    )
+    material_transfer: list[common_schema.VocabId] | None = Field(
+        None,
+        description="D1097 (D1096 #1, B2746): properties of its materials (and of what its steps make of them by the process rules) that a made thing has as a whole. With this list the truth of an invented type comes from the core - implied_properties, its base function, what its materials never lose and these - and introduces is only what the inventor expects (the builder's guesses when the thing is built). Absent = introduces are the truth (as before).",
+        max_length=32,
     )
     living_properties: list[common_schema.VocabId] = Field(
         ...,

@@ -25,10 +25,22 @@ public sealed partial class InhabitantsSystem
     public Func<World, Position, Air?>? AirAt { get; init; }
 
     /// <summary>
+    /// B5 R47: whether an inhabitant feels a sensation of the vocabulary now (set by the host from the world's
+    /// systems, e.g. a big fire close by); null = no sensations, sensation mood drivers never act.
+    /// </summary>
+    public Func<Inhabitant, string, bool>? Feels { get; set; }
+
+    /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
     /// the air the inhabitant feels; null = none. Set by the host.
     /// </summary>
     public Func<Position, int>? HeatAt { get; set; }
+
+    /// <summary>
+    /// B5-11 (R29/R30): what the body adds to the felt air in tenths of a degree - the sun where no shade falls,
+    /// minus the cooling of being wet; null = nothing. Set by the host.
+    /// </summary>
+    public Func<World, Inhabitant, int>? BodyTenthC { get; set; }
 
     /// <summary>The comfort levels from coldest to hottest (vocabulary comfort_level, A1379); null = none in the request.</summary>
     public IReadOnlyList<string>? ComfortLevels { get; set; }
@@ -49,7 +61,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(air, inhabitant.Position);
+        var felt = Felt(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         return below > 0 ? levels[below <= band ? 1 : 0]
@@ -57,8 +69,28 @@ public sealed partial class InhabitantsSystem
             : levels[2];
     }
 
-    /// <summary>The felt temperature at a place: the air plus the heat of things around it, in tenths of a degree.</summary>
-    private int Felt(Air air, Position at) => air.TemperatureTenthC + (HeatAt?.Invoke(at) ?? 0);
+    /// <summary>
+    /// B5 R31: whether an inhabitant feels a comfort sensation of the data now (too cold at the cold level, ...):
+    /// its comfort level is one of the sensation's levels. Unknown sensations: false.
+    /// </summary>
+    public bool FeelsComfort(World world, Inhabitant inhabitant, string sensation)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_model.ComfortZone?.Felt?.FirstOrDefault(f => string.Equals(f.Sensation, sensation, StringComparison.Ordinal)) is not { } felt)
+        {
+            return false;
+        }
+
+        return ComfortLevelOf(world, inhabitant) is { } level && felt.Levels.Contains(level, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The felt temperature of an inhabitant: the air plus the heat of things around it, plus the sun and minus
+    /// the cooling of being wet (B5-11), in tenths of a degree.
+    /// </summary>
+    private int Felt(World world, Inhabitant inhabitant, Air air) =>
+        air.TemperatureTenthC + (HeatAt?.Invoke(inhabitant.Position) ?? 0) + (BodyTenthC?.Invoke(world, inhabitant) ?? 0);
 
     /// <summary>
     /// How far the inhabitant's comfort zone is shifted against the zone of the data, in tenths of a degree
@@ -98,7 +130,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(air, inhabitant.Position);
+        var felt = Felt(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         if (below <= 0 && above <= 0)

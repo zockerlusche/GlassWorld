@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -406,7 +407,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(review.KnowledgeMax)
-            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf))
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf, _inhabitants.UnsureOf))
             .ToList();
         var job = NewJob(world, inhabitant, JobKind.Review, "/review", review.JobPriority);
         job.Payload = new JobPayload
@@ -478,7 +479,9 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var kept = inhabitant.Ideas.Take(grows, idea.Text.Trim(), roots, world.Tick, review.IdeaStart, review.IdeaGrow, review.MaxIdeas);
+            // D1086 (B2728): with more drive an idea ripens faster - how fast, never which.
+            var grow = review.IdeaGrow * TraitFactor.Of(review.IdeaGrowByTrait, inhabitant.Traits);
+            var kept = inhabitant.Ideas.Take(grows, idea.Text.Trim(), roots, world.Tick, review.IdeaStart, grow, review.MaxIdeas);
             _inhabitants.Report(new WorldEvent(IdeaEvent, world.Tick, inhabitant.Id, null, kept.Id) { Detail = grows is null ? "new" : "grew" });
             if (idea.Thought is { } thought && _guard.Check(thought.Text).Allowed)
             {

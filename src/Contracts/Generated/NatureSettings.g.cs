@@ -59,6 +59,30 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NatureSnowCover
+    {
+
+        /// <summary>
+        /// Snow added by a takt with precipitation in frost, in millimetres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_takt_mm")]
+        public int PerTaktMm { get; set; } = default!;
+
+        /// <summary>
+        /// Snow melted by a takt per whole degree above 0 °C, in millimetres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("melt_per_degree_mm")]
+        public int MeltPerDegreeMm { get; set; } = default!;
+
+        /// <summary>
+        /// The deepest the cover gets (calm world).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_mm")]
+        public int MaxMm { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class NatureInfluences
     {
 
@@ -107,6 +131,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("influences")]
         public NatureInfluences? Influences { get; set; } = default!;
+
+        /// <summary>
+        /// The island's snow cover (TL #25357): each takt that opens with precipitation below 0 °C adds to it, each takt above 0 °C melts it by the degree; omitted = no snow cover kept. Needs influences (the weather reading).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("snow")]
+        public NatureSnowCover? Snow { get; set; } = default!;
 
     }
 }

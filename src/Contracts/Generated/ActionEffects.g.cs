@@ -157,12 +157,15 @@ namespace GlassWorld.Contracts
     public partial class Effect
     {
 
+        /// <summary>
+        /// trait (D1086, B2728): a trait of the inhabitant, at most its start range's max - used by event_effects (success strengthens).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<EffectKind>))]
         public EffectKind Kind { get; set; } = default!;
 
         /// <summary>
-        /// Need or mood id; ignored for will_to_live.
+        /// Need, mood or trait id; ignored for will_to_live.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
@@ -236,6 +239,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("will_to_live")]
         Will_to_live = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("trait")]
+        Trait = 3,
 
 
     }

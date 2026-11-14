@@ -23,6 +23,13 @@
       "loop": false
     },
     {
+      "id": "crouch_act",
+      "source": "asset",
+      "loop": true,
+      "asset": "Crouch_Idle",
+      "speed": 0.9
+    },
+    {
       "id": "crouch_inspect",
       "source": "asset",
       "loop": true,
@@ -50,7 +57,7 @@
       "asset": "Idle"
     },
     {
-      "id": "hammer",
+      "id": "kneel_work",
       "source": "asset",
       "loop": false,
       "asset": "Fixing_Kneeling"
@@ -272,28 +279,28 @@
       "id": "inspect",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "eat",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "drink",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
       "id": "combine",
       "target": "object",
       "reach": "low",
-      "clip": "crouch_inspect"
+      "clip": "crouch_act"
     },
     {
       "kind": "action",
@@ -348,7 +355,7 @@
     {
       "kind": "action",
       "id": "build_step",
-      "clip": "hammer"
+      "clip": "kneel_work"
     },
     {
       "kind": "action",
@@ -358,7 +365,7 @@
     {
       "kind": "action",
       "id": "build_smaller",
-      "clip": "hammer"
+      "clip": "kneel_work"
     },
     {
       "kind": "action",
@@ -468,8 +475,8 @@
     },
     {
       "kind": "work",
-      "id": "hammer",
-      "clip": "hammer"
+      "id": "kneel_work",
+      "clip": "kneel_work"
     },
     {
       "kind": "work",

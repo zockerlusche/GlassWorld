@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/fire-settings.schema.json",
+  "title": "FireSettings",
+  "description": "Data file content/fire/settings.json (B5 R45-R47, step B5-10, D1084): how things dry after rain, that wet things do not burn, how a fire takes hold of dry burnable things near it and what is left when a fire burns down. All numbers are data; the code knows no fire and no material by name. Calm world: a cap on new fires per check and on burning things on the island (no wildfire), no harm to inhabitants (B2472).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "fuel_property", "drying"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "fuel_property": {
+      "description": "The TRUE property that makes a thing catch fire and feed one (vocabulary property).",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "drying": {
+      "description": "How long a thing stays wet after the last rain on the island, by the air temperature at its place: the first band whose below_tenth_c is above the temperature applies; the last band (below_tenth_c null) takes the rest. Wet things neither catch fire nor feed one.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/FireDryingBand" }
+    },
+    "spread": {
+      "description": "A fire takes hold of dry burnable things near it. Absent = fires never spread.",
+      "$ref": "#/$defs/FireSpread"
+    },
+    "felt": {
+      "description": "B5 R47: a sensation the inhabitants feel near fire - this many burning things within the radius (a campfire alone is not a big fire).",
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/FireFelt" }
+    },
+    "remains": {
+      "description": "What a fire leaves where it burnt down (not when rain put it out): the burnt type and what is left.",
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/FireRemains" }
+    }
+  },
+  "$defs": {
+    "FireDryingBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["below_tenth_c", "hours"],
+      "properties": {
+        "below_tenth_c": { "type": ["integer", "null"], "minimum": -500, "maximum": 600, "description": "Upper bound of the band (air temperature in tenths of a degree), null = no bound." },
+        "hours": { "type": "integer", "minimum": 0, "maximum": 240, "description": "Game hours a thing stays wet after the last rain." }
+      }
+    },
+    "FireSpread": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["every_minutes", "radius_cm", "chance_permille", "wind_permille", "max_new", "max_burning", "becomes"],
+      "properties": {
+        "every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "description": "How often, in game minutes, each fire may take hold of something near it." },
+        "radius_cm": { "type": "integer", "minimum": 1, "maximum": 5000, "description": "Reach of a fire: the chance falls off linearly to nothing at this distance." },
+        "chance_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Chance per check for a dry burnable thing right at the fire." },
+        "wind_permille": { "type": "integer", "minimum": 0, "maximum": 5000, "description": "Extra chance at full wind, in permille of the chance (wind 0..1 of the weather)." },
+        "max_new": { "type": "integer", "minimum": 0, "maximum": 16, "description": "At most this many things catch fire in one check on the whole island." },
+        "max_burning": { "type": "integer", "minimum": 0, "maximum": 64, "description": "No fire takes hold while this many things burn on the island." },
+        "becomes": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The type a thing turns into when it catches fire (a burning type of the catalog)." },
+        "spares": {
+          "description": "Things with any of these TRUE properties never catch fire from a fire near them (review GW1 #396: what inhabitants built waits for the damage by quality, A1382 S2).",
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      }
+    },
+    "FireFelt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sensation", "radius_cm", "min_burning"],
+      "properties": {
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
+        "radius_cm": { "type": "integer", "minimum": 1, "maximum": 10000, "description": "How near the burning things are." },
+        "min_burning": { "type": "integer", "minimum": 1, "maximum": 64, "description": "How many burning things at least." },
+        "caught_only": { "type": "boolean", "description": "Count only things that took hold from a fire near them, not fires the inhabitants made (review GW2 #398: two campfires at the camp are no big fire). Absent = false." }
+      }
+    },
+    "FireRemains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["burnt", "left"],
+      "properties": {
+        "burnt": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The burning type." },
+        "left": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The type left where it burnt down." }
+      }
+    }
+  }
+}

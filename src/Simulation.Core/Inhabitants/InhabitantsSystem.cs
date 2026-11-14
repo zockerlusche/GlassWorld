@@ -16,8 +16,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId)
 {
     /// <summary>
-    /// Text for the player (thought bubble), already in the player's language; for no_answer the text key of the
-    /// calm line (the game translates it); null for most events.
+    /// Text for the player (thought bubble), already in the player's language; null for most events - also for
+    /// no_answer, which puts no words in the inhabitant's mouth (D1096 #8).
     /// </summary>
     public string? Text { get; init; }
 
@@ -485,6 +485,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         return entry.AboutKind == AboutType ? TypeLabelOf(inhabitant, id) : null;
     }
+
+    /// <summary>Whether the inhabitant is no longer sure of a belief (fading knowledge, D1017 G1); null = always sure.</summary>
+    public Func<Inhabitant, string, string, bool>? UnsureOf { get; set; }
 
     /// <summary>
     /// What an inhabitant calls a kind of thing, by its own knowledge only: the inhabitants' name of an
@@ -993,7 +996,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         foreach (var driver in _moodDrivers)
         {
-            if (inhabitant.Needs.TryGetValue(driver.Need, out var need) && need < driver.Below && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
+            var acts = driver.Sensation is { } sensation
+                ? Feels?.Invoke(inhabitant, sensation) == true
+                : driver.Need is { } needId && inhabitant.Needs.TryGetValue(needId, out var need) && need < (driver.Below ?? 0);
+            if (acts && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
             {
                 inhabitant.Moods[driver.Mood] = Math.Clamp(mood + PerTick(driver.DeltaPerHour), 0.0, 1.0);
             }
@@ -1960,7 +1966,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>
     /// Applies one effect with the given delta (clamped to 0..1) and returns how much the value changed.
     /// </summary>
-    private static double Apply(Inhabitant inhabitant, Effect effect, double delta)
+    private double Apply(Inhabitant inhabitant, Effect effect, double delta)
     {
         switch (effect.Kind)
         {
@@ -1970,6 +1976,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             case EffectKind.Mood when inhabitant.Moods.TryGetValue(effect.Id, out var mood):
                 inhabitant.Moods[effect.Id] = Math.Clamp(mood + delta, 0.0, 1.0);
                 return Math.Abs(inhabitant.Moods[effect.Id] - mood);
+            case EffectKind.Trait when inhabitant.Traits.TryGetValue(effect.Id, out var trait):
+                // D1086 (B2728): success strengthens a trait, never beyond its start range's max.
+                var most = _model.Start.Traits.FirstOrDefault(t => t.Id == effect.Id)?.Max ?? 1.0;
+                inhabitant.Traits[effect.Id] = Math.Clamp(trait + delta, 0.0, Math.Max(most, trait));
+                return Math.Abs(inhabitant.Traits[effect.Id] - trait);
             case EffectKind.Will_to_live:
                 var will = inhabitant.WillToLive;
                 inhabitant.WillToLive = Math.Clamp(will + delta, 0.0, 1.0);
@@ -2007,7 +2018,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <see cref="KnowledgeGained"/> when it is new. A finished action learns through it what its rules
     /// depend on; other systems name what their doing shows (building: that the thing is made, D9).
     /// </summary>
-    public void Experience(long tick, Inhabitant inhabitant, string action, string typeId, IEnumerable<string> properties)
+    public void Experience(long tick, Inhabitant inhabitant, string? action, string typeId, IEnumerable<string> properties)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(properties);

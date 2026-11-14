@@ -102,6 +102,12 @@
     "max_counters": 48,
     "max_habits": 6
   },
+  "forgetting": {
+    "decay_per_day": { "experienced": 0.01, "seen": 0.02, "heard": 0.03, "read": 0.01, "guessed": 0.05 },
+    "forgotten_below": 0.25,
+    "floor_after": [{ "kind": "felt_bad", "floor": 0.75 }],
+    "unsure_below": 0.7
+  },
   "memory": {
     "condense_at": 4,
     "job_max_events": 32,
@@ -150,6 +156,7 @@
     ],
     "idea_start": 0.3,
     "idea_grow": 0.2,
+    "idea_grow_by_trait": { "trait": "drive", "curve": [[0.2, 0.75], [0.55, 1.0], [0.9, 1.5]] },
     "intention_actions": ["inspect", "show", "teach", "explore", "use", "talk_to"]
   }
 }

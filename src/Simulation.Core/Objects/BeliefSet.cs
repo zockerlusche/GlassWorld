@@ -99,6 +99,30 @@ public sealed class BeliefSet
     /// <summary>Looks up a belief.</summary>
     public bool TryGet(string typeId, string propertyId, out Belief belief) => _byKey.TryGetValue((typeId, propertyId), out belief);
 
+    /// <summary>
+    /// Takes a belief out of the inhabitant's mind (D1017: forgotten - the forgetting system keeps it). True if it was there.
+    /// </summary>
+    public bool Remove(string typeId, string propertyId)
+    {
+        if (!_beliefs.Remove((typeId, propertyId)))
+        {
+            return false;
+        }
+
+        _byKey.Remove((typeId, propertyId));
+        _ordered = null;
+        if (_properties.TryGetValue(typeId, out var properties))
+        {
+            properties.Remove(propertyId);
+            if (properties.Count == 0)
+            {
+                _properties.Remove(typeId);
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>All beliefs in (type, property) order.</summary>
     public IEnumerable<(string TypeId, string PropertyId, Belief Belief)> All =>
         _beliefs.Select(b => (b.Key.TypeId, b.Key.PropertyId, b.Value));

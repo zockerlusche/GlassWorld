@@ -23,7 +23,6 @@ public partial class GameScreen : CanvasLayer
     private readonly Control _overlay = new() { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
-    private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
     private readonly ColorRect _nightShade = new() { Name = "NightShade", Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly VBoxContainer _nightText = new() { Name = "NightText", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Label _nightProgress = new() { ThemeTypeVariation = UiTheme.OnDarkLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -68,6 +67,7 @@ public partial class GameScreen : CanvasLayer
     private ChronicleBook? _chronicle;
     private Contracts.ChronicleKinds? _kinds;
     private int _chronicleShown = -1;
+    private int _chronicleToldShown;
     private long? _chronicleDay;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
@@ -114,6 +114,9 @@ public partial class GameScreen : CanvasLayer
     private string? _cardId;
     private string? _lastCardId;
     private double _sinceRefreshMs = double.MaxValue;
+
+    /// <summary>Node name of a gift button in the help window (its text is filled in, so the UI tour finds it by name).</summary>
+    public const string HelpGiveName = "HelpGive";
 
     /// <summary>Id of the inhabitant whose card is open, or null.</summary>
     public string? CardId => _cardId;
@@ -237,17 +240,19 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
-    /// The zones layout (W1717, D642 step 1, preview): three theme buttons instead of six side buttons, and a
-    /// row of tabs in each side window whose theme holds more than one. Hidden until the player switches the
-    /// preview on; the side windows themselves stay as they are.
+    /// The corner layout (A1682, D957 v4; grew out of the zones preview W1717/D642): four round window buttons
+    /// after the menu button instead of six side buttons, and a row of tabs in each side window whose theme holds
+    /// more than one. The side windows themselves stay as they are.
     /// </summary>
     private void BuildZones()
     {
+        BuildCorners();
         foreach (var theme in ScreenZones.Themes)
         {
-            var button = new Button { Text = theme.TitleKey, ToggleMode = true };
+            var button = new GwRoundButton { ToggleMode = true, Name = "Corner_" + theme.Id };
+            button.Setup(theme.Icon, theme.TitleKey, _style!.Tokens.Zones.RoundButtonPx);
             button.Pressed += () => _sideBar.Open(ScreenZones.Open(theme, _sideBar.OpenKey, _lastOfTheme.GetValueOrDefault(theme.Id)));
-            _themeBar.AddChild(button);
+            _cornerButtons.AddChild(button);
             _themeButtons[theme.Id] = button;
             if (theme.Panels.Count < 2)
             {
@@ -266,11 +271,9 @@ public partial class GameScreen : CanvasLayer
                 }
             }
         }
-
-        _root.AddChild(_themeBar);
     }
 
-    /// <summary>Switches between the layout so far and the zones preview.</summary>
+    /// <summary>Switches between the corner layout (the standard) and the old layout (fallback until step 3).</summary>
     private void SetZones(bool on)
     {
         if (_zones == on)
@@ -280,7 +283,14 @@ public partial class GameScreen : CanvasLayer
 
         _zones = on;
         _sideBar.Visible = !_zones;
-        _themeBar.Visible = _zones;
+        _corner.Visible = _zones;
+        _portraits.Visible = _zones;
+        if (_topBar is not null)
+        {
+            _topBar.Visible = !_zones;
+        }
+
+        MoveClockParts(_zones);
 
         // Compact frames in the zones layout (feedback on D646: panels too wide, top bar too high).
         var frame = _zones ? UiTheme.CompactPanel : UiTheme.WindowPanel;
@@ -353,7 +363,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>UI tour only: the side windows a player can open in the given layout, in the order of the buttons and tabs.</summary>
     public static IReadOnlyList<string> PanelKeysForShots(bool zones) =>
         zones
-            ? [.. ScreenZones.Themes.SelectMany(t => t.Panels).Where(k => k != ScreenZones.Card)]
+            ? [.. ScreenZones.Themes.SelectMany(t => t.Panels).Where(k => k != ScreenZones.Card), ScreenZones.FromMenu]
             : ["inhabitants", "questions", ScreenZones.Pinned, "chronicle", "help", "mailbox"];
 
     /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
@@ -466,7 +476,11 @@ public partial class GameScreen : CanvasLayer
         var group = new ButtonGroup();
         foreach (var choice in choices)
         {
-            var button = new Button { ToggleMode = true, ButtonGroup = group, Text = choice.Symbol };
+            // The speeds as drawn symbols (A1682, D957 v4 section 1): pause, play, and one arrow more per faster speed.
+            var button = new GwIconButton { ToggleMode = true, ButtonGroup = group, Name = "Speed" + choice.Speed.ToString(CultureInfo.InvariantCulture) };
+            var (icon, arrows) = CornerModel.SpeedIcon(choices, choice);
+            var height = style.Tokens.Zones.RoundButtonPx * 0.8f;
+            button.Setup(icon, arrows, new Vector2(height * Math.Max(1.2f, 0.45f * (arrows + 1)), height));
             button.TooltipText = TextFill.Fill(button.Tr(choice.TooltipKey), choice.Args);
             button.ButtonPressed = choice.Speed == 1;
             var speed = choice.Speed;
@@ -722,7 +736,13 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
-        SetZones(settings.ZonesPreview);
+        _portraits.Setup(style);
+        if (style.ContentScaleFactor != _portraitScale)
+        {
+            ResetPortraits(style.ContentScaleFactor);
+        }
+
+        SetZones(!settings.ClassicLayout);
 
         // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
         _logShown = -1;
@@ -1203,10 +1223,14 @@ public partial class GameScreen : CanvasLayer
             _chronicle.Sync(host.Chronicle);
         }
 
-        if (_chronicle is null || _chronicle.Version == _chronicleShown)
+        // A day narrative from the computing night (A1355) shows the page anew as well.
+        var told = _presenter?.Host?.ChronicleNight.Narratives.Count() ?? 0;
+        if (_chronicle is null || (_chronicle.Version == _chronicleShown && told == _chronicleToldShown))
         {
             return;
         }
+
+        _chronicleToldShown = told;
 
         // A1354 (B8 R11): one game day per page. On the newest page new entries show up at once; an
         // older page stays where the player put it.
@@ -1305,6 +1329,20 @@ public partial class GameScreen : CanvasLayer
                 _sideBar.Open("chronicle");
             };
             _timelineList.AddChild(jump);
+        }
+
+        // B8 R10 (A1355): the day's narrative from the computing night stands above its base lines, quieter.
+        if (_style is not null && _presenter?.Host is { } world && ChronicleBook.NarrativeOn(shown, world.ChronicleNight.Narratives, TranslationServer.GetLocale()) is { } narrative)
+        {
+            var story = new Label
+            {
+                Text = narrative,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            story.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+            _chronicleList.AddChild(story);
         }
 
         // The entries of the day: a click opens the inhabitant's card (and the camera follows on the island).
@@ -1490,6 +1528,7 @@ public partial class GameScreen : CanvasLayer
                 var type = card.GiftType!;
                 var button = new Button
                 {
+                    Name = HelpGiveName,
                     Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr(VocabKeys.ObjectType(type)), ["cost"] = cost }),
                     AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                     TooltipText = card.Text ?? string.Empty,
@@ -1988,7 +2027,8 @@ public partial class GameScreen : CanvasLayer
         }
 
         yield return _sideBar;
-        yield return _themeBar;
+        yield return _corner;
+        yield return _portraits;
         foreach (var panel in _sideBar.Panels)
         {
             yield return panel;
@@ -2336,6 +2376,7 @@ public partial class GameScreen : CanvasLayer
             ["year"] = Number(clock.Year),
         });
         _time.Text = clock.Time;
+        RefreshCorners(rows, clock);
 
         // Each inhabitant's diary (W1726): the core keeps it (TL #20472); take what is new.
         if (_presenter?.Host is { } diaryHost)
@@ -2528,128 +2569,6 @@ public partial class GameScreen : CanvasLayer
     /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
     /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
     /// </summary>
-    /// <summary>
-    /// Smoke run only: the zones preview (W1717, D642 step 1). The top bar spans the screen, the log is pinned
-    /// on the left, a theme button opens its side window on the right, a tab switches inside the theme, the card
-    /// and a side window never show together, nothing overlaps and the middle stays free. Leaves the layout
-    /// as <paramref name="settings"/> say. Empty when all holds.
-    /// </summary>
-    public async Task<string> CheckZonesAsync(PlayerSettings settings)
-    {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (_style is null || _topBar is null || _feed is null)
-        {
-            return "screen not set up";
-        }
-
-        async Task Frames()
-        {
-            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            Layout();
-        }
-
-        static Rect2 Box(Control c) => new(c.Position, c.Size);
-
-        _card?.Close();
-        ApplySettings(settings with { ZonesPreview = true }, _style);
-        await Frames();
-        try
-        {
-            var view = GetViewport().GetVisibleRect().Size;
-            var middle = new Vector2(view.X / 2, view.Y / 2);
-            var log = _sideBar.PanelOf(ScreenZones.Pinned);
-            if (!log.Visible || log.Position.X + log.Size.X > middle.X)
-            {
-                return "the log is not pinned on the left";
-            }
-
-            if (_topBar.Size.X < view.X - (2 * _style.Tokens.Window.SafeMargin) - 1 || _sideBar.Visible || !_themeBar.Visible)
-            {
-                return "top bar or theme buttons are not in the zones layout";
-            }
-
-            _themeButtons["contact"].EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            if (_sideBar.OpenKey != "questions")
-            {
-                return $"the contact theme opened '{_sideBar.OpenKey}'";
-            }
-
-            _sideBar.PanelOf("questions").Tabs.GetChildren().OfType<Button>().Last().EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            if (_sideBar.OpenKey != "mailbox" || !log.Visible)
-            {
-                return $"the last contact tab opened '{_sideBar.OpenKey}' (log visible: {log.Visible})";
-            }
-
-            var open = _sideBar.PanelOf("mailbox");
-            var boxes = new (string Name, Rect2 Box)[] { ("top bar", Box(_topBar)), ("log", Box(log)), ("side window", Box(open)), ("theme buttons", Box(_themeBar)) };
-            foreach (var (a, b) in boxes.SelectMany((a, i) => boxes.Skip(i + 1).Select(b => (a, b))))
-            {
-                if (a.Box.Intersects(b.Box))
-                {
-                    return $"{a.Name} {a.Box} overlaps {b.Name} {b.Box}";
-                }
-            }
-
-            if (boxes.Any(b => b.Box.HasPoint(middle)) || open.Position.X < middle.X)
-            {
-                return "the middle of the picture is not free";
-            }
-
-            // Step 3: the world theme holds the chronicle and the timeline as tabs.
-            _themeButtons["world"].EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            var worldTabs = _sideBar.PanelOf("chronicle").Tabs.GetChildren().OfType<Button>().ToList();
-            if (_sideBar.OpenKey != "chronicle" || worldTabs.Count != 2)
-            {
-                return $"the world theme opened '{_sideBar.OpenKey}' with {worldTabs.Count} tabs";
-            }
-
-            worldTabs[1].EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            if (_sideBar.OpenKey != ScreenZones.Timeline || _timelineList.GetChildCount() == 0)
-            {
-                return "the timeline tab did not open or is empty";
-            }
-
-            // Step 2: the card is a tab of the people theme, in the side window's place, with the talk field.
-            var who = _feed.Inhabitants()[0].Id;
-            OpenCard(who);
-            await Frames();
-            var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
-            if (_card is not null || _sideBar.OpenKey != ScreenZones.Card || _cardId != who || _talkInput is null || !cardPanel.IsAncestorOf(_talkInput))
-            {
-                return "the card did not open as a tab of the people theme";
-            }
-
-            var card = Box(cardPanel);
-            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle) || _sideBar.Panels.Count(p => p.Visible && p != log) != 1)
-            {
-                return $"the card tab {card} is not alone in the side window's place";
-            }
-
-            cardPanel.Tabs.GetChildren().OfType<Button>().First().EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            if (_sideBar.OpenKey != "inhabitants" || _cardId is not null)
-            {
-                return "the list tab did not replace the card";
-            }
-
-            // Back on the card tab: the inhabitant last shown is there again.
-            _sideBar.PanelOf("inhabitants").Tabs.GetChildren().OfType<Button>().Last().EmitSignal(BaseButton.SignalName.Pressed);
-            await Frames();
-            return _sideBar.OpenKey == ScreenZones.Card && _cardId == who ? string.Empty : "the card tab did not bring back the inhabitant last shown";
-        }
-        finally
-        {
-            _sideBar.Open(null);
-            ApplySettings(settings, _style);
-            _lastCardId = null;
-        }
-    }
-
     private async Task<string> CheckCardPlacementAsync()
     {
         if (_style is null || _card is null)
@@ -2702,16 +2621,16 @@ public partial class GameScreen : CanvasLayer
         var top = _topBar.Position.Y + _topBar.Size.Y + gap;
         if (_zones)
         {
-            // Between the pinned log on the left and whatever stands on the right (theme buttons, side window, card).
+            // Between the left corners (portraits, log) and whatever stands on the right (time block, window, card).
             var log = _sideBar.PanelOf(ScreenZones.Pinned);
-            var from = log.Position.X + log.Size.X + gap;
-            var to = _themeBar.Position.X - gap;
+            var from = Math.Max(log.Position.X + log.Size.X, _portraits.Position.X + _portraits.Size.X) + gap;
+            var to = _corner.Position.X - gap;
             foreach (var panel in _sideBar.Panels.Where(p => p.Visible && p != log))
             {
                 to = Math.Min(to, panel.Position.X - gap);
             }
 
-            return new Rect2(from, top, Math.Max(0, to - from), Math.Max(0, view.Y - margin - top));
+            return new Rect2(from, margin, Math.Max(0, to - from), Math.Max(0, view.Y - (2 * margin)));
         }
 
         var right = _sideBar.Position.X - gap;
@@ -2730,7 +2649,7 @@ public partial class GameScreen : CanvasLayer
         var gap = _style.Tokens.Window.Gap;
         if (_zones)
         {
-            LayoutZones(area, margin, gap);
+            LayoutCorners(area, margin, gap);
             return;
         }
 
@@ -2750,35 +2669,6 @@ public partial class GameScreen : CanvasLayer
         PlaceToasts();
 
         // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
-        FitCard(area);
-    }
-
-    /// <summary>
-    /// The zones layout (W1717, D642): A top bar over the full width, B theme buttons and one side window (or
-    /// the card) on the right below it, C the log on the left, D hints at the bottom centre; the middle is free.
-    /// </summary>
-    private void LayoutZones(Vector2 area, float margin, float gap)
-    {
-        _topBar!.Position = new Vector2(margin, margin);
-        _topBar.Size = new Vector2(area.X - (2 * margin), 0);
-        var top = margin + _topBar.GetCombinedMinimumSize().Y + gap;
-        var themes = _themeBar.GetCombinedMinimumSize();
-        _themeBar.Size = themes;
-        _themeBar.Position = new Vector2(area.X - margin - themes.X, top);
-        var log = _sideBar.PanelOf(ScreenZones.Pinned);
-        foreach (var panel in _sideBar.Panels)
-        {
-            if (panel == log)
-            {
-                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Zones.LogHeightShare, widthPx: _style.Tokens.Zones.LogWidth);
-            }
-            else
-            {
-                panel.Dock(area, _style!, themes.X + gap, top, widthPx: _style!.Tokens.Zones.SidePanelWidth, contentPx: panel == _sideBar.PanelOf("inhabitants") ? _inhabitants.WantedWidth : 0);
-            }
-        }
-
-        PlaceToasts();
         FitCard(area);
     }
 
