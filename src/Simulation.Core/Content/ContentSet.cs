@@ -153,7 +153,8 @@ public sealed class ContentSet
         var model = ContractSerializer.Deserialize<InhabitantModel>(File.ReadAllText(Path.Combine(contentDirectory, "inhabitants", "model.json")));
         var needs = Ids(vocabularies, VocabularyKind.Need);
         var moods = Ids(vocabularies, VocabularyKind.Mood);
-        CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait));
+        CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait),
+            vocabularies.TryGetValue(VocabularyKind.Sensation, out var sensations) ? sensations.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : []);
         var conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json")));
         if (conversation.Praise is { } praise && !moods.Contains(praise.Mood))
         {
@@ -813,11 +814,22 @@ public sealed class ContentSet
         return catalog;
     }
 
-    private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits)
+    private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits, HashSet<string> sensations)
     {
+        // A mood driver follows exactly one of: a need below a threshold, a sensation (B5 R47).
+        static bool ByNeed(MoodDriver d) => d.Need is not null && d.Below is not null && d.Sensation is null;
+        static bool BySensation(MoodDriver d) => d.Sensation is not null && d.Need is null && d.Below is null;
+        var badDrivers = model.MoodDrivers.Where(d => !ByNeed(d) && !BySensation(d)).ToList();
+        if (badDrivers.Count > 0)
+        {
+            throw new InvalidDataException($"Inhabitant model: a mood driver needs either need and below or a sensation ({string.Join(", ", badDrivers.Select(d => d.Mood))}).");
+        }
+
         var unknown = model.Needs.Select(n => n.Id).Where(id => !needs.Contains(id))
             .Concat(model.Moods.Select(m => m.Id).Where(id => !moods.Contains(id)))
-            .Concat(model.MoodDrivers.SelectMany(d => new[] { d.Need, d.Mood }).Where(id => !needs.Contains(id) && !moods.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Mood).Where(id => !moods.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
+            .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

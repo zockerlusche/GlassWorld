@@ -44,7 +44,8 @@
         "direction",
         "outline_size",
         "vital",
-        "condition"
+        "condition",
+        "sensation"
       ]
     },
     "entries": {
