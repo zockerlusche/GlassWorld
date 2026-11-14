@@ -1,0 +1,70 @@
+{
+  "contract_version": "0.2",
+  "species": [
+    {
+      "id": "birds",
+      "groups": [
+        "nesting",
+        "plumage"
+      ],
+      "biomes": [
+        "forest",
+        "freshwater",
+        "swamp"
+      ],
+      "cap_per_biome": 40,
+      "start_permille": 500,
+      "growth_per_day_permille": 60,
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 2000
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 300
+        },
+        {
+          "season": "winter",
+          "permille": 0
+        }
+      ]
+    },
+    {
+      "id": "grazers",
+      "groups": [
+        "moult",
+        "grazing"
+      ],
+      "biomes": [
+        "meadow",
+        "field"
+      ],
+      "cap_per_biome": 20,
+      "start_permille": 500,
+      "growth_per_day_permille": 40,
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 2000
+        },
+        {
+          "season": "summer",
+          "permille": 1000
+        },
+        {
+          "season": "autumn",
+          "permille": 500
+        },
+        {
+          "season": "winter",
+          "permille": 0
+        }
+      ]
+    }
+  ]
+}
