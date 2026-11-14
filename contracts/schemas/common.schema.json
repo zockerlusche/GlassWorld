@@ -625,7 +625,8 @@
         "image",
         "sound",
         "model3d",
-        "review"
+        "review",
+        "milestone"
       ]
     },
     "JobState": {

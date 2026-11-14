@@ -241,6 +241,12 @@ internal sealed class RunCommand
             {
                 WriteDay(host, day, output);
             }
+
+            // A1620: the learning log's finished days, as the game writes them next to its save.
+            if (options.LearningLogFolder is { } learning)
+            {
+                GlassWorld.Simulation.Data.LearningLogWriter.WriteFinishedDays(host, learning, options.ContentDirectory);
+            }
         }
 
         stopwatch.Stop();

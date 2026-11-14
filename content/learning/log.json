@@ -1,0 +1,59 @@
+{
+  "contract_version": "0.2",
+  "enabled": true,
+  "folder": "learning-log",
+  "kinds": [
+    {
+      "event": "knowledge_gained",
+      "text_key": "msg.learnlog.knowledge_gained"
+    },
+    {
+      "event": "name_learned",
+      "text_key": "msg.learnlog.name_learned"
+    },
+    {
+      "event": "first_meeting",
+      "text_key": "msg.learnlog.first_meeting"
+    },
+    {
+      "event": "invention_wanted",
+      "text_key": "msg.learnlog.invention_wanted"
+    },
+    {
+      "event": "invented",
+      "text_key": "msg.learnlog.invented"
+    },
+    {
+      "event": "built",
+      "text_key": "msg.learnlog.built"
+    },
+    {
+      "event": "first_use",
+      "text_key": "msg.learnlog.first_use"
+    },
+    {
+      "event": "combined",
+      "text_key": "msg.learnlog.combined"
+    },
+    {
+      "event": "discovered_process",
+      "text_key": "msg.learnlog.discovered_process"
+    },
+    {
+      "event": "idea",
+      "text_key": "msg.learnlog.idea"
+    },
+    {
+      "event": "dreamed",
+      "text_key": "msg.learnlog.dreamed"
+    },
+    {
+      "event": "praised",
+      "text_key": "msg.learnlog.praised"
+    },
+    {
+      "event": "word_heard",
+      "text_key": "msg.learnlog.word_heard"
+    }
+  ]
+}
