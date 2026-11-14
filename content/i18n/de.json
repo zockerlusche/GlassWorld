@@ -1467,6 +1467,22 @@
       "text": "Treibholz"
     },
     {
+      "key": "vocab.object.egg",
+      "text": "Ei"
+    },
+    {
+      "key": "vocab.object.wool",
+      "text": "Wolle"
+    },
+    {
+      "key": "vocab.object.feather",
+      "text": "Feder"
+    },
+    {
+      "key": "vocab.object.dung",
+      "text": "Dung"
+    },
+    {
       "key": "vocab.object.shell",
       "text": "Muschel"
     },

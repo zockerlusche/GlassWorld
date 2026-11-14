@@ -126,14 +126,14 @@ public sealed class FruitAtPlantTests
     private static List<string> Loose(SimulationHost host)
     {
         var map = host.Map!;
-        var rules = Content.WorldGen.Spawns.Spawns.Where(r => r.GrowsOn is not null).GroupBy(r => r.ObjectType).ToDictionary(g => g.Key, g => g.First().GrowsOn!);
+        // A thing may grow at several plants (feathers under conifers and deciduous trees, K4): any of its rules counts.
+        var rules = Content.WorldGen.Spawns.Spawns.Where(r => r.GrowsOn is not null).GroupBy(r => r.ObjectType).ToDictionary(g => g.Key, g => g.Select(r => r.GrowsOn!).ToList());
         var all = host.Objects.All.ToList();
         var loose = new List<string>();
         foreach (var fruit in all.Where(o => rules.ContainsKey(o.TypeId)))
         {
-            var grows = rules[fruit.TypeId];
             var at = map.CellOf(fruit.Position)!.Value;
-            var near = all.Any(p => p.TypeId == grows.ObjectType && map.CellOf(p.Position) is { } c && Math.Abs(c.X - at.X) <= grows.WithinCells && Math.Abs(c.Z - at.Z) <= grows.WithinCells);
+            var near = rules[fruit.TypeId].Any(grows => all.Any(p => p.TypeId == grows.ObjectType && map.CellOf(p.Position) is { } c && Math.Abs(c.X - at.X) <= grows.WithinCells && Math.Abs(c.Z - at.Z) <= grows.WithinCells));
             if (!near)
             {
                 loose.Add($"{fruit.TypeId} {fruit.Id} at cell {at}");
