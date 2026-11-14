@@ -97,6 +97,10 @@ class FireFelt(BaseModel):
     min_burning: int = Field(
         ..., description='How many burning things at least.', ge=1, le=64
     )
+    caught_only: bool | None = Field(
+        None,
+        description='Count only things that took hold from a fire near them, not fires the inhabitants made (review GW2 #398: two campfires at the camp are no big fire). Absent = false.',
+    )
 
 
 class FireRemains(BaseModel):

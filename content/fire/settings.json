@@ -18,7 +18,7 @@
     "spares": ["crafted"]
   },
   "felt": [
-    { "sensation": "near_fire", "radius_cm": 1500, "min_burning": 2 }
+    { "sensation": "near_fire", "radius_cm": 1500, "min_burning": 2, "caught_only": true }
   ],
   "remains": [
     { "burnt": "fire", "left": "ash" }

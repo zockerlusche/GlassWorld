@@ -855,6 +855,38 @@
       "text": "Warmth"
     },
     {
+      "key": "vocab.base_function.container",
+      "text": "Container"
+    },
+    {
+      "key": "vocab.base_function.seat_bed",
+      "text": "Seat or bed"
+    },
+    {
+      "key": "vocab.base_function.heat_source",
+      "text": "Heat source"
+    },
+    {
+      "key": "vocab.base_function.light_source",
+      "text": "Light source"
+    },
+    {
+      "key": "vocab.base_function.sound_source",
+      "text": "Sound source"
+    },
+    {
+      "key": "vocab.base_function.shelter",
+      "text": "Shelter and room"
+    },
+    {
+      "key": "vocab.base_function.tool",
+      "text": "Tool"
+    },
+    {
+      "key": "vocab.base_function.closure",
+      "text": "Closure"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Braidable"
     },

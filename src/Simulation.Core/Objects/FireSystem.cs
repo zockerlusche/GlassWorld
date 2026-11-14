@@ -8,7 +8,8 @@ namespace GlassWorld.Simulation.Objects;
 /// <summary>A burning thing as saved: it goes out at <paramref name="Until"/> unless rain puts it out first.</summary>
 /// <param name="Id">Object id.</param>
 /// <param name="Until">Tick at which it has burnt down.</param>
-public sealed record BurningThing(string Id, long Until);
+/// <param name="Caught">Whether it took hold from a fire near it (B5 R46) rather than being made (review GW2 #398).</param>
+public sealed record BurningThing(string Id, long Until, bool Caught = false);
 
 /// <summary>
 /// B2687 K3 (spec Bogen 30 R7, A1379 part): fire as a thing of the world. Every thing whose type has
@@ -30,6 +31,9 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
     private readonly Func<string, string?> _rootOf;
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, long> _until = new(StringComparer.Ordinal);
+
+    // Burning things that took hold from a fire near them (B5 R46) - only they make a big fire (review GW2 #398).
+    private readonly SortedSet<string> _caught = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ObjectParams?> _params = new(StringComparer.Ordinal);
 
     /// <summary>Creates the system.</summary>
@@ -135,6 +139,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var id in done ?? [])
         {
             _until.Remove(id);
+            _caught.Remove(id);
         }
 
         if (Settings?.Spread is { } spread)
@@ -189,7 +194,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
         var radius = rule.RadiusCm / 100.0;
         var count = 0;
-        foreach (var id in _until.Keys)
+        foreach (var id in rule.CaughtOnly == true ? _caught : (IEnumerable<string>)_until.Keys)
         {
             if (_objects.TryGet(id, out var burning))
             {
@@ -293,6 +298,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
             var fire = _objects.Spawn(spread.Becomes, thing.Position);
             var minutes = ParamsOf(fire.TypeId)?.BurnMinutes ?? 0;
             _until[fire.Id] = world.Tick + Math.Max(1L, (long)minutes * _ticksPerHour / 60);
+            _caught.Add(fire.Id);
             lit++;
             Caught?.Invoke(world, thing, fire);
         }
@@ -418,10 +424,20 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         {
             hasher.Write(id).Write(until);
         }
+
+        // Only worlds where fire took hold carry the mark (hashes of other worlds stay as they were).
+        if (_caught.Count > 0)
+        {
+            hasher.Write("caught").Write(_caught.Count);
+            foreach (var id in _caught)
+            {
+                hasher.Write(id);
+            }
+        }
     }
 
     /// <summary>The burning things for a save game.</summary>
-    public IReadOnlyList<BurningThing> Capture() => [.. _until.Select(b => new BurningThing(b.Key, b.Value))];
+    public IReadOnlyList<BurningThing> Capture() => [.. _until.Select(b => new BurningThing(b.Key, b.Value, _caught.Contains(b.Key)))];
 
     /// <summary>Restores the burning things of a save game.</summary>
     public void Restore(IReadOnlyList<BurningThing>? burning)
@@ -429,6 +445,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         foreach (var thing in burning ?? [])
         {
             _until[thing.Id] = thing.Until;
+            if (thing.Caught)
+            {
+                _caught.Add(thing.Id);
+            }
         }
     }
 
