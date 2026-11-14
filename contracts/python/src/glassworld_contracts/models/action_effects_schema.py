@@ -43,11 +43,6 @@ class ActionPartners(BaseModel):
     )
 
 
-class Wear(StrEnum):
-    on = 'on'
-    off = 'off'
-
-
 class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
@@ -87,6 +82,14 @@ class ActionTiming(BaseModel):
     holds: bool | None = Field(
         None,
         description='AK1a (D1046 v2): when the action ends, the inhabitant holds its target in its hand - only with a free hand and a thing nobody holds; the thing stays in the world and follows it. Omitted = no.',
+    )
+    wears: bool | None = Field(
+        None,
+        description='K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.',
+    )
+    unwears: bool | None = Field(
+        None,
+        description='K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.',
     )
     releases: bool | None = Field(
         None,
@@ -170,10 +173,6 @@ class EffectRule(BaseModel):
         description='B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.',
     )
     consumes_target: bool
-    wear: Wear | None = Field(
-        None,
-        description='K4 (B2752): on = the target is put on and worn (it leaves the ground, one thing at a time); off = what the inhabitant wears is laid down at its feet. Omitted = neither.',
-    )
     effects: list[Effect] = Field(..., max_length=16)
 
 

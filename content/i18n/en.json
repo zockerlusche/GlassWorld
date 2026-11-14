@@ -1939,6 +1939,14 @@
       "text": "Put down"
     },
     {
+      "key": "vocab.event.worn",
+      "text": "Put on"
+    },
+    {
+      "key": "vocab.event.taken_off",
+      "text": "Taken off"
+    },
+    {
       "key": "vocab.event.combined",
       "text": "Something came of it"
     },

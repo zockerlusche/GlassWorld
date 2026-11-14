@@ -211,6 +211,14 @@
       "description": "An inhabitant entered a new life phase (B9 R1): detail = the phase (vocabulary life_stage)."
     },
     {
+      "id": "worn",
+      "description": "An inhabitant put a thing on its body (K4): target = the thing, target type = its type."
+    },
+    {
+      "id": "taken_off",
+      "description": "An inhabitant took off what it wore and put it down (K4): target = the thing, target type = its type."
+    },
+    {
       "id": "combined",
       "description": "Something came of using things together (combine, B2687): target = the new thing, target type = its type, detail = the rule."
     },

@@ -609,16 +609,6 @@ public sealed class SimulationHost
             world.Add(body);
         }
 
-        // K4 (B2752): one worn thing per inhabitant; it leaves the ground while worn, its warmth only through its material.
-        var wear = new WearSystem(objects);
-        inhabitants.Wearing = (_, who, target) => wear.Wear(who, target, who.Position);
-        if (body is not null)
-        {
-            body.WornTypeOf = wear.WornTypeOf;
-        }
-
-        world.Add(wear);
-
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
         var forgetting = new ForgettingSystem(content.Knowledge.Forgetting, inhabitants, objects, world.Calendar.TicksPerDay);
         world.Add(forgetting);
@@ -664,7 +654,6 @@ public sealed class SimulationHost
             Milestones = milestones,
             Nature = nature,
             Animals = animals,
-            Wear = wear,
             ChronicleNight = chronicleNight,
             Conversation = conversation,
             Diary = diary,
@@ -991,8 +980,6 @@ public sealed class SimulationHost
     /// <summary>The animal stocks (B4b K4); null without animal data or nature takt.</summary>
     public Nature.AnimalStockSystem? Animals { get; private init; }
 
-    /// <summary>What the inhabitants wear (B4b K4, B2752).</summary>
-    public WearSystem Wear { get; private init; } = null!;
 
     /// <summary>The biomes the island really has (a stock of a species lives only there).</summary>
     private static HashSet<string> BiomesOn(Map.WorldMap map)

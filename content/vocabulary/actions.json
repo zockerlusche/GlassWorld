@@ -22,7 +22,7 @@
     { "id": "introduce", "spoken": true, "description": "Tell another inhabitant one's own name on a first meeting; the other usually answers with theirs.", "target": "inhabitant" },
     { "id": "use", "description": "Use a made thing for what it is for.", "target": "object" },
     { "id": "put_on", "description": "Put this thing on and wear it on the body.", "target": "object" },
-    { "id": "take_off", "description": "Take off what you wear and lay it down.", "target": "none" },
+    { "id": "take_off", "description": "Take off what you wear and lay it down.", "target": "object" },
     { "id": "build_step", "description": "Work one material into a building step of an invention.", "target": "object" },
     { "id": "use_instead", "description": "Take this thing for the building in place of the missing material.", "target": "object", "only_when": "build_stuck" },
     { "id": "build_smaller", "description": "Stop building and leave the thing as far as it is built.", "target": "none", "only_when": "build_stuck" },

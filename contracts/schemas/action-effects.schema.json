@@ -38,6 +38,8 @@
         "decider_option": { "description": "Whether the decider may offer this action as an option (default true). Actions the core plans itself, such as building steps, are false.", "type": "boolean" },
         "gradual": { "description": "B2681 (W1938): the action's effects work while it lasts - an equal share every tick - instead of all at its end (sleep: the value rises while sleeping, and one woken early keeps what it slept). Default false.", "type": "boolean" },
         "holds": { "description": "AK1a (D1046 v2): when the action ends, the inhabitant holds its target in its hand - only with a free hand and a thing nobody holds; the thing stays in the world and follows it. Omitted = no.", "type": "boolean" },
+        "wears": { "description": "K4 (B2752): when the action ends, the inhabitant wears its target on the body - only with nothing worn yet and a thing nobody else has; like a held thing it stays in the world and follows (AK1a). Omitted = no.", "type": "boolean" },
+        "unwears": { "description": "K4: when the action ends, the inhabitant takes off what it wears (its target) and puts it down at its feet. Omitted = no.", "type": "boolean" },
         "releases": { "description": "AK1a: when the action ends, the inhabitant puts down what it holds (its target) at its feet. Omitted = no.", "type": "boolean" },
         "wake_after_minutes": { "description": "B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.", "type": "integer", "minimum": 0, "maximum": 1440 },
         "partners": { "description": "Only for actions on an object that use further things together with it (combine, B2687): how the core offers them. Omitted = the action uses its target alone.", "$ref": "#/$defs/ActionPartners" }
@@ -67,7 +69,6 @@
         },
         "requires_also": { "description": "B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "consumes_target": { "type": "boolean" },
-        "wear": { "description": "K4 (B2752): on = the target is put on and worn (it leaves the ground, one thing at a time); off = what the inhabitant wears is laid down at its feet. Omitted = neither.", "type": "string", "enum": ["on", "off"] },
         "effects": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/Effect" } }
       }
     },

@@ -170,6 +170,9 @@ public sealed class Inhabitant
     /// <summary>Its age in life years now; null without aging. Not state: it follows from the tick of birth.</summary>
     public int? AgeYears { get; internal set; }
 
+    /// <summary>The thing it wears on its body (K4, B2752), or null. Like a held thing it stays in the world and follows it.</summary>
+    public string? Worn { get; internal set; }
+
     /// <summary>
     /// Actions that rest after too many repeats without effect (W1696), each for its target or, without a
     /// target, for its place (content/behaviour/utility.json: repetition), in the order they began to rest.
@@ -320,6 +323,12 @@ public sealed class Inhabitant
         if (Held is { } held)
         {
             hasher.Write("held").Write(held);
+        }
+
+        // A worn thing only while it wears one (K4), so states without wearing keep their hashes.
+        if (Worn is { } worn)
+        {
+            hasher.Write("worn").Write(worn);
         }
 
         // Felt places only once there are any (B5 R32), so states without them keep their hashes.

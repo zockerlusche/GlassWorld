@@ -79,9 +79,6 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public bool HasState => _wet.Count > 0;
 
-    /// <summary>The type of what an inhabitant wears, or null (K4; set by the host from the wear system).</summary>
-    public Func<string, string?>? WornTypeOf { get; set; }
-
     /// <summary>How wet an inhabitant is, in permille of fully wet.</summary>
     public int WetPermille(string inhabitantId) => _wet.GetValueOrDefault(inhabitantId);
 
@@ -95,7 +92,7 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(inhabitant);
         var cool = (int)((long)_data.Wetness.CoolTenthC * WetPermille(inhabitant.Id) / 1000);
-        var worn = _data.Worn is { } keeps && WornTypeOf?.Invoke(inhabitant.Id) is { } type && _objects.Catalog.HasProperty(type, keeps.Property)
+        var worn = _data.Worn is { } keeps && inhabitant.Worn is { } id && _objects.TryGet(id, out var thing) && _objects.Catalog.HasProperty(thing.TypeId, keeps.Property)
             ? keeps.WarmTenthC
             : 0;
         return SunTenthC(world, inhabitant.Position) - cool + worn;

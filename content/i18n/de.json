@@ -1939,6 +1939,14 @@
       "text": "Abgelegt"
     },
     {
+      "key": "vocab.event.worn",
+      "text": "Angelegt"
+    },
+    {
+      "key": "vocab.event.taken_off",
+      "text": "Abgenommen"
+    },
+    {
       "key": "vocab.event.combined",
       "text": "Etwas entstanden"
     },
