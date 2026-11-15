@@ -34,6 +34,7 @@ TEXTS = TextCatalog.load(REPO / "content/i18n")
 MOODS = Vocabulary.load(REPO / "content/vocabulary").ids("mood")
 TEMPLATE = load_prompt(REPO / "prompts", "review/night", 1)
 TEMPLATE_V2 = load_prompt(REPO / "prompts", "review/night", 2)
+TEMPLATE_V3 = load_prompt(REPO / "prompts", "review/night", 3)
 
 
 def _answer(**changes: Any) -> str:
@@ -211,3 +212,68 @@ def test_v1_still_asks_for_kept() -> None:
     """Released versions stay as they were: v1 keeps its ticks and its 'kept'."""
     assert "[tick 1900]" in build_values(JOB, TEMPLATE, TEXTS)["events"]
     assert "kept" in output_schema(JOB, MOODS, TEXTS, TEMPLATE.settings)["required"]
+
+
+def _job_with_people() -> GenerationJob:
+    """Joro is known by name (the core's label), the other person is not."""
+    data = json.loads(json.dumps(JOB_DATA))
+    events = data["payload"]["review"]["events"]
+    events.append(
+        {
+            "tick": 1600,
+            "kind": "name_learned",
+            "about": {"kind": "inhabitant", "id": "inh-000002"},
+            "formative": True,
+            "label": {"de": "Joro", "en": "Joro"},
+        }
+    )
+    events.append(
+        {
+            "tick": 1700,
+            "kind": "first_meeting",
+            "about": {"kind": "inhabitant", "id": "inh-000003"},
+            "formative": False,
+        }
+    )
+    return GenerationJob.model_validate(data)
+
+
+def test_v3_names_people_as_learned_and_others_someone() -> None:
+    """A1728 (night run 15.11.: 'I met another person named Lena'): a person appears by the name
+    the inhabitant learned, else as 'someone' - the model has no reason to make one up."""
+    job = _job_with_people()
+    values = build_values(job, TEMPLATE_V3, TEXTS)
+    assert "name learned (Joro)" in values["events"]
+    assert "first meeting (someone)" in values["events"]
+    assert "Joro" not in build_values(job, TEMPLATE_V2, TEXTS)["events"]  # v2 as released
+
+
+def test_v3_refuses_a_summary_that_makes_up_a_name() -> None:
+    job = _job_with_people()
+    answer = json.loads(_answer())
+    answer.pop("kept")
+    answer["summary"] = "Today I met another person named Lena by the shore."
+    with pytest.raises(InvalidOutputError, match="'Lena', a name it never learned"):
+        parse_review(json.dumps(answer), job, GUARD, MOODS, TEXTS, TEMPLATE_V3.settings)
+    answer["summary"] = "Today I talked with someone called Joro by the shore."
+    result, _ = parse_review(json.dumps(answer), job, GUARD, MOODS, TEXTS, TEMPLATE_V3.settings)
+    assert result["summary"].startswith("Today I talked")
+
+
+@pytest.mark.parametrize(
+    ("summary", "refused"),
+    [
+        ("Heute traf ich eine Person namens Lena am Ufer.", "Lena"),
+        ("Sie heißt Lena und mag Beeren.", "Lena"),
+        ("Er wurde Lena genannt.", None),  # 'genannt' after the name: no name follows
+        ("Heute sprach ich mit jemandem, der Joro heißt.", None),
+        ("My name is Elin and I like the shore.", None),
+        ("Ich heiße Elin und mag das Ufer.", None),
+        ("I am called Elin by nobody.", None),
+    ],
+)
+def test_v3_name_forms_german_and_its_own_name(summary: str, refused: str | None) -> None:
+    """Review GW1 #462: German forms count; speaking of itself is no made-up person."""
+    from glassworld_ai.review import made_up_name
+
+    assert made_up_name(summary, {"Joro"}) == refused

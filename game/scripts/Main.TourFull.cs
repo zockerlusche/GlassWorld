@@ -292,10 +292,5 @@ public partial class Main
         ApplySettings(normal with { Language = "de" });
         TextCatalogs.SetLanguage("de");
         await Frames(2);
-
-        // 36. The old layout as the fallback until step 3 (TL #23224), once.
-        screen.ShowZonesForShots(false);
-        await take("36_alter_aufbau");
-        screen.ShowZonesForShots(true);
     }
 }

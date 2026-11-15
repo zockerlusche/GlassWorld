@@ -77,6 +77,9 @@ public partial class GameScreen : CanvasLayer
     private IReadOnlyList<InhabitantRow> _logRows = [];
 
     // The theme of the parts on the world without a box (S1b): light text with a dark outline; built per style.
+    // A1736: the theme of the windows on the right, on the world's dark ground (light text, framed parts as they are).
+    private Theme? _windowTheme;
+
     private Theme? _worldTheme;
     private string _questionShape = "-";
     private readonly VBoxContainer _chronicleList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -889,6 +892,7 @@ public partial class GameScreen : CanvasLayer
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
         _worldTheme = UiTheme.BuildWorld(style);
+        _windowTheme = UiTheme.BuildWindowOnWorld(style);
         ApplyWorldTheme();
         _portraits.Setup(style);
         if (style.ContentScaleFactor != _portraitScale)
@@ -896,7 +900,8 @@ public partial class GameScreen : CanvasLayer
             ResetPortraits(style.ContentScaleFactor);
         }
 
-        SetZones(!settings.ClassicLayout);
+        // S3b (A1684): the corners of Variante A are the only layout; the old top bar and side bar are gone.
+        SetZones(true);
 
         // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
         _logShown = -1;
@@ -1499,8 +1504,10 @@ public partial class GameScreen : CanvasLayer
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+
+                // Quieter by size, not by a dark grey (A1736: on the dark ground the grey could not be read).
+                ThemeTypeVariation = UiTheme.SmallLabel,
             };
-            story.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
             _chronicleList.AddChild(story);
         }
 
@@ -1511,6 +1518,7 @@ public partial class GameScreen : CanvasLayer
             {
                 Text = ChronicleLine(entry),
                 Flat = true,
+                ThemeTypeVariation = UiTheme.WorldFlatButton,
                 Alignment = HorizontalAlignment.Left,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
@@ -1817,8 +1825,9 @@ public partial class GameScreen : CanvasLayer
                 CustomMinimumSize = new Vector2(_style.Tokens.Window.CardBarWidth, 0),
             };
 
-            // Urgency as a calm warm tint (B2466: never blinking, never a sound).
-            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
+            // Urgency as a calm warm tint (B2466: never blinking, never a sound), from the light text of the dark ground
+            // (A1736); the dark outline of the window theme keeps it readable.
+            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.World_text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
             row.AddChild(text);
             var read = new Button { Text = "ui.mailbox.read" };
             var id = message.Id;
@@ -1832,8 +1841,8 @@ public partial class GameScreen : CanvasLayer
             _mailList.AddChild(new Label { Text = "ui.mailbox.history", ThemeTypeVariation = UiTheme.SubheaderLabel });
             foreach (var message in history)
             {
-                var old = new Label { Text = MailText(message), AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-                old.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+                // Older messages: quieter by size, not by a dark grey (A1736: unreadable on the dark ground).
+                var old = new Label { Text = MailText(message), ThemeTypeVariation = UiTheme.SmallLabel, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
                 _mailList.AddChild(old);
             }
         }
@@ -2026,7 +2035,7 @@ public partial class GameScreen : CanvasLayer
         var id = row.Id;
         if (withName)
         {
-            var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            var who = new Button { Text = DisplayName(row), Flat = true, ThemeTypeVariation = UiTheme.WorldFlatButton, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             who.Pressed += () => ShowInhabitant(id);
             box.AddChild(who);
         }
@@ -2712,7 +2721,9 @@ public partial class GameScreen : CanvasLayer
 
         _presenter.Speed = speed;
         Refresh();
-        if (_cardId != id || _card is null || !_card.IsInsideTree())
+        // S3b: the card is the inspector's tab on the right (the old card window is gone with the old layout).
+        var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
+        if (_cardId != id || _sideBar.OpenKey != ScreenZones.Card || !cardPanel.IsVisibleInTree())
         {
             return "card did not open";
         }
@@ -2784,14 +2795,14 @@ public partial class GameScreen : CanvasLayer
 
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
-        if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
+        if (UiSetup.CurrentTheme is { } theme && cardPanel.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
         {
             return "the UI theme does not reach the game screen";
         }
 
         // Text size too, not only the frames (GW1 review #65 T3).
         var label = new Label();
-        _card.Content.AddChild(label);
+        cardPanel.Content.AddChild(label);
         var size = label.GetThemeFontSize("font_size");
         label.Free();
         if (_style is not null && size != _style.FontPx(UiFontSizeId.Body))
@@ -2852,20 +2863,17 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
-    /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
-    /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
+    /// The card stays inside the safe area and out of the free middle at the smallest and largest UI size (found in
+    /// the 3840x1600 screenshots: the card kept its old place after a size change; S3b: the card in its corner).
     /// </summary>
     private async Task<string> CheckCardPlacementAsync()
     {
-        if (_style is null || _card is null)
+        if (_style is null || _cardId is null)
         {
             return "card missing";
         }
 
-        if (_sideBar.OpenKey != "inhabitants")
-        {
-            _sideBar.Toggle("inhabitants");
-        }
+        var card = _sideBar.PanelOf(ScreenZones.Card);
 
         var original = _style;
         var problem = string.Empty;
@@ -2878,13 +2886,13 @@ public partial class GameScreen : CanvasLayer
             }
 
             var area = GetViewport().GetVisibleRect().Size;
-            var cardRect = new Rect2(_card.Position, _card.Size);
-            var foreground = CardArea(area).X >= area.X;
-            var overlap = (!foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect)))
-                || (_topBar is not null && new Rect2(_topBar.Position, _topBar.Size).Intersects(cardRect));
-            if (!_card.IsInsideSafeArea(area) || overlap)
+            var cardRect = new Rect2(card.Position, card.Size);
+            var margin = _style.Tokens.Window.SafeMargin;
+            var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin)).Grow(0.5f);
+            var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, _style.Tokens.Zones.MiddleShare);
+            if (!safe.Encloses(cardRect) || cardRect.Intersects(new Rect2((float)mx, (float)my, (float)mw, (float)mh)))
             {
-                problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
+                problem = $"card at UI {scale:0.##}: outside the safe area or in the free middle ({cardRect} in {area})";
                 break;
             }
         }
@@ -3297,7 +3305,7 @@ public partial class GameScreen : CanvasLayer
         _cardDiaryBox = new VBoxContainer { Name = "CardDiary" };
         _cardDiaryShown = default;
         content.AddChild(_cardDiaryBox);
-        _cardDiaryMore = new Button { Name = "CardDiaryMore", Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more", Flat = true, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, Visible = false };
+        _cardDiaryMore = new Button { Name = "CardDiaryMore", Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more", Flat = true, ThemeTypeVariation = UiTheme.WorldFlatButton, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, Visible = false };
         _cardDiaryMore.Pressed += () =>
         {
             _cardDiaryOpen = !_cardDiaryOpen;
