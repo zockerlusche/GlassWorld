@@ -11,21 +11,17 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class SpawnGrowsOn(BaseModel):
+class SpawnHangs(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    object_type: str = Field(
+    min_permille: int = Field(..., ge=0, le=1000)
+    max_permille: int = Field(..., ge=0, le=1000)
+    falls_per_day_permille: int = Field(
         ...,
-        description='The plant the thing grows on (a type another spawn rule places).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    within_cells: int = Field(
-        ...,
-        description='Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).',
-        ge=1,
-        le=8,
+        description='Chance per game day that it falls (checked hourly).',
+        ge=0,
+        le=1000,
     )
 
 
@@ -80,6 +76,25 @@ class MandatoryResource(BaseModel):
         ge=1,
         le=100000,
     )
+
+
+class SpawnGrowsOn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    object_type: str = Field(
+        ...,
+        description='The plant the thing grows on (a type another spawn rule places).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    within_cells: int = Field(
+        ...,
+        description='Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).',
+        ge=1,
+        le=8,
+    )
+    hangs: SpawnHangs | None = None
 
 
 class SpawnRule(BaseModel):
