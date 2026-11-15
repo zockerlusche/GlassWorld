@@ -149,6 +149,28 @@ public sealed partial class InhabitantsSystem
         return points[^1].PerHour;
     }
 
+    // A1729/A1730 (review GW4 #467): the snapshot's comfort level, worked out once per inhabitant and world tick -
+    // the look asks every frame, the full felt air (sun and shade, wind shelter, fire, others) is not cheap. Not state.
+    private readonly Dictionary<string, (long Tick, string? Level)> _comfortForView = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The comfort level for the look (A1730): <see cref="ComfortLevelOf"/>, kept for the rest of the tick. Asked between
+    /// ticks (snapshots), so it never sees a half-done tick (the felt cache of #435 is the core's, inside its loop).
+    /// </summary>
+    public string? ComfortLevelForView(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_comfortForView.TryGetValue(inhabitant.Id, out var known) && known.Tick == world.Tick)
+        {
+            return known.Level;
+        }
+
+        var level = ComfortLevelOf(world, inhabitant);
+        _comfortForView[inhabitant.Id] = (world.Tick, level);
+        return level;
+    }
+
     /// <summary>
     /// B5 R31: whether an inhabitant feels a comfort sensation of the data now (too cold at the cold level, ...):
     /// its comfort level is one of the sensation's levels. Unknown sensations: false.

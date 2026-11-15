@@ -12,6 +12,39 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureComfort
+    {
+
+        /// <summary>
+        /// Comfort level (vocabulary comfort_level).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        /// <summary>
+        /// Id of a gesture of gestures; missing = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("gesture")]
+        public string? Gesture { get; set; } = default!;
+
+        /// <summary>
+        /// Amplitude of the shiver of the body, metres for a figure of size 1; missing or 0 = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("shiver_m")]
+        public double? ShiverM { get; set; } = default!;
+
+        /// <summary>
+        /// How fast it shivers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("shiver_hz")]
+        public double? ShiverHz { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// One arm gesture: a calm cycle of reach out (rise), stay at the start point (dip), move to the head (lift), hold, lower and rest. Points are in the figure's own frame in metres for a figure of size 1 (x towards the arm's own side, y up, z forward), so one set of numbers serves both arms.
     /// </summary>
@@ -26,7 +59,7 @@ namespace GlassWorld.Contracts
         public string Id { get; set; } = default!;
 
         /// <summary>
-        /// Core actions the gesture shows (vocabulary actions).
+        /// Core actions the gesture shows (vocabulary actions). Empty = it shows only through comfort (A1729), never for an action.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("actions")]
         public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
@@ -738,6 +771,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("gestures")]
         public System.Collections.Generic.ICollection<FigureGesture>? Gestures { get; set; } = default!;
+
+        /// <summary>
+        /// A1729 (A1379 rest): how a comfort level shows on the figure while it stands idle or walks - a gesture of gestures (arms to the body when cold, a hand to the forehead when hot) and a slight shiver. Never over an action's own gesture, never while it works or lies. Calm values (B2466); absent = nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("comfort")]
+        public System.Collections.Generic.ICollection<FigureComfort>? Comfort { get; set; } = default!;
 
         /// <summary>
         /// Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.
