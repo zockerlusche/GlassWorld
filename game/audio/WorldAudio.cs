@@ -212,7 +212,9 @@ public partial class WorldAudio : Node3D
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
         var inventions = _inventionSounds;
-        foreach (var request in _director.Plan(events, positions, listener, Zoom, playing, e => e.Action == _useAction ? inventions?.For(e.TargetId) : null))
+        // A1515 (B2608): walking rustles only through plants; on sand, rock or snow the step sound of the ground.
+        var library = RetroAudio.Library!;
+        foreach (var request in _director.Plan(events, positions, listener, Zoom, playing, e => e.Action == _useAction ? inventions?.For(e.TargetId) : null, at => library.SurfaceAt(BiomeAt(at), _host?.SnowMmAt(at) ?? 0)))
         {
             var player = _pools[request.Bus].FirstOrDefault(p => !p.Playing);
             if (player is null || Off(request.Bus))
