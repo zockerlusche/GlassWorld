@@ -105,11 +105,17 @@ public partial class WorldPresenter : Node3D
 
     /// <summary>
     /// The start population for tours and measurements (<c>--inhabitants=N</c> after <c>--</c>; B2749: the click tour
-    /// with 50 inhabitants); null = the data's start inhabitants, as every game starts.
+    /// with 50 inhabitants; debug builds only, like <c>--load-save</c>, review GW3 #454); null = the data's start
+    /// inhabitants, as every game starts.
     /// </summary>
     private static int? StartInhabitants()
     {
         const string prefix = "--inhabitants=";
+        if (!OS.IsDebugBuild())
+        {
+            return null;
+        }
+
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(arg[prefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var count) && count > 0)

@@ -62,6 +62,17 @@ public sealed class InhabitantCornerTests
     }
 
     [Fact]
+    public void WhoKnocksStaysInTheCornerEvenAmongManyFavourites()
+    {
+        // Review GW3 #454: a knock is a call for help; six favourites must not push it out to the '+N'.
+        var rows = Rows(50).Select((r, i) => i < 10 ? r with { Favourite = true } : r).ToList();
+        var knocking = new HashSet<string>(StringComparer.Ordinal) { rows[30].Id };
+        var (shown, _) = CornerModel.Shown(rows, Tokens.Zones, null, knocking);
+        Assert.Contains(rows[30], shown);
+        Assert.Equal(Tokens.Zones.PortraitsImportantMax, shown.Count);
+    }
+
+    [Fact]
     public void NobodyImportantLeavesOnlyTheCount()
     {
         var (shown, more) = CornerModel.Shown(Rows(12), Tokens.Zones, null, NoKnock);

@@ -150,6 +150,9 @@ public partial class GameScreen
         var log = _sideBar.PanelOf(ScreenZones.Pinned);
         log.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
         log.Theme = _zones ? _worldTheme : null;
+
+        // The log stands pinned in its corner: nothing to close there (its 'x' is for the side window of the old layout).
+        log.CloseButton.Visible = !_zones;
     }
 
     private static void Move(Control part, Node to, int index)

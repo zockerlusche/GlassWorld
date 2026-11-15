@@ -23,8 +23,9 @@ public static class CornerModel
 
     /// <summary>
     /// The inhabitants the corner shows (B2749, TL #25515): all of them while they are fewer than
-    /// <c>portraits_important_from</c>; from there on only the important ones - the one followed or selected, the pinned
-    /// favourites, who knocks, who puzzles over a question - at most <c>portraits_important_max</c>, in the order of the
+    /// <c>portraits_important_from</c>; from there on only the important ones - the one followed or selected, who knocks
+    /// (a call for help, review GW3 #454), the pinned favourites, who puzzles over a question - at most
+    /// <c>portraits_important_max</c>, in the order of the
     /// list (so nobody jumps), and how many more there are (the "+N" that opens the inhabitants window).
     /// </summary>
     /// <param name="rows">All inhabitants in the order of the list.</param>
@@ -42,7 +43,7 @@ public static class CornerModel
         }
 
         int Rank(InhabitantRow r) =>
-            r.Id == selected ? 0 : r.Favourite ? 1 : knocking.Contains(r.Id) ? 2 : Brooding(r) ? 3 : -1;
+            r.Id == selected ? 0 : knocking.Contains(r.Id) ? 1 : r.Favourite ? 2 : Brooding(r) ? 3 : -1;
 
         List<InhabitantRow> shown = [.. rows
             .Select((row, index) => (Row: row, Index: index, Rank: Rank(row)))
