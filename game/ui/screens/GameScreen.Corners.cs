@@ -30,6 +30,7 @@ public partial class GameScreen
     private readonly Queue<string> _portraitWanted = new();
     private readonly HashSet<string> _portraitAsked = new(StringComparer.Ordinal);
     private HFlowContainer? _topRow;
+    private Vector2? _cornerArea;
     private bool _portraitBusy;
     private int _portraitRound;
     private double _portraitScale;
@@ -65,6 +66,7 @@ public partial class GameScreen
         _favorThumb.CustomMinimumSize = icon;
 
         _root.AddChild(_corner);
+        _corner.MinimumSizeChanged += KeepCornerRight;
         _root.AddChild(_portraits);
         _portraits.Setup(_style);
         _portraits.Chosen += id =>
@@ -122,6 +124,123 @@ public partial class GameScreen
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
         Move(_favorThumb, _cornerFavor, 1);
+    }
+
+    /// <summary>
+    /// A1762 (Marcel W2183): the time block changes its size between two layouts (another date, a longer season name, a
+    /// larger text). A container only grows to the right and never shrinks by itself, so the block stood out of the
+    /// picture and jumped back at the next layout. It keeps its right edge at the safe margin instead, at once; a new
+    /// height moves the windows below it, so that asks for a full layout in the next frame.
+    /// </summary>
+    private void KeepCornerRight()
+    {
+        if (_style is null || _cornerArea is not { } area || !_corner.IsInsideTree())
+        {
+            return;
+        }
+
+        var height = _corner.Size.Y;
+        _corner.Size = _corner.GetCombinedMinimumSize();
+        _corner.Position = new Vector2(area.X - _style.Tokens.Window.SafeMargin - _corner.Size.X, _corner.Position.Y);
+        if (Math.Abs(_corner.Size.Y - height) > 0.5f)
+        {
+            _relayoutFrames = Math.Max(_relayoutFrames, 1);
+        }
+    }
+
+    /// <summary>
+    /// Self-check (A1762): every digit in turn in the time, the date and the day (as the clock and fast days show them);
+    /// the time block must end at the safe margin each time and keep its width. Empty if it does; the clock is shown
+    /// again afterwards.
+    /// </summary>
+    private async Task<string> SteadyCornerProblem(Vector2 view)
+    {
+        if (_style is null || _time is null || _date is null || _day is null)
+        {
+            return "the clock is not set up";
+        }
+
+        var edge = view.X - _style.Tokens.Window.SafeMargin;
+        var labels = new[] { _time, _date, _day };
+        var shown = labels.Select(l => l.Text).ToArray();
+        float? width = null;
+        _clockHeld = true;
+        try
+        {
+            foreach (var digit in "0123456789")
+            {
+                for (var i = 0; i < labels.Length; i++)
+                {
+                    labels[i].Text = new string([.. shown[i].Select(c => char.IsAsciiDigit(c) ? digit : c)]);
+                    UiFit.SteadyDigits(labels[i]);
+                }
+
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                var end = _corner.Position.X + _corner.Size.X;
+                if (Math.Abs(end - edge) > 0.5f)
+                {
+                    return $"the time block ends at {end:0} with the clock at '{_time.Text}', not at the safe margin {edge:0}";
+                }
+
+                width ??= _corner.Size.X;
+                if (Math.Abs(_corner.Size.X - width.Value) > 0.5f)
+                {
+                    return $"the time block is {_corner.Size.X:0} wide with the clock at '{_time.Text}', {width:0} before: it jitters";
+                }
+            }
+        }
+        finally
+        {
+            _clockHeld = false;
+            for (var i = 0; i < labels.Length; i++)
+            {
+                labels[i].Text = shown[i];
+                UiFit.SteadyDigits(labels[i]);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Self-check (TL #26917, Marcel's photo of a window about 1900 px wide): the corners laid out for windows from 1280 to
+    /// 1920 pixels wide (the picture's logical size for each, as the game scales it); the time block must end at the safe
+    /// margin, stay steady and stay inside each time. Empty if it does; the corners are laid out for the real picture again.
+    /// </summary>
+    private async Task<string> WindowSizesProblem()
+    {
+        if (_style is null)
+        {
+            return "screen not set up";
+        }
+
+        var margin = _style.Tokens.Window.SafeMargin;
+        try
+        {
+            foreach (var (width, height) in new[] { (1280, 720), (1366, 768), (1600, 900), (1900, 1000), (1920, 1080) })
+            {
+                var (w, h) = UiScaling.LogicalSize(width, height, _style.Tokens, _style.ContentScaleFactor);
+                var area = new Vector2((float)w, (float)h);
+                LayoutCorners(area, margin, _style.Tokens.Window.Gap);
+                if (_corner.Position.X < margin - 0.5f)
+                {
+                    return $"window {width}x{height}: the time block {_corner.Position}+{_corner.Size} does not fit in {area}";
+                }
+
+                var steady = await SteadyCornerProblem(area);
+                if (steady.Length > 0)
+                {
+                    return $"window {width}x{height}: {steady}";
+                }
+            }
+        }
+        finally
+        {
+            Layout();
+        }
+
+        return string.Empty;
     }
 
     /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
@@ -408,6 +527,7 @@ public partial class GameScreen
     /// </summary>
     private void LayoutCorners(Vector2 area, float margin, float gap)
     {
+        _cornerArea = area;
         var log = _sideBar.PanelOf(ScreenZones.Pinned);
         var list = _sideBar.PanelOf("inhabitants");
         var card = _sideBar.PanelOf(ScreenZones.Card);
@@ -618,6 +738,35 @@ public partial class GameScreen
             if (((GwRoundButton)_themeButtons["questions"]).Count != questions)
             {
                 return $"the questions button shows '{((GwRoundButton)_themeButtons["questions"]).Count}', the world has '{questions}'";
+            }
+
+            // The checks below take many frames while the world runs on: after the question count, which they would leave stale.
+            // A1762 (Marcel W2183): the time block ends at the safe margin and keeps that edge and its width while the
+            // clock and the date show any digits - nothing jitters, nothing leaves the picture.
+            var steady = await SteadyCornerProblem(view);
+            if (steady.Length > 0)
+            {
+                return steady;
+            }
+
+            // TL #26917: the same in a window, not only full screen - laid out for window sizes 1280 to 1920 wide.
+            var windows = await WindowSizesProblem();
+            if (windows.Length > 0)
+            {
+                return windows;
+            }
+
+            // B2815 (Marcel W2208): the closed log keeps its size whatever lines arrive, a short one or a very long one.
+            var logBefore = log.Size;
+            var tick = _presenter?.Host?.World.Tick ?? 0;
+            _log?.AddHint(null, LogModel.NoteHint, "ui.log.empty", new Dictionary<string, string>(), tick);
+            _log?.AddHint(null, LogModel.NoteHint, "msg.share.refused", new Dictionary<string, string> { ["reason"] = string.Join(' ', Enumerable.Repeat("eine sehr lange Begruendung", 12)) }, tick);
+            RedrawLog();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            if ((log.Size - logBefore).Abs().Length() > 0.5f)
+            {
+                return $"the closed log changed its size from {logBefore} to {log.Size} when a long line came";
             }
 
             string Free(params (string Name, Control Part)[] parts)

@@ -140,6 +140,20 @@ public static class UiFit
     }
 
     /// <summary>
+    /// A label whose numbers change (the clock, the date) keeps one width while they do: it takes the width of its text
+    /// with every digit as wide as the widest digit of its font, so a minute or a day passing moves nothing beside it
+    /// (A1762, Marcel W2183: the time block jittered). Call it after each new text; only a new number of digits or
+    /// letters changes the width.
+    /// </summary>
+    public static void SteadyDigits(Label label)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        var widest = WidestDigit(label);
+        var steady = new string([.. label.Text.Select(c => char.IsAsciiDigit(c) ? widest : c)]);
+        label.CustomMinimumSize = new Vector2(Width(label, steady), label.CustomMinimumSize.Y);
+    }
+
+    /// <summary>
     /// Layout check: the texts below <paramref name="root"/> that are cut or broken inside a word - a hint
     /// text wider than its field (whether or not the field holds text now; a field at its limit may cut),
     /// a wrapping label narrower than its longest word. Empty if all fit.
@@ -183,6 +197,21 @@ public static class UiFit
     private static float LongestWord(Label label) => LongestWord(label, label.Text);
 
     private static float LongestWord(Label label, string text) => (float)TextFit.LongestWord(label.Tr(text), word => Width(label, word));
+
+    // The widest digit per font and size (review GW3 #496: the clock asks four times a second; a new text size is a new key).
+    private static readonly Dictionary<(Rid Font, int Size), char> WidestDigits = [];
+
+    private static char WidestDigit(Label label)
+    {
+        var key = (label.GetThemeFont("font").GetRid(), label.GetThemeFontSize("font_size"));
+        if (!WidestDigits.TryGetValue(key, out var widest))
+        {
+            widest = "0123456789".MaxBy(d => Width(label, d.ToString()));
+            WidestDigits[key] = widest;
+        }
+
+        return widest;
+    }
 
     private static float Width(Control control, string text) =>
         (float)Math.Ceiling(control.GetThemeFont("font").GetStringSize(text, HorizontalAlignment.Left, -1, control.GetThemeFontSize("font_size")).X);
