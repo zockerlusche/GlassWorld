@@ -567,7 +567,7 @@ public partial class WorldPresenter : Node3D
     }
 
     /// <summary>Whether an inhabitant's figure lies now (island figures; the placeholder world has none lying).</summary>
-    private bool LiesNow(string inhabitantId) =>
+    internal bool LiesNow(string inhabitantId) =>
         _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView { Lying: true };
 
     private void ShowThoughts()
