@@ -524,7 +524,8 @@ public static class UiLayoutCheck
             problems.Add($"table header needs {table.HeaderMinimumWidth():0} px, panel offers {inner:0} px");
         }
 
-        if (board.Visible.Count != style.Tokens.Toast.MaxVisible - 1 || board.Visible[1].Count != 13)
+        // One plain hint and thirteen knocks bundled into one (A1684: the box shows at most two).
+        if (board.Visible.Count != Math.Min(2, style.Tokens.Toast.MaxVisible) || board.Visible[^1].Count != 13)
         {
             problems.Add("hint bundling does not match the board");
         }
