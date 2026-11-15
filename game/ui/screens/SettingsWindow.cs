@@ -7,19 +7,55 @@ using Godot;
 namespace GlassWorld.Game.Ui.Screens;
 
 /// <summary>
-/// Settings (B6 R4): language, UI size and text size (separate, B2513), contrast, reduced motion,
-/// hints, hiding the UI and the volume per bus (B8). Every change takes effect at once through
-/// <see cref="Changed"/>; the caller stores the settings in the user folder, never in a save game.
-/// AI level and computing night follow with B7.
+/// Settings (B6 R4; D957 v4 section 10, A1737): tabs on the left from top to bottom, their rows from the data
+/// (content/ui/settings.json); beside the rows a column says what the row under the pointer does (not a tooltip);
+/// each tab can restore its defaults. Every change takes effect at once through <see cref="Changed"/>; the caller
+/// stores the settings in the user folder, never in a save game.
 /// </summary>
 public partial class SettingsWindow : GwWindow
 {
+    private const string TabPrefix = "ui.settings.tab.";
+    private const string AiTab = TabPrefix + "ai";
+    private const string DescriptionHint = "ui.settings.desc_hint";
+
+    // What the name row can say is wrong; the page keeps room for the longest, so it never grows (B2791).
+    private static readonly string[] NameProblems = ["ui.settings.problem.name_long", "ui.settings.problem.name_characters", "ui.settings.problem.name_blocked", "ui.settings.problem.name_empty"];
+
+    private static readonly Lazy<SettingsLayout> Layout = new(() =>
+        GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<SettingsLayout>(UiSetup.ReadEmbedded("content.ui.settings.json")));
+
     private PlayerSettings _settings = new();
+    private PlayerSettings _defaults = new();
     private static string _lastTab = string.Empty;
     private readonly ButtonGroup _group = new();
     private readonly Dictionary<string, (Button Tab, VBoxContainer Page)> _pages = new(StringComparer.Ordinal);
-    private HFlowContainer _tabs = new();
-    private VBoxContainer _page = new();
+
+    // How each row shows a settings value again without raising a change (after "restore defaults").
+    private readonly List<Action<PlayerSettings>> _shows = [];
+    // The parts are made once here and placed by Build; a part made and then replaced would stay outside the tree
+    // and never be freed (the layout check builds hundreds of these windows).
+    private readonly VBoxContainer _tabs = new() { Name = "Tabs" };
+    private readonly VBoxContainer _pagesBox = new() { Name = "Pages", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    private readonly HBoxContainer _body = new() { Name = "Body" };
+    private readonly VBoxContainer _pageColumn = new() { Name = "PageColumn", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    private readonly VSeparator _descriptionLine = new();
+    private readonly VSeparator _tabsLine = new();
+    private readonly HFlowContainer _tabsTop = new() { Name = "TabsTop", Visible = false };
+    private readonly Label _description = new()
+    {
+        Name = "Description",
+        Text = DescriptionHint,
+        ThemeTypeVariation = UiTheme.SmallLabel,
+        AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        SizeFlagsVertical = SizeFlags.ShrinkBegin,
+    };
+
+    // The page the rows added next go to (set by Section).
+    private VBoxContainer _page = null!;
+    private Label? _nameProblem;
+
+    // Every text the description column can show (the room of the longest stays reserved, B2791).
+    private readonly List<string> _descriptions = [DescriptionHint];
     private float _labelWidth;
 
     /// <summary>Raised after every change with the new, already clamped settings.</summary>
@@ -34,96 +70,216 @@ public partial class SettingsWindow : GwWindow
         ArgumentNullException.ThrowIfNull(mix);
         ArgumentNullException.ThrowIfNull(style);
         Setup("ui.settings.title", style);
-
-        // One tab per section (TL #19986): the window stays short, each page shows only its own controls.
-        _tabs = new HFlowContainer { Name = "Tabs" };
-        Content.AddChild(_tabs);
         _labelWidth = style.Tokens.Window.SettingsLabelWidth;
         _settings = settings;
+        _defaults = PlayerSettings.Parse(null, limits);
 
-        Section("ui.settings.section.player");
-        var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength, PlaceholderText = "ui.settings.player_name_hint" };
-        UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
-        var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        void TakeName()
+        // D957 v4 section 10: the tabs stand on the left from top to bottom, the page beside them, the description on the right.
+        Content.AddChild(_tabsTop);
+        _description.CustomMinimumSize = new Vector2(_labelWidth, 0);
+        UiFit.LongestWordFits(_description, _labelWidth, _descriptions);
+        _body.AddChild(_tabs);
+        _body.AddChild(_tabsLine);
+        _pageColumn.AddChild(_pagesBox);
+        _body.AddChild(_pageColumn);
+        _body.AddChild(_descriptionLine);
+        _body.AddChild(_description);
+        Content.AddChild(_body);
+
+        foreach (var tab in Layout.Value.Tabs)
         {
-            // Empty = no name; otherwise the same checks as every player input (length, content guard).
-            var text = name.Text.Trim();
-            var problem = text.Length == 0 ? null : Presentation.World.NewWorldModel.InputProblem(text, limits.PlayerNameMaxLength, guard);
-            nameProblem.Text = problem switch
+            Section(TabPrefix + tab.Id);
+            if (tab.Rows.Count == 0)
             {
-                "long" => "ui.settings.problem.name_long",
-                "characters" => "ui.settings.problem.name_characters",
-                "blocked" => "ui.settings.problem.name_blocked",
-                null => string.Empty,
-                _ => "ui.settings.problem.name_empty",
-            };
-            nameProblem.Visible = problem is not null;
-            if (problem is null && text != (_settings.PlayerName ?? string.Empty))
-            {
-                Apply(_settings with { PlayerName = text.Length == 0 ? null : text });
-            }
-        }
-
-        name.TextSubmitted += _ => TakeName();
-        name.FocusExited += TakeName;
-        Row("ui.settings.player_name", name);
-        _page.AddChild(nameProblem);
-
-        Section("ui.settings.section.language");
-        var language = new OptionButton();
-        foreach (var locale in limits.Locales.Order(StringComparer.Ordinal))
-        {
-            language.AddItem("ui.settings.language." + locale);
-            language.SetItemMetadata(language.ItemCount - 1, locale);
-            if (locale == (settings.Language ?? TranslationServer.GetLocale()))
-            {
-                language.Selected = language.ItemCount - 1;
-            }
-        }
-
-        language.ItemSelected += index => Apply(_settings with { Language = language.GetItemMetadata((int)index).AsString() });
-        Row("ui.settings.language", language);
-
-        Section("ui.settings.section.display");
-        Row("ui.settings.ui_scale", SizeSlider(limits.Tokens.UiScale, settings.UiScale, v => _settings with { UiScale = v }, style.Tokens.Window.CardBarWidth, style.Tokens.Window.SettingsApplyMs));
-        Row("ui.settings.text_scale", SizeSlider(limits.Tokens.TextScale, settings.TextScale, v => _settings with { TextScale = v }, style.Tokens.Window.CardBarWidth, style.Tokens.Window.SettingsApplyMs));
-        Row("ui.settings.high_contrast", Toggle(settings.HighContrast, v => _settings with { HighContrast = v }));
-        Row("ui.settings.reduce_motion", Toggle(settings.ReduceMotion, v => _settings with { ReduceMotion = v }));
-        Row("ui.settings.feeling_symbols", Toggle(settings.FeelingSymbols, v => _settings with { FeelingSymbols = v }));
-        Row("ui.settings.hide_ui", Toggle(settings.HideUi, v => _settings with { HideUi = v }));
-
-        Section("ui.settings.section.hints");
-        var duration = new SpinBox { MinValue = 1, MaxValue = limits.Tokens.Toast.MaxDurationFactor, Step = 1, Value = settings.HintDurationFactor };
-        duration.ValueChanged += v => Apply(_settings with { HintDurationFactor = (int)v });
-        Row("ui.settings.hint_duration", duration);
-        Row("ui.settings.hints_until_dismissed", Toggle(settings.HintsUntilDismissed, v => _settings with { HintsUntilDismissed = v }));
-
-        Section("ui.settings.section.audio");
-        foreach (var bus in mix.Buses)
-        {
-            var id = BusKey(bus.Id);
-            var slider = new HSlider
-            {
-                MinValue = limits.VolumeDb.Min,
-                MaxValue = limits.VolumeDb.Max,
-                Step = 1,
-                Value = settings.BusVolumesDb.TryGetValue(id, out var db) ? db : bus.VolumeDb,
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                CustomMinimumSize = new Vector2(style.Tokens.Window.CardBarWidth, 0),
-            };
-            slider.ValueChanged += v => Apply(_settings with { BusVolumesDb = new Dictionary<string, double>(_settings.BusVolumesDb, StringComparer.Ordinal) { [id] = v } });
-            if (bus.Off == true)
-            {
-                // Switched off in the data until replaced (W1699): locked, the tooltip says why.
-                slider.Editable = false;
-                slider.TooltipText = "ui.settings.volume.off_tip";
+                // A tab whose settings come later says so (graphics, controls: A1737 b and c).
+                var coming = new Label { Text = "ui.settings.coming", AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+                UiFit.LongestWordFits(coming, _labelWidth);
+                _page.AddChild(coming);
+                continue;
             }
 
-            Row("ui.settings.volume." + id, slider);
+            foreach (var row in tab.Rows)
+            {
+                AddRow(row, settings, limits, mix, style, guard);
+            }
+
+            var rows = tab.Rows.ToList();
+            if (rows.Any(r => r != "ai"))
+            {
+                var restore = new Button { Text = "ui.settings.restore", SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+                restore.Pressed += () => Restore(rows);
+                _page.AddChild(restore);
+            }
         }
 
         AddAction("ui.common.close").Pressed += Close;
+    }
+
+    /// <summary>The controls of one row of the data (its id names the setting).</summary>
+    private void AddRow(string id, PlayerSettings settings, SettingsLimits limits, SoundMix mix, UiStyle style, GlassWorld.Simulation.Safety.TextGuard guard)
+    {
+        switch (id)
+        {
+            case "player_name":
+                var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength };
+                UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
+                // Always in its place, empty while the name is fine: a message that appears does not move the window (B2791).
+                var nameProblem = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                _nameProblem = nameProblem;
+                void TakeName()
+                {
+                    // Empty = no name; otherwise the same checks as every player input (length, content guard).
+                    var text = name.Text.Trim();
+                    var problem = text.Length == 0 ? null : Presentation.World.NewWorldModel.InputProblem(text, limits.PlayerNameMaxLength, guard);
+                    nameProblem.Text = problem switch
+                    {
+                        "long" => "ui.settings.problem.name_long",
+                        "characters" => "ui.settings.problem.name_characters",
+                        "blocked" => "ui.settings.problem.name_blocked",
+                        null => string.Empty,
+                        _ => "ui.settings.problem.name_empty",
+                    };
+                    if (problem is null && text != (_settings.PlayerName ?? string.Empty))
+                    {
+                        Apply(_settings with { PlayerName = text.Length == 0 ? null : text });
+                    }
+                }
+
+                name.TextSubmitted += _ => TakeName();
+                name.FocusExited += TakeName;
+                Row("ui.settings.player_name", name, "ui.settings.player_name.desc");
+                _page.AddChild(nameProblem);
+                _shows.Add(s => name.Text = s.PlayerName ?? string.Empty);
+                break;
+
+            case "language":
+                var language = new OptionButton();
+                foreach (var locale in limits.Locales.Order(StringComparer.Ordinal))
+                {
+                    language.AddItem("ui.settings.language." + locale);
+                    language.SetItemMetadata(language.ItemCount - 1, locale);
+                }
+
+                void ShowLanguage(PlayerSettings s)
+                {
+                    var wanted = s.Language ?? TranslationServer.GetLocale();
+                    for (var i = 0; i < language.ItemCount; i++)
+                    {
+                        if (language.GetItemMetadata(i).AsString() == wanted)
+                        {
+                            language.Select(i);
+                        }
+                    }
+                }
+
+                ShowLanguage(settings);
+                language.ItemSelected += index => Apply(_settings with { Language = language.GetItemMetadata((int)index).AsString() });
+                Row("ui.settings.language", language, "ui.settings.language.desc");
+                _shows.Add(ShowLanguage);
+                break;
+
+            case "ui_scale":
+                Row("ui.settings.ui_scale", SizeSlider(limits.Tokens.UiScale, settings.UiScale, v => _settings with { UiScale = v }, s => s.UiScale, style), "ui.settings.ui_scale.desc");
+                break;
+
+            case "text_scale":
+                Row("ui.settings.text_scale", SizeSlider(limits.Tokens.TextScale, settings.TextScale, v => _settings with { TextScale = v }, s => s.TextScale, style), "ui.settings.text_scale.desc");
+                break;
+
+            case "high_contrast":
+                Row("ui.settings.high_contrast", Toggle(settings.HighContrast, v => _settings with { HighContrast = v }, s => s.HighContrast), "ui.settings.high_contrast.desc");
+                break;
+
+            case "reduce_motion":
+                Row("ui.settings.reduce_motion", Toggle(settings.ReduceMotion, v => _settings with { ReduceMotion = v }, s => s.ReduceMotion), "ui.settings.reduce_motion.desc");
+                break;
+
+            case "feeling_symbols":
+                Row("ui.settings.feeling_symbols", Toggle(settings.FeelingSymbols, v => _settings with { FeelingSymbols = v }, s => s.FeelingSymbols), "ui.settings.feeling_symbols.desc");
+                break;
+
+            case "hide_ui":
+                Row("ui.settings.hide_ui", Toggle(settings.HideUi, v => _settings with { HideUi = v }, s => s.HideUi), "ui.settings.hide_ui.desc");
+                break;
+
+            case "hints_until_dismissed":
+                Row("ui.settings.hints_until_dismissed", Toggle(settings.HintsUntilDismissed, v => _settings with { HintsUntilDismissed = v }, s => s.HintsUntilDismissed), "ui.settings.hints_until_dismissed.desc");
+                break;
+
+            case "hint_duration":
+                var duration = new SpinBox { MinValue = 1, MaxValue = limits.Tokens.Toast.MaxDurationFactor, Step = 1, Value = settings.HintDurationFactor };
+                duration.ValueChanged += v => Apply(_settings with { HintDurationFactor = (int)v });
+                Row("ui.settings.hint_duration", duration, "ui.settings.hint_duration.desc");
+                _shows.Add(s => duration.SetValueNoSignal(s.HintDurationFactor));
+                break;
+
+            case "volume":
+                foreach (var bus in mix.Buses)
+                {
+                    var busId = BusKey(bus.Id);
+                    var standard = bus.VolumeDb;
+                    var slider = new HSlider
+                    {
+                        MinValue = limits.VolumeDb.Min,
+                        MaxValue = limits.VolumeDb.Max,
+                        Step = 1,
+                        Value = settings.BusVolumesDb.TryGetValue(busId, out var db) ? db : standard,
+                        SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                        CustomMinimumSize = new Vector2(style.Tokens.Window.CardBarWidth, 0),
+                    };
+                    slider.ValueChanged += v => Apply(_settings with { BusVolumesDb = new Dictionary<string, double>(_settings.BusVolumesDb, StringComparer.Ordinal) { [busId] = v } });
+                    if (bus.Off == true)
+                    {
+                        // Switched off in the data until replaced (W1699): locked, the tooltip says why.
+                        slider.Editable = false;
+                        slider.TooltipText = "ui.settings.volume.off_tip";
+                    }
+
+                    Row("ui.settings.volume." + busId, slider, "ui.settings.volume.desc");
+                    _shows.Add(s => slider.SetValueNoSignal(s.BusVolumesDb.TryGetValue(busId, out var v) ? v : standard));
+                }
+
+                break;
+
+            case "ai":
+                // The AI tab is filled by AddAi (it needs the running world's service).
+                break;
+
+            default:
+                throw new InvalidDataException($"content/ui/settings.json names the unknown setting '{id}'.");
+        }
+    }
+
+    /// <summary>"Restore defaults" of a tab (D957 v4 section 10): only its own rows go back, the controls show it at once.</summary>
+    private void Restore(IReadOnlyList<string> rows)
+    {
+        var d = _defaults;
+        var s = _settings;
+        foreach (var row in rows)
+        {
+            s = row switch
+            {
+                "language" => s with { Language = d.Language },
+                "player_name" => s with { PlayerName = d.PlayerName },
+                "ui_scale" => s with { UiScale = d.UiScale },
+                "text_scale" => s with { TextScale = d.TextScale },
+                "high_contrast" => s with { HighContrast = d.HighContrast },
+                "reduce_motion" => s with { ReduceMotion = d.ReduceMotion },
+                "feeling_symbols" => s with { FeelingSymbols = d.FeelingSymbols },
+                "hide_ui" => s with { HideUi = d.HideUi },
+                "hints_until_dismissed" => s with { HintsUntilDismissed = d.HintsUntilDismissed },
+                "hint_duration" => s with { HintDurationFactor = d.HintDurationFactor },
+                "volume" => s with { BusVolumesDb = new Dictionary<string, double>(d.BusVolumesDb, StringComparer.Ordinal) },
+                _ => s,
+            };
+        }
+
+        foreach (var show in _shows)
+        {
+            show(s);
+        }
+
+        Apply(s);
     }
 
     /// <summary>Id of a bus in the data and in the settings file (e.g. <c>music</c>).</summary>
@@ -140,8 +296,10 @@ public partial class SettingsWindow : GwWindow
         Changed?.Invoke(settings);
     }
 
-    private HBoxContainer SizeSlider(UiScaleRange range, double value, Func<double, PlayerSettings> change, float minWidth, int applyMs)
+    private HBoxContainer SizeSlider(UiScaleRange range, double value, Func<double, PlayerSettings> change, Func<PlayerSettings, double> read, UiStyle style)
     {
+        var minWidth = style.Tokens.Window.CardBarWidth;
+        var applyMs = style.Tokens.Window.SettingsApplyMs;
         // The value label is a number, not a key. With the mouse the size applies on release, so the
         // window does not jump under the pointer; with keyboard or controller (no drag) it applies after
         // a short pause (token settings_apply_ms; GW1 review #50 W1: before, it never applied).
@@ -172,13 +330,19 @@ public partial class SettingsWindow : GwWindow
         box.AddChild(slider);
         box.AddChild(label);
         box.AddChild(pause);
+        _shows.Add(s =>
+        {
+            slider.SetValueNoSignal(read(s));
+            label.Text = Percent(read(s));
+        });
         return box;
     }
 
-    private CheckButton Toggle(bool value, Func<bool, PlayerSettings> change)
+    private CheckButton Toggle(bool value, Func<bool, PlayerSettings> change, Func<PlayerSettings, bool> read)
     {
         var toggle = new CheckButton { ButtonPressed = value };
         toggle.Toggled += v => Apply(change(v));
+        _shows.Add(s => toggle.SetPressedNoSignal(read(s)));
         return toggle;
     }
 
@@ -195,7 +359,15 @@ public partial class SettingsWindow : GwWindow
     /// <param name="setLearnByDay">Switches learning by day on or off (a logged command of the core), or null.</param>
     public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder, Func<bool>? learnByDay = null, Action<bool>? setLearnByDay = null)
     {
-        Section("ui.settings.section.ai");
+        // The AI tab of the data (D957 v4 section 10: state on top, learning by day below, report at the bottom).
+        if (_pages.TryGetValue(AiTab, out var aiTab))
+        {
+            _page = aiTab.Page;
+        }
+        else
+        {
+            Section(AiTab);
+        }
 
         // What the language AI does and what it does not (D763 Z30): familiar things out of habit, new ones ask it.
         _page.AddChild(new Label { Text = "ui.selfcheck.how", AutowrapMode = TextServer.AutowrapMode.WordSmart });
@@ -224,6 +396,9 @@ public partial class SettingsWindow : GwWindow
             {
                 lines.AddChild(control);
             }
+
+            // The answer came later than the window's fit: every tab takes the new height at once (B2791).
+            FitAgain();
         }
 
         Label Text(string key) => new() { Text = key, AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -324,6 +499,7 @@ public partial class SettingsWindow : GwWindow
             make.Disabled = true;
             status.Text = Tr("ui.selfcheck.report_running");
             status.Visible = true;
+            FitAgain();
             var answer = await report();
             if (!IsInstanceValid(this) || !IsInsideTree())
             {
@@ -341,6 +517,7 @@ public partial class SettingsWindow : GwWindow
                 ? TextFill.Fill(Tr("ui.selfcheck.report_saved"), new Dictionary<string, string> { ["file"] = answer.Report!.FileName, ["folder"] = reportFolder })
                 : Tr("ui.selfcheck.report_failed");
             open.Visible = saved;
+            FitAgain();
         }
 
         again.Pressed += Run;
@@ -367,22 +544,95 @@ public partial class SettingsWindow : GwWindow
             tab.SetPressedNoSignal(tab == chosen.Tab);
         }
 
-        if (IsInsideTree())
+        // Into the room of the last fit (the layout check fits into a smaller picture than the viewport).
+        FitAgain();
+    }
+
+    /// <inheritdoc/>
+    protected override void Arrange(Vector2 limit)
+    {
+        // The description beside the rows (D957 v4 section 10); where that is wider than the room (UI 200 %, large
+        // text) it stands below them. Every tab as wide as the widest, so the window does not jump (D705).
+        PlaceTabs(left: true);
+        PlaceDescription(beside: true);
+        if (GetCombinedMinimumSize().X > limit.X)
         {
-            FitInto(GetViewport().GetVisibleRect().Size);
+            PlaceDescription(beside: false);
         }
+
+        // Still too wide (the smallest picture with the largest text): the tabs go on top as a row that wraps.
+        if (GetCombinedMinimumSize().X > limit.X)
+        {
+            PlaceTabs(left: false);
+        }
+
+        ReserveHeights();
+    }
+
+    /// <summary>
+    /// One size for every tab (B2791): the pages as high as the highest, measured at the width they share; the
+    /// description with room for its longest text and the name row with room for its longest message, so neither
+    /// grows the window when the pointer moves or the player types.
+    /// </summary>
+    private void ReserveHeights()
+    {
+        var width = _pagesBox.CustomMinimumSize.X;
+        if (_nameProblem is not null)
+        {
+            _nameProblem.CustomMinimumSize = new Vector2(0, UiFit.HighestText(_nameProblem, NameProblems, width));
+        }
+
+        // Beside the rows the description is as wide as its own minimum, below them as wide as the pages.
+        var beside = _description.GetParent() == _body;
+        var descriptionWidth = beside ? _description.CustomMinimumSize.X : width;
+        _description.CustomMinimumSize = new Vector2(_description.CustomMinimumSize.X, UiFit.HighestText(_description, _descriptions, descriptionWidth));
+
+        _pagesBox.CustomMinimumSize = new Vector2(width, 0);
+        var height = _pages.Values.Max(p => UiFit.HeightAt(p.Page, width));
+        _pagesBox.CustomMinimumSize = new Vector2(width, height);
+    }
+
+    private void PlaceTabs(bool left)
+    {
+        var target = left ? (Container)_tabs : _tabsTop;
+        foreach (var (tab, _) in _pages.Values)
+        {
+            if (tab.GetParent() != target)
+            {
+                tab.GetParent()?.RemoveChild(tab);
+                target.AddChild(tab);
+            }
+        }
+
+        _tabs.Visible = left;
+        _tabsLine.Visible = left;
+        _tabsTop.Visible = !left;
+    }
+
+    private void PlaceDescription(bool beside)
+    {
+        var parent = beside ? (Container)_body : _pageColumn;
+        if (_description.GetParent() != parent)
+        {
+            _description.GetParent()?.RemoveChild(_description);
+            parent.AddChild(_description);
+        }
+
+        _descriptionLine.Visible = beside;
+        _pagesBox.CustomMinimumSize = Vector2.Zero;
+        _pagesBox.CustomMinimumSize = new Vector2(_pages.Values.Max(p => p.Page.GetCombinedMinimumSize().X), 0);
     }
 
     /// <summary>Starts the tab of a section: the controls added next belong to it. The tab last used opens again.</summary>
     private void Section(string key)
     {
         var first = _pages.Count == 0;
-        var tab = new Button { Text = key, ToggleMode = true, ButtonGroup = _group };
+        var tab = new Button { Text = key, ToggleMode = true, ButtonGroup = _group, Alignment = HorizontalAlignment.Left };
         _page = new VBoxContainer { Name = "Page" + _pages.Count, Visible = first };
         tab.SetPressedNoSignal(first);
         tab.Pressed += () => ShowTab(key);
         _tabs.AddChild(tab);
-        Content.AddChild(_page);
+        _pagesBox.AddChild(_page);
         _pages[key] = (tab, _page);
         if (key == _lastTab)
         {
@@ -390,7 +640,7 @@ public partial class SettingsWindow : GwWindow
         }
     }
 
-    private void Row(string key, Control control)
+    private void Row(string key, Control control, string descriptionKey)
     {
         // Long labels wrap (large text in 1920x1080 at UI 200 %); the minimum width keeps them from
         // collapsing to one character per line.
@@ -405,8 +655,19 @@ public partial class SettingsWindow : GwWindow
         // No word breaks inside, whatever the language and text size (D705 A6: "Gesamtlautstärk / e").
         UiFit.LongestWordFits(label, _labelWidth);
         row.AddChild(label);
-        control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        // A switch is only as wide as itself: stretched it was a wide empty box with the switch at its end (B2791 pictures).
+        control.SizeFlagsHorizontal = control is CheckButton ? SizeFlags.ShrinkBegin : SizeFlags.ExpandFill;
         row.AddChild(control);
+
+        // The description column says what the row under the pointer (or with the keyboard focus) does (D957 v4 section 10).
+        if (!_descriptions.Contains(descriptionKey))
+        {
+            _descriptions.Add(descriptionKey);
+        }
+
+        row.MouseFilter = MouseFilterEnum.Pass;
+        row.MouseEntered += () => _description.Text = descriptionKey;
+        control.FocusEntered += () => _description.Text = descriptionKey;
         _page.AddChild(row);
     }
 

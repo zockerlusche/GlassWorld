@@ -92,6 +92,9 @@ public static class UiSetup
             .Select(c => c.GetPath().ToString())];
     }
 
+    /// <summary>A content file embedded in the game (content/ui/*.json as content.ui.*.json).</summary>
+    public static string ReadEmbedded(string name) => Read(name);
+
     private static string Read(string name)
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
