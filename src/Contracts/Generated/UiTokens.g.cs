@@ -827,6 +827,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("corner_lines")]
         public int CornerLines { get; set; } = default!;
 
+        /// <summary>
+        /// Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("box_keys")]
+        public System.Collections.Generic.ICollection<string> BoxKeys { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
         [System.Text.Json.Serialization.JsonPropertyName("categories")]
         public System.Collections.Generic.ICollection<UiLogCategory> Categories { get; set; } = new System.Collections.ObjectModel.Collection<UiLogCategory>();
 

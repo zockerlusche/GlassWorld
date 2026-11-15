@@ -33,6 +33,24 @@ public sealed class LogModelTests
     }
 
     [Fact]
+    public void FailuresAndTheSelfCheckStayInTheHintBox()
+    {
+        // Review GW3 #463 (B2712): a failed save or a faulted world must be noticed, not be one of five log lines.
+        var keys = Tokens.Log.BoxKeys;
+        foreach (var key in new[] { "msg.save.failed", "msg.world.faulted", "msg.share.failed", "msg.hint.memory_export_failed", "msg.hint.chronicle_export_failed", "msg.hint.selfcheck" })
+        {
+            Assert.Contains(key, keys);
+        }
+
+        // Every one of them is a real text in both languages.
+        foreach (var lang in new[] { "de", "en" })
+        {
+            var texts = JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "i18n", lang + ".json")))!["entries"]!.AsArray().Select(e => (string)e!["key"]!).ToHashSet();
+            Assert.All(keys, k => Assert.Contains(k, texts));
+        }
+    }
+
+    [Fact]
     public void DiscoveriesIdeasAndBuiltThingsStandOut()
     {
         // B2607: important things (discoveries, ideas such as 'grass + mushroom = container', built things) are easy to find again.

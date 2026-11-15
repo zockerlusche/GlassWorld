@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type BoxKey = Annotated[
+    str, Field(..., pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$')
+]
+
 
 class HeadSymbol(BaseModel):
     model_config = ConfigDict(
@@ -471,6 +475,10 @@ class Log(BaseModel):
         description='Lines the closed log shows (newest first); more on a click.',
         ge=1,
         le=20,
+    )
+    box_keys: list[BoxKey] = Field(
+        ...,
+        description='Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.',
     )
     categories: list[UiLogCategory] = Field(..., min_length=1)
 

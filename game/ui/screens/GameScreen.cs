@@ -1870,7 +1870,10 @@ public partial class GameScreen : CanvasLayer
     public void ShowHint(ToastMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        if (_zones && _log is not null)
+
+        // A failure the player must notice (B2712: saving, a faulted world) and the AI self-check stay in the box
+        // (review GW3 #463); confirmations and answers become log lines.
+        if (_zones && _log is not null && _style?.Tokens.Log.BoxKeys.Contains(message.TextKey) != true)
         {
             _log.AddHint(message.LookAt, LogModel.NoteHint, message.TextKey, message.Args, _presenter?.Host?.World.Tick ?? 0, message.LookAt);
             return;
