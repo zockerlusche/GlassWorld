@@ -184,3 +184,37 @@ def test_a_speaker_names_only_things_it_knows_itself() -> None:
         _answer(_turn("a", "Joro, wie geht es dir?"), _turn("b", "Die Haselnuss mag ich.")), job
     )
     assert len(result["turns"]) == 1 and "unknown: Haselnuss" in notes[0]
+
+
+def test_why_a_talk_ended_early_goes_into_the_call_log(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A1735 measurement: the notes of the checks (a turn left out and why) become the detail of the
+    accepted answer's log line, so a shortened talk can be read back; a full talk has none."""
+    import glassworld_ai.dialogue as dialogue
+    from glassworld_ai.llm.jobcall import Answer, ModelCallSettings
+
+    seen: dict[str, Any] = {}
+
+    async def fake_ask(**kwargs: Any) -> Answer[Any]:
+        seen.update(kwargs)
+        return Answer(kwargs["parse"](_answer(*GOOD)), 1, 5)
+
+    monkeypatch.setattr(dialogue, "ask_model", fake_ask)
+
+    class _Client:
+        model = "fake"
+
+    handler = dialogue.OllamaDialogues(
+        client=_Client(),  # type: ignore[arg-type]
+        queue=None,  # type: ignore[arg-type]
+        template=TEMPLATE,
+        settings=ModelCallSettings(temperature=0.7, num_ctx=4096, max_retries=2, call_timeout_s=30),
+        log=None,  # type: ignore[arg-type]
+        guard=GUARD,
+        texts=TEXTS,
+    )
+    asyncio.run(handler(JOB))
+    detail_of = seen["detail_of"]
+    assert detail_of(({"turns": []}, [])) is None
+    assert detail_of(({"turns": []}, ["talk ends before turn 2 (unknown: Feuer): x", "y"])) == (
+        "talk ends before turn 2 (unknown: Feuer): x; y"
+    )
