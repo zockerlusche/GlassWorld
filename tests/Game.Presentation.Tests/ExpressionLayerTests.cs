@@ -9,6 +9,7 @@ public sealed class ExpressionLayerTests
 {
     private static readonly Dictionary<string, double> Calm = new(StringComparer.Ordinal) { ["joy"] = 0.5, ["sadness"] = 0.1, ["fear"] = 0.1 };
     private static readonly Dictionary<string, double> Rested = new(StringComparer.Ordinal) { ["sleep"] = 0.9 };
+    private static readonly string[] NearAndAwake = ["b", "c"];
 
     private static T Read<T>(params string[] path)
         where T : class =>
@@ -68,5 +69,26 @@ public sealed class ExpressionLayerTests
         Assert.All(data.Events!, e => Assert.True(events.Contains(e.Event) && ids.Contains(e.Expression), e.Event));
         Assert.All(data.Moods!, m => Assert.True(model.Moods.Any(x => x.Id == m.Mood) && ids.Contains(m.Expression), m.Mood));
         Assert.All(data.Needs!, n => Assert.True(model.Needs.Any(x => x.Id == n.Need) && ids.Contains(n.Expression), n.Need));
+        Assert.All(data.JoinIn!.Notice, id => Assert.Contains(id, ids));
+        Assert.True(data.JoinIn.Expression is null || ids.Contains(data.JoinIn.Expression), data.JoinIn.Expression);
+    }
+
+    [Fact]
+    public void AwakeOthersNearbyLookOverAtACheerAndJoinInAfterTheirOwnCalmPause()
+    {
+        // A1733 (B2716 (3)): who is near and awake notices the cheer, nearest first; a sleeper or someone far off does not.
+        var join = Read<LookExpressions>("look", "expressions.json").JoinIn!;
+        var near = join.RadiusM / 2;
+        Onlooker[] around = [new("a", 0, 0, true), new("c", 0, -near * 1.5, true), new("b", near, 0, true), new("d", 0, near, false), new("e", join.RadiusM * 2, 0, true)];
+        Assert.Equal(NearAndAwake, JoinIn.Who(join, "cheer", "a", 0, 0, around));
+        Assert.Empty(JoinIn.Who(join, "sad", "a", 0, 0, around));
+        Assert.Empty(JoinIn.Who(null, "cheer", "a", 0, 0, around));
+
+        // Joining in shows the data's expression; then its own calm pause holds as after its own moments.
+        var layer = Layer();
+        Assert.Equal(join.Expression, layer.Show(join.Expression!)?.Id);
+        Assert.Equal(join.Expression, layer.Update(0.1, Calm, Rested)?.Id);
+        Assert.Null(layer.Show(join.Expression!));
+        Assert.Null(layer.Event("invented"));
     }
 }

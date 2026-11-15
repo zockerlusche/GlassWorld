@@ -13,6 +13,37 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ExpressionJoinIn
+    {
+
+        /// <summary>
+        /// Expressions (ids) the others notice.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("notice")]
+        public System.Collections.Generic.ICollection<string> Notice { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// How near (metres, on the ground) another figure must be to notice it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds the others look over (head and upper body).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("look_s")]
+        public double LookS { get; set; } = default!;
+
+        /// <summary>
+        /// The expression they show themselves (subject to their own calm pause); missing = they only look.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("expression")]
+        public string? Expression { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Expression
     {
 
@@ -124,6 +155,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("needs")]
         public System.Collections.Generic.ICollection<NeedExpression>? Needs { get; set; } = default!;
+
+        /// <summary>
+        /// A1733 (B2716 (3)): others nearby and awake notice one of these expressions - they look over for a while and may show an expression of their own (joining in the joy). Presentation only; absent = nobody looks over.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("join_in")]
+        public ExpressionJoinIn? JoinIn { get; set; } = default!;
 
     }
 
