@@ -132,6 +132,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("topic")]
         public OptionTopic? Topic { get; set; } = default!;
 
+        /// <summary>
+        /// Only for occasion 'build_site' (A1373, D827 R15): the place this option would build at - where, how far from the builder, and the name the builder knows for a thing near it (its own name, never a type id; absent when it knows none there). Absent otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("place")]
+        public BuildPlace? Place { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -374,6 +381,37 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildPlace
+    {
+
+        /// <summary>
+        /// Where (m), rounded to 0.1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("x")]
+        public double X { get; set; } = default!;
+
+        /// <summary>
+        /// Where (m), rounded to 0.1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("z")]
+        public double Z { get; set; } = default!;
+
+        /// <summary>
+        /// How far from the builder (m), rounded to whole metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("distance_m")]
+        public double DistanceM { get; set; } = default!;
+
+        /// <summary>
+        /// The name the builder knows for a thing near the place, or absent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("near")]
+        public LocalizedName? Near { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Core -&gt; AI service: one inhabitant asks the decider which of the offered options to take.
     /// </summary>
@@ -429,7 +467,7 @@ namespace GlassWorld.Contracts
         public StuckBuilding? Building { get; set; } = default!;
 
         /// <summary>
-        /// Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.
+        /// Why the core asks, when it is not something new or a stuck building (B2663): 'leisure', 'intention', 'action_failed' or 'build_site' (where to build, A1373) - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("occasion")]

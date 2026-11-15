@@ -229,6 +229,23 @@ class FailedAction(BaseModel):
     z: float | None = Field(None, description='Where it failed (m), rounded to 0.1.')
 
 
+class BuildPlace(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    x: float = Field(..., description='Where (m), rounded to 0.1.')
+    z: float = Field(..., description='Where (m), rounded to 0.1.')
+    distance_m: float = Field(
+        ...,
+        description='How far from the builder (m), rounded to whole metres.',
+        ge=0.0,
+    )
+    near: common_schema.LocalizedName | None = Field(
+        None,
+        description='The name the builder knows for a thing near the place, or absent.',
+    )
+
+
 class Option(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -255,6 +272,10 @@ class Option(BaseModel):
     topic: OptionTopic | None = Field(
         None,
         description="For actions that pass knowledge on to the target inhabitant (show, teach, warn; B4a R4, D625): WHAT the asker would pass on. This is the asker's own belief that the core would pass, never the world's truth. Optional (absent = the action passes nothing on, or an older core).",
+    )
+    place: BuildPlace | None = Field(
+        None,
+        description="Only for occasion 'build_site' (A1373, D827 R15): the place this option would build at - where, how far from the builder, and the name the builder knows for a thing near it (its own name, never a type id; absent when it knows none there). Absent otherwise.",
     )
 
 
@@ -352,7 +373,7 @@ class DecisionRequest(BaseModel):
     )
     occasion: str | None = Field(
         None,
-        description="Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
+        description="Why the core asks, when it is not something new or a stuck building (B2663): 'leisure', 'intention', 'action_failed' or 'build_site' (where to build, A1373) - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

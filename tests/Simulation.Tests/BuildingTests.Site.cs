@@ -1,7 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Decisions;
-using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 
