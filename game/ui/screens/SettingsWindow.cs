@@ -117,7 +117,7 @@ public partial class SettingsWindow : GwWindow
         switch (id)
         {
             case "player_name":
-                var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength, PlaceholderText = "ui.settings.player_name_hint" };
+                var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength };
                 UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
                 var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
                 void TakeName()

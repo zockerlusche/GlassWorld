@@ -499,10 +499,6 @@
       "text": "Your name"
     },
     {
-      "key": "ui.settings.player_name_hint",
-      "text": "Only for the chronicle and hints"
-    },
-    {
       "key": "ui.settings.problem.name_blocked",
       "text": "Please choose a different name."
     },
@@ -576,7 +572,7 @@
     },
     {
       "key": "ui.settings.player_name.desc",
-      "text": "What the inhabitants call you when they talk about you. You may leave it empty."
+      "text": "Only for the chronicle and hints. You may leave it empty."
     },
     {
       "key": "ui.settings.ui_scale.desc",

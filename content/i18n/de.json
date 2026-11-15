@@ -499,10 +499,6 @@
       "text": "Dein Name"
     },
     {
-      "key": "ui.settings.player_name_hint",
-      "text": "Nur für die Chronik und Hinweise"
-    },
-    {
       "key": "ui.settings.problem.name_blocked",
       "text": "Bitte wähle einen anderen Namen."
     },
@@ -576,7 +572,7 @@
     },
     {
       "key": "ui.settings.player_name.desc",
-      "text": "Wie die Bewohner dich nennen, wenn sie von dir erzählen. Du kannst es leer lassen."
+      "text": "Nur für die Chronik und Hinweise. Du kannst es leer lassen."
     },
     {
       "key": "ui.settings.ui_scale.desc",
