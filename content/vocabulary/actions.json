@@ -29,6 +29,7 @@
     { "id": "build_smaller", "description": "Stop building and leave the thing as far as it is built.", "target": "none", "only_when": "build_stuck" },
     { "id": "ask_for_help", "description": "Ask this person to bring the missing material.", "target": "inhabitant", "only_when": "build_stuck" },
     { "id": "give_up", "description": "Stop building this thing for good.", "target": "none", "only_when": "build_stuck" },
+    { "id": "build_here", "description": "Build the thing at this place.", "target": "none", "only_when": "build_site" },
     { "id": "court", "reserved": true, "description": "Stay close to another inhabitant and seek its attention.", "target": "inhabitant" },
     { "id": "propose_partnership", "reserved": true, "spoken": true, "description": "Ask another inhabitant to stay together for good.", "target": "inhabitant" },
     { "id": "end_partnership", "reserved": true, "spoken": true, "description": "Tell one's partner that one no longer stays together.", "target": "inhabitant" },

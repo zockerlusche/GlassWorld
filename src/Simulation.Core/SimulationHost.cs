@@ -540,6 +540,17 @@ public sealed class SimulationHost
 
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
         inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+
+        // A1373 (D827 R15): where to build - the map finds free places, the decider chooses among them.
+        if (map is not null)
+        {
+            inventions.FindSites = map.FreeSites;
+        }
+
+        inventions.AskSite = decisions.AskBuildSite;
+        decisions.SiteOptions = inventions.SiteOptionsOf;
+        decisions.SitePlaces = inventions.SitePlacesOf;
+        decisions.SiteAnswered = inventions.SiteAnswered;
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;
