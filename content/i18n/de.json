@@ -499,10 +499,6 @@
       "text": "Dein Name"
     },
     {
-      "key": "ui.settings.player_name_hint",
-      "text": "Nur für die Chronik und Hinweise"
-    },
-    {
       "key": "ui.settings.problem.name_blocked",
       "text": "Bitte wähle einen anderen Namen."
     },
@@ -523,32 +519,96 @@
       "text": "Bewegung reduzieren"
     },
     {
-      "key": "ui.settings.section.audio",
-      "text": "Klang"
-    },
-    {
-      "key": "ui.settings.section.display",
-      "text": "Darstellung"
-    },
-    {
-      "key": "ui.settings.section.hints",
-      "text": "Hinweise"
-    },
-    {
-      "key": "ui.settings.section.language",
-      "text": "Sprache"
-    },
-    {
-      "key": "ui.settings.section.player",
-      "text": "Spieler"
-    },
-    {
       "key": "ui.settings.text_scale",
       "text": "Textgröße"
     },
     {
       "key": "ui.settings.title",
       "text": "Einstellungen"
+    },
+    {
+      "key": "ui.settings.tab.game",
+      "text": "Spiel"
+    },
+    {
+      "key": "ui.settings.tab.graphics",
+      "text": "Grafik"
+    },
+    {
+      "key": "ui.settings.tab.audio",
+      "text": "Ton"
+    },
+    {
+      "key": "ui.settings.tab.interface",
+      "text": "Oberfläche"
+    },
+    {
+      "key": "ui.settings.tab.controls",
+      "text": "Steuerung"
+    },
+    {
+      "key": "ui.settings.tab.accessibility",
+      "text": "Zugänglichkeit"
+    },
+    {
+      "key": "ui.settings.tab.ai",
+      "text": "KI"
+    },
+    {
+      "key": "ui.settings.coming",
+      "text": "Diese Einstellungen kommen mit einem späteren Schritt."
+    },
+    {
+      "key": "ui.settings.restore",
+      "text": "Standard wiederherstellen"
+    },
+    {
+      "key": "ui.settings.desc_hint",
+      "text": "Zeige auf eine Einstellung, um zu lesen, was sie tut."
+    },
+    {
+      "key": "ui.settings.language.desc",
+      "text": "Die Sprache aller Texte im Spiel. Die Bewohner sprechen sie auch."
+    },
+    {
+      "key": "ui.settings.player_name.desc",
+      "text": "Nur für die Chronik und Hinweise. Du kannst es leer lassen."
+    },
+    {
+      "key": "ui.settings.ui_scale.desc",
+      "text": "Wie groß Fenster, Knöpfe und Schrift zusammen sind."
+    },
+    {
+      "key": "ui.settings.text_scale.desc",
+      "text": "Nur die Schrift größer oder kleiner; die Fenster wachsen mit."
+    },
+    {
+      "key": "ui.settings.feeling_symbols.desc",
+      "text": "Kleine Zeichen über den Köpfen zeigen, was ein Bewohner gerade fühlt."
+    },
+    {
+      "key": "ui.settings.hint_duration.desc",
+      "text": "Wie lange ein Hinweis stehen bleibt, als Vielfaches der kürzesten Zeit."
+    },
+    {
+      "key": "ui.settings.hints_until_dismissed.desc",
+      "text": "Hinweise bleiben stehen, bis du sie schließt."
+    },
+    {
+      "key": "ui.settings.hide_ui.desc",
+      "text": "Blendet alles aus, was man nicht bedienen kann, um nur die Welt zu sehen."
+    },
+    {
+      "key": "ui.settings.high_contrast.desc",
+      "text": "Stärkere Unterschiede zwischen Schrift und Grund."
+    },
+    {
+      "key": "ui.settings.reduce_motion.desc",
+      "text": "Weniger Bewegung: keine zitternde Scheibe, ruhigere Übergänge."
+    },
+    {
+      "key": "ui.settings.volume.desc",
+      "text": "Die Lautstärke jedes Kanals; gesperrte Kanäle sind grau."
     },
     {
       "key": "ui.settings.ui_scale",
@@ -1575,6 +1635,14 @@
       "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wetter wünschen (kostet {cost} Gunst; danach geht das Wetter seinen eigenen Weg):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "Das Wetter wendet sich: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Hilfe"
     },
@@ -1813,6 +1881,14 @@
     {
       "key": "vocab.event.build_plan_rejected",
       "text": "Bauplan abgelehnt"
+    },
+    {
+      "key": "vocab.event.build_interrupted",
+      "text": "Bau unterbrochen"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Bau wieder aufgenommen"
     },
     {
       "key": "vocab.event.build_step",
@@ -2181,6 +2257,14 @@
     {
       "key": "vocab.event.burned_out",
       "text": "Feuer heruntergebrannt"
+    },
+    {
+      "key": "vocab.event.spoiled",
+      "text": "Etwas ist verdorben"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Etwas ist zerbrochen"
     },
     {
       "key": "vocab.event.put_out",
@@ -2881,10 +2965,6 @@
     {
       "key": "ui.settings.learn_by_day_switch",
       "text": "Auch tagsüber lernen"
-    },
-    {
-      "key": "ui.settings.section.ai",
-      "text": "KI"
     },
     {
       "key": "ui.selfcheck.checking",

@@ -213,6 +213,12 @@ class UiWindowTokens(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    window_ground_alpha: float = Field(
+        ...,
+        description='Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it shows at most faintly through its text (1 = fully opaque).',
+        ge=0.0,
+        le=1.0,
+    )
     scrim_soft_px: int = Field(
         ...,
         description='How far that dark ground fades out at its edges (a soft gradient, no box).',

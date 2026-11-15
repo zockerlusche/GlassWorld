@@ -749,6 +749,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 Separate(inhabitant);
                 probe?.Leave(PartSpacing);
             }
+
+            GiveUpStuckWalk(world, inhabitant, planned, before);
         }
 
         // AK1a, K4: what an inhabitant holds or wears goes where it goes (the hand's height and the body are the look's).
@@ -825,6 +827,86 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         mover.Position = part;
+    }
+
+    /// <summary>Detail of <see cref="ActionCancelled"/>: the walk came no closer for the data's minutes (A1751).</summary>
+    public const string Blocked = "blocked";
+
+    /// <summary>
+    /// A1751 (D1159): a walk that has come no closer to its destination for the data's stall_minutes is given up, so the
+    /// routine or the decider chooses anew. Four walkers jammed on a narrow way waited for each other seven days before:
+    /// keeping apart left none of them a step, and nothing ended a walk that did not get on. Only while stuck is anything
+    /// kept (the tick and the distance it stopped getting on at); getting stall_gain_m closer clears it.
+    /// </summary>
+    private void GiveUpStuckWalk(World world, Inhabitant inhabitant, Activity? planned, Position before)
+    {
+        if (Space is not { StallMinutes: > 0 } space || inhabitant.Activity is not { RemainingTicks: null } walk || planned is null
+            || walk.Action != planned.Action || walk.TargetId != planned.TargetId)
+        {
+            return;
+        }
+
+        // Along the route where there is one (review GW1 #485): a detour round a lake or a cliff gets on although it
+        // leads away from the destination for a while.
+        // A route found or searched anew this tick changes the measure: the count starts afresh (the first ticks of a
+        // walk on a map have no route yet, its route is longer than the straight line).
+        if ((planned.Route is null) != (walk.Route is null) || (walk.Route?.Count ?? 0) > (planned.Route?.Count ?? 0))
+        {
+            if (walk.StallSinceTick is not null)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            }
+
+            return;
+        }
+
+        var now = RemainingM(inhabitant.Position, walk.Route, walk.Destination);
+        var limit = (long)space.StallMinutes.Value * _ticksPerHour / 60;
+        var gain = space.StallGainM ?? 0;
+        if (walk.StallSinceTick is not { } since)
+        {
+            // A tick slower than the pace the data ask for (stall_gain_m over stall_minutes) starts the count; a
+            // walk that gets on as usual keeps nothing.
+            var was = RemainingM(before, planned.Route, walk.Destination);
+            if (was - now < gain / Math.Max(1, limit) && now > 1e-9)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = world.Tick, StallFromM = was };
+            }
+
+            return;
+        }
+
+        if (now < (walk.StallFromM ?? now) - gain)
+        {
+            inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            return;
+        }
+
+        if (world.Tick - since >= limit)
+        {
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, walk.Action, walk.TargetId) { Detail = Blocked });
+            inhabitant.Activity = null;
+        }
+    }
+
+    /// <summary>
+    /// A1751: the way still to go from a position - along the route's waypoints to the destination where there is a
+    /// route, else straight.
+    /// </summary>
+    internal static double RemainingM(Position from, IReadOnlyList<Position>? route, Position destination)
+    {
+        if (route is not { Count: > 0 })
+        {
+            return Distance(from, destination);
+        }
+
+        var total = Distance(from, route[0]);
+        for (var i = 1; i < route.Count; i++)
+        {
+            total += Distance(route[i - 1], route[i]);
+        }
+
+        return total + Distance(route[^1], destination);
     }
 
     /// <summary>Whether the inhabitant is on its way somewhere (an action without a running duration and a destination elsewhere).</summary>

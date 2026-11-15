@@ -283,7 +283,7 @@ public partial class Main
             foreach (var tab in settings.TabKeys)
             {
                 settings.ShowTab(tab);
-                await take($"35_en_einstellungen_{tab.Replace("ui.settings.section.", string.Empty, StringComparison.Ordinal)}");
+                await take($"35_en_einstellungen_{tab.Replace("ui.settings.tab.", string.Empty, StringComparison.Ordinal)}");
             }
 
             settings.Close();

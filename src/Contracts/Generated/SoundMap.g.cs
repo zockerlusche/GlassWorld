@@ -26,11 +26,48 @@ namespace GlassWorld.Contracts
         public string? Sound { get; set; } = default!;
 
         /// <summary>
+        /// A1515 (B2608, W1741): the sound plays only where the surface under the feet is one of these (rustling through plants: grass); elsewhere that surface's own sound (surfaces) plays. Omitted = everywhere.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("only_on")]
+        public System.Collections.Generic.ICollection<string>? OnlyOn { get; set; } = default!;
+
+        /// <summary>
         /// Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("group")]
         public string? Group { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Underfoot
+    {
+
+        /// <summary>
+        /// The surface of each biome (world biomes); a biome without an entry has none - its actions keep their own sound.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<Biomes> Biomes { get; set; } = new System.Collections.ObjectModel.Collection<Biomes>();
+
+        /// <summary>
+        /// From this snow depth (mm, the core's snow cover at the place) the surface is snow_surface.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("snow_from_mm")]
+        public int? SnowFromMm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("snow_surface")]
+        public string? SnowSurface { get; set; } = default!;
+
+        /// <summary>
+        /// Surfaces snow does not lie on (water: a stream stays a stream in winter; review GW4 #484). Omitted = snow lies on every surface.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("snow_not_on")]
+        public System.Collections.Generic.ICollection<string>? SnowNotOn { get; set; } = default!;
 
     }
 
@@ -160,11 +197,30 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<SoundForAnimal> Animals { get; set; } = new System.Collections.ObjectModel.Collection<SoundForAnimal>();
 
         /// <summary>
+        /// A1515 (B2608): what lies under the feet at a place - the surface of its biome, or snow above a depth - for actions that sound only on some surfaces (only_on). Omitted = the action's sound plays everywhere.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("underfoot")]
+        public Underfoot? Underfoot { get; set; } = default!;
+
+        /// <summary>
         /// Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("signals")]
         public System.Collections.Generic.ICollection<SoundForSignal>? Signals { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Biomes
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("biome")]
+        public string Biome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("surface")]
+        public string Surface { get; set; } = default!;
 
     }
 

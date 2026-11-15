@@ -65,6 +65,12 @@ class Expression(BaseModel):
         gt=0.0,
         le=30.0,
     )
+    look_s: float | None = Field(
+        None,
+        description='A1542: as the expression starts, the figure looks to the player (the camera) for these real seconds - standing it turns to it (a knock at the glass); missing = it does not.',
+        gt=0.0,
+        le=30.0,
+    )
 
 
 class EventExpression(BaseModel):
@@ -78,6 +84,16 @@ class EventExpression(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     expression: str = Field(..., pattern='^[a-z][a-z0-9_]*$')
+    detail: str | None = Field(
+        None,
+        description='Only events with this detail (e.g. the message kind of mail_arrived: knock); missing = any.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    skips_pause: bool | None = Field(
+        None,
+        description='A1542: shows even within the calm pause (a knock is a call to the player, not a mood); missing = false.',
+    )
 
 
 class MoodExpression(BaseModel):

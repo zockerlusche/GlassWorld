@@ -39,13 +39,15 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
     /// <param name="zoom">Zoom 0 (in) .. 1 (out).</param>
     /// <param name="playing">Sounds each bus is already playing.</param>
     /// <param name="inventionSound">Sound of an invented thing an event uses (D471 D7), or null for the action's sound.</param>
+    /// <param name="surfaceAt">A1515: the surface under the feet at a place (rustling only through plants), or null.</param>
     public IReadOnlyList<PlayRequest> Plan(
         IEnumerable<WorldEvent> events,
         IReadOnlyDictionary<string, Position> positions,
         Position listener,
         double zoom,
         IReadOnlyDictionary<MixBusId, int> playing,
-        Func<WorldEvent, InventionSound?>? inventionSound = null)
+        Func<WorldEvent, InventionSound?>? inventionSound = null,
+        Func<Position, string?>? surfaceAt = null)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(positions);
@@ -76,7 +78,7 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
                 }
             }
 
-            var sound = library.ForAction(e.Action);
+            var sound = library.ForAction(e.Action, surfaceAt?.Invoke(at));
             if (sound is null)
             {
                 continue;

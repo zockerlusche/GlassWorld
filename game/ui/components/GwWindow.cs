@@ -46,6 +46,7 @@ public partial class GwWindow : PanelContainer
         header.GuiInput += OnHeaderInput;
         _close.Pressed += Close;
         _scroll.AddChild(Content);
+        Content.MinimumSizeChanged += OnContentChanged;
         column.AddChild(header);
         column.AddChild(_scroll);
         column.AddChild(_footer);
@@ -57,6 +58,24 @@ public partial class GwWindow : PanelContainer
     {
         _title.Text = titleKey;
         _style = style;
+
+        // B2791: every window - settings, pause, forms, messages, down to the deepest dialog - stands on the dark ground
+        // Marcel liked (S1b, A1736): light outlined text, the buttons, fields and tables keep their light form.
+        ThemeTypeVariation = UiTheme.WindowGround;
+        Theme = UiTheme.BuildWindowOnWorld(style);
+    }
+
+    public override void _EnterTree() => UiSetup.ThemeApplied += OnThemeApplied;
+
+    public override void _ExitTree() => UiSetup.ThemeApplied -= OnThemeApplied;
+
+    // A new style (text size, high contrast) reaches the window's own theme too, not only the main theme.
+    private void OnThemeApplied(Theme theme)
+    {
+        if (_style is not null && UiSetup.Current is { } style)
+        {
+            Theme = UiTheme.BuildWindowOnWorld(style);
+        }
     }
 
     /// <summary>
@@ -96,6 +115,16 @@ public partial class GwWindow : PanelContainer
     }
 
     /// <summary>
+    /// Called by <see cref="FitInto"/> with the widest and highest the window may be, once the fields have their width
+    /// for this picture: a window may rearrange its parts so they fit (A1737: the settings put their description below
+    /// the rows on a narrow screen).
+    /// </summary>
+    /// <param name="limit">The room the window may take, in logical pixels.</param>
+    protected virtual void Arrange(Vector2 limit)
+    {
+    }
+
+    /// <summary>
     /// Sizes the window to its content within the allowed share of the parent area and centres it;
     /// content that does not fit scrolls vertically.
     /// </summary>
@@ -106,11 +135,19 @@ public partial class GwWindow : PanelContainer
             return;
         }
 
+        _area = area;
         var limit = area * (float)_style.Tokens.Window.MaxScreenFraction;
         var safe = area - (Vector2.One * 2 * _style.Tokens.Window.SafeMargin);
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
-        // Fields that follow their hint text take their share of this picture (UiFit).
+
+        // Fields that follow their hint text take their share of this picture (UiFit), and only then the window
+        // rearranges its parts for the room it has: measured before, the fields still had the last picture's width.
         UiFit.Refit(this, area.X);
+
+        // Measured without a scroll bar: one that shows only because the window is not yet as high as its content
+        // added its width, and the window shrank by it a frame later (A1737a: the x 6 px outside on the dark ground).
+        _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.ShowNever;
+        Arrange(limit);
 
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
@@ -125,6 +162,15 @@ public partial class GwWindow : PanelContainer
             wanted = Wanted();
         }
 
+        // Only content higher than the allowed room scrolls, and then the bar's width counts from the start.
+        // Godot counts the bar into the scroll area's minimum only while the content is higher than the area is now;
+        // added here once, measured without it, the width is the same in every frame.
+        if (wanted.Y > limit.Y)
+        {
+            wanted.X += _scroll.GetVScrollBar().GetCombinedMinimumSize().X + _scroll.GetThemeConstant("scrollbar_h_separation");
+            _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
+        }
+
         Size = new Vector2(Math.Min(wanted.X, limit.X), Math.Min(wanted.Y, limit.Y));
         Position = ((area - Size) / 2).Floor();
         _fittedAt = Position;
@@ -132,6 +178,27 @@ public partial class GwWindow : PanelContainer
     }
 
     private bool _settling;
+
+    /// <summary>
+    /// Review GW3 #493: content that grows after the fit (an open card, a late answer, rows added later) must not be cut.
+    /// The fit hides the scroll bar while everything fits; once the content is higher than its area the bar comes back
+    /// at once, and the window fits itself again in the next frame - it grows, or at its limit it scrolls. Content that
+    /// still fits changes nothing (the settings' measuring shows and hides pages without a refit).
+    /// </summary>
+    private void OnContentChanged()
+    {
+        if (Content.GetCombinedMinimumSize().Y <= _scroll.Size.Y + 0.5f)
+        {
+            return;
+        }
+
+        _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
+        if (_area is { } area)
+        {
+            Settle(area);
+        }
+    }
+    private Vector2? _area;
     private Vector2 _settleArea;
     private Vector2 _fittedAt;
 
@@ -195,6 +262,21 @@ public partial class GwWindow : PanelContainer
         return Size.Y >= limit - 0.5f ? string.Empty : $"{hidden:0} px of content hidden in a window of height {Size.Y:0} that may grow to {limit:0}";
     }
 
+    /// <summary>
+    /// Fits the window again into the area of its last fit (or the picture, if it was never fitted): its content
+    /// changed - another settings tab, an answer that came later.
+    /// </summary>
+    protected void FitAgain()
+    {
+        if (IsInsideTree())
+        {
+            FitInto(_area ?? GetViewport().GetVisibleRect().Size);
+        }
+    }
+
+    /// <summary>How many pixels of the content the scroll area hides now (0: all of it is visible).</summary>
+    public float HiddenContent() => Math.Max(0, Content.Size.Y - _scroll.Size.Y);
+
     /// <summary>True if the window lies fully inside the safe area of <paramref name="area"/>.</summary>
     public bool IsInsideSafeArea(Vector2 area)
     {
@@ -215,7 +297,10 @@ public partial class GwWindow : PanelContainer
 
         if (close.End.X > window.End.X + 0.5f || close.End.Y > window.End.Y + 0.5f)
         {
-            return $"close button {close} outside window {window}";
+            // The sizes that decide it, so a failure says which part grew (A1737a: 6 px on the dark ground).
+            var header = _close.GetParent<Control>();
+            var panel = GetThemeStylebox("panel");
+            return $"close button {close} outside window {window} (window min {GetCombinedMinimumSize().X:0}, column {header.GetParent<Control>().Size.X:0}/min {header.GetParent<Control>().GetCombinedMinimumSize().X:0}, header {header.Size.X:0}/min {header.GetCombinedMinimumSize().X:0}, title min {_title.GetCombinedMinimumSize().X:0}, close min {_close.GetCombinedMinimumSize().X:0}, panel margins {panel?.GetContentMargin(Side.Left):0}+{panel?.GetContentMargin(Side.Right):0}, panel min {panel?.GetMinimumSize().X:0})";
         }
 
         return _title.GetLineCount() > 2 ? $"title needs {_title.GetLineCount()} lines" : string.Empty;
