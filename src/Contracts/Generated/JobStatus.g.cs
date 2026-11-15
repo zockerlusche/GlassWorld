@@ -67,6 +67,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
         public ChronicleResult? Chronicle { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dialogue")]
+        public DialogueResult? Dialogue { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -537,6 +541,49 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// B2782 (A1735): the turns of a talk, in order. Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DialogueResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("turns")]
+        public System.Collections.Generic.ICollection<DialogueTurn> Turns { get; set; } = new System.Collections.ObjectModel.Collection<DialogueTurn>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DialogueTurn
+    {
+
+        /// <summary>
+        /// Who says it: one of the two speakers of the job.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speaker")]
+        public string Speaker { get; set; } = default!;
+
+        /// <summary>
+        /// What it says, in the player's language (about 100 characters at most).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public GeneratedText Text { get; set; } = new GeneratedText();
+
+        /// <summary>
+        /// What kind of turn it is (for the look and the log, D1119).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("act")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DialogueTurnAct>))]
+        public DialogueTurnAct Act { get; set; } = default!;
+
+        /// <summary>
+        /// Body expression while it speaks (one of the job's expressions), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expression")]
+        public string? Expression { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// AI service -&gt; core (GET /jobs/{id}): state of one job. The service guarantees: done -&gt; result and provenance set, error null; failed -&gt; error set, result and provenance null; open states -&gt; all three null.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -676,6 +723,44 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("z")]
         public double Z { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum DialogueTurnAct
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("greet")]
+        Greet = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("ask")]
+        Ask = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("answer")]
+        Answer = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("tell")]
+        Tell = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("joke")]
+        Joke = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("agree")]
+        Agree = 5,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("comfort")]
+        Comfort = 6,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("wonder")]
+        Wonder = 7,
+
 
     }
 }

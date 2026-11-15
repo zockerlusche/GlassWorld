@@ -107,6 +107,9 @@
         },
         "chronicle": {
           "$ref": "#/$defs/ChronicleResult"
+        },
+        "dialogue": {
+          "$ref": "#/$defs/DialogueResult"
         }
       },
       "minProperties": 1,
@@ -876,6 +879,68 @@
           "anyOf": [
             {
               "$ref": "common.schema.json#/$defs/GeneratedText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DialogueResult": {
+      "description": "B2782 (A1735): the turns of a talk, in order. Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "turns"
+      ],
+      "properties": {
+        "turns": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/DialogueTurn"
+          }
+        }
+      }
+    },
+    "DialogueTurn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speaker",
+        "text",
+        "act",
+        "expression"
+      ],
+      "properties": {
+        "speaker": {
+          "description": "Who says it: one of the two speakers of the job.",
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "text": {
+          "description": "What it says, in the player's language (about 100 characters at most).",
+          "$ref": "common.schema.json#/$defs/GeneratedText"
+        },
+        "act": {
+          "description": "What kind of turn it is (for the look and the log, D1119).",
+          "type": "string",
+          "enum": [
+            "greet",
+            "ask",
+            "answer",
+            "tell",
+            "joke",
+            "agree",
+            "comfort",
+            "wonder"
+          ]
+        },
+        "expression": {
+          "description": "Body expression while it speaks (one of the job's expressions), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
             },
             {
               "type": "null"

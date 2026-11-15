@@ -571,6 +571,10 @@ namespace GlassWorld.Contracts
         Milestone = 11,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("dialogue")]
+        Dialogue = 12,
+
+
     }
 
     /// <summary>
