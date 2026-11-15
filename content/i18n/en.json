@@ -3395,6 +3395,22 @@
       "text": "{time} has an idea"
     },
     {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (processed)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " and "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", but "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} has an idea about: {about}"
+    },
+    {
       "key": "msg.learnlog.dreamed",
       "text": "{time} dreams"
     },

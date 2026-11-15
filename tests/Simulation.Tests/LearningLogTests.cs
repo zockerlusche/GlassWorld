@@ -86,7 +86,8 @@ public sealed class LearningLogTests : IDisposable
 
         host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
         var text = File.ReadAllText(Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory)));
-        Assert.Contains($"hört von {joro.Name}: Pyrit ist Stein, schlägt keine Funken, ist nicht essbar", text, StringComparison.Ordinal);
+        // D1112 #9: one sentence - what it is, then what it is not; the verb once while the phrases before use it.
+        Assert.Contains($"hört von {joro.Name}: Pyrit ist Stein, aber nicht essbar und schlägt keine Funken", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -97,6 +98,64 @@ public sealed class LearningLogTests : IDisposable
         host.Inhabitants.Report(new WorldEvent("word_heard", 9, mira.Id, null, "spring_water") { Detail = "Glitzerwasser" });
         var entry = host.LearningLog!.Entries.Single();
         Assert.Equal(("spring_water", "Glitzerwasser"), (entry.TypeId, entry.Detail));
+    }
+
+    [Fact]
+    public void FactsReadAsOneSentenceWhatItIsThenWhatItIsNot()
+    {
+        // D1112 #9 (Marcel): 'ist selbst gemacht, ist nicht heiss, ist nicht isolierend' read like a list of forms.
+        var (host, mira, _) = TwoInhabitants();
+        foreach (var (property, value) in new[] { ("drinkable", false), ("edible", true), ("salty", false), ("fibrous", true) })
+        {
+            mira.Beliefs.Set("conifer_tree", property, value, 0.9, KnowledgeSources.Experienced, null, 5);
+            host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, 5, mira.Id, "eat", "conifer_tree") { Detail = property + "/" + KnowledgeSources.Experienced });
+        }
+
+        host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
+        var text = File.ReadAllText(Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory)));
+        Assert.Contains("erfährt selbst: Nadelbaum ist essbar und faserig, aber nicht trinkbar und nicht salzig", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EveryFinishedDayHasItsFileEvenWithoutALine()
+    {
+        // D1112 #9: day 24 was missing - nothing had happened that the log keeps, so no file was written.
+        var (host, _, _) = TwoInhabitants();
+        host.Inhabitants.Reported -= host.LearningLog!.Observe; // a day the log keeps nothing of (they would meet at 00:00)
+        host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
+        var file = Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory));
+        Assert.EndsWith("day-0001.md", file, StringComparison.Ordinal);
+        Assert.Contains("(nichts Neues)", File.ReadAllText(file), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AProcessedThingIsNamedAfterWhatItWasMadeFrom()
+    {
+        // D1112 #9: 'reed_v19335574c49d' - a process variant has no name of its own; its root's name, marked as processed.
+        var (host, mira, _) = TwoInhabitants();
+        Assert.NotNull(host.Processes);
+        host.Processes!.Restore(new ProcessState(0, [], [], [new ProcessVariant("reed_v0123456789ab", "reed", ["braidable"])]));
+        mira.Beliefs.Set("reed_v0123456789ab", "braidable", true, 0.9, KnowledgeSources.Experienced, null, 5);
+        host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, 5, mira.Id, "inspect", "reed_v0123456789ab") { Detail = "braidable/" + KnowledgeSources.Experienced });
+
+        host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
+        var text = File.ReadAllText(Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory)));
+        Assert.Contains("erfährt selbst: Schilf (bearbeitet) ist", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("reed_v", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnIdeaNamesWhatItIsBuiltOn()
+    {
+        // D1112 #9: 'hat eine Idee' said nothing. The idea's own text is internal English; its roots are names.
+        var (host, mira, joro) = TwoInhabitants();
+        var idea = mira.Ideas.Take(null, "What if I ask Joro about the tree?", [new IdeaRoot(IdeaRootKinds.Type, "conifer_tree"), new IdeaRoot("inhabitant", joro.Id)], 5, 0.2, 0.1, 5);
+        host.Inhabitants.Report(new WorldEvent("idea", 5, mira.Id, null, idea.Id) { Detail = "new" });
+
+        host.World.Run(host.World.Calendar.TicksPerDay - host.World.Tick);
+        var text = File.ReadAllText(Assert.Single(LearningLogWriter.WriteFinishedDays(host, _folder, ContentDirectory)));
+        Assert.Contains($"hat eine Idee zu: Nadelbaum und {joro.Name}", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("What if", text, StringComparison.Ordinal);
     }
 
     private static (SimulationHost Host, Inhabitant Mira, Inhabitant Joro) TwoInhabitants()

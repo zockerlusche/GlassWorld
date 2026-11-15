@@ -14,10 +14,13 @@ namespace GlassWorld.Simulation.Data;
 public static class LearningLogWriter
 {
     private const string KnowledgeGained = "knowledge_gained";
+    private const string IdeaKind = "idea";
 
     /// <summary>
     /// Writes every finished day the log holds (all lines before today) into <paramref name="worldFolder"/>/folder
-    /// and returns the files written. Nothing without the log (data switched off) or without lines.
+    /// and returns the files written. The day that just ended gets its file even without a line (every inhabitant
+    /// "nothing new"), so a missing file never looks like a lost day (D1112 #9). Nothing without the log (data
+    /// switched off) or before the first day has ended.
     /// </summary>
     public static IReadOnlyList<string> WriteFinishedDays(SimulationHost host, string worldFolder, string contentDirectory)
     {
@@ -29,8 +32,15 @@ public static class LearningLogWriter
         }
 
         var ticksPerDay = host.World.Calendar.TicksPerDay;
-        var taken = log.TakeBefore(host.World.Tick / ticksPerDay * ticksPerDay);
-        if (taken.Count == 0)
+        var finished = host.World.Tick / ticksPerDay; // the number of the day that ended last (0 = none yet)
+        var taken = log.TakeBefore(finished * ticksPerDay);
+        var days = taken.GroupBy(e => (e.Tick / ticksPerDay) + 1).ToDictionary(g => g.Key, g => g.ToList());
+        if (finished >= 1)
+        {
+            days.TryAdd(finished, []);
+        }
+
+        if (days.Count == 0)
         {
             return [];
         }
@@ -40,7 +50,7 @@ public static class LearningLogWriter
         var folder = Path.Combine(worldFolder, settings.Folder);
         Directory.CreateDirectory(folder);
         var written = new List<string>();
-        foreach (var day in taken.GroupBy(e => (e.Tick / ticksPerDay) + 1))
+        foreach (var day in days.OrderBy(d => d.Key))
         {
             var path = Path.Combine(folder, string.Create(CultureInfo.InvariantCulture, $"day-{day.Key:0000}.md"));
             if (File.Exists(path))
@@ -48,7 +58,7 @@ public static class LearningLogWriter
                 continue;
             }
 
-            File.WriteAllText(path, Render(host, day.Key, [.. day], keys, texts), new UTF8Encoding(false));
+            File.WriteAllText(path, Render(host, day.Key, day.Value, keys, texts), new UTF8Encoding(false));
             written.Add(path);
         }
 
@@ -103,10 +113,18 @@ public static class LearningLogWriter
             key += "." + source;
         }
 
+        // An idea names what it is built on (D1112 #9: 'hat eine Idee' said nothing); its text is internal English.
+        var about = entry.Kind == IdeaKind ? IdeaAbout(host, texts, entry) : null;
+        if (about is not null)
+        {
+            key += ".about";
+        }
+
         var time = host.World.Calendar.At(entry.Tick);
-        // '{is} {property}' once per fact of the line, joined (the text keys keep the two placeholders together).
-        var facts = string.Join(", ", same.Where(e => e.Property is not null).Select(e => Fact(texts, e.Property!, e.Value != false)));
+        // '{is} {property}' once per line: all facts as one sentence (the text keys keep the two placeholders together).
+        var facts = Facts(texts, [.. same.Where(e => e.Property is not null).Select(e => (e.Property!, e.Value != false))]);
         return Text(texts, key)
+            .Replace("{about}", about ?? string.Empty, StringComparison.Ordinal)
             .Replace("{time}", string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"), StringComparison.Ordinal)
             .Replace("{thing}", entry.TypeId is { } type ? ThingName(host, texts, type) : string.Empty, StringComparison.Ordinal)
             .Replace("{is} {property}", facts, StringComparison.Ordinal)
@@ -117,9 +135,62 @@ public static class LearningLogWriter
             .Replace("{action}", entry.Action is { } action ? texts.GetValueOrDefault("vocab.process." + action) ?? Vocab(texts, "action", action) : string.Empty, StringComparison.Ordinal);
     }
 
-    private static string ThingName(SimulationHost host, IReadOnlyDictionary<string, string> texts, string typeId) =>
+    /// <summary>
+    /// The thing's name in the player's language: a type of the data, an invention, or a processed thing - the name of
+    /// what it was made from, marked as processed (D1112 #9: 'slate_ve0d7df4972ef' became 'Schiefer (bearbeitet)').
+    /// </summary>
+    private static string ThingName(SimulationHost host, IReadOnlyDictionary<string, string> texts, string typeId, int depth = 0) =>
         texts.GetValueOrDefault("vocab.object." + typeId)
-        ?? (host.Inventions.Invention(typeId) is { } invented ? (host.DisplayLocale == "en" ? invented.Name.En : invented.Name.De) : typeId);
+        ?? (host.Inventions.Invention(typeId) is { } invented ? (host.DisplayLocale == "en" ? invented.Name.En : invented.Name.De) : null)
+        ?? (depth < 4 && host.Processes?.RootOf(typeId) is { } root
+            ? Text(texts, "msg.learnlog.changed").Replace("{thing}", ThingName(host, texts, root, depth + 1), StringComparison.Ordinal)
+            : typeId);
+
+    /// <summary>The names of what an idea is built on (things and people it knows), or null when the idea is gone.</summary>
+    private static string? IdeaAbout(SimulationHost host, IReadOnlyDictionary<string, string> texts, LearningEntry entry)
+    {
+        if (entry.TypeId is not { } ideaId || !host.Inhabitants.TryGet(entry.InhabitantId, out var who)
+            || who.Ideas.Ideas.FirstOrDefault(i => i.Id == ideaId) is not { } idea)
+        {
+            return null;
+        }
+
+        var names = idea.Roots
+            .Where(r => r.Kind != IdeaRootKinds.Idea)
+            .Select(r => host.Inhabitants.TryGet(r.Id, out _) ? NameOf(host, r.Id) : ThingName(host, texts, r.Id))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return names.Count == 0 ? null : Join(texts, names);
+    }
+
+    /// <summary>
+    /// The facts of one line as one sentence (D1112 #9): what it is, then what it is not - 'ist faserig und tragbar,
+    /// aber nicht heiß und nicht isolierend'. The verb ('ist') is said once while the phrases before use it; phrases
+    /// with their own verb ('schlägt keine Funken') stay whole.
+    /// </summary>
+    private static string Facts(IReadOnlyDictionary<string, string> texts, IReadOnlyList<(string Property, bool Value)> facts)
+    {
+        var verb = Text(texts, "msg.learnlog.is.true") + " ";
+        string[] Phrases(bool value) =>
+            [.. facts.Where(f => f.Value == value).Select(f => Fact(texts, f.Property, value)).OrderBy(p => p.StartsWith(verb, StringComparison.Ordinal) ? 0 : 1)];
+        var yes = Phrases(true);
+        var no = Phrases(false);
+        var all = yes.Concat(no).ToList();
+        var shortened = new List<string>(all.Count);
+        for (var i = 0; i < all.Count; i++)
+        {
+            var phrase = all[i];
+            shortened.Add(i > 0 && all[i - 1].StartsWith(verb, StringComparison.Ordinal) && phrase.StartsWith(verb, StringComparison.Ordinal) ? phrase[verb.Length..] : phrase);
+        }
+
+        var positive = Join(texts, shortened.Take(yes.Length).ToList());
+        var negative = Join(texts, shortened.Skip(yes.Length).ToList());
+        return yes.Length == 0 ? negative : no.Length == 0 ? positive : positive + Text(texts, "msg.learnlog.but") + negative;
+    }
+
+    /// <summary>'a', 'a und b', 'a, b und c' in the player's language.</summary>
+    private static string Join(IReadOnlyDictionary<string, string> texts, List<string> parts) =>
+        parts.Count <= 1 ? string.Concat(parts) : string.Join(", ", parts.Take(parts.Count - 1)) + Text(texts, "msg.learnlog.and") + parts[^1];
 
     private static string NameOf(SimulationHost host, string inhabitantId) =>
         host.Inhabitants.TryGet(inhabitantId, out var who) && who.Name is { } name ? name : inhabitantId;
