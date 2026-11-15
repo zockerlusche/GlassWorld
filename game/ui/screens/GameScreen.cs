@@ -123,6 +123,7 @@ public partial class GameScreen : CanvasLayer
     private bool _worldHeld;
     private bool _menuPaused;
     private double _speedBeforeNight = 1;
+    private bool _nightPassed;
     private bool _cameraHeldBeforeNight;
     private long? _nightfallTick;
     private PanelContainer? _topBar;
@@ -2323,7 +2324,7 @@ public partial class GameScreen : CanvasLayer
         if (hold == _worldHeld)
         {
             // Nothing else may start the world while it is held (a check run, a late button event).
-            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            if (hold && _presenter.Speed != 0 && !_menuPaused && _night?.PassesNight != true)
             {
                 _presenter.Speed = 0;
             }
@@ -2349,10 +2350,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         _presenter.CameraHeld = _cameraHeldBeforeNight;
-        if (!_menuPaused && _presenter.Speed == 0)
+        // After a passed night (A1798) the world runs at the scene's speed, not 0: the player's speed comes back too.
+        if (!_menuPaused && (_presenter.Speed == 0 || _nightPassed))
         {
             _presenter.Speed = _speedBeforeNight;
         }
+
+        _nightPassed = false;
 
         foreach (var control in _restingUi.Where(IsInstanceValid))
         {
@@ -2417,6 +2421,12 @@ public partial class GameScreen : CanvasLayer
         var sceneDelta = NightDelta(delta);
         _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
         HoldWorld(_night.HoldsWorld);
+        if (_night.PassesNight && !_menuPaused)
+        {
+            // A1798: the rest of the night passes behind the shade at the fastest speed; dawn fades the morning in.
+            _presenter.Speed = ScreenModel.TimeChoices(_presenter.Host.World.Calendar.Settings).Max(c => c.Speed);
+            _nightPassed = true;
+        }
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the

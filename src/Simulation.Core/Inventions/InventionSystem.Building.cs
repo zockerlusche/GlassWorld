@@ -18,7 +18,8 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="WaitForSleepersHours">B2680: the compute night begins when all sleep, at the latest this many hours after nightfall; null = at nightfall.</param>
 /// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
 /// <param name="Image">Sizes, style and priority of image jobs (content/image/generation.json; A1564); null = no picture jobs.</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null);
+/// <param name="NotBeforeHours">A1798: the compute night does not begin before this many hours after nightfall, even when all sleep; null = 0.</param>
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null, double? NotBeforeHours = null);
 
 /// <summary>The picture job of a new invention (A1564, B7 R7) and its result.</summary>
 /// <param name="TypeId">Runtime type the picture belongs to.</param>
@@ -1139,9 +1140,9 @@ public sealed partial class InventionSystem
             && (_night == true
                 || Build.WaitForSleepersHours is not { } wait
                 || !world.Calendar.NightBeganInWorld(world.Tick)
-                || _inhabitants.All.All(_inhabitants.IsAsleep)
                 || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
-                || since >= wait * 60);
+                || since >= wait * 60
+                || (since >= (Build.NotBeforeHours ?? 0) * 60 && _inhabitants.All.All(_inhabitants.IsAsleep)));
         if (_night == night)
         {
             return;

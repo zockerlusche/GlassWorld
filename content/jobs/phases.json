@@ -4,6 +4,7 @@
     "night"
   ],
   "wait_for_sleepers_hours": 2.5,
+  "not_before_hours": 2,
   "night_queue": {
     "held_kinds": [
       "invention",

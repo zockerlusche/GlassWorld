@@ -23,6 +23,12 @@
         "$ref": "common.schema.json#/$defs/VocabId"
       }
     },
+    "not_before_hours": {
+      "description": "A1798 (Marcel W2243): the compute night does not begin before this many game hours after nightfall, even when all sleep earlier - those awake live their evening until then, the night falls about midnight. Omitted = 0, as before.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 12
+    },
     "wait_for_sleepers_hours": {
       "description": "B2680 (Marcel W1939): the compute night begins when every inhabitant sleeps, at the latest this many game hours after nightfall (the start of the first night phase); the night scene of the game waits the same (look/night.json wait_for_sleepers_max_h). Omitted = at nightfall, as before.",
       "type": "number",

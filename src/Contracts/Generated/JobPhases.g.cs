@@ -53,6 +53,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> NightDayPhases { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
+        /// A1798 (Marcel W2243): the compute night does not begin before this many game hours after nightfall, even when all sleep earlier - those awake live their evening until then, the night falls about midnight. Omitted = 0, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("not_before_hours")]
+        public double? NotBeforeHours { get; set; } = default!;
+
+        /// <summary>
         /// B2680 (Marcel W1939): the compute night begins when every inhabitant sleeps, at the latest this many game hours after nightfall (the start of the first night phase); the night scene of the game waits the same (look/night.json wait_for_sleepers_max_h). Omitted = at nightfall, as before.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

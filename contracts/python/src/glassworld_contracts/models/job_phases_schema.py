@@ -49,6 +49,12 @@ class JobPhases(BaseModel):
         max_length=4,
         min_length=1,
     )
+    not_before_hours: float | None = Field(
+        None,
+        description='A1798 (Marcel W2243): the compute night does not begin before this many game hours after nightfall, even when all sleep earlier - those awake live their evening until then, the night falls about midnight. Omitted = 0, as before.',
+        ge=0.0,
+        le=12.0,
+    )
     wait_for_sleepers_hours: float | None = Field(
         None,
         description='B2680 (Marcel W1939): the compute night begins when every inhabitant sleeps, at the latest this many game hours after nightfall (the start of the first night phase); the night scene of the game waits the same (look/night.json wait_for_sleepers_max_h). Omitted = at nightfall, as before.',
