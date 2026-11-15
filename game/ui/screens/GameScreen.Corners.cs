@@ -34,9 +34,27 @@ public partial class GameScreen
 
     // A1752 (B2792): who had an aha lately (invented, built, a new word) - until the portrait is clicked or a game day passed.
     private AhaMarks? _aha;
+
+    // Screenshot runs only: states laid onto the corner, so one picture shows each of them (a new world has only questions).
+    private Dictionary<string, PortraitState>? _shotStates;
     private bool _portraitBusy;
     private int _portraitRound;
     private double _portraitScale;
+
+    /// <summary>
+    /// Screenshot runs only (A1752): the first inhabitants show knock, worry, aha, question and none, in that order;
+    /// <c>false</c> gives the corner back to the world.
+    /// </summary>
+    public void PortraitStatesForShots(bool on)
+    {
+        _shotStates = null;
+        if (on && _feed is not null)
+        {
+            PortraitState[] order = [PortraitState.Knock, PortraitState.Worry, PortraitState.Aha, PortraitState.Question, PortraitState.None];
+            _shotStates = _feed.Snapshot.Inhabitants.Select(i => i.Id).Order(StringComparer.Ordinal).Take(order.Length)
+                .Select((id, n) => (id, n)).ToDictionary(p => p.id, p => order[p.n], StringComparer.Ordinal);
+        }
+    }
 
     /// <summary>The portrait list top left (for the UI tour).</summary>
     public GwPortraitList PortraitsForShots => _portraits;
@@ -341,7 +359,9 @@ public partial class GameScreen
         var knocking = Knocking();
         var states = _style.Tokens.PortraitStates;
         var tick = _feed.Snapshot.Time.Tick;
-        PortraitState StateOf(InhabitantRow r) => CornerModel.State(r, knocking.Contains(r.Id), _aha?.Shows(r.Id, tick) == true, states);
+        PortraitState StateOf(InhabitantRow r) => _shotStates?.TryGetValue(r.Id, out var shot) == true
+            ? shot
+            : CornerModel.State(r, knocking.Contains(r.Id), _aha?.Shows(r.Id, tick) == true, states);
         var (shown, more) = CornerModel.Shown(rows, zones, _cardId, StateOf);
         _portraits.SetRows([.. shown.Select(r => new PortraitEntry(r.Id, ScreenModel.DisplayName(r, unnamed), _activities[r.Id], StateOf(r)))], more);
 
