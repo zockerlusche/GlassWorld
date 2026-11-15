@@ -1,4 +1,5 @@
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 
@@ -67,6 +68,47 @@ public sealed class ObstacleTests
             // The end lies on the walker's side, not behind the thing.
             Assert.True(Distance(end, from) < Distance(thing.Position, from), type);
         }
+    }
+
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(0.0)]
+    public void APickUpAtARockNicheStartsBesideItAndAtItsVeryCentre(double offset)
+    {
+        // Review GW1 #515: a rock niche clears 1.3 m (radius + body), pick_up reaches 1.0 m, and nothing at the start of an
+        // action measures the distance again - the walk's arrival decides. A thing lying by the rock is walked to and
+        // reached; a thing at the rock's very centre is reached from in front of it, at the rock's surface.
+        var host = Island();
+        var map = host.Map!;
+        var niche = host.Objects.All.First(o => o.TypeId == "rock_niche" && Approach(map, o) is not null);
+        var radius = map.ObstacleRadiusCm["rock_niche"] / 100.0;
+        var reach = host.Content.Actions.Timing("pick_up").ReachM;
+        var inhabitant = host.Inhabitants.All.First();
+        var stone = host.Objects.Spawn("fieldstone", new Position(niche.Position.X - offset, niche.Position.Z));
+        inhabitant.Position = Approach(map, niche)!.Value;
+        foreach (var need in inhabitant.Needs.Keys.ToList())
+        {
+            inhabitant.Needs[need] = 1.0;
+        }
+
+        inhabitant.Activity = new Activity("pick_up", stone.Id, stone.Position, null);
+        double? startedAt = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == InhabitantsSystem.ActionStarted && e.TargetId == stone.Id)
+            {
+                startedAt ??= Distance(inhabitant.Position, stone.Position);
+            }
+        };
+        for (var i = 0; i < 2000 && startedAt is null; i++)
+        {
+            host.World.Run(1);
+        }
+
+        Assert.NotNull(startedAt);
+        var surface = offset < 0.01 ? radius : 0;
+        Assert.True(startedAt.Value - surface <= reach + 1e-6, $"offset {offset}: the pick-up started {startedAt:0.00} m from the stone");
+        Assert.True(Distance(inhabitant.Position, niche.Position) >= radius, "and the walker stands outside the rock");
     }
 
     [Fact]
