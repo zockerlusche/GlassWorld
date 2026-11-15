@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Feelings show on the body (A1732, B2716 (2)): `look/expressions.json` maps events (invented, built, a milestone: cheering with arms up; first use, praise: a smile), moods (fear, sadness, much joy: the face) and needs (tired: a yawn now and then) to a face and a gesture over the running action - short for events with a calm pause, while it lasts for moods and needs; never over an action's own gesture, never lying. Placeholder values for the TL.
 - Cold and heat show on the figure (A1729 + A1730, A1379 rest): the inhabitant snapshot carries the comfort level (`ComfortLevel`, computed fresh); when cold, a figure standing or walking holds its arms to the body and shivers slightly; when hot, it wipes its brow now and then (look figures `comfort`, gestures `hug_self`/`wipe_brow`; calm placeholder values for the TL). Never over an action's own gesture, never while it lies.
 - A worn thing shows on the figure (A1577, K4 part 2): the top takes the kit colour of the worn invention's largest part while it is worn. Putting on is only the decider's choice (TL B2779): the routine entry is gone; the decider is offered put_on/take_off when they fit.
 - Sounds in the run trace (A1719 part, D1112 #7): every sound the game plays - an action's, an invention's, the knock at the glass, the murmur - is a `sound` line with its source (the inhabitant), the sound, what made it and the bus.
