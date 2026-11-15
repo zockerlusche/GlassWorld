@@ -464,6 +464,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public Map.IRouteFinder? Routes { get; init; }
 
     /// <summary>
+    /// A1498 (B2828): the nearest dry ground to a position within a distance - the position itself when it is dry, null when
+    /// there is none (or no map); set by the host from the map.
+    /// </summary>
+    public Func<Position, double, Position?>? DryGroundNear { get; set; }
+
+    /// <summary>
     /// How far the inhabitants see right now (B2594: the weather lowers it; B5 adds the light); full sight
     /// when the host sets none. Every system that asks what an inhabitant perceives reads it here.
     /// </summary>
@@ -1482,6 +1488,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
+            // A1498 (B2828): nobody lies down in the water - one about to sleep on a wet cell goes to dry ground first.
+            if (target is null && listener is null && string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal)
+                && _model.Togetherness?.DryGroundWithinM is { } within && DryGroundNear?.Invoke(inhabitant.Position, within) is { } dry
+                && dry != inhabitant.Position)
+            {
+                inhabitant.Activity = activity with { Destination = dry, Route = null };
+                return;
+            }
+
             if (listener is not null && !seen)
             {
                 // Arrived where it last saw the other, who is not there any more: nothing to say to nobody.
@@ -1568,10 +1583,13 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
-            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep.
-            if (IsAsleep(inhabitant) && timingNow.DurationTicks - activity.RemainingTicks.Value >= timingNow.WakeAfterTicks
+            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep; and after the
+            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %).
+            var sleptTicks = timingNow.DurationTicks - activity.RemainingTicks.Value;
+            if (IsAsleep(inhabitant) && sleptTicks >= timingNow.WakeAfterTicks
                 && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
-                && inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+                && ((inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour))))
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
                 inhabitant.Activity = null;

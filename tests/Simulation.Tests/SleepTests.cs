@@ -41,7 +41,10 @@ public sealed class SleepTests
         };
         host.World.Run((duration / 2) + 2);
         Assert.False(host.Inhabitants.IsAsleep(sleeper));
-        Assert.True(atWaking >= 0.95, $"a night: sleep {atWaking:0.000}");
+
+        // Woken by the day once rested (B2828: the day's line, 0.8) or at the night's end - rested either way.
+        var rested = Content.InhabitantModel.Togetherness!.WakeRested!.At;
+        Assert.True(atWaking >= rested, $"a night: sleep {atWaking:0.000}");
     }
 
     [Fact]
@@ -176,6 +179,52 @@ public sealed class SleepTests
         Assert.Empty(violations.Take(5));
         Assert.NotEmpty(sleepStarts);
         Assert.All(sleepStarts, s => Assert.True(s <= 0.5, $"a sleep started at sleep {s:0.000}"));
+    }
+
+    [Fact]
+    public void NobodyLiesDownInTheWaterOneOnAWetCellGoesToDryGroundFirst()
+    {
+        // A1498 (B2828, Marcel 15a: one lay in the stream).
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        var map = host.Map!;
+        var within = Content.InhabitantModel.Togetherness!.DryGroundWithinM!.Value;
+        var sleeper = host.Inhabitants.All.First();
+        Position? wet = null;
+        for (var z = 0; z < map.Map.DepthCells && wet is null; z++)
+        {
+            for (var x = 0; x < map.Map.WidthCells && wet is null; x++)
+            {
+                var cell = map.Map.Cell(x, z);
+                if (cell.Water == Map.WaterKind.Fresh && cell.WalkCost != Map.MapCell.Blocked && map.DryGroundNear(map.CentreOf(x, z), within) is { } dry && dry != map.CentreOf(x, z))
+                {
+                    wet = map.CentreOf(x, z);
+                }
+            }
+        }
+
+        Assert.NotNull(wet);
+        sleeper.Position = wet!.Value;
+        foreach (var need in sleeper.Needs.Keys.ToList())
+        {
+            sleeper.Needs[need] = 1.0;
+        }
+
+        sleeper.Needs["sleep"] = 0.3;
+        sleeper.Activity = new Activity(SleepAction, null, sleeper.Position, null);
+        sleeper.Planned = null;
+        Position? where = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == sleeper.Id && e.Kind == InhabitantsSystem.ActionStarted && e.Action == SleepAction)
+            {
+                where ??= sleeper.Position;
+            }
+        };
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+
+        Assert.NotNull(where);
+        var at = map.CellOf(where!.Value)!.Value;
+        Assert.Equal(Map.WaterKind.None, map.Map.Cell(at.X, at.Z).Water);
     }
 
     private static (SimulationHost Host, Inhabitant Sleeper) Alone()
