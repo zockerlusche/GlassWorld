@@ -25,6 +25,7 @@
     { "path": "prompts/decider/decide.v15.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/review/night.v3.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/dialogue/talk.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
 
 
 

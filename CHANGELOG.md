@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- AI service: talks between inhabitants (A1735 step 2, B2782, D1119): prompt `dialogue/talk` v1 writes 2-4 turns, A first, taking turns, only from what each one knows, remembers and feels, the tone from style words per trait; every turn is checked (guard, world check, no number/key, language, word limit, no made-up name, no reserved topic with a minor), the talk ends before the first turn that fails. Mock says nothing, replay from the call log. config: dialogue prompt 1.
 - Others look over and join in (A1733, B2716 (3)): when a figure cheers, the awake figures nearby turn their head and upper body to it for a moment and smile with their hands together (look expressions `join_in`, gesture `hands_together`; subject to their own calm pause; calm placeholder values for the TL). Presentation only.
 - Schnelldurchlauf (A1743, B2787): `tools/schnelldurchlauf/run.py` and `Schnelldurchlauf.cmd` in the test package - a new world runs without graphics as fast as the computer can (with or without AI), saves every day, writes learning log and run trace, and is then in the game's world list. Measured without AI: 30 game days in 55 s.
 - Contract: job kind `dialogue` (A1735 step 1, B2782, D1119): `DialoguePayload` (two speakers with their state, what each calls the other, last thought; max turns/words, expressions) and `DialogueResult` (turns: speaker, text, act, expression). Additive, 0.2; the service handler and the core come next.
