@@ -263,7 +263,10 @@ public partial class GwWindow : PanelContainer
 
         if (close.End.X > window.End.X + 0.5f || close.End.Y > window.End.Y + 0.5f)
         {
-            return $"close button {close} outside window {window}";
+            // The sizes that decide it, so a failure says which part grew (A1737a: 6 px on the dark ground).
+            var header = _close.GetParent<Control>();
+            var panel = GetThemeStylebox("panel");
+            return $"close button {close} outside window {window} (window min {GetCombinedMinimumSize().X:0}, column {header.GetParent<Control>().Size.X:0}/min {header.GetParent<Control>().GetCombinedMinimumSize().X:0}, header {header.Size.X:0}/min {header.GetCombinedMinimumSize().X:0}, title min {_title.GetCombinedMinimumSize().X:0}, close min {_close.GetCombinedMinimumSize().X:0}, panel margins {panel?.GetContentMargin(Side.Left):0}+{panel?.GetContentMargin(Side.Right):0}, panel min {panel?.GetMinimumSize().X:0})";
         }
 
         return _title.GetLineCount() > 2 ? $"title needs {_title.GetLineCount()} lines" : string.Empty;
