@@ -102,6 +102,12 @@ class LookCamera(BaseModel):
         ge=0.01,
         le=1.0,
     )
+    thing_focus_distance_m: float | None = Field(
+        None,
+        description='A1715 (D1112 #6): the camera distance when the player jumps to a built thing from the log. Omitted = the follow distance. Placeholder value (TL).',
+        ge=1.0,
+        le=500.0,
+    )
     follow_distance_m: float = Field(
         ..., description='Distance in follow mode.', ge=1.0, le=500.0
     )

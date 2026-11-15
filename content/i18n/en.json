@@ -2859,6 +2859,10 @@
       "text": "An AI needs you. The settings say under \"AI\" what to do."
     },
     {
+      "key": "ui.log.built",
+      "text": "{name} built {thing}."
+    },
+    {
       "key": "ui.log.knock",
       "text": "{name} knocks at the glass."
     },

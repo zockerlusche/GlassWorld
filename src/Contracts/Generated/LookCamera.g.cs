@@ -147,6 +147,13 @@ namespace GlassWorld.Contracts
         public double Smoothing { get; set; } = default!;
 
         /// <summary>
+        /// A1715 (D1112 #6): the camera distance when the player jumps to a built thing from the log. Omitted = the follow distance. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("thing_focus_distance_m")]
+        public double? ThingFocusDistanceM { get; set; } = default!;
+
+        /// <summary>
         /// Distance in follow mode.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("follow_distance_m")]

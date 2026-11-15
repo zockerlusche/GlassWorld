@@ -257,6 +257,14 @@ public sealed class WorldFeed
     public IReadOnlyList<HelpRow> HelpCalls() =>
         [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need, c.Tick))];
 
+    /// <summary>The name (DE, EN) of an invented thing by its object id, or null (A1715: the log names what was built).</summary>
+    public (string De, string En)? InventionNameOf(string objectId) =>
+        _host.Objects.TryGet(objectId, out var thing) && _host.Inventions.Invention(thing.TypeId) is { } invention ? (invention.Name.De, invention.Name.En) : null;
+
+    /// <summary>Where a thing stands now (x, z in metres), or null when it is gone (A1715: the camera goes there).</summary>
+    public (double X, double Z)? PlaceOf(string objectId) =>
+        _host.Objects.TryGet(objectId, out var thing) ? (thing.Position.X, thing.Position.Z) : null;
+
     /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
     public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)
     {

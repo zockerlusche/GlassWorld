@@ -2859,6 +2859,10 @@
       "text": "Eine KI braucht dich. In den Einstellungen unter „KI“ steht, was zu tun ist."
     },
     {
+      "key": "ui.log.built",
+      "text": "{name} hat {thing} gebaut."
+    },
+    {
       "key": "ui.log.knock",
       "text": "{name} klopft an die Scheibe."
     },
