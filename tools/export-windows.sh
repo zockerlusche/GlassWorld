@@ -100,12 +100,15 @@ if ! BENCH_HEADLESS=1 BENCH_PASS_LIMIT=1 BENCH_TIMEOUT_S=180 bash "$ROOT/tools/b
 fi
 grep -E '^BENCH_ENV' "$BENCH_DIR/out.log" || true
 # Start script with the local AI service (test package): the service runs from this repository.
+# A1787 (B2824): the game keeps its data in daten/ next to itself; Godot's own log goes there too - also when the
+# game falls back to Documents/GlassWorld because the folder is protected (then Godot cannot write this log; review GW5 #503).
+LOG_ARG='--log-file "%%~dp0daten\logs\godot.log"'
 WORLD_LINE=""
 if [[ -n "$WORLD" ]]; then
   WORLD_LINE="set GLASSWORLD_WORLD=$WORLD"$'\r\n'
 fi
-printf '@echo off\r\nrem GlassWorld mit lokaler KI starten (Testpaket). Der KI-Dienst laeuft aus dem Repository.\r\nset GLASSWORLD_AI=live\r\nset GLASSWORLD_AI_ROOT=%s\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$ROOT" "$WORLD_LINE" > "$OUT/Start-mit-KI.cmd"
-printf '@echo off\r\nrem GlassWorld ohne KI starten (Routine-Modus, zum Vergleich).\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$WORLD_LINE" > "$OUT/Start-ohne-KI.cmd"
+printf '@echo off\r\nrem GlassWorld mit lokaler KI starten (Testpaket). Der KI-Dienst laeuft aus dem Repository.\r\nset GLASSWORLD_AI=live\r\nset GLASSWORLD_AI_ROOT=%s\r\n%sstart "" "%%~dp0GlassWorld.exe" '"$LOG_ARG"'\r\n' "$ROOT" "$WORLD_LINE" > "$OUT/Start-mit-KI.cmd"
+printf '@echo off\r\nrem GlassWorld ohne KI starten (Routine-Modus, zum Vergleich).\r\n%sstart "" "%%~dp0GlassWorld.exe" '"$LOG_ARG"'\r\n' "$WORLD_LINE" > "$OUT/Start-ohne-KI.cmd"
 # A1743 (B2787): a world runs without graphics as fast as the computer can, then it is in the menu's world list.
 cat > "$OUT/Schnelldurchlauf.cmd" <<'CMD'
 @echo off
@@ -122,6 +125,8 @@ set SEED=
 set /p SEED=Seed (leer = zufaellig):
 set SEEDARG=
 if not "%SEED%"=="" set SEEDARG=--seed %SEED%
+rem A1787: the worlds go where this game keeps its data (daten next to it).
+set GLASSWORLD_DATA=%~dp0daten
 cd /d "@ROOT@"
 uv run python tools/schnelldurchlauf/run.py --days %TAGE% --ai %AI% %SEEDARG%
 pause
