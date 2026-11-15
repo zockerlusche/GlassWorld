@@ -205,3 +205,41 @@ def test_a_done_question_shows_what_it_learned_as_ids_surest_first(settings: Set
     validator = ContractValidator(settings.schemas_dir)
     body = {"contract_version": "0.2", "phase": "night", "session": runner.session, "items": items}
     assert validator.errors("night-items", body) == []
+
+
+def test_a_done_review_shows_its_dream_and_a_refused_one_none(settings: Settings) -> None:
+    """A1716 (B2776, D1112 #10): the night scene shows the dream of a done look back - only what
+    the review's checks let through (a refused dream is null in the result, then there is none)."""
+    data: dict[str, Any] = json.loads(
+        (EXAMPLES / "generation-job.review-flint.json").read_text("utf-8")
+    )
+    good = GenerationJob.model_validate(data)
+    refused = GenerationJob.model_validate(
+        {**data, "request_id": "00000000-0000-8000-8000-000000000007"}
+    )
+    dream = {"text": {"locale": "de", "text": " Ich laufe über den Strand. "}, "tone": "calm"}
+
+    async def handler(job: GenerationJob) -> JobOutcome:
+        mine = dream if job.request_id == good.request_id else None
+        return JobOutcome({"review": {"summary": "x", "dream": mine}}, "mock", "mock", None, 0, 1)
+
+    runner = JobRunner({"review": handler}, 8)
+
+    async def scenario() -> None:
+        runner.start_night(True)
+        runner.submit(good)
+        runner.submit(refused)
+        await asyncio.sleep(0.05)
+
+    asyncio.run(scenario())
+    items = runner.night_items(0)
+    assert all("dream" not in i for i in items if i["state"] != "done")
+    done = {str(i["job_id"]): i for i in items if i["state"] == "done"}
+    assert done[str(good.request_id)]["dream"] == {
+        "text": "Ich laufe über den Strand.",
+        "tone": "calm",
+    }
+    assert "dream" not in done[str(refused.request_id)]
+    validator = ContractValidator(settings.schemas_dir)
+    body = {"contract_version": "0.2", "phase": "night", "session": runner.session, "items": items}
+    assert validator.errors("night-items", body) == []

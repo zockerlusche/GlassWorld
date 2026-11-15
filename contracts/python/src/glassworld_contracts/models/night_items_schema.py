@@ -27,6 +27,24 @@ type Image = Annotated[
 ]
 
 
+class NightDream(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    text: str = Field(
+        ...,
+        description='The dream, one to three short sentences.',
+        max_length=280,
+        min_length=1,
+    )
+    tone: str = Field(
+        ...,
+        description='Its tone (as in the review result).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class NightFact(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -74,6 +92,10 @@ class NightItem(BaseModel):
         None,
         description="A1618 (B2683): what the inhabitant took from this job as facts - only for a done job, ids only (no wording, B7 R10): the dream scene shows them as a short guess ('Joro: pyrite - hard?'). They are the job's result, not yet checked by the core (it does so after the scene). Absent = nothing to show.",
         max_length=4,
+    )
+    dream: NightDream | None = Field(
+        None,
+        description="A1716 (B2776, D1112 #10): the dream of a done review job, as the night scene shows it ('Elin träumt: ...'). Only for kind review in state done and only when the dream passed the service's checks (content guard, the world check A1613, no number or key - A1721); absent otherwise. In the player's language like the review's dream. The core still applies the review in the morning and checks it there again.",
     )
 
 

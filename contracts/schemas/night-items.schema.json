@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/night-items.schema.json",
   "title": "NightItems",
-  "description": "AI service -> game (GET /night/items?since=<seq>, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).",
+  "description": "AI service -> game (GET /night/items?since=<seq>, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions or memories (like the question window, B6 R12); the one exception is the dream of a done look back (NightItem.dream, B2776), which the service's checks have let through. Kept only for the current night and only in memory, like the queue (R4).",
   "type": "object",
   "additionalProperties": false,
   "required": ["contract_version", "session", "phase", "items"],
@@ -51,7 +51,20 @@
           "type": "array",
           "maxItems": 4,
           "items": { "$ref": "#/$defs/NightFact" }
+        },
+        "dream": {
+          "description": "A1716 (B2776, D1112 #10): the dream of a done review job, as the night scene shows it ('Elin träumt: ...'). Only for kind review in state done and only when the dream passed the service's checks (content guard, the world check A1613, no number or key - A1721); absent otherwise. In the player's language like the review's dream. The core still applies the review in the morning and checks it there again.",
+          "$ref": "#/$defs/NightDream"
         }
+      }
+    },
+    "NightDream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "tone"],
+      "properties": {
+        "text": { "description": "The dream, one to three short sentences.", "type": "string", "minLength": 1, "maxLength": 280 },
+        "tone": { "description": "Its tone (as in the review result).", "$ref": "common.schema.json#/$defs/VocabId" }
       }
     },
     "NightFact": {

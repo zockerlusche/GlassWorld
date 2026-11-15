@@ -387,7 +387,30 @@ def _night_item(seq: int, record: _Record) -> dict[str, object]:
     learned = _learned(record, object_type)
     if learned:
         item["learned"] = learned
+    dream = _dream(record)
+    if dream is not None:
+        item["dream"] = dream
     return item
+
+
+def _dream(record: _Record) -> dict[str, object] | None:
+    """A1716 (B2776): the dream of a done look back for the night scene - only what the review's
+    checks let through (parse_review leaves a refused dream out, then there is none)."""
+    outcome = record.outcome
+    if record.kind != "review" or record.state != "done" or outcome is None:
+        return None
+    review: object = outcome.result.get("review")
+    dream: object = (
+        cast(dict[str, object], review).get("dream") if isinstance(review, dict) else None
+    )
+    if not isinstance(dream, dict):
+        return None
+    shown: object = cast(dict[str, object], dream).get("text")
+    text: object = cast(dict[str, object], shown).get("text") if isinstance(shown, dict) else None
+    tone: object = cast(dict[str, object], dream).get("tone")
+    if not isinstance(text, str) or not text.strip() or not isinstance(tone, str):
+        return None
+    return {"text": text.strip()[:280], "tone": tone}
 
 
 def _learned(record: _Record, object_type: object) -> list[dict[str, object]]:

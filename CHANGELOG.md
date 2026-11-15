@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Contract: `NightItem.dream` {text, tone} - the dream of a done look back for the night scene, only when the service's checks let it through (A1716, B2776, D1112 #10). Optional, 0.2.
 - Built things can be found and seen (D1112 #6, A1715, D1114): the log has a line "{name} built {thing}" that takes the camera to the thing (`thing_focus_distance_m`, placeholder 10 m), and a built thing smaller than `invention_min_shown_m` (look data, placeholder 0.4 m) is drawn uniformly larger - the core keeps its true size.
 - Nightly look back v2 (A1721, Marcel's test 14.11.): the memory no longer fills with tick numbers and prompt keys ('Tick 8453 showed me an egg', 'Driftwood t2 and t3'). The prompt shows no tick, the service keeps the formative events itself, and a summary, dream or thought with a tick, a number or a key is refused with the reason (the model answers again). config: review prompt 2.
 - Game start arguments for unattended runs (B2768): `--new-world=SEED[,SIZE,CLIMATE,FAVOR]` creates a world exactly as the menu's form does (saved after every day, learning log beside it) and `--run-s=SECONDS` runs it at the fastest speed that long, then quits saved.
