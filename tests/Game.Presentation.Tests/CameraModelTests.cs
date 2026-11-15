@@ -68,6 +68,31 @@ public sealed class CameraModelTests
     }
 
     [Fact]
+    public void FollowingTheSameFigureAgainKeepsThePlayersZoom()
+    {
+        // A1803 (Marcel W2245): zoomed in on a followed inhabitant, every Enter in the chat chose it again and the
+        // camera jumped back out to the follow distance.
+        var data = Data();
+        var camera = new CameraModel(data, 0, 0, 192, 192);
+        var position = (X: 40d, Z: 150d);
+        camera.Follow(() => position);
+        Settle(camera);
+        camera.Zoom(3);
+        Settle(camera);
+        var zoomed = camera.Distance;
+        Assert.True(zoomed < Math.Clamp(data.FollowDistanceM, data.DistanceM.Min, data.DistanceM.Max) - 1e-3, "zooming in must come nearer");
+
+        camera.Follow(() => position, keepZoom: true);
+        Settle(camera);
+        Assert.Equal(zoomed, camera.Distance, 6);
+
+        // Another figure (or a first follow) still goes to the follow distance.
+        camera.Follow(() => position);
+        Settle(camera);
+        Assert.Equal(Math.Clamp(data.FollowDistanceM, data.DistanceM.Min, data.DistanceM.Max), camera.Distance, 2);
+    }
+
+    [Fact]
     public void FollowingTracksTheFigureAtTheFollowDistance()
     {
         var data = Data();
