@@ -152,7 +152,7 @@ public sealed class MeetingTests
     {
         var (_, inhabitants, _) = NewWorld();
         var (a, b, c) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"), inhabitants.Get("inh-000003"));
-        var approach = Knowledge.Meeting!.Options.Single(o => o.Action == "approach");
+        var approach = Knowledge.Meeting!.Options.Single(o => o.Action == "approach" && o.MaxTrust is not null);
         var talk = Knowledge.Meeting.Options.Single(o => o.Action == "talk_to");
 
         c.Position = new Position(a.Position.X + approach.MinDistanceM!.Value + 1, a.Position.Z);

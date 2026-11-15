@@ -107,6 +107,13 @@ namespace GlassWorld.Contracts
         public string? TargetProperty { get; set; } = default!;
 
         /// <summary>
+        /// A1726: only things the inhabitant believes have the target property count - an unknown one gets no unknown-target belief and does not suggest the action (e.g. the cold draws only to what one knows shelters). Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("known_only")]
+        public bool? KnownOnly { get; set; } = default!;
+
+        /// <summary>
         /// B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
