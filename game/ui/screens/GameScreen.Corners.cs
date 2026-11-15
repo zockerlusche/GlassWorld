@@ -25,6 +25,8 @@ public partial class GameScreen
     private readonly Label _air = new() { Name = "Air", HorizontalAlignment = HorizontalAlignment.Right, MouseFilter = Control.MouseFilterEnum.Stop, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.clock.air_tooltip", TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always };
     private readonly GwIcon _weatherIcon = new() { Name = "Weather", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly ProgressBar _favorBar = new() { Name = "FavorBar", ShowPercentage = false, MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "ui.favor.tooltip", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+    // A1800 (B2839): how far the season has come, as a short bar after its name ('day x of y' in the tooltip).
+    private readonly ProgressBar _seasonBar = new() { Name = "SeasonBar", ShowPercentage = false, MinValue = 0, MouseFilter = Control.MouseFilterEnum.Stop, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly GwIcon _favorThumb = new() { Name = "FavorThumb", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private readonly GwRoundButton _menuRound = new() { Name = "CornerMenu" };
     private readonly GwPortraitList _portraits = new() { Visible = false };
@@ -86,6 +88,7 @@ public partial class GameScreen
         _seasonIcon.CustomMinimumSize = icon;
         _weatherIcon.CustomMinimumSize = icon;
         _favorBar.CustomMinimumSize = new Vector2(_style.Tokens.Zones.FavorBarWidth, px * 0.3f);
+        _seasonBar.CustomMinimumSize = new Vector2(_style.Tokens.Zones.SeasonBarWidth, px * 0.2f);
         _favorThumb.CustomMinimumSize = icon;
 
         _root.AddChild(_corner);
@@ -120,10 +123,11 @@ public partial class GameScreen
         {
             Move(_seasonIcon, _cornerDate, 0);
             Move(_date, _cornerDate, 1);
-            Move(_day, _cornerDate, 2);
-            Move(_time, _cornerDate, 3);
-            Move(_air, _cornerDate, 4);
-            Move(_weatherIcon, _cornerDate, 5);
+            Move(_seasonBar, _cornerDate, 2);
+            Move(_day, _cornerDate, 3);
+            Move(_time, _cornerDate, 4);
+            Move(_air, _cornerDate, 5);
+            Move(_weatherIcon, _cornerDate, 6);
             for (var i = 0; i < _timeButtons.Count; i++)
             {
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
@@ -147,8 +151,9 @@ public partial class GameScreen
 
         Move(_favor, _topRow, 3 + _timeButtons.Count);
         Move(_seasonIcon, _cornerDate, 0);
-        Move(_air, _cornerDate, 1);
-        Move(_weatherIcon, _cornerDate, 2);
+        Move(_seasonBar, _cornerDate, 1);
+        Move(_air, _cornerDate, 2);
+        Move(_weatherIcon, _cornerDate, 3);
         Move(_favorBar, _cornerFavor, 0);
         Move(_favorThumb, _cornerFavor, 1);
     }
@@ -379,6 +384,11 @@ public partial class GameScreen
         var season = CornerModel.SeasonId(clock.SeasonKey);
         _seasonIcon.Icon = CornerModel.IconFor(zones.SeasonIcons, season);
         _seasonIcon.TooltipText = Tr(clock.SeasonKey);
+        // A1800 (B2839): the season's progress as a bar; its tooltip is the date's ('day x of y', the lengths).
+        _seasonBar.MaxValue = Math.Max(1, clock.DaysPerSeason);
+        _seasonBar.Value = Math.Clamp(clock.Day, 0, clock.DaysPerSeason);
+        _seasonBar.TooltipText = _date?.TooltipText ?? string.Empty;
+
         // A1800: the air temperature of the island now; hidden without a weather system.
         _air.Visible = clock.AirC is not null;
         if (clock.AirC is { } air && !_clockHeld)
