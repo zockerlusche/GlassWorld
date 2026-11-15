@@ -700,6 +700,11 @@ public sealed class SimulationHost
 
         // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
         world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(dialogue).Add(lookEpoch);
+
+        // A1778 (B2814): every failed action becomes an open question - collected from the events, asked at the end of the
+        // tick by the last system, so nothing waits across a save.
+        inhabitants.Reported += decisions.ObserveFailure;
+        world.Add(new FailureQuestionsSystem(decisions));
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
