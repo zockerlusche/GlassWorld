@@ -184,6 +184,18 @@ def request_words(
     return words
 
 
+def judged_things(
+    settings: dict[str, Any], texts: TextCatalog | None, locale: str
+) -> set[str] | None:
+    """Which nouns a sentence check judges (prompt data [settings.grounding] judge): 'world' (the
+    default, A1613) only names of things of this world; 'all' (A1797, Marcel W2243 'Kaffee')
+    every noun - the inhabitants know nothing from elsewhere, so a noun must name something the
+    inhabitant knows, sees or remembers, or be one of the general words. None = every noun."""
+    raw: object = settings.get("grounding", {})
+    table = cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
+    return None if table.get("judge") == "all" else world_things(texts, locale)
+
+
 def settings_words(settings: dict[str, Any], key: str, locale: str) -> list[str]:
     raw: object = settings.get("grounding", {})
     table = cast(dict[str, Any], raw) if isinstance(raw, dict) else {}

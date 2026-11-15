@@ -219,6 +219,20 @@ def _occasion(request: DecisionRequest, settings: dict[str, Any]) -> str:
         thought = intention.thought.text if intention.thought is not None else None
         said = f'"{thought}"' if thought else _humanize(_id(intention.action))
         line = line.replace("$intention", said)
+    if "$failed_action" in line:
+        # v16 (A1778, B2814): what failed and why in plain words - never what would work (PR2).
+        failure: Any = getattr(request, "failure", None)
+        if failure is None:
+            return ""
+        reasons: object = settings.get("failure_reasons")
+        known = cast(dict[str, object], reasons) if isinstance(reasons, dict) else {}
+        reason = str(known.get(failure.reason) or _humanize(failure.reason))
+        target = f" the {_humanize(failure.target_type)}" if failure.target_type else ""
+        line = (
+            line.replace("$failed_action", _humanize(_id(failure.action)))
+            .replace("$failed_target", target)
+            .replace("$failed_reason", reason)
+        )
     return f"{table['heading']}\n{line}\n\n"
 
 

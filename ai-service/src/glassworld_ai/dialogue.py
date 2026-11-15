@@ -26,10 +26,10 @@ from glassworld_ai.calllog import CallLog
 from glassworld_ai.decider.thoughts import wrong_language
 from glassworld_ai.grounding import (
     checks_nouns,
+    judged_things,
     request_words,
     settings_words,
     unknown_nouns,
-    world_things,
 )
 from glassworld_ai.jobs import JobOutcome
 from glassworld_ai.llm.jobcall import (
@@ -270,14 +270,14 @@ class Turns:
         ]
         # A1613 per speaker (review GW1 #476): A may name only what A knows, not what only B knows.
         self._words: list[set[str]] | None = None
-        self._world: set[str] = set()
+        self._world: set[str] | None = set()
         if checks_nouns(settings, self._locale):
             general = settings_words(settings, "general_words", self._locale)
             self._words = [
                 request_words(_speaker_job(job, i), texts, self._locale, general) | self._names[i]
                 for i in range(count)
             ]
-            self._world = world_things(texts, self._locale)
+            self._world = judged_things(settings, texts, self._locale)
 
     def problem(self, text: str, speaker: int) -> str | None:
         if not self._guard.check(text).allowed:

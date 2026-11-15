@@ -218,3 +218,18 @@ def test_why_a_talk_ended_early_goes_into_the_call_log(monkeypatch: pytest.Monke
     assert detail_of(({"turns": []}, ["talk ends before turn 2 (unknown: Feuer): x", "y"])) == (
         "talk ends before turn 2 (unknown: Feuer): x; y"
     )
+
+
+def test_v2_a_turn_naming_a_thing_from_elsewhere_ends_the_talk() -> None:
+    """A1797 (Marcel W2243): with v1 only names of things of this world were judged, so a turn
+    with 'Kaffee' passed; v2 judges every noun - the inhabitants know nothing from elsewhere."""
+    v2 = load_prompt(REPO / "prompts", "dialogue/talk", 2)
+    coffee = _answer(GOOD[0], _turn("b", "Ja! Danach trinken wir einen Kaffee."))
+    _, notes = parse_dialogue(coffee, JOB, GUARD, TEXTS, TEMPLATE.settings)
+    assert notes == []  # v1 as it was
+    result, notes = parse_dialogue(coffee, JOB, GUARD, TEXTS, v2.settings)
+    assert len(result["turns"]) == 1 and "unknown: Kaffee" in notes[0]
+    talk = _answer(GOOD[0], _turn("b", "Ja! Hast du was Neues? Ein Gespräch tut gut."))
+    result, notes = parse_dialogue(talk, JOB, GUARD, TEXTS, v2.settings)
+    assert notes == [] and len(result["turns"]) == 2  # general words stay
+    assert "no word for anything they did not meet" in v2.system
