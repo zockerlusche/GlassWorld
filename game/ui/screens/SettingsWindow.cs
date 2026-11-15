@@ -30,6 +30,11 @@ public partial class SettingsWindow : GwWindow
     private readonly List<Action<PlayerSettings>> _shows = [];
     private VBoxContainer _tabs = new();
     private VBoxContainer _pagesBox = new();
+    private HBoxContainer _body = new();
+    private VBoxContainer _pageColumn = new();
+    private VSeparator _descriptionLine = new();
+    private VSeparator _tabsLine = new();
+    private HFlowContainer _tabsTop = new();
     private VBoxContainer _page = new();
     private Label _description = new();
     private float _labelWidth;
@@ -51,9 +56,14 @@ public partial class SettingsWindow : GwWindow
         _defaults = PlayerSettings.Parse(null, limits);
 
         // D957 v4 section 10: the tabs stand on the left from top to bottom, the page beside them, the description on the right.
-        var body = new HBoxContainer { Name = "Body" };
+        _body = new HBoxContainer { Name = "Body" };
         _tabs = new VBoxContainer { Name = "Tabs" };
         _pagesBox = new VBoxContainer { Name = "Pages", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _pageColumn = new VBoxContainer { Name = "PageColumn", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _descriptionLine = new VSeparator();
+        _tabsLine = new VSeparator();
+        _tabsTop = new HFlowContainer { Name = "TabsTop", Visible = false };
+        Content.AddChild(_tabsTop);
         _description = new Label
         {
             Name = "Description",
@@ -63,12 +73,14 @@ public partial class SettingsWindow : GwWindow
             CustomMinimumSize = new Vector2(_labelWidth, 0),
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
-        body.AddChild(_tabs);
-        body.AddChild(new VSeparator());
-        body.AddChild(_pagesBox);
-        body.AddChild(new VSeparator());
-        body.AddChild(_description);
-        Content.AddChild(body);
+        UiFit.LongestWordFits(_description, _labelWidth);
+        _body.AddChild(_tabs);
+        _body.AddChild(_tabsLine);
+        _pageColumn.AddChild(_pagesBox);
+        _body.AddChild(_pageColumn);
+        _body.AddChild(_descriptionLine);
+        _body.AddChild(_description);
+        Content.AddChild(_body);
 
         foreach (var tab in Layout.Value.Tabs)
         {
@@ -76,7 +88,9 @@ public partial class SettingsWindow : GwWindow
             if (tab.Rows.Count == 0)
             {
                 // A tab whose settings come later says so (graphics, controls: A1737 b and c).
-                _page.AddChild(new Label { Text = "ui.settings.coming", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+                var coming = new Label { Text = "ui.settings.coming", AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+                UiFit.LongestWordFits(coming, _labelWidth);
+                _page.AddChild(coming);
                 continue;
             }
 
@@ -522,11 +536,58 @@ public partial class SettingsWindow : GwWindow
 
         if (IsInsideTree())
         {
-            // Every tab as wide as the widest, so the window does not jump when the player changes tabs (D705).
-            _pagesBox.CustomMinimumSize = Vector2.Zero;
-            _pagesBox.CustomMinimumSize = new Vector2(_pages.Values.Max(p => p.Page.GetCombinedMinimumSize().X), 0);
             FitInto(GetViewport().GetVisibleRect().Size);
         }
+    }
+
+    /// <inheritdoc/>
+    protected override void Arrange(Vector2 limit)
+    {
+        // The description beside the rows (D957 v4 section 10); where that is wider than the room (UI 200 %, large
+        // text) it stands below them. Every tab as wide as the widest, so the window does not jump (D705).
+        PlaceTabs(left: true);
+        PlaceDescription(beside: true);
+        if (GetCombinedMinimumSize().X > limit.X)
+        {
+            PlaceDescription(beside: false);
+        }
+
+        // Still too wide (the smallest picture with the largest text): the tabs go on top as a row that wraps.
+        if (GetCombinedMinimumSize().X > limit.X)
+        {
+            PlaceTabs(left: false);
+        }
+    }
+
+    private void PlaceTabs(bool left)
+    {
+        var target = left ? (Container)_tabs : _tabsTop;
+        foreach (var (tab, _) in _pages.Values)
+        {
+            if (tab.GetParent() != target)
+            {
+                tab.GetParent()?.RemoveChild(tab);
+                target.AddChild(tab);
+            }
+        }
+
+        _tabs.Visible = left;
+        _tabsLine.Visible = left;
+        _tabsTop.Visible = !left;
+    }
+
+    private void PlaceDescription(bool beside)
+    {
+        var parent = beside ? (Container)_body : _pageColumn;
+        if (_description.GetParent() != parent)
+        {
+            _description.GetParent()?.RemoveChild(_description);
+            parent.AddChild(_description);
+        }
+
+        _descriptionLine.Visible = beside;
+        _pagesBox.CustomMinimumSize = Vector2.Zero;
+        _pagesBox.CustomMinimumSize = new Vector2(_pages.Values.Max(p => p.Page.GetCombinedMinimumSize().X), 0);
     }
 
     /// <summary>Starts the tab of a section: the controls added next belong to it. The tab last used opens again.</summary>
