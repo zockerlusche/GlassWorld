@@ -81,8 +81,17 @@ def _flag(settings: dict[str, Any] | None, key: str, default: bool) -> bool:
     return value if isinstance(value, bool) else default
 
 
-# A1728: a person called by a name ('named Lena', 'called Lena', 'her name is Lena').
-_CALLED = re.compile(r"\b(?:named|called|name is|name was)\s+([A-ZÄÖÜ][\w'-]+)")
+# A1728: a person called by a name - English ('named Lena', 'called Lena', 'her name is Lena') and
+# German ('namens Lena', 'sie heißt Lena', 'hieß', 'genannt Lena'; review GW1 #462).
+_CALLED = re.compile(
+    r"(?P<before>\b\w+\s+)?\b(?:named|called|name is|name was|namens"
+    r"|heißt|heisst|hieß|hiess|genannt)"
+    r"\s+(?P<name>[A-ZÄÖÜ][\w'-]+)",
+    re.UNICODE,
+)
+# Speaking of itself ('my name is Elin', 'I am called Elin', 'ich heiße Elin'): its own name is not
+# in the job, and naming itself invents nobody (review GW1 #462).
+_SELF = {"my", "i", "am", "ich", "mein", "meine"}
 
 
 def person_names(job: GenerationJob) -> dict[str, str]:
@@ -103,8 +112,11 @@ def person_names(job: GenerationJob) -> dict[str, str]:
 def made_up_name(text: str, known_names: set[str]) -> str | None:
     """A1728: a name the text calls someone by that is not one it learned, or None."""
     for found in _CALLED.finditer(text):
-        if found.group(1) not in known_names:
-            return found.group(1)
+        before = (found.group("before") or "").strip().lower()
+        if before in _SELF:
+            continue
+        if found.group("name") not in known_names:
+            return found.group("name")
     return None
 
 

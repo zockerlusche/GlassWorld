@@ -258,3 +258,22 @@ def test_v3_refuses_a_summary_that_makes_up_a_name() -> None:
     answer["summary"] = "Today I talked with someone called Joro by the shore."
     result, _ = parse_review(json.dumps(answer), job, GUARD, MOODS, TEXTS, TEMPLATE_V3.settings)
     assert result["summary"].startswith("Today I talked")
+
+
+@pytest.mark.parametrize(
+    ("summary", "refused"),
+    [
+        ("Heute traf ich eine Person namens Lena am Ufer.", "Lena"),
+        ("Sie heißt Lena und mag Beeren.", "Lena"),
+        ("Er wurde Lena genannt.", None),  # 'genannt' after the name: no name follows
+        ("Heute sprach ich mit jemandem, der Joro heißt.", None),
+        ("My name is Elin and I like the shore.", None),
+        ("Ich heiße Elin und mag das Ufer.", None),
+        ("I am called Elin by nobody.", None),
+    ],
+)
+def test_v3_name_forms_german_and_its_own_name(summary: str, refused: str | None) -> None:
+    """Review GW1 #462: German forms count; speaking of itself is no made-up person."""
+    from glassworld_ai.review import made_up_name
+
+    assert made_up_name(summary, {"Joro"}) == refused
