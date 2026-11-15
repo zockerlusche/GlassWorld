@@ -14,6 +14,15 @@ public sealed record PlayRequest(string SoundId, int Variant, MixBusId Bus, Posi
 {
     /// <summary>A made sound file to play instead of the sound id (invention sound, D471 D7), or null.</summary>
     public string? File { get; init; }
+
+    /// <summary>Who made the sound (an inhabitant id), for the run trace (A1719: a sound with its source, D1112 #7).</summary>
+    public string Source { get; init; } = string.Empty;
+
+    /// <summary>What made it: the action, or the signal (knock).</summary>
+    public string Cause { get; init; } = string.Empty;
+
+    /// <summary>The tick of the event that made it.</summary>
+    public long Tick { get; init; }
 }
 
 /// <summary>
@@ -55,14 +64,14 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
                 var ownGain = mixer.Gain(MixBusId.Effects, Distance(at, listener), zoom);
                 if (ownGain > 0 && own.FilePath is { } path)
                 {
-                    candidates.Add(new PlayRequest("invention", 0, MixBusId.Effects, at, ownGain) { File = path });
+                    candidates.Add(new PlayRequest("invention", 0, MixBusId.Effects, at, ownGain) { File = path, Source = e.InhabitantId, Cause = e.Action, Tick = e.Tick });
                     continue;
                 }
 
                 if (ownGain > 0 && own.LibrarySoundId is { } id)
                 {
                     var count = fileVariants is not null && fileVariants.TryGetValue(id, out var n) ? n : 1;
-                    candidates.Add(new PlayRequest(id, VariantOf(e, count), MixBusId.Effects, at, ownGain));
+                    candidates.Add(new PlayRequest(id, VariantOf(e, count), MixBusId.Effects, at, ownGain) { Source = e.InhabitantId, Cause = e.Action, Tick = e.Tick });
                     continue;
                 }
             }
@@ -79,7 +88,7 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
             {
                 // Sounds with files in the base library use all their file variants (B8-4).
                 var variants = fileVariants is not null && fileVariants.TryGetValue(sound, out var files) ? files : library.Recipe(sound).Variants;
-                candidates.Add(new PlayRequest(sound, VariantOf(e, variants), bus, at, gain));
+                candidates.Add(new PlayRequest(sound, VariantOf(e, variants), bus, at, gain) { Source = e.InhabitantId, Cause = e.Action, Tick = e.Tick });
             }
         }
 
@@ -110,11 +119,32 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
         {
             if (e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind)
             {
-                requests.Add(new PlayRequest(sound, (int)(SplitMix64.SeedOf($"{e.Tick}/{e.InhabitantId}/knock") % (ulong)Math.Max(1, variants)), BusOf(recipe.Bus), default, 1.0));
+                requests.Add(new PlayRequest(sound, (int)(SplitMix64.SeedOf($"{e.Tick}/{e.InhabitantId}/knock") % (ulong)Math.Max(1, variants)), BusOf(recipe.Bus), default, 1.0)
+                {
+                    Source = e.InhabitantId,
+                    Cause = Simulation.Player.MailboxSystem.KnockKind,
+                    Tick = e.Tick,
+                });
             }
         }
 
         return requests;
+    }
+
+    /// <summary>
+    /// The run trace line of a played sound (A1719, kind 'sound'): who made it, which sound (or made file), what made
+    /// it and on which bus - so a sound without a visible cause can be found afterwards (D1112 #7).
+    /// </summary>
+    public static IReadOnlyDictionary<string, string?> TraceFields(PlayRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["source"] = request.Source,
+            ["sound"] = request.File is { } file ? System.IO.Path.GetFileName(file) : request.SoundId,
+            ["cause"] = request.Cause,
+            ["bus"] = request.Bus.ToString().ToLowerInvariant(),
+        };
     }
 
     /// <summary>Bus of a recipe.</summary>

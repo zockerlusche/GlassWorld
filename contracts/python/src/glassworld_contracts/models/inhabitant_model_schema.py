@@ -11,22 +11,33 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class NeedModel(BaseModel):
+class NeedDecayWhen(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    per_hour: float = Field(
+        ..., description='Decay per hour while the conditions hold.', ge=0.0, le=1.0
     )
-    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
-    neglect_below: float = Field(
-        ...,
-        description='Below this value the need counts as neglected (will to live).',
+    recover_per_hour: float | None = Field(
+        None,
+        description='While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual.',
         ge=0.0,
         le=1.0,
+    )
+    day_phases: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Day phases (vocabulary time_of_day) in which it holds.',
+        max_length=4,
+    )
+    alone_m: float | None = Field(
+        None,
+        description='No other inhabitant within this many metres.',
+        ge=0.0,
+        le=1000.0,
+    )
+    unsheltered: bool | None = Field(
+        None,
+        description="true: no thing with the body data's shelter property within its shelter reach.",
     )
 
 
@@ -329,6 +340,26 @@ class NeedRules(BaseModel):
         le=1.0,
     )
     max_runtime_needs: int = Field(..., ge=0, le=64)
+
+
+class NeedModel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
+    neglect_below: float = Field(
+        ...,
+        description='Below this value the need counts as neglected (will to live).',
+        ge=0.0,
+        le=1.0,
+    )
+    decay_when: NeedDecayWhen | None = None
 
 
 class ComfortZone(BaseModel):
