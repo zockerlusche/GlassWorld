@@ -1311,7 +1311,7 @@ public sealed class DecisionsSystem : IWorldSystem
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick)
-                    && Fits(asker, _actions.Timing(action), target.Id):
+                    && Fits(asker, _actions.Timing(action), target.Id) && OffersOn?.Invoke(action, target) != false:
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
                         // A1379: fuel only for a burning thing that takes fuel (the data of its type).
@@ -1492,6 +1492,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
+
+    /// <summary>
+    /// D1105 H3b: whether an action is offered on a thing at all by its sizes (climb: only on something that gives a
+    /// hold, or towards a thing up high under such a thing); null = every action on every thing. Never by whether it works.
+    /// </summary>
+    public Func<string, WorldObject, bool>? OffersOn { get; set; }
 
     /// <summary>D1105 H2: how high a thing hangs above the ground in centimetres (0 = on it); null = all on the ground.</summary>
     public Func<string, int>? AboveCm { get; set; }

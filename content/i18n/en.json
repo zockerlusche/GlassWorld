@@ -727,6 +727,10 @@
       "text": "Introduce"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Climb up"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Add fuel"
     },
@@ -2181,6 +2185,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
+    },
+    {
+      "key": "vocab.event.slipped",
+      "text": "Slipped"
     },
     {
       "key": "vocab.event.out_of_reach",

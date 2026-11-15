@@ -568,6 +568,20 @@
     "cool_tenth_c": 40,
     "block_radius_cm": 300
   },
+  "climbing": {
+    "action": "climb",
+    "min_grip_permille": 350,
+    "height_by_grip": [
+      { "grip_permille": 350, "height_cm": 200 },
+      { "grip_permille": 600, "height_cm": 600 },
+      { "grip_permille": 900, "height_cm": 10000 }
+    ],
+    "slip_permille_per_m": 50,
+    "up_minutes": 30,
+    "stay_within_m": 6,
+    "fright_mood": "fear",
+    "fright_delta": 0.1
+  },
   "stay_sheltered": { "leaving_factor_permille": 300, "in_precipitation": true, "at_levels": ["cold"] },
   "others_warmth": {
     "tenth_c": 15,
