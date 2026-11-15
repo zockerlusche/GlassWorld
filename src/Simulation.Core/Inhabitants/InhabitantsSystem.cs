@@ -846,14 +846,28 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             return;
         }
 
-        var now = Distance(inhabitant.Position, walk.Destination);
+        // Along the route where there is one (review GW1 #485): a detour round a lake or a cliff gets on although it
+        // leads away from the destination for a while.
+        // A route found or searched anew this tick changes the measure: the count starts afresh (the first ticks of a
+        // walk on a map have no route yet, its route is longer than the straight line).
+        if ((planned.Route is null) != (walk.Route is null) || (walk.Route?.Count ?? 0) > (planned.Route?.Count ?? 0))
+        {
+            if (walk.StallSinceTick is not null)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            }
+
+            return;
+        }
+
+        var now = RemainingM(inhabitant.Position, walk.Route, walk.Destination);
         var limit = (long)space.StallMinutes.Value * _ticksPerHour / 60;
         var gain = space.StallGainM ?? 0;
         if (walk.StallSinceTick is not { } since)
         {
             // A tick slower than the pace the data ask for (stall_gain_m over stall_minutes) starts the count; a
             // walk that gets on as usual keeps nothing.
-            var was = Distance(before, walk.Destination);
+            var was = RemainingM(before, planned.Route, walk.Destination);
             if (was - now < gain / Math.Max(1, limit) && now > 1e-9)
             {
                 inhabitant.Activity = walk with { StallSinceTick = world.Tick, StallFromM = was };
@@ -873,6 +887,26 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, walk.Action, walk.TargetId) { Detail = Blocked });
             inhabitant.Activity = null;
         }
+    }
+
+    /// <summary>
+    /// A1751: the way still to go from a position - along the route's waypoints to the destination where there is a
+    /// route, else straight.
+    /// </summary>
+    internal static double RemainingM(Position from, IReadOnlyList<Position>? route, Position destination)
+    {
+        if (route is not { Count: > 0 })
+        {
+            return Distance(from, destination);
+        }
+
+        var total = Distance(from, route[0]);
+        for (var i = 1; i < route.Count; i++)
+        {
+            total += Distance(route[i - 1], route[i]);
+        }
+
+        return total + Distance(route[^1], destination);
     }
 
     /// <summary>Whether the inhabitant is on its way somewhere (an action without a running duration and a destination elsewhere).</summary>

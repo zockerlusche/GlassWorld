@@ -60,6 +60,26 @@ public sealed class WalkStallTests
         Assert.DoesNotContain(events, e => e.Detail == InhabitantsSystem.Blocked);
     }
 
+    [Fact]
+    public void ADetourAlongTheRouteGetsOnThoughItLeadsAway()
+    {
+        // The destination is 10 m east, the route goes round something: 30 m north first (review GW1 #485).
+        var destination = new Position(10, 0);
+        var route = new List<Position> { new(0, 30), new(10, 30), new(10, 0) };
+        var start = new Position(0, 0);
+        var onTheWay = new Position(0, 15);
+
+        // By the straight line it went away (10 -> 18 m); along the route it got 15 m closer.
+        Assert.True(Math.Sqrt((10 * 10) + (15 * 15)) > 10);
+        var before = InhabitantsSystem.RemainingM(start, route, destination);
+        var after = InhabitantsSystem.RemainingM(onTheWay, route, destination);
+        Assert.Equal(70, before, 9);
+        Assert.Equal(55, after, 9);
+
+        // Without a route it is the straight line.
+        Assert.Equal(10, InhabitantsSystem.RemainingM(start, null, destination), 9);
+    }
+
     private static (World World, InhabitantsSystem Inhabitants, List<WorldEvent> Events) NewWorld(GaitTable? gaits = null)
     {
         var world = new World(3, Content.Calendar);
