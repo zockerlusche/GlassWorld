@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class Wind(BaseModel):
     model_config = ConfigDict(
@@ -78,6 +80,15 @@ class Climbing(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     fright_delta: float | None = Field(None, ge=0.0, le=1.0)
+
+
+class StaySheltered(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    leaving_factor_permille: int = Field(..., ge=0, le=1000)
+    in_precipitation: bool | None = None
+    at_levels: list[common_schema.VocabId] | None = Field(None, max_length=8)
 
 
 class BodyWorn(BaseModel):
@@ -320,6 +331,10 @@ class BodySettings(BaseModel):
     climbing: Climbing | None = Field(
         None,
         description="D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/<inhabitant>): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.",
+    )
+    stay_sheltered: StaySheltered | None = Field(
+        None,
+        description='A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.',
     )
     others_warmth: OthersWarmth | None = Field(
         None,

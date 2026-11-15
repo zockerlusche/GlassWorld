@@ -638,6 +638,8 @@ public sealed class SimulationHost
                 decisions.OffersOn = (action, thing) => !string.Equals(action, climbing.Action, StringComparison.Ordinal) || body.CarrierOf(thing) is not null;
             }
 
+            inhabitants.ShelteredAt = body.Sheltered;
+            inhabitants.StaySheltered = bodyData.StaySheltered;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
