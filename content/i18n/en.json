@@ -2991,6 +2991,10 @@
       "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
     },
     {
+      "key": "ui.night.dream",
+      "text": "{name} dreams: {text}"
+    },
+    {
       "key": "ui.night.learned.true",
       "text": "{name}: {thing} – {property}?"
     },

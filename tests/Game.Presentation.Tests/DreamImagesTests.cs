@@ -57,6 +57,37 @@ public sealed class DreamImagesTests
     }
 
     [Fact]
+    public void TheDreamOfADoneLookBackAppearsOnceAndStandsLonger()
+    {
+        // A1716 (B2776): the night scene shows the dream the service let through; a running job and a done one without a
+        // dream show none; the dream stands for dream_hold_s instead of hold_s.
+        var data = Data();
+        Assert.True(data.ShowDreams);
+        var dreams = new DreamImages(data);
+        var running = Item(1, "j-1", JobKind.Review, JobState.Running, null);
+        var done = Item(2, "j-1", JobKind.Review, JobState.Done, null);
+        done.Dream = new NightDream { Text = "Ich laufe über den Strand.", Tone = "calm" };
+        var quiet = Item(3, "j-2", JobKind.Review, JobState.Done, null);
+        dreams.Take(Items("s", running, done, quiet));
+        dreams.Take(Items("s", done));
+
+        var seen = 0.0;
+        DreamText? shown = null;
+        for (var t = 0.0; t < 60; t += 0.1)
+        {
+            if (dreams.Update(0.1, false).SingleOrDefault(i => i.Dream is not null) is { } image)
+            {
+                shown = image.Dream;
+                seen += 0.1;
+            }
+        }
+
+        Assert.Equal(new DreamText("inh-000001", "Ich laufe über den Strand.", "calm"), shown);
+        Assert.InRange(seen, data.FadeInS + data.DreamHoldS!.Value + data.FadeOutS - 0.25, data.FadeInS + data.DreamHoldS.Value + data.FadeOutS + 0.25);
+        Assert.True(data.DreamHoldS > data.HoldS);
+    }
+
+    [Fact]
     public void AJobAboutAThingShowsItsSymbolOnceAndItsPictureWhenDone()
     {
         var dreams = new DreamImages(Data());

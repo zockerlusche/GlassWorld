@@ -2991,6 +2991,10 @@
       "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
     },
     {
+      "key": "ui.night.dream",
+      "text": "{name} träumt: {text}"
+    },
+    {
       "key": "ui.night.learned.true",
       "text": "{name}: {thing} – {property}?"
     },
