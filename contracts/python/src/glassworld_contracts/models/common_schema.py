@@ -187,6 +187,7 @@ class JobKind(StrEnum):
     model3d = 'model3d'
     review = 'review'
     milestone = 'milestone'
+    dialogue = 'dialogue'
 
 
 class JobState(StrEnum):

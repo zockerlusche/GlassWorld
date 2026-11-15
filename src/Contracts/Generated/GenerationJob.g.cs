@@ -67,6 +67,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("chronicle")]
         public ChroniclePayload? Chronicle { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dialogue")]
+        public DialoguePayload? Dialogue { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -717,6 +721,64 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         public string Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B2782 (D1119 v3, A1735): a talk between two inhabitants - 2 to max_turns turns, all in one job. Content only from what each one knows, remembers and feels and from their bond; the tone from their traits. A talk changes nothing in the world: knowledge passes only through teach; the core shows the turns, logs them (said) and remembers them. The first speaker began the talk (talk_to).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DialoguePayload
+    {
+
+        /// <summary>
+        /// The two speakers, the one who began first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speakers")]
+        public System.Collections.Generic.ICollection<DialogueSpeaker> Speakers { get; set; } = new System.Collections.ObjectModel.Collection<DialogueSpeaker>();
+
+        /// <summary>
+        /// Most turns (data; B2782: 4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_turns")]
+        public int MaxTurns { get; set; } = default!;
+
+        /// <summary>
+        /// Most words per turn (data; B2782: 14).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_words")]
+        public int MaxWords { get; set; } = default!;
+
+        /// <summary>
+        /// Body expressions a turn may show (vocabulary expression, D958), sorted by the core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expressions")]
+        public System.Collections.Generic.ICollection<string> Expressions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DialogueSpeaker
+    {
+
+        /// <summary>
+        /// As in a question: needs, mood, traits, memory, knowledge, relationships; name and life_stage when known (a minor never gets the reserved topics, B9).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
+        public InhabitantState Inhabitant { get; set; } = new InhabitantState();
+
+        /// <summary>
+        /// What THIS speaker calls the other one - the name it learned, by its own knowledge only; null while it knows none (then 'du', never a made-up name).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("calls_other")]
+        public LocalizedName? CallsOther { get; set; } = default!;
+
+        /// <summary>
+        /// Its latest shown thought, so the talk can start from what is on its mind. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("last_thought")]
+        public GeneratedText? LastThought { get; set; } = default!;
 
     }
 
