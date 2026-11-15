@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import run
@@ -23,3 +25,12 @@ def test_an_existing_world_is_never_overwritten(tmp_path: Path) -> None:
     (tmp_path / "probe").mkdir()
     (tmp_path / "probe-2").mkdir()
     assert run.free_folder(tmp_path, "Probe") == tmp_path / "probe-3"
+
+
+def test_the_worlds_go_where_the_game_keeps_its_data(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A1787 (B2824): with GLASSWORLD_DATA (a package's start script names its daten/ folder)
+    the world lands in that folder's worlds/, where the exported game looks."""
+    monkeypatch.setenv("GLASSWORLD_DATA", str(tmp_path))
+    assert run.worlds_folder() == tmp_path / "worlds"

@@ -345,6 +345,10 @@
     {
       "pattern": "learning/log.json",
       "schema": "learning-log-settings"
+    },
+    {
+      "pattern": "fauna/ambient.json",
+      "schema": "fauna-ambient"
     }
   ]
 }

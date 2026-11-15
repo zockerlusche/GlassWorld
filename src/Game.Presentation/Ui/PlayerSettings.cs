@@ -14,7 +14,7 @@ namespace GlassWorld.Presentation.Ui;
 public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard, int MixDefaultsVersion = 1);
 
 /// <summary>
-/// The player's settings (B6 R4): stored in the user folder (<c>user://settings.json</c>), never in a
+/// The player's settings (B6 R4): stored in the game's data folder (<c>settings.json</c>, GameData A1787), never in a
 /// world save and never sent to the AI. Unknown or broken files fall back to the defaults; values are
 /// clamped to the token ranges, so a hand-edited file cannot break the UI.
 /// </summary>

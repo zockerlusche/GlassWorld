@@ -80,7 +80,7 @@ public partial class GameScreen
         var name = MemoryName(inhabitantId);
         var items = MemoryItems(inhabitantId);
         var title = TextFill.Fill(Tr("ui.memory.title"), new Dictionary<string, string> { ["name"] = name });
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "memories");
+        var folder = GameData.At("memories");
         var stem = ChronicleExport.FileStem(title, DateTimeOffset.Now);
         var html = System.IO.Path.Combine(folder, stem + ".html");
         long DayOf(long tick) => host.World.Calendar.At(tick).Day;
