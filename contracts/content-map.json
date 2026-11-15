@@ -7,6 +7,10 @@
       "schema": "vocabulary"
     },
     {
+      "pattern": "world/digging.json",
+      "schema": "digging-settings"
+    },
+    {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
     },

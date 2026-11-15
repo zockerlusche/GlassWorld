@@ -597,6 +597,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("placed", JsonSerializer.Serialize(s.Placed, Json)));
         }
 
+        if (s.Dug is not null)
+        {
+            // A1578: dug cells; no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("dug", JsonSerializer.Serialize(s.Dug, Json)));
+        }
+
         if (s.Wet is not null)
         {
             // How wet the inhabitants are (B5-11); no entry = nobody.
@@ -921,6 +927,7 @@ public static class SaveGameStore
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
             Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
+            Dug = meta.TryGetValue("dug", out var dug) ? JsonSerializer.Deserialize<List<Simulation.Objects.DugCell>>(dug, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
             Climbed = meta.TryGetValue("climbed", out var climbed) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.UpInhabitant>>(climbed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,

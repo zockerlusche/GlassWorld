@@ -184,6 +184,9 @@ public sealed record SaveState(
     /// <summary>Things that came after the world start, with the tick they came (D711 section 5); null = none.</summary>
     public IReadOnlyList<Objects.PlacedThing>? Placed { get; init; }
 
+    /// <summary>A1578: dug cells (null = none, older saves).</summary>
+    public IReadOnlyList<Objects.DugCell>? Dug { get; init; }
+
     /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
 
@@ -280,6 +283,7 @@ public static class StateCodec
             Nature = host.Nature is { HasState: true } nature ? nature.Capture() : null,
             Animals = host.Animals is { HasState: true } animals ? animals.Capture() : null,
             Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
+            Dug = host.Digging is { HasState: true } digging ? digging.Capture() : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Climbed = host.Body is { HasState: true } up ? up.CaptureUp() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
@@ -462,6 +466,7 @@ public static class StateCodec
         host.Nature?.Restore(state.Nature);
         host.Animals?.Restore(state.Animals);
         host.Durability?.Restore(state.Placed, state.Tick);
+        host.Digging?.Restore(state.Dug);
         host.Body?.Restore(state.Wet);
         host.Body?.RestoreUp(state.Climbed);
         host.Milestones.Restore(state.Milestones);

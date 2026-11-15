@@ -329,6 +329,18 @@
     {
       "id": "arrival",
       "description": "Inhabitants arrived from across the water (B9 R29)."
+    },
+    {
+      "id": "dug",
+      "description": "A1578 (K5): an inhabitant dug where it stood (target = the pit, detail = the material it brought up, if any)."
+    },
+    {
+      "id": "dig_failed",
+      "description": "A1578 (K5): digging gave nothing (detail = why: no_tool for ground too hard for bare hands, water_reached at the groundwater)."
+    },
+    {
+      "id": "well_dug",
+      "description": "A1578 (K5): the hole reached the groundwater - water stands in it now (target = the well)."
     }
   ]
 }
