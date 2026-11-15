@@ -185,6 +185,11 @@ max_words = 12
 # (240 = four game hours); similarity = share of shared words. Placeholders.
 repeat_window_ticks = 240
 repeat_similarity = 0.6
+# v15 (TL #26281, D1126 'I schaue mir das Meerwasser genauer an'): words of the other language;
+# a thought with one is asked again (another seed) instead of being left out at once - only the
+# last attempt leaves it out. Short, unambiguous words only. Placeholders.
+foreign_words.de = ["i", "my", "me", "the", "and", "is", "you", "to", "of", "with", "this", "that", "look", "let"]
+foreign_words.en = ["ich", "und", "nicht", "ist", "der", "das", "mit", "schau", "mal", "ein", "eine"]
 # v8: the made-up words of the tone examples (Knubbel, Knolle) are blocked too, so a thought
 # that copies them is not shown (review GW3 #255).
 # Whole words (lower case) a shown thought must not contain: another language slipped in, or
