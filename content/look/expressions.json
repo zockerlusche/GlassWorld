@@ -24,6 +24,12 @@
     {
       "id": "yawn",
       "gesture": "yawn"
+    },
+    {
+      "id": "join",
+      "face": "smile",
+      "gesture": "hands_together",
+      "seconds": 2.5
     }
   ],
   "events": [
@@ -75,5 +81,13 @@
       "at_most": 0.2,
       "expression": "yawn"
     }
-  ]
+  ],
+  "join_in": {
+    "notice": [
+      "cheer"
+    ],
+    "radius_m": 8,
+    "look_s": 3,
+    "expression": "join"
+  }
 }
