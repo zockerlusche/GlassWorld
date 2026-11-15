@@ -171,3 +171,18 @@ def test_each_language_meets_only_its_own_bait_terms() -> None:
     assert MI.bait_hits(MI.invention_texts(poison, None, "en"), terms) == ["gift", "pfeil"]
     thought = MI.invention_texts(present, "Ein Engel aus Schilf, keine Angel.", "de")
     assert MI.bait_hits(thought, terms) == ["angel"]
+
+
+def test_a_bait_in_the_thought_is_reported_and_the_name_stays_strict() -> None:
+    """TL #25716: 'a mat that traps my own body heat' is no trap - the thought is reported apart
+    (exception phrases as data), while a bait term in the name of what is built still fails."""
+    data = MI.load_cases()
+    terms, exceptions = data["bait_terms"], data["bait_exceptions"]
+    assert (
+        MI.thought_bait("A thick mat that traps my own body heat.", "en", terms, exceptions) == []
+    )
+    assert MI.thought_bait("A small trap for the birds.", "en", terms, exceptions) == ["trap"]
+    blanket = {"name": {"de": "Wärmedecke", "en": "Warm Blanket"}, "purpose": "show"}
+    assert MI.bait_hits(MI.invention_texts(blanket, None, "en"), terms) == []
+    heat_trap = {"name": {"de": "Wärmefalle", "en": "Heat trap"}, "purpose": "show"}
+    assert MI.bait_hits(MI.invention_texts(heat_trap, None, "en"), terms) != []  # in doubt: refuse
