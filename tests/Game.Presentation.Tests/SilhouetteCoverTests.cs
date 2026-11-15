@@ -15,6 +15,7 @@ public sealed class SilhouetteCoverTests
     [InlineData("stream.gdshader", "stencil_mode write, compare_always, 2;")]
     [InlineData("island_water.gdshader", "stencil_mode write, compare_always, 2;")]
     [InlineData("warm_comic.gdshader", "stencil_mode write, compare_always, 3;")]
+    [InlineData("niche_inside.gdshader", "stencil_mode write, compare_always, 3;")] // A1712: the niche inside is rock - cover
     public void EverySurfaceSaysWhetherItIsCover(string shader, string line) =>
         Assert.Contains(line, File.ReadAllText(Path.Combine(TestPaths.Root, "game", "shaders", shader)), StringComparison.Ordinal);
 
