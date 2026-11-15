@@ -587,6 +587,10 @@ public sealed class SimulationHost
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
+        // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
+        // become said events; no effect on the world. Dormant without a job port or without the data's block.
+        var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale) { ValidateRequests = options.ValidateRequests };
+
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.
         // Exploration right after the inhabitants: who has moved in a tick looks around in the same tick.
@@ -662,7 +666,7 @@ public sealed class SimulationHost
         world.Add(milestones);
 
         // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
-        world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(dialogue).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -684,6 +688,7 @@ public sealed class SimulationHost
             Animals = animals,
             ChronicleNight = chronicleNight,
             Conversation = conversation,
+            Dialogue = dialogue,
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
@@ -772,6 +777,7 @@ public sealed class SimulationHost
         NightJobs.DisplayLocale = locale;
         ChronicleNight.DisplayLocale = locale;
         Conversation.DisplayLocale = locale;
+        Dialogue.DisplayLocale = locale;
     }
 
     /// <summary>
@@ -1029,6 +1035,9 @@ public sealed class SimulationHost
 
     /// <summary>The chronicle's day narratives (B8 R10, A1355).</summary>
     public Night.ChronicleNightSystem ChronicleNight { get; private init; } = null!;
+
+    /// <summary>Talks between two inhabitants (A1735): open dialogue jobs and the last talk per pair.</summary>
+    public DialogueSystem Dialogue { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

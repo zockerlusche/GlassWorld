@@ -177,6 +177,13 @@ public sealed class ContentSet
             throw new InvalidDataException($"conversation praise names unknown mood '{praise.Mood}'");
         }
 
+        // A1735: a talk begins with an action aimed at another inhabitant; a typo would silently never talk.
+        var towardsInhabitant = Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.Target == VocabularyEntryTarget.Inhabitant).Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        if (conversation.Dialogue?.Actions.FirstOrDefault(a => !towardsInhabitant.Contains(a)) is { } notTowards)
+        {
+            throw new InvalidDataException($"conversation dialogue names '{notTowards}', which is no action aimed at an inhabitant");
+        }
+
         var actionIds = Ids(vocabularies, VocabularyKind.Action);
         if (model.Diary?.LeftOutActions?.FirstOrDefault(a => !actionIds.Contains(a)) is { } unknownAction)
         {

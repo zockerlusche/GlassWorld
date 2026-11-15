@@ -192,6 +192,9 @@ public sealed record SaveState(
 
     /// <summary>The chronicle's day narratives and its open night job (B8 R10, A1355); null = none told yet.</summary>
     public Night.ChronicleNightState? ChronicleNight { get; init; }
+
+    /// <summary>Talks between two inhabitants (A1735): open dialogue jobs, last talk per pair; null = none yet.</summary>
+    public Inhabitants.DialogueState? Dialogue { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -274,6 +277,7 @@ public static class StateCodec
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
             ChronicleNight = host.ChronicleNight.HasState ? host.ChronicleNight.Capture() : null,
+            Dialogue = host.Dialogue.HasState ? host.Dialogue.Capture() : null,
         };
     }
 
@@ -453,6 +457,7 @@ public static class StateCodec
         host.Body?.Restore(state.Wet);
         host.Milestones.Restore(state.Milestones);
         host.ChronicleNight.Restore(state.ChronicleNight);
+        host.Dialogue.Restore(state.Dialogue);
         host.UseLoggedPlayerSettings();
         return host;
     }
