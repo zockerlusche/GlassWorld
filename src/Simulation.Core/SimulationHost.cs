@@ -209,6 +209,12 @@ public sealed class SimulationHost
                         },
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
+
+                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                ObstacleRadiusCm = content.Objects.TypeIds
+                    .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
+                    .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
+                BodyRadiusM = (content.Gaits.Data.Spacing?.MinSeparationM ?? 0) / 2,
                 Tides = tides,
                 TideWalk = tides.Active
                     ? new TideWalkLayer(

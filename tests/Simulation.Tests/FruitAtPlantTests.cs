@@ -50,6 +50,9 @@ public sealed class FruitAtPlantTests
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, seed, new MockDecisionPort(), "de", "start_island");
         var violations = new List<string>();
         var checkedStarts = 0;
+
+        // A1790: a trunk or a rock is reached at its surface - one stands in front of it, not in its middle.
+        double Surface(string typeId) => (host.Map?.ObstacleRadiusCm.GetValueOrDefault(typeId) ?? 0) / 100.0;
         host.Inhabitants.Reported += e =>
         {
             if (e.Kind != InhabitantsSystem.ActionStarted || e.TargetId is null || !host.Objects.TryGet(e.TargetId, out var thing))
@@ -59,7 +62,7 @@ public sealed class FruitAtPlantTests
 
             var who = host.Inhabitants.All.Single(i => i.Id == e.InhabitantId);
             var reach = host.Content.Actions.Timing(e.Action!).ReachM;
-            var distance = Math.Sqrt(Math.Pow(who.Position.X - thing.Position.X, 2) + Math.Pow(who.Position.Z - thing.Position.Z, 2));
+            var distance = Math.Sqrt(Math.Pow(who.Position.X - thing.Position.X, 2) + Math.Pow(who.Position.Z - thing.Position.Z, 2)) - Surface(thing.TypeId);
             checkedStarts++;
             if (distance > reach + 1e-6)
             {
@@ -76,7 +79,7 @@ public sealed class FruitAtPlantTests
                 if (who.Activity is { RemainingTicks: not null, TargetId: { } id } a && host.Objects.TryGet(id, out var thing))
                 {
                     var reach = host.Content.Actions.Timing(a.Action).ReachM;
-                    var d = Math.Sqrt(Math.Pow(who.Position.X - thing.Position.X, 2) + Math.Pow(who.Position.Z - thing.Position.Z, 2));
+                    var d = Math.Sqrt(Math.Pow(who.Position.X - thing.Position.X, 2) + Math.Pow(who.Position.Z - thing.Position.Z, 2)) - Surface(thing.TypeId);
                     if (d > reach + 1e-6)
                     {
                         violations.Add($"{who.Id} {a.Action} {thing.TypeId} during at {d:0.00} m (reach {reach:0.00})");
