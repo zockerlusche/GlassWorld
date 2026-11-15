@@ -90,9 +90,13 @@ public partial class FeelingSymbols : Node3D
             return;
         }
 
-        var subjects = _host.Inhabitants.All.Select(i => new SymbolSubject(i.Id, i.Moods, NoConditions)).ToList();
-        Show(_planner.Update(_clock, events, subjects));
+        // Nothing over a figure lying asleep (Marcel 15a, like the thoughts and dots, D1112 #8): not its moods, not its events.
+        var subjects = _host.Inhabitants.All.Where(i => !Lying(i.Id)).Select(i => new SymbolSubject(i.Id, i.Moods, NoConditions)).ToList();
+        Show(_planner.Update(_clock, events.Where(e => !Lying(e.InhabitantId)), subjects));
     }
+
+    /// <summary>Whether the inhabitant's figure lies asleep now.</summary>
+    private bool Lying(string inhabitantId) => _figures?.GetNodeOrNull(inhabitantId) is GlassWorld.Game.World.FigureView { Lying: true };
 
     /// <summary>Screenshot run only: every symbol of the data above the inhabitants in turn, still in place.</summary>
     public void ShowAllForShots()
