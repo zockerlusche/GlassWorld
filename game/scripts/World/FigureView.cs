@@ -92,7 +92,6 @@ public partial class FigureView : Node3D
     private Vector3 _bodyRotation;
     private bool _mirrored;
     private Node3D _thinking = null!;
-    private Label3D? _question;
     private double _thinkingPhase;
     private double _seconds;
     private Func<double, double, float> _ground = (_, _) => 0f;
@@ -265,18 +264,14 @@ public partial class FigureView : Node3D
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
         // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
-        // A1402: a "?" while a question still puzzles it, the dots while only the effect is open (TL #19921).
-        var mark = ThinkingDots.Mark(figures.ThinkingDots, inhabitant.OpenQuestionIds.Count, inhabitant.PuzzlingQuestionIds.Count, _lying);
-        _thinking.Visible = mark != HeadMark.None;
+        // A1788: the dots only while just the effect is open; a puzzling question shows the screen's one "?" (no dots beside it).
+        var mark = ThinkingDots.Mark(inhabitant.OpenQuestionIds.Count, inhabitant.PuzzlingQuestionIds.Count, _lying);
+        _thinking.Visible = mark == HeadMark.Dots;
         foreach (var dot in _dots)
         {
             dot.Visible = mark == HeadMark.Dots;
         }
 
-        if (_question is not null)
-        {
-            _question.Visible = mark == HeadMark.Question;
-        }
 
         // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
         var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
@@ -716,25 +711,6 @@ public partial class FigureView : Node3D
             _thinking.AddChild(_dots[i]);
         }
 
-        // A1402: the question mark in the dots' place, as calm as their brightest moment.
-        if (look.QuestionFontPx is { } questionPx)
-        {
-            _question = new Label3D
-            {
-                Name = "QuestionMark",
-                Text = "?",
-                FontSize = questionPx,
-                OutlineSize = Math.Max(1, questionPx / 8),
-                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
-                NoDepthTest = true,
-                RenderPriority = CloudCover.AbovePriority + 1,
-                OutlineRenderPriority = CloudCover.AbovePriority,
-                Modulate = new Color(1, 1, 1, (float)look.AlphaMax),
-                Visible = false,
-            };
-            _thinking.AddChild(_question);
-        }
     }
 
     private void BuildTree(Node3D root, AnimationPlayer player, AnimationLibrary library, double crossfade)
