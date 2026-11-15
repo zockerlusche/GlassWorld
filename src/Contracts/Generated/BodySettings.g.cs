@@ -258,6 +258,13 @@ namespace GlassWorld.Contracts
         public Wind? Wind { get; set; } = default!;
 
         /// <summary>
+        /// D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/&lt;inhabitant&gt;): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("climbing")]
+        public Climbing? Climbing { get; set; } = default!;
+
+        /// <summary>
         /// B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -355,6 +362,39 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Climbing
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("min_grip_permille")]
+        public int MinGripPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("height_by_grip")]
+        public System.Collections.Generic.ICollection<Height_by_grip> HeightByGrip { get; set; } = new System.Collections.ObjectModel.Collection<Height_by_grip>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("slip_permille_per_m")]
+        public int SlipPermillePerM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("up_minutes")]
+        public int UpMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// Farther than this from what it climbed, the climber is down again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stay_within_m")]
+        public double StayWithinM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fright_mood")]
+        public string? FrightMood { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fright_delta")]
+        public double? FrightDelta { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class OthersWarmth
     {
 
@@ -363,6 +403,18 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("radius_cm")]
         public int RadiusCm { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Height_by_grip
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("grip_permille")]
+        public int GripPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("height_cm")]
+        public int HeightCm { get; set; } = default!;
 
     }
 }

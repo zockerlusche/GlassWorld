@@ -101,6 +101,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>D1105 H3: how high a thing hangs above the ground in centimetres (the map); null = all on the ground.</summary>
     public Func<string, int>? AboveCm { get; set; }
 
+    /// <summary>Detail of <see cref="OutOfReach"/>: what one tried to climb gives no grip (D1105 H3b).</summary>
+    public const string TooSmooth = "too_smooth";
+
+    /// <summary>D1105 H3b: why an action on a thing cannot start (the body's climbing check), or null; null hook = never.</summary>
+    public Func<Inhabitant, string, WorldObject, string?>? ClimbRefusal { get; set; }
+
+    /// <summary>D1105 H3b: how much higher an inhabitant reaches a thing because it is up in that thing's crown; null = never.</summary>
+    public Func<Inhabitant, WorldObject, int>? UpCm { get; set; }
+
     /// <summary>An inhabitant took a thing into its hand (AK1a).</summary>
     public const string PickedUp = "picked_up";
 
@@ -1396,7 +1405,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
-            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above && above > reach.HeightCm
+            // D1105 H3b: climbing what is too smooth fails honestly as well (why, never how).
+            if (target is not null && ClimbRefusal?.Invoke(inhabitant, activity.Action, target) is { } refused)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = refused });
+                Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = refused });
+                inhabitant.Activity = null;
+                return;
+            }
+
+            // Up in a crown (H3b) the reach grows by the height climbed, for the things of that crown.
+            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above
+                && above > reach.HeightCm + (UpCm?.Invoke(inhabitant, target) ?? 0)
                 && reach.Actions.Contains(activity.Action, StringComparer.Ordinal))
             {
                 // A cancelled try as every other (review GW3 #471: building frees its pending thing, the repeat rest

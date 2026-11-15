@@ -189,6 +189,12 @@ public sealed class SimulationHost
             var tides = new Tides(preset.Tides);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
+                // D1105 H3b: the plant a hanging thing grows on (for climbing towards it).
+                GrowsOn = content.WorldGen.Spawns.Spawns
+                    .Where(r => r.GrowsOn?.Hangs is not null)
+                    .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => (g.First().GrowsOn!.ObjectType, g.First().GrowsOn!.WithinCells), StringComparer.Ordinal),
+
                 // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
@@ -621,6 +627,17 @@ public sealed class SimulationHost
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
+            if (bodyData.Climbing is { } climbing)
+            {
+                // D1105 H3b: climbing what gives grip; the decider is offered it only where it can mean something.
+                body.AboveCm = map.AboveCm;
+                body.PlantOf = map.PlantOf;
+                body.ReachCm = content.InhabitantModel.Reach?.HeightCm ?? 0;
+                inhabitants.ClimbRefusal = body.ClimbRefusal;
+                inhabitants.UpCm = body.UpCm;
+                decisions.OffersOn = (action, thing) => !string.Equals(action, climbing.Action, StringComparison.Ordinal) || body.CarrierOf(thing) is not null;
+            }
+
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
