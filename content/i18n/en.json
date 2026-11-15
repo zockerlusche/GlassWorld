@@ -727,6 +727,10 @@
       "text": "Introduce"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Climb up"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Add fuel"
     },
@@ -1571,6 +1575,14 @@
       "text": "The gift now lies in the world. It belongs to nobody."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wish for a weather (costs {cost} favour; afterwards the weather goes its own way):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "The weather turns: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Help"
     },
@@ -1809,6 +1821,14 @@
     {
       "key": "vocab.event.build_plan_rejected",
       "text": "Building plan refused"
+    },
+    {
+      "key": "vocab.event.build_interrupted",
+      "text": "Building interrupted"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Building taken up again"
     },
     {
       "key": "vocab.event.build_step",
@@ -2179,8 +2199,20 @@
       "text": "Fire burnt down"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Something spoiled"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Something broke"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
+    },
+    {
+      "key": "vocab.event.slipped",
+      "text": "Slipped"
     },
     {
       "key": "vocab.event.out_of_reach",
@@ -3061,6 +3093,62 @@
     {
       "key": "ui.debug.biome",
       "text": "Biome under the pointer: {biome}"
+    },
+    {
+      "key": "ui.debug.knowledge",
+      "text": "What {name} knows: {count} entries (newest first)"
+    },
+    {
+      "key": "ui.debug.belief",
+      "text": "{thing} · {property}: {value} · {source} · {percent} %"
+    },
+    {
+      "key": "ui.debug.yes",
+      "text": "yes"
+    },
+    {
+      "key": "ui.debug.no",
+      "text": "no"
+    },
+    {
+      "key": "ui.debug.source.experienced",
+      "text": "experienced"
+    },
+    {
+      "key": "ui.debug.source.heard",
+      "text": "heard"
+    },
+    {
+      "key": "ui.debug.source.heard.by",
+      "text": "heard from {name}"
+    },
+    {
+      "key": "ui.debug.source.guessed",
+      "text": "guessed"
+    },
+    {
+      "key": "ui.debug.source.read",
+      "text": "read"
+    },
+    {
+      "key": "ui.debug.source.read.by",
+      "text": "read from {name}"
+    },
+    {
+      "key": "ui.debug.source.seen",
+      "text": "seen"
+    },
+    {
+      "key": "ui.debug.source.seen.by",
+      "text": "seen with {name}"
+    },
+    {
+      "key": "ui.debug.source.experienced.by",
+      "text": "experienced"
+    },
+    {
+      "key": "ui.debug.source.guessed.by",
+      "text": "guessed"
     },
     {
       "key": "ui.debug.jumps",

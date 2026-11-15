@@ -83,6 +83,7 @@ public sealed class GestureCadenceTests
             {
                 var now = GestureCadence.At(gesture, t);
                 Assert.InRange(Math.Abs(now.Weight - previous.Weight), 0, 0.1);
+                Assert.InRange(Math.Abs(now.PullM - previous.PullM), 0, 0.01);
                 if (Math.Min(now.Weight, previous.Weight) > 0.01)
                 {
                     // Where the hand is matters only while the gesture shows (between cycles it starts anew).
@@ -94,6 +95,20 @@ public sealed class GestureCadenceTests
             // It rests before the next cycle (chewing, swallowing).
             Assert.Equal(0, GestureCadence.At(gesture, cycle - (gesture.RestS / 2)).Weight, 6);
         }
+    }
+
+    [Fact]
+    public void KnockingTapsAtTheGlassInWholeTapsWhileItHolds()
+    {
+        // A1542: the hand taps while it holds - whole taps, so the hold begins and ends at the target.
+        var knock = Figures().Gestures!.Single(g => g.Id == "knock_glass");
+        var pulls = Enumerable.Range(0, 400).Select(i => GestureCadence.At(knock, knock.RiseS + (knock.HoldS * i / 400.0)).PullM).ToList();
+        Assert.Equal(0, pulls[0], 6);
+        Assert.Equal(0, GestureCadence.At(knock, knock.RiseS + knock.HoldS - 1e-9).PullM, 6);
+        Assert.InRange(pulls.Max(), knock.TapM!.Value * 0.95, knock.TapM.Value);
+        var taps = Enumerable.Range(1, pulls.Count - 2).Count(i => pulls[i] > pulls[i - 1] && pulls[i] >= pulls[i + 1] && pulls[i] > knock.TapM.Value / 2);
+        Assert.Equal((int)Math.Max(1, Math.Round(knock.HoldS * knock.TapHz!.Value)), taps);
+        Assert.Equal(0, GestureCadence.At(Figures().Gestures!.Single(g => g.Id == "wipe_brow"), 0.8).PullM);
     }
 
     [Fact]

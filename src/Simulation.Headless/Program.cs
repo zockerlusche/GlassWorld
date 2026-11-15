@@ -1,7 +1,7 @@
 using GlassWorld.Simulation.Headless;
 
 // Usage: dotnet run --project src/Simulation.Headless -- [--seed N] [--days N] [--content DIR] [--save FILE] [--preset P] [--climate C] [--quiet]
-//        [--trace ID] [--trace-days N] [--ai live|mock] [--tick-ms N] [--until KIND[:COUNT]] [--events KIND,...|all] [--log-json FILE]
+//        [--trace ID] [--trace-days N] [--ai live|mock] [--tick-ms N] [--speed N] [--until KIND[:COUNT]] [--events KIND,...|all] [--log-json FILE]
 //        dotnet run --project src/Simulation.Headless -- replay --save FILE [--content DIR] [--force]
 //        dotnet run --project src/Simulation.Headless -- worldgen ...
 //        dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N] [--days N] [--ai mock|silent] [--json] ...

@@ -14,7 +14,8 @@
       ],
       "base_hours": 216,
       "wet_permille": 1000,
-      "heat_permille": 1000
+      "heat_permille": 1000,
+      "end_event": "spoiled"
     },
     {
       "id": "fresh_food",
@@ -28,7 +29,8 @@
       ],
       "base_hours": 72,
       "wet_permille": 1000,
-      "heat_permille": 1000
+      "heat_permille": 1000,
+      "end_event": "spoiled"
     },
     {
       "id": "lasting_food",
@@ -38,7 +40,8 @@
         "portable"
       ],
       "properties_none": [],
-      "base_hours": 672
+      "base_hours": 672,
+      "end_event": "spoiled"
     },
     {
       "id": "fibre",
@@ -48,7 +51,9 @@
       ],
       "properties_none": [],
       "base_hours": 1008,
-      "wet_permille": 1000
+      "wet_permille": 1000,
+      "use_permille": 5,
+      "end_event": "broke"
     },
     {
       "id": "wood",
@@ -58,7 +63,9 @@
         "portable"
       ],
       "properties_none": [],
-      "base_hours": 4704
+      "base_hours": 4704,
+      "use_permille": 2,
+      "end_event": "broke"
     },
     {
       "id": "stone",
@@ -68,5 +75,28 @@
       "properties_none": [],
       "base_hours": null
     }
-  ]
+  ],
+  "use_actions": [
+    "use",
+    "build_step"
+  ],
+  "quality": [
+    {
+      "tier": "scrap",
+      "life_permille": 600
+    },
+    {
+      "tier": "simple",
+      "life_permille": 1000
+    },
+    {
+      "tier": "solid",
+      "life_permille": 1500
+    },
+    {
+      "tier": "masterful",
+      "life_permille": 2500
+    }
+  ],
+  "end_event_if": "crafted"
 }

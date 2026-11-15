@@ -1653,7 +1653,9 @@ public partial class GameScreen : CanvasLayer
             AskForHelp(host, call, locale);
         }
 
-        var shape = locale + ";" + string.Join(";", calls.Select(c => HelpKey(c, locale) + (_aiCards.ContainsKey(HelpKey(c, locale)) ? "+ai" : string.Empty)));
+        var wishes = WeatherWishes.For(host);
+        var shape = locale + ";" + string.Join(";", calls.Select(c => HelpKey(c, locale) + (_aiCards.ContainsKey(HelpKey(c, locale)) ? "+ai" : string.Empty)))
+            + "|" + string.Join(",", wishes.Select(w => w.Weather + ":" + (w.Reason ?? "ok")));
         if (shape == _helpShape)
         {
             return;
@@ -1669,6 +1671,7 @@ public partial class GameScreen : CanvasLayer
         if (calls.Count == 0)
         {
             _helpList.AddChild(new Label { Text = "ui.help.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            AddWeatherWishes(host, wishes);
             return;
         }
 
@@ -1714,6 +1717,48 @@ public partial class GameScreen : CanvasLayer
                 _helpList.AddChild(button);
             }
         }
+
+        AddWeatherWishes(host, wishes);
+    }
+
+    /// <summary>
+    /// A1340 (Bogen 31 "Wetter beeinflussen"): below the calls, the player may wish a weather for favour - calm, never
+    /// asked for; the weather goes its own way afterwards. The core checks the wish again when it is sent.
+    /// </summary>
+    private void AddWeatherWishes(Simulation.SimulationHost host, IReadOnlyList<WeatherWish> wishes)
+    {
+        if (wishes.Count == 0)
+        {
+            return;
+        }
+
+        _helpList.AddChild(new Label
+        {
+            Text = TextFill.Fill(Tr("ui.help.weather"), new Dictionary<string, string> { ["cost"] = Number((long)host.Player.CostOf(WeatherWishes.Intervention)) }),
+            AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        });
+        var row = new HFlowContainer { Name = "WeatherWishes" };
+        foreach (var wish in wishes)
+        {
+            var button = new Button
+            {
+                Text = Tr(VocabKeys.Weather(wish.Weather)),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                Disabled = !wish.Possible,
+                TooltipText = wish.Reason is { } reason ? Tr(reason) : string.Empty,
+            };
+            var weather = wish.Weather;
+            button.Pressed += () =>
+            {
+                var result = host.Decisions.Submit(WeatherWishes.Command(weather));
+                ShowHint(new ToastMessage(result.Accepted ? "msg.hint.weather_wished" : result.ReasonKey ?? "msg.command.unknown_weather", new Dictionary<string, string> { ["weather"] = Tr(VocabKeys.Weather(weather)) }, null));
+                _helpShape = "-";
+            };
+            row.AddChild(button);
+        }
+
+        _helpList.AddChild(row);
     }
 
     private static string HelpLocale() =>

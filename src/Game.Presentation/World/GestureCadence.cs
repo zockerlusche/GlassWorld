@@ -5,7 +5,8 @@ namespace GlassWorld.Presentation.World;
 /// <summary>Where a gesture stands now: how strongly it overrides the clip, and how far the hand is on its way to the head.</summary>
 /// <param name="Weight">Influence of the arm IK (0 = the clip alone, up to the gesture's <c>influence</c>).</param>
 /// <param name="ToHead">0 = at the start point (<c>from_body</c>), 1 = at the head (<c>to_head</c>).</param>
-public readonly record struct GestureState(double Weight, double ToHead);
+/// <param name="PullM">A1542: how far the hand is drawn back from the head target now (a tap at the glass), metres for size 1.</param>
+public readonly record struct GestureState(double Weight, double ToHead, double PullM = 0);
 
 /// <summary>How a comfort level shows on a figure (A1729): a gesture (or none) and a shiver.</summary>
 /// <param name="Gesture">The gesture, or null.</param>
@@ -105,13 +106,28 @@ public static class GestureCadence
         t -= lift;
         if (t < gesture.HoldS)
         {
-            return new GestureState(peak, 1);
+            return new GestureState(peak, 1, Tap(gesture, t));
         }
 
         t -= gesture.HoldS;
         return t < gesture.LowerS
             ? new GestureState(peak * (1 - Smooth(t / gesture.LowerS)), 1)
             : new GestureState(0, 1);
+    }
+
+    /// <summary>
+    /// A1542: how far the hand is drawn back <paramref name="held"/> seconds into the hold - whole taps over the hold
+    /// (a gentle cosine), so the hold begins and ends at the target; 0 without tap data.
+    /// </summary>
+    private static double Tap(FigureGesture gesture, double held)
+    {
+        if (gesture.TapHz is not > 0 || gesture.TapM is not > 0 || gesture.HoldS <= 0)
+        {
+            return 0;
+        }
+
+        var taps = Math.Max(1, Math.Round(gesture.HoldS * gesture.TapHz.Value));
+        return gesture.TapM.Value * (1 - Math.Cos(2 * Math.PI * taps * held / gesture.HoldS)) / 2;
     }
 
     /// <summary>Calm start and end of a move (smoothstep).</summary>

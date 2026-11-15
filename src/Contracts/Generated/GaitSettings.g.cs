@@ -44,6 +44,20 @@ namespace GlassWorld.Contracts
         public double ConversationMaxM { get; set; } = default!;
 
         /// <summary>
+        /// A1751 (D1159): a walk that has not come closer to its destination by stall_gain_m for this many game minutes is given up (action_cancelled, detail blocked), so the routine or the decider chooses anew; 0 or absent = never.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stall_minutes")]
+        public int? StallMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// A1751: how much closer a walker must come to count as getting on (more than the jostle of keeping apart).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stall_gain_m")]
+        public double? StallGainM { get; set; } = default!;
+
+        /// <summary>
         /// No inhabitant ends a move closer than this to another: a walker that would is put on the nearest free spot beside the other (deterministic, no random draw). At most conversation_min_m, checked at load.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_separation_m")]

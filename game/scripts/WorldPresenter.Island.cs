@@ -82,6 +82,9 @@ public partial class WorldPresenter
     public (Mesh Mesh, Material Material)? ShapeOfType(string typeId) =>
         _objectsView is { } view ? view.LayerOf(view.Looks.For(typeId).VisualId) : null;
 
+    /// <summary>The inhabitant the player chose (the camera follows it), or null - for the debug view's knowledge (A1402).</summary>
+    public string? ChosenInhabitant => _observer?.Chosen;
+
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
 
@@ -324,6 +327,10 @@ public partial class WorldPresenter
         _rig.Apply();
         return true;
     }
+
+    /// <summary>Check runs (A1542): hands an event straight to one figure's expression layer (presentation only); the shown expression's id, else null.</summary>
+    public string? ExpressFor(string inhabitantId, string kind, string? detail) =>
+        _islandFigures.TryGetValue(inhabitantId, out var figure) ? figure.Express(kind, detail)?.Id : null;
 
     /// <summary>Screenshot runs: a close view of one inhabitant (island: the rig follows it near). False on the placeholder.</summary>
     public bool CloseLook(string inhabitantId, double distanceM)

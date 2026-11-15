@@ -62,5 +62,15 @@
   },
   "naming": {
     "understanding": 0.01
+  },
+  "dialogue": {
+    "actions": [
+      "talk_to"
+    ],
+    "max_turns": 4,
+    "max_words": 14,
+    "per_pair_hours": 1,
+    "job_priority": 5,
+    "answer_within_hours": 4
   }
 }

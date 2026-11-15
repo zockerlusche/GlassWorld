@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -72,6 +72,47 @@ class NamingEffect(BaseModel):
     understanding: float = Field(..., ge=0.0, le=1.0)
 
 
+type Action = Annotated[str, Field(..., min_length=1)]
+
+
+class DialogueSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    actions: list[Action] = Field(
+        ...,
+        description='Action ids (vocabulary actions, target inhabitant) whose start sends a dialogue job.',
+        min_length=1,
+    )
+    max_turns: int = Field(
+        ..., description='Turns asked for at most (B2782: 4).', ge=2, le=4
+    )
+    max_words: int = Field(
+        ...,
+        description='Words per turn at most (B2782: 14); a longer turn ends the talk there.',
+        ge=4,
+        le=20,
+    )
+    per_pair_hours: float = Field(
+        ...,
+        description='At most one dialogue job per pair within this many game hours (D1119 #6); the other talks stay without words. 0 = no limit.',
+        ge=0.0,
+        le=48.0,
+    )
+    job_priority: int = Field(
+        ...,
+        description='Priority of the job (higher runs first; low, the game waits for nothing).',
+        ge=0,
+        le=100,
+    )
+    answer_within_hours: float = Field(
+        ...,
+        description='Game hours a dialogue job may take; a later answer is dropped (the two went on without words), so no open job stays for ever.',
+        ge=0.05,
+        le=48.0,
+    )
+
+
 class ConversationSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -134,4 +175,8 @@ class ConversationSettings(BaseModel):
     naming: NamingEffect | None = Field(
         None,
         description='A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.',
+    )
+    dialogue: DialogueSettings | None = Field(
+        None,
+        description='A1735 (B2782, D1119): a talk between two inhabitants. When one starts one of the actions with another inhabitant as target (awake and in reach - the core checked), the core sends a job of kind dialogue; the turns that pass its checks become said events of both, with target, turn and turns. A talk has no effect on the world: needs and relationship work through the action as before. Omitted = no dialogue jobs (talking stays without words).',
     )

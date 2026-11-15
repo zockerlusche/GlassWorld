@@ -727,6 +727,10 @@
       "text": "Vorstellen"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Hinaufklettern"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Nachlegen"
     },
@@ -1571,6 +1575,14 @@
       "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wetter wünschen (kostet {cost} Gunst; danach geht das Wetter seinen eigenen Weg):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "Das Wetter wendet sich: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Hilfe"
     },
@@ -1809,6 +1821,14 @@
     {
       "key": "vocab.event.build_plan_rejected",
       "text": "Bauplan abgelehnt"
+    },
+    {
+      "key": "vocab.event.build_interrupted",
+      "text": "Bau unterbrochen"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Bau wieder aufgenommen"
     },
     {
       "key": "vocab.event.build_step",
@@ -2179,8 +2199,20 @@
       "text": "Feuer heruntergebrannt"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Etwas ist verdorben"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Etwas ist zerbrochen"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
+    },
+    {
+      "key": "vocab.event.slipped",
+      "text": "Abgerutscht"
     },
     {
       "key": "vocab.event.out_of_reach",
@@ -3061,6 +3093,62 @@
     {
       "key": "ui.debug.biome",
       "text": "Biom unter dem Mauszeiger: {biome}"
+    },
+    {
+      "key": "ui.debug.knowledge",
+      "text": "Wissen von {name}: {count} Einträge (neueste zuerst)"
+    },
+    {
+      "key": "ui.debug.belief",
+      "text": "{thing} · {property}: {value} · {source} · {percent} %"
+    },
+    {
+      "key": "ui.debug.yes",
+      "text": "ja"
+    },
+    {
+      "key": "ui.debug.no",
+      "text": "nein"
+    },
+    {
+      "key": "ui.debug.source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "ui.debug.source.heard.by",
+      "text": "gehört von {name}"
+    },
+    {
+      "key": "ui.debug.source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "ui.debug.source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "ui.debug.source.read.by",
+      "text": "gelesen von {name}"
+    },
+    {
+      "key": "ui.debug.source.seen",
+      "text": "gesehen"
+    },
+    {
+      "key": "ui.debug.source.seen.by",
+      "text": "bei {name} gesehen"
+    },
+    {
+      "key": "ui.debug.source.experienced.by",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.guessed.by",
+      "text": "vermutet"
     },
     {
       "key": "ui.debug.jumps",

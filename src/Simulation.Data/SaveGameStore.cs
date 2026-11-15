@@ -597,10 +597,22 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("placed", JsonSerializer.Serialize(s.Placed, Json)));
         }
 
+        if (s.Used is not null)
+        {
+            // A1576: things worn by use; no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("used", JsonSerializer.Serialize(s.Used, Json)));
+        }
+
         if (s.Wet is not null)
         {
             // How wet the inhabitants are (B5-11); no entry = nobody.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("wet", JsonSerializer.Serialize(s.Wet, Json)));
+        }
+
+        if (s.Climbed is { Count: > 0 })
+        {
+            // Who is up in a crown (D1105 H3b); no entry = nobody.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("climbed", JsonSerializer.Serialize(s.Climbed, Json)));
         }
 
         if (s.Milestones is not null)
@@ -613,6 +625,18 @@ public static class SaveGameStore
         {
             // The chronicle's day narratives (B8 R10); no entry = none told yet.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("chronicle_night", JsonSerializer.Serialize(s.ChronicleNight, Json)));
+        }
+
+        if (s.Dialogue is not null)
+        {
+            // Talks between two inhabitants (A1735); no entry = none yet.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("dialogue", JsonSerializer.Serialize(s.Dialogue, Json)));
+        }
+
+        if (s.NightQueue is not null)
+        {
+            // Jobs held by day for the night (A1766); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("night_queue", JsonSerializer.Serialize(s.NightQueue, Json)));
         }
 
         if (s.ContentFingerprint is not null)
@@ -903,9 +927,13 @@ public static class SaveGameStore
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
             Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
+            Used = meta.TryGetValue("used", out var used) ? JsonSerializer.Deserialize<List<Simulation.Objects.UsedThing>>(used, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
+            Climbed = meta.TryGetValue("climbed", out var climbed) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.UpInhabitant>>(climbed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,
+            Dialogue = meta.TryGetValue("dialogue", out var dialogue) ? JsonSerializer.Deserialize<Simulation.Inhabitants.DialogueState>(dialogue, Json) : null,
+            NightQueue = meta.TryGetValue("night_queue", out var nightQueue) ? JsonSerializer.Deserialize<Simulation.Night.NightQueueState>(nightQueue, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),

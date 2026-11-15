@@ -80,6 +80,43 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     public IReadOnlyDictionary<string, (int MinPermille, int MaxPermille, int FallsPerDayPermille, int PlantHeightCm)> Hangs { get; init; } =
         new Dictionary<string, (int, int, int, int)>(StringComparer.Ordinal);
 
+    /// <summary>D1105 H3b: the plant a hanging type grows on and how far from it (cells, each axis), from the spawn data.</summary>
+    public IReadOnlyDictionary<string, (string Plant, int WithinCells)> GrowsOn { get; init; } =
+        new Dictionary<string, (string, int)>(StringComparer.Ordinal);
+
+    private readonly List<WorldObject> _plants = [];
+
+    /// <summary>D1105 H3b: the nearest plant of the kind a hanging thing grows on, within its spawn distance; null = none.</summary>
+    public WorldObject? PlantOf(WorldObject thing)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        if (_objects is null || !GrowsOn.TryGetValue(thing.TypeId, out var grows))
+        {
+            return null;
+        }
+
+        _objects.Within(thing.Position, (grows.WithinCells + 1) * CellSizeCm / 100.0 * 1.5, _plants);
+        WorldObject? best = null;
+        var bestDistance = double.MaxValue;
+        foreach (var plant in _plants)
+        {
+            if (!string.Equals(plant.TypeId, grows.Plant, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var d = ((plant.Position.X - thing.Position.X) * (plant.Position.X - thing.Position.X)) + ((plant.Position.Z - thing.Position.Z) * (plant.Position.Z - thing.Position.Z));
+            if (d < bestDistance || (d == bestDistance && string.CompareOrdinal(plant.Id, best!.Id) < 0))
+            {
+                best = plant;
+                bestDistance = d;
+            }
+        }
+
+        _plants.Clear();
+        return best;
+    }
+
     /// <summary>
     /// D1105 H2: how high a thing hangs above the ground, in centimetres - only while it grows in a plant's crown;
     /// each at its own height, a pure function of its id (no state). 0 = on the ground.

@@ -36,6 +36,18 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
     /// (W1696); null for every other event.
     /// </summary>
     public string? Outcome { get; init; }
+
+    /// <summary>
+    /// A1735: the talk between two inhabitants a said event belongs to (the id of its dialogue job), so the
+    /// game groups its turns and the listener looks at the speaker; null for every other event.
+    /// </summary>
+    public string? Conversation { get; init; }
+
+    /// <summary>A1735: the number of this turn in its talk (1 = the first), with <see cref="Turns"/>; null outside a talk.</summary>
+    public int? Turn { get; init; }
+
+    /// <summary>A1735: how many turns the talk has (all that passed the core's checks); null outside a talk.</summary>
+    public int? Turns { get; init; }
 }
 
 /// <summary>
@@ -100,6 +112,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     /// <summary>D1105 H3: how high a thing hangs above the ground in centimetres (the map); null = all on the ground.</summary>
     public Func<string, int>? AboveCm { get; set; }
+
+    /// <summary>Detail of <see cref="OutOfReach"/>: what one tried to climb gives no grip (D1105 H3b).</summary>
+    public const string TooSmooth = "too_smooth";
+
+    /// <summary>D1105 H3b: why an action on a thing cannot start (the body's climbing check), or null; null hook = never.</summary>
+    public Func<Inhabitant, string, WorldObject, string?>? ClimbRefusal { get; set; }
+
+    /// <summary>D1105 H3b: how much higher an inhabitant reaches a thing because it is up in that thing's crown; null = never.</summary>
+    public Func<Inhabitant, WorldObject, int>? UpCm { get; set; }
 
     /// <summary>An inhabitant took a thing into its hand (AK1a).</summary>
     public const string PickedUp = "picked_up";
@@ -728,6 +749,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 Separate(inhabitant);
                 probe?.Leave(PartSpacing);
             }
+
+            GiveUpStuckWalk(world, inhabitant, planned, before);
         }
 
         // AK1a, K4: what an inhabitant holds or wears goes where it goes (the hand's height and the body are the look's).
@@ -804,6 +827,86 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         mover.Position = part;
+    }
+
+    /// <summary>Detail of <see cref="ActionCancelled"/>: the walk came no closer for the data's minutes (A1751).</summary>
+    public const string Blocked = "blocked";
+
+    /// <summary>
+    /// A1751 (D1159): a walk that has come no closer to its destination for the data's stall_minutes is given up, so the
+    /// routine or the decider chooses anew. Four walkers jammed on a narrow way waited for each other seven days before:
+    /// keeping apart left none of them a step, and nothing ended a walk that did not get on. Only while stuck is anything
+    /// kept (the tick and the distance it stopped getting on at); getting stall_gain_m closer clears it.
+    /// </summary>
+    private void GiveUpStuckWalk(World world, Inhabitant inhabitant, Activity? planned, Position before)
+    {
+        if (Space is not { StallMinutes: > 0 } space || inhabitant.Activity is not { RemainingTicks: null } walk || planned is null
+            || walk.Action != planned.Action || walk.TargetId != planned.TargetId)
+        {
+            return;
+        }
+
+        // Along the route where there is one (review GW1 #485): a detour round a lake or a cliff gets on although it
+        // leads away from the destination for a while.
+        // A route found or searched anew this tick changes the measure: the count starts afresh (the first ticks of a
+        // walk on a map have no route yet, its route is longer than the straight line).
+        if ((planned.Route is null) != (walk.Route is null) || (walk.Route?.Count ?? 0) > (planned.Route?.Count ?? 0))
+        {
+            if (walk.StallSinceTick is not null)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            }
+
+            return;
+        }
+
+        var now = RemainingM(inhabitant.Position, walk.Route, walk.Destination);
+        var limit = (long)space.StallMinutes.Value * _ticksPerHour / 60;
+        var gain = space.StallGainM ?? 0;
+        if (walk.StallSinceTick is not { } since)
+        {
+            // A tick slower than the pace the data ask for (stall_gain_m over stall_minutes) starts the count; a
+            // walk that gets on as usual keeps nothing.
+            var was = RemainingM(before, planned.Route, walk.Destination);
+            if (was - now < gain / Math.Max(1, limit) && now > 1e-9)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = world.Tick, StallFromM = was };
+            }
+
+            return;
+        }
+
+        if (now < (walk.StallFromM ?? now) - gain)
+        {
+            inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            return;
+        }
+
+        if (world.Tick - since >= limit)
+        {
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, walk.Action, walk.TargetId) { Detail = Blocked });
+            inhabitant.Activity = null;
+        }
+    }
+
+    /// <summary>
+    /// A1751: the way still to go from a position - along the route's waypoints to the destination where there is a
+    /// route, else straight.
+    /// </summary>
+    internal static double RemainingM(Position from, IReadOnlyList<Position>? route, Position destination)
+    {
+        if (route is not { Count: > 0 })
+        {
+            return Distance(from, destination);
+        }
+
+        var total = Distance(from, route[0]);
+        for (var i = 1; i < route.Count; i++)
+        {
+            total += Distance(route[i - 1], route[i]);
+        }
+
+        return total + Distance(route[^1], destination);
     }
 
     /// <summary>Whether the inhabitant is on its way somewhere (an action without a running duration and a destination elsewhere).</summary>
@@ -1396,13 +1499,29 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
-            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above && above > reach.HeightCm
+            // D1105 H3b: climbing what is too smooth fails honestly as well (why, never how).
+            if (target is not null && ClimbRefusal?.Invoke(inhabitant, activity.Action, target) is { } refused)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = refused });
+                Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = refused });
+                CountRepeat(world, inhabitant, activity, changed: false);
+                inhabitant.Activity = null;
+                return;
+            }
+
+            // Up in a crown (H3b) the reach grows by the height climbed, for the things of that crown.
+            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above
+                && above > reach.HeightCm + (UpCm?.Invoke(inhabitant, target) ?? 0)
                 && reach.Actions.Contains(activity.Action, StringComparer.Ordinal))
             {
                 // A cancelled try as every other (review GW3 #471: building frees its pending thing, the repeat rest
                 // counts it), and the reason as its own event for memory and ideas.
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = TooHigh });
                 Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = TooHigh });
+
+                // A try out of reach changes nothing, like a use without effect (W1696): tried again and again, the
+                // action rests on that thing for the data's hours - the routine chose the same high apple every minute.
+                CountRepeat(world, inhabitant, activity, changed: false);
                 inhabitant.Activity = null;
                 return;
             }
@@ -1804,6 +1923,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             // A1372: the needs inventions brought, for the things of their type in sight (data: runtime_need).
             _brain.AddRuntimeNeeds(inhabitant, perceived, runtime.Added, options);
         }
+
+        // A1744: under a shelter in rain or cold, what leads out of it weighs less (body data).
+        WeighLeavingShelter(world, inhabitant, options);
 
 
         // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
@@ -2459,20 +2581,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
-        return HasPurpose(knowledge, asker, other, action, MeetingOptionOf(knowledge, action), out _);
+        return HasPurpose(knowledge, asker, other, action, MeetingOptionsOf(knowledge, action), out _);
     }
 
-    /// <summary>The meeting option of the knowledge data for an action, or null when it is none.</summary>
-    internal static KnowledgeMeetingOption? MeetingOptionOf(KnowledgeSettings knowledge, string action) =>
-        knowledge.Meeting?.Options.FirstOrDefault(o => string.Equals(o.Action, action, StringComparison.Ordinal));
+    /// <summary>
+    /// The meeting options of the knowledge data for an action, or null when it has none. An action may have several
+    /// (A1726: approach a stranger, or someone when cold); it is offered while any of them holds.
+    /// </summary>
+    internal static IReadOnlyList<KnowledgeMeetingOption>? MeetingOptionsOf(KnowledgeSettings knowledge, string action) =>
+        knowledge.Meeting?.Options.Where(o => string.Equals(o.Action, action, StringComparison.Ordinal)).ToList() is { Count: > 0 } of ? of : null;
 
     /// <summary>
     /// <see cref="HasPurpose(KnowledgeSettings, Inhabitant, Inhabitant, string)"/> for whoever asks about one
     /// action towards several others (the options of a request): the action's meeting option is looked up
-    /// once by the caller (<see cref="MeetingOptionOf"/>), and the belief a passing action would carry is
+    /// once by the caller (<see cref="MeetingOptionsOf"/>), and the belief a passing action would carry is
     /// handed back, so it need not be looked for a second time.
     /// </summary>
-    internal static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action, KnowledgeMeetingOption? meeting, out (string TypeId, string PropertyId, Belief Belief)? passable)
+    internal static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action, IReadOnlyList<KnowledgeMeetingOption>? meeting, out (string TypeId, string PropertyId, Belief Belief)? passable)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentNullException.ThrowIfNull(asker);
@@ -2480,7 +2605,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         passable = null;
         if (meeting is not null)
         {
-            return Offered(knowledge, meeting, asker, other);
+            return meeting.Any(option => Offered(knowledge, option, asker, other));
         }
 
         if (knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal))

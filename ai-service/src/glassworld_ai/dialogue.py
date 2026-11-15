@@ -385,6 +385,8 @@ class OllamaDialogues:
             settings=self._settings,
             log=self._log,
             feedback=_feedback(settings),
+            # A1735 measurement: why a talk ended early belongs in the call log (it was dropped).
+            detail_of=lambda value: "; ".join(value[1]) or None,
         )
         result, _ = answer.value
         return JobOutcome(

@@ -65,7 +65,7 @@ public sealed record CommandResult(bool Accepted, string? ReasonKey);
 /// options that were offered, and turn into the inhabitant's next activity; until then the routine layer
 /// keeps the inhabitant living (B2487). Every request and answer is logged for replays.
 /// </summary>
-public sealed class DecisionsSystem : IWorldSystem
+public sealed partial class DecisionsSystem : IWorldSystem
 {
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
@@ -1026,7 +1026,10 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether the inhabitant asked about the subject less than ask_cooldown_hours ago.</summary>
     private bool CoolingDown(World world, Inhabitant inhabitant, string subject)
     {
-        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
+        // A1778: a failure is asked about again only after the data's own hours (once per kind of failure).
+        var cooldown = subject.StartsWith(FailedSubject, StringComparison.Ordinal) && _settings.Failures is { } failures
+            ? (long)Math.Round(failures.AskAgainAfterHours * world.Calendar.Settings.TicksPerHour)
+            : (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
         return _lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown;
     }
 
@@ -1200,6 +1203,13 @@ public sealed class DecisionsSystem : IWorldSystem
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
         }
 
+        // A1778: a failed action says what failed and why (never what would work, PR2).
+        if (kind == ActionFailed)
+        {
+            request.Occasion = ActionFailed;
+            request.Failure = FailureOf(subject);
+        }
+
         // Why the core asks (B2663, GW2 #308): a free moment says so, so the prompt can name it (v10 'Right now').
         if (kind == Leisure)
         {
@@ -1303,7 +1313,11 @@ public sealed class DecisionsSystem : IWorldSystem
                 continue;
             }
 
-            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
+            // A meeting option without a need of its own (approach a stranger) is offered whatever the needs say, as
+            // before A1726 gave approach a consideration (cold); options with a need (talk_to) still yield to the
+            // considerations as before (review GW2 #479).
+            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId)
+                && (Knowledge is not { } meets || InhabitantsSystem.MeetingOptionsOf(meets, action)?.Any(o => o.Need is null) != true))
             {
                 continue;
             }
@@ -1311,7 +1325,7 @@ public sealed class DecisionsSystem : IWorldSystem
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick)
-                    && Fits(asker, _actions.Timing(action), target.Id):
+                    && Fits(asker, _actions.Timing(action), target.Id) && OffersOn?.Invoke(action, target) != false:
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
                         // A1379: fuel only for a burning thing that takes fuel (the data of its type).
@@ -1355,7 +1369,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                     // What kind of action it is, is looked up once for all the others; what a passing action
                     // would carry to each of them is kept for the request, which names it (TopicOf).
-                    var meetingOption = InhabitantsSystem.MeetingOptionOf(knowledge, action);
+                    var meetingOption = InhabitantsSystem.MeetingOptionsOf(knowledge, action);
                     foreach (var other in awake)
                     {
                         var purpose = InhabitantsSystem.HasPurpose(knowledge, asker, other, action, meetingOption, out var passable);
@@ -1492,6 +1506,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
+
+    /// <summary>
+    /// D1105 H3b: whether an action is offered on a thing at all by its sizes (climb: only on something that gives a
+    /// hold, or towards a thing up high under such a thing); null = every action on every thing. Never by whether it works.
+    /// </summary>
+    public Func<string, WorldObject, bool>? OffersOn { get; set; }
 
     /// <summary>D1105 H2: how high a thing hangs above the ground in centimetres (0 = on it); null = all on the ground.</summary>
     public Func<string, int>? AboveCm { get; set; }

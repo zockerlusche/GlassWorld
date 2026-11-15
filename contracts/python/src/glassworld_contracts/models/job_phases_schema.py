@@ -3,11 +3,36 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+type HeldKind = Annotated[str, Field(..., min_length=1)]
+
+
+class NightQueue(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    held_kinds: list[HeldKind] = Field(
+        ...,
+        description='Job kinds (generation-job kind) held by day in night_only; the night kinds (question, memory, review, dream, chronicle) go at night anyway, a talk (dialogue) belongs to its moment and is not sent by day at all.',
+        min_length=1,
+    )
+    cap_per_night: int = Field(
+        ...,
+        description='Jobs sent from the queue per compute night at most (placeholder 24 for 4 inhabitants).',
+        ge=1,
+        le=1000,
+    )
+    age_bonus_per_night: int = Field(
+        ...,
+        description='Priority added per night a job waited, so what is left over moves up.',
+        ge=0,
+        le=100,
+    )
 
 
 class JobPhases(BaseModel):
@@ -29,4 +54,8 @@ class JobPhases(BaseModel):
         description='B2680 (Marcel W1939): the compute night begins when every inhabitant sleeps, at the latest this many game hours after nightfall (the start of the first night phase); the night scene of the game waits the same (look/night.json wait_for_sleepers_max_h). Omitted = at nightfall, as before.',
         ge=0.0,
         le=12.0,
+    )
+    night_queue: NightQueue | None = Field(
+        None,
+        description="A1766 (A1568 step 2b, B2789, D1113 v3 4b): with the player's day mode 'night_only' the jobs of these kinds are not sent by day but held in the save game's night queue, and sent when the compute night begins - most important first (the job's own priority plus a bonus per night it waited), the oldest and each inhabitant in turn, at most cap_per_night; the rest waits for the next night, never dropped. Switching back to 'ai' sends what waits at once. Omitted = nothing is held.",
     )

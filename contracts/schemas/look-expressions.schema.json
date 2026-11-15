@@ -126,6 +126,12 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 30
+        },
+        "look_s": {
+          "description": "A1542: as the expression starts, the figure looks to the player (the camera) for these real seconds - standing it turns to it (a knock at the glass); missing = it does not.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30
         }
       }
     },
@@ -143,6 +149,14 @@
         "expression": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "detail": {
+          "description": "Only events with this detail (e.g. the message kind of mail_arrived: knock); missing = any.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "skips_pause": {
+          "description": "A1542: shows even within the calm pause (a knock is a call to the player, not a mood); missing = false.",
+          "type": "boolean"
         }
       }
     },
