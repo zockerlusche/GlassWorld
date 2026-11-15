@@ -10,6 +10,10 @@
   ],
   "known_gaps": [
     { "gap": "property:wearable", "reason": "Only an invention with the base function worn has it (B2752, base_functions.json); the analysis does not model inventions." },
+    { "gap": "property:digs", "reason": "A1578: only a made digging tool has it (an invention, like wearable); the analysis does not model inventions." },
+    { "gap": "type:ore_chunk", "reason": "A1578: ore lies below the layers bare hands can dig; it needs a tool with digs (see property:digs)." },
+    { "gap": "property:ore_bearing", "reason": "A1578: only the ore chunk has it (see type:ore_chunk)." },
+    { "gap": "type:well", "reason": "A1578: the groundwater lies below what bare hands can dig in the analysis; it needs a tool with digs (see property:digs). In the game shallow groundwater can be reached by hand." },
     { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
 
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },
@@ -25,8 +29,8 @@
     { "gap": "process:cook_food", "reason": "Needs heat level flame (see heat:flame)." },
     { "gap": "process:heat_water_container", "reason": "Needs heat level flame (see heat:flame)." },
     { "gap": "process:fire_malleable_hard", "reason": "Needs heat level strong_heat (see heat:strong_heat)." },
-    { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level melting_heat, ash (burn_to_ash) and a thing that is fine_grained and hard: sand is only a soil, not an object (D643 question 4)." },
-    { "gap": "process:melt_at_melting_heat", "reason": "Needs heat level melting_heat and charcoal (char_wood). The rule melts sandstone or slate; there is no ore object (D643 question 2)." },
+    { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level melting_heat, ash (burn_to_ash) and a thing that is fine_grained and hard (sand, dug by hand since A1578)." },
+    { "gap": "process:melt_at_melting_heat", "reason": "Needs heat level melting_heat and charcoal (char_wood). The rule melts sandstone or slate; ore needs a digging tool (A1578)." },
     { "gap": "process:warm_milky_to_firm", "reason": "Needs heat level warm; a milky thing is reachable since the hazelnut is fatty (A1575), the warm heat source is not." },
 
     { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:glowing)." },

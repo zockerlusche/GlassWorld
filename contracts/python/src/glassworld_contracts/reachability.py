@@ -43,6 +43,7 @@ class Sources:
     preset: str
     types: frozenset[str]
     heat_levels: frozenset[str]
+    soils: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,13 @@ def sources(content: Path, preset_file: Path) -> Sources:
     types |= {str(d["object_type"]) for d in preset["water"]["drink_spots"]}
     if int(preset["caves"]["max"]) > 0:
         types.add(str(preset["caves"]["object_type"]))
-    return Sources(str(preset["id"]), frozenset(types), frozenset())
+    # A1578: the soils the preset's underground can have (soil rules and the fallback);
+    # digging brings them up.
+    underground = cast(dict[str, Any], preset.get("underground") or {})
+    soils = {str(r["soil"]) for r in cast(list[dict[str, Any]], underground.get("soil_rules", []))}
+    if underground.get("fallback_soil") is not None:
+        soils.add(str(underground["fallback_soil"]))
+    return Sources(str(preset["id"]), frozenset(types), frozenset(), frozenset(soils))
 
 
 def analyse(content: Path, start: Sources) -> Reach:
@@ -116,6 +123,13 @@ def analyse(content: Path, start: Sources) -> Reach:
     tech_order = _ids(content, "tech_levels")
     settings = _load(content, "world/reachability.json")
 
+    digging_path = content / "world/digging.json"
+    digging = (
+        cast(dict[str, Any], json.loads(digging_path.read_text(encoding="utf-8")))
+        if digging_path.exists()
+        else None
+    )
+    soils = start.soils
     types = set(start.types & catalog.keys())
     things: set[Thing] = {catalog[t] for t in types}
     fired_combinations: set[str] = set()
@@ -157,6 +171,19 @@ def analyse(content: Path, start: Sources) -> Reach:
                         raise RuntimeError("The processing rules produce too many things.")
                     things.add(made)
                     changed = True
+
+        # A1578 (K5, R34): digging - bare hands bring up the top layer's materials and make
+        # a pit; a reachable thing
+        # with the tool property reaches the deeper layers, the ore and the well.
+        for dug in _dug_types(
+            digging,
+            soils,
+            any(digging is not None and str(digging["tool_property"]) in t for t in things),
+        ):
+            if dug in catalog and dug not in types:
+                types.add(dug)
+                things.add(catalog[dug])
+                changed = True
 
         for left in remains:
             if left["burnt"] in types and left["left"] in catalog and left["left"] not in types:
@@ -204,6 +231,27 @@ def analyse(content: Path, start: Sources) -> Reach:
         goals=frozenset(goals),
         gaps=tuple(sorted(gaps)),
     )
+
+
+def _dug_types(digging: dict[str, Any] | None, soils: frozenset[str], tool: bool) -> set[str]:
+    """What digging can bring up: by hand the layers marked by_hand (their soil materials
+    and the pit), with a tool
+    every layer, the ore and the well (A1578)."""
+    if digging is None or not soils:
+        return set()
+    found = {str(digging["pit_type"])}
+    for layer in cast(list[dict[str, Any]], digging["layers"]):
+        if not tool and not layer.get("by_hand", False):
+            continue
+        by_soil = cast(dict[str, str], layer.get("by_soil") or {})
+        found |= {by_soil[s] for s in soils if s in by_soil}
+        if layer.get("material") is not None and any(s not in by_soil for s in soils):
+            found.add(str(layer["material"]))
+    if tool:
+        found.add(str(digging["well_type"]))
+        if digging.get("ore") is not None:
+            found.add(str(digging["ore"]["type"]))
+    return found
 
 
 def _heat_reached(level: str, reached: frozenset[str], order: list[str]) -> bool:

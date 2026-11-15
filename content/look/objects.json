@@ -312,6 +312,90 @@
       "footprint_m": 0.3
     },
     {
+      "id": "pit", "reach": "low",
+      "types": [
+        "pit"
+      ],
+      "shape": "pool",
+      "colors": [
+        "ground",
+        "rock_dark"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground_uphill",
+      "footprint_m": 0.75
+    },
+    {
+      "id": "well", "reach": "low",
+      "types": [
+        "well"
+      ],
+      "shape": "pool",
+      "colors": [
+        "fresh_water",
+        "ground",
+        "rock"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground_uphill",
+      "footprint_m": 0.75
+    },
+    {
+      "id": "earth", "reach": "low",
+      "types": [
+        "earth"
+      ],
+      "shape": "stone",
+      "colors": [
+        "ground"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
+    },
+    {
+      "id": "sand_heap", "reach": "low",
+      "types": [
+        "sand"
+      ],
+      "shape": "stone",
+      "colors": [
+        "sand"
+      ],
+      "size_m": 0.5,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
+    },
+    {
+      "id": "ore_chunk", "reach": "low",
+      "types": [
+        "ore_chunk"
+      ],
+      "shape": "stone",
+      "colors": [
+        "rock_dark",
+        "pyrite"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
+    },
+    {
       "id": "clay", "reach": "low",
       "types": [
         "clay"
