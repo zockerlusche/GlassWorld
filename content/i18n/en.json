@@ -2183,6 +2183,14 @@
       "text": "Fire burnt down"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Something spoiled"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Something broke"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
     },

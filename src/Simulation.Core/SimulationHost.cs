@@ -447,6 +447,11 @@ public sealed class SimulationHost
         {
             // AK1a: a picked fruit ages from the pick, the same in a loaded world.
             map.LeftPlace += durability.LeftPlace;
+
+            // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
+            durability.QualityOf = inventions.QualityOfBuilt;
+            durability.Report = inhabitants.Report;
+            inhabitants.Reported += durability.Observe;
         }
 
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
