@@ -2971,10 +2971,6 @@
       "text": "{name} did not answer."
     },
     {
-      "key": "ui.settings.classic_layout",
-      "text": "Old screen layout (fallback)"
-    },
-    {
       "key": "ui.zone.people",
       "text": "Inhabitants"
     },
