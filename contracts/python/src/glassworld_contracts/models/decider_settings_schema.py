@@ -19,6 +19,36 @@ class FallbackEnvironment(BaseModel):
     weather: list[common_schema.VocabId] = Field(..., max_length=4, min_length=1)
 
 
+class ThroughputSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    day_share: float = Field(
+        ...,
+        description="Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).",
+        ge=0.05,
+        le=1.0,
+    )
+    fallback_job_ms: int = Field(
+        ...,
+        description='Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).',
+        ge=100,
+        le=600000,
+    )
+    min_per_hour: int = Field(
+        ...,
+        description='At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).',
+        ge=0,
+        le=1000,
+    )
+    answer_within_minutes: int = Field(
+        ...,
+        description="Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.",
+        ge=1,
+        le=1440,
+    )
+
+
 class LeisureSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -137,5 +167,6 @@ class DeciderSettings(BaseModel):
         le=1000,
     )
     leisure: LeisureSettings | None = None
+    throughput: ThroughputSettings | None = None
     triggers: list[Trigger] = Field(..., max_length=32)
     fallback_environment: FallbackEnvironment

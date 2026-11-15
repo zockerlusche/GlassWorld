@@ -93,6 +93,12 @@ public sealed class DecisionsSystem : IWorldSystem
     public bool LearnByDay { get; internal set; }
 
     /// <summary>
+    /// A1587 (B7 R24, R28): the day requests per game hour the data allow at the game's speed, shared with the talks;
+    /// null = no limit (tests, as before). Also sets the service's time budget of a request by the speed.
+    /// </summary>
+    public AiBudget? Budget { get; init; }
+
+    /// <summary>
     /// Whether the compute night can answer questions of a trigger at all: it guesses about object types, so
     /// only a trigger whose questions are about a type qualifies (checked when the world is assembled).
     /// </summary>
@@ -505,6 +511,12 @@ public sealed class DecisionsSystem : IWorldSystem
                 break;
             }
 
+            // Over the game hour's budget (A1587) it stays due as well; what the player raised still goes.
+            if (!HasBudget(world, due.Kind))
+            {
+                continue;
+            }
+
             Resend(world, due);
         }
 
@@ -520,6 +532,12 @@ public sealed class DecisionsSystem : IWorldSystem
                 if (!MaySend(world))
                 {
                     break;
+                }
+
+                // Over the game hour's budget (A1587) a question keeps its question mark and waits on (R25).
+                if (!HasBudget(world, held.Kind))
+                {
+                    continue;
                 }
 
                 AskHeld(world, held);
@@ -631,7 +649,7 @@ public sealed class DecisionsSystem : IWorldSystem
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
             if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
-                || inhabitant.Planned is not null || HeldBack(world, inhabitant, Leisure)
+                || inhabitant.Planned is not null || HeldBack(world, inhabitant, Leisure) || !HasBudget(world, Leisure)
                 || (inhabitant.Activity is { } doing && !_actions.Timing(doing.Action).Offered)
                 || (_lastAsked.TryGetValue(inhabitant.Id + "|" + LeisureSubject, out var last) && world.Tick - last < every)
                 || (leisure.Mood is { } moodId && (!inhabitant.Moods.TryGetValue(moodId, out var mood) || mood < (leisure.MoodAtLeast ?? 0))))
@@ -1135,7 +1153,7 @@ public sealed class DecisionsSystem : IWorldSystem
         // held back (A1487) opens the same way and is asked once its inhabitant is free again (AskHeld).
         // Over the step's limit (max_requests_per_step) a question waits the same way and goes out in a
         // later step as one that was held back.
-        var held = !WaitsForNight(kind) && (HeldBack(world, inhabitant, kind) || !MaySend(world));
+        var held = !WaitsForNight(kind) && (HeldBack(world, inhabitant, kind) || !MaySend(world) || !HasBudget(world, kind));
         var question = held || WaitsForNight(kind)
             ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
             : Send(world, inhabitant, questionId, kind, subject, target);
@@ -1168,6 +1186,13 @@ public sealed class DecisionsSystem : IWorldSystem
         return _sentTick != world.Tick || _sentInStep < most;
     }
 
+    /// <summary>
+    /// A1587 (B7 R23, R24): whether the game hour's budget leaves room for a request of this kind. What the player
+    /// raised (being noticed) always goes; without a budget everything does.
+    /// </summary>
+    private bool HasBudget(World world, string kind) =>
+        Budget is null || kind == NoticedPlayer || Budget.HasRoom(world.Tick);
+
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         if (_sentTick != world.Tick)
@@ -1177,6 +1202,11 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         _sentInStep++;
+        if (kind != NoticedPlayer)
+        {
+            Budget?.Note(world.Tick);
+        }
+
         var probe = world.Probe;
         probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
@@ -1253,7 +1283,7 @@ public sealed class DecisionsSystem : IWorldSystem
     public bool AskBuildStuck(World world, string inhabitantId, string typeId)
     {
         ArgumentNullException.ThrowIfNull(world);
-        if (!MaySend(world) || StuckOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true)
+        if (!MaySend(world) || !HasBudget(world, BuildStuck) || StuckOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true)
         {
             return false;
         }
@@ -1530,7 +1560,7 @@ public sealed class DecisionsSystem : IWorldSystem
             RequestId = requestId,
             Tick = world.Tick,
             Seed = seed,
-            DeadlineMs = _settings.DeadlineMs,
+            DeadlineMs = Budget?.DeadlineMs(_settings.DeadlineMs) ?? _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
             Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
             Environment = new EnvironmentState

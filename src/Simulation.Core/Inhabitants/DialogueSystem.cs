@@ -113,6 +113,9 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Whether jobs are validated against the contract before they go out (tests may turn it off).</summary>
     public bool ValidateRequests { get; init; } = true;
 
+    /// <summary>The day requests per game hour the data allow, shared with the decider (A1587); null = no limit.</summary>
+    public AiBudget? Budget { get; init; }
+
     /// <summary>Language the next talk is written in (de/en).</summary>
     public string DisplayLocale { get; set; }
 
@@ -214,6 +217,12 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
+        // A1587 (B7 R24): over the game hour's budget for day requests the two talk without words this time.
+        if (Budget is { } budget && !budget.HasRoom(worldEvent.Tick))
+        {
+            return;
+        }
+
         _lastTalk[pair] = worldEvent.Tick;
         _counter++;
         var requestId = DecisionIds.RequestId(_seed, worldEvent.Tick, "dialogue/" + speaker.Id, _counter);
@@ -241,6 +250,7 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
         var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, worldEvent.Tick, json, null));
         _port!.Submit(requestId, json);
+        Budget?.Note(worldEvent.Tick);
         _jobs[requestId] = new DialogueJob(requestId, speaker.Id, listener.Id, action, worldEvent.Tick, _settings.MaxWords, DisplayLocale.ToLowerInvariant());
     }
 

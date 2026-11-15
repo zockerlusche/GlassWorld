@@ -7,6 +7,7 @@
   "max_requests_per_step": 4,
   "unknown_inhabitant_max_asks": 4,
   "retry_after_minutes": 30,
+  "throughput": { "day_share": 0.7, "fallback_job_ms": 2000, "min_per_hour": 1, "answer_within_minutes": 60 },
   "request_log_full_hours": 24,
   "triggers": [
     { "kind": "unknown_object", "enabled": true },

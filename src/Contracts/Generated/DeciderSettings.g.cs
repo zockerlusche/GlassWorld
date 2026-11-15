@@ -13,6 +13,39 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// A1587 (B7 R24, R26, R28; B2804, D1161): how much the AI may be asked by day, by the game's speed and the measured time of one AI job (both logged player commands, so a replay asks the same). Per game hour at most floor(day_share x real seconds of a game hour at the speed / seconds per job) requests go out, at least min_per_hour; a question over it keeps its question mark and goes out later (R25), a talk stays without words, a free moment is not asked. What the player raises (noticed_player) is never held back by it. Omitted = no such limit (as before).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ThroughputSettings
+    {
+
+        /// <summary>
+        /// Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("day_share")]
+        public double DayShare { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fallback_job_ms")]
+        public int FallbackJobMs { get; set; } = default!;
+
+        /// <summary>
+        /// At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_per_hour")]
+        public int MinPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("answer_within_minutes")]
+        public int AnswerWithinMinutes { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Trigger leisure (B2663, D333 v7 boredom -&gt; wish, B2610): an awake inhabitant with no open question, none of whose pressing needs (those with a neglect threshold in the inhabitant model: hunger, thirst, sleep ...) is below needs_at_least - fun, company and purpose do not count, low fun is what makes it bored - whose mood is at least mood_at_least, asks the decider at most every every_hours game hours what to do now; the options are the core's, the choice and the thought the AI's. By day, with or without learning by day: nothing new is learned. Omitted = no leisure questions.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -157,6 +190,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("leisure")]
         public LeisureSettings? Leisure { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("throughput")]
+        public ThroughputSettings? Throughput { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("triggers")]
         public System.Collections.Generic.ICollection<Trigger> Triggers { get; set; } = new System.Collections.ObjectModel.Collection<Trigger>();
