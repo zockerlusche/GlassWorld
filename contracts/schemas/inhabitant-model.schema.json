@@ -32,7 +32,21 @@
       "properties": {
         "id": { "$ref": "common.schema.json#/$defs/VocabId" },
         "decay_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
-        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 }
+        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 },
+        "decay_when": { "$ref": "#/$defs/NeedDecayWhen" }
+      }
+    },
+    "NeedDecayWhen": {
+      "description": "B2773 (GW1 #26014): while ALL given conditions hold, the need falls by per_hour instead of decay_per_hour (e.g. safety: alone, at night, without shelter). Every condition is optional; an absent one is not required.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["per_hour"],
+      "properties": {
+        "per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "Decay per hour while the conditions hold." },
+        "recover_per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual." },
+        "day_phases": { "type": "array", "maxItems": 4, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }, "description": "Day phases (vocabulary time_of_day) in which it holds." },
+        "alone_m": { "type": "number", "minimum": 0, "maximum": 1000, "description": "No other inhabitant within this many metres." },
+        "unsheltered": { "type": "boolean", "description": "true: no thing with the body data's shelter property within its shelter reach." }
       }
     },
     "MoodModel": {
