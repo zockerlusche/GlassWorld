@@ -141,6 +141,14 @@
         },
         "snow_surface": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "snow_not_on": {
+          "description": "Surfaces snow does not lie on (water: a stream stays a stream in winter; review GW4 #484). Omitted = snow lies on every surface.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     },

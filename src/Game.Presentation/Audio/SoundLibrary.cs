@@ -66,12 +66,10 @@ public sealed class SoundLibrary
             return null;
         }
 
-        if (underfoot.SnowFromMm is { } from && underfoot.SnowSurface is { } snow && snowMm >= from)
-        {
-            return snow;
-        }
-
-        return biome is null ? null : underfoot.Biomes.FirstOrDefault(b => string.Equals(b.Biome, biome, StringComparison.Ordinal))?.Surface;
+        var surface = biome is null ? null : underfoot.Biomes.FirstOrDefault(b => string.Equals(b.Biome, biome, StringComparison.Ordinal))?.Surface;
+        // Snow lies on the ground, not on the water (review GW4 #484: the island has one snow depth).
+        var snowFree = surface is not null && underfoot.SnowNotOn?.Contains(surface, StringComparer.Ordinal) == true;
+        return underfoot.SnowFromMm is { } from && underfoot.SnowSurface is { } snow && snowMm >= from && !snowFree ? snow : surface;
     }
 
     /// <summary>

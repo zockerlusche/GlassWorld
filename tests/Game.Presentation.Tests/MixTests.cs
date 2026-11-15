@@ -191,6 +191,7 @@ public sealed class MixTests
         Assert.Equal("step.sand", On("beach_sea", 0));
         Assert.Equal("step.rock", On("rocks_hills", 0));
         Assert.Equal("step.snow", On("meadow", Library.Map.Underfoot!.SnowFromMm!.Value));
+        Assert.Equal("step.water", On("freshwater", Library.Map.Underfoot.SnowFromMm.Value)); // a stream in winter stays a stream
         Assert.Equal("action.rustle", On(null, 0)); // nothing known under the feet: its own sound
         Assert.Equal("action.eat", Library.ForAction("eat", "sand")); // an action without only_on sounds everywhere
     }

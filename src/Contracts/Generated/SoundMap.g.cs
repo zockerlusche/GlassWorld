@@ -62,6 +62,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("snow_surface")]
         public string? SnowSurface { get; set; } = default!;
 
+        /// <summary>
+        /// Surfaces snow does not lie on (water: a stream stays a stream in winter; review GW4 #484). Omitted = snow lies on every surface.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("snow_not_on")]
+        public System.Collections.Generic.ICollection<string>? SnowNotOn { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

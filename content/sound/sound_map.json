@@ -584,7 +584,10 @@
       }
     ],
     "snow_from_mm": 20,
-    "snow_surface": "snow"
+    "snow_surface": "snow",
+    "snow_not_on": [
+      "water"
+    ]
   },
   "signals": [
     {

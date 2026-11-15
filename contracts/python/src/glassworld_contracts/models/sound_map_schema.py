@@ -87,6 +87,11 @@ class Underfoot(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    snow_not_on: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Surfaces snow does not lie on (water: a stream stays a stream in winter; review GW4 #484). Omitted = snow lies on every surface.',
+        max_length=16,
+    )
 
 
 class Signal(StrEnum):
