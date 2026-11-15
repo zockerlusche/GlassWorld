@@ -19,6 +19,14 @@ class Wind(BaseModel):
     block_radius_cm: int = Field(..., ge=0, le=2000)
 
 
+class HeightByGripItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    grip_permille: int = Field(..., ge=0, le=1000)
+    height_cm: int = Field(..., ge=0, le=10000)
+
+
 class OthersWarmth(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -43,6 +51,35 @@ class BodyDryingBand(BaseModel):
 class Felt(StrEnum):
     warmth = 'warmth'
     kept_dry = 'kept_dry'
+
+
+class Climbing(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_grip_permille: int = Field(..., ge=0, le=1000)
+    height_by_grip: list[HeightByGripItem] = Field(..., max_length=16, min_length=1)
+    slip_permille_per_m: int = Field(..., ge=0, le=1000)
+    up_minutes: int = Field(..., ge=1, le=1440)
+    stay_within_m: float = Field(
+        ...,
+        description='Farther than this from what it climbed, the climber is down again.',
+        ge=0.0,
+        le=100.0,
+    )
+    fright_mood: str | None = Field(
+        None,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    fright_delta: float | None = Field(None, ge=0.0, le=1.0)
 
 
 class StaySheltered(BaseModel):
@@ -290,6 +327,10 @@ class BodySettings(BaseModel):
     wind: Wind | None = Field(
         None,
         description='B5 R4: wind feels colder (at full wind cool_tenth_c), less where a thing with wind_block_permille stands within block_radius_cm. Absent = wind is not felt.',
+    )
+    climbing: Climbing | None = Field(
+        None,
+        description="D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/<inhabitant>): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.",
     )
     stay_sheltered: StaySheltered | None = Field(
         None,

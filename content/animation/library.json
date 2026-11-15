@@ -354,6 +354,11 @@
     },
     {
       "kind": "action",
+      "id": "climb",
+      "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
       "id": "use",
       "clip": "handle"
     },

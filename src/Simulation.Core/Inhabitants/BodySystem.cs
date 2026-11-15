@@ -18,7 +18,7 @@ public sealed record WetInhabitant(string Id, int Permille);
 /// inhabitant does about rain or sun stays with the decider (B2584). Deterministic: inhabitants in id order,
 /// whole permille, rates spread over the hour without remainders.
 /// </summary>
-public sealed class BodySystem : IWorldSystem, IOptionalWorldState
+public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
 {
     private readonly BodySettings _data;
     private readonly InhabitantsSystem _inhabitants;
@@ -44,6 +44,9 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         _objects = objects;
         _content = content;
         _ticksPerHour = ticksPerHour;
+
+        // D1105 H3b: a finished climb takes the climber up in the next body step.
+        _inhabitants.Reported += OnReported;
 
         // The tallest shade caster and the widest crown bound how far a shade can fall.
         var tallest = 0L;
@@ -77,7 +80,7 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     public string Name => "body";
 
     /// <inheritdoc/>
-    public bool HasState => _wet.Count > 0;
+    public bool HasState => _wet.Count > 0 || _up.Count > 0;
 
     /// <summary>How wet an inhabitant is, in permille of fully wet.</summary>
     public int WetPermille(string inhabitantId) => _wet.GetValueOrDefault(inhabitantId);
@@ -237,6 +240,7 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         }
 
         TakeIn(world);
+        Climb(world);
     }
 
     /// <summary>
@@ -286,6 +290,16 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         foreach (var (id, permille) in _wet)
         {
             hasher.Write(id).Write(permille);
+        }
+
+        // D1105 H3b: who is up in a crown - only while somebody is (golden hashes of worlds nobody climbs stay).
+        if (_up.Count > 0)
+        {
+            hasher.Write(_up.Count);
+            foreach (var (id, up) in _up)
+            {
+                hasher.Write(id).Write(up.CarrierId).Write(up.HeightCm).Write(up.UntilTick);
+            }
         }
     }
 
