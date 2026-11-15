@@ -4,6 +4,7 @@ using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
+using GlassWorld.Simulation.Time;
 
 namespace GlassWorld.Simulation.Inhabitants;
 
@@ -980,9 +981,24 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// B2773 (GW1 #26014): whether all conditions of a need's decay_when hold for an inhabitant now - the day phase,
     /// nobody else within alone_m (inhabitants in their fixed order), no shelter near (<see cref="Sheltered"/>).
     /// </summary>
+    // The day phases of each decay_when, read once (review GW5 #451: no text compare per inhabitant and tick).
+    private readonly Dictionary<NeedDecayWhen, HashSet<DayPhase>> _phasesOf = [];
+
+    private HashSet<DayPhase> PhasesOf(NeedDecayWhen when)
+    {
+        if (!_phasesOf.TryGetValue(when, out var phases))
+        {
+            phases = [.. Enum.GetValues<DayPhase>().Where(p => when.DayPhases!.Contains(p.ToString().ToLowerInvariant(), StringComparer.Ordinal))];
+            _phasesOf[when] = phases;
+        }
+
+        return phases;
+    }
+
     private bool Holds(World world, Inhabitant inhabitant, NeedDecayWhen when)
     {
-        if (when.DayPhases is { Count: > 0 } phases && !phases.Contains(world.Now.Phase.ToString().ToLowerInvariant(), StringComparer.Ordinal))
+        ArgumentNullException.ThrowIfNull(when);
+        if (when.DayPhases is { Count: > 0 } && !PhasesOf(when).Contains(world.Now.Phase))
         {
             return false;
         }

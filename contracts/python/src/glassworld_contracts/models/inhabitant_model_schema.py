@@ -20,7 +20,7 @@ class NeedDecayWhen(BaseModel):
     )
     recover_per_hour: float | None = Field(
         None,
-        description='While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour; omitted = decay_per_hour as usual.',
+        description='While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual.',
         ge=0.0,
         le=1.0,
     )
