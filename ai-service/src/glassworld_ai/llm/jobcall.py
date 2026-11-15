@@ -91,13 +91,15 @@ async def ask_model[T](
     priority: Priority = Priority.BACKGROUND,
     deadline: float | None = None,
     feedback: str | None = None,
+    detail_of: Callable[[T], str | None] | None = None,
 ) -> Answer[T]:
     """Ask until `parse` accepts an answer (1 + max_retries attempts) or a hard error occurs.
 
     Jobs wait without limit (background, B2487); a player request passes priority PLAYER and its
     absolute deadline (time.monotonic()). With `feedback` (a sentence with $problem, from the
     prompt's settings) a refused answer and the reason go back to the model on the next
-    attempt instead of asking the same question again with another seed only.
+    attempt instead of asking the same question again with another seed only. `detail_of` gives
+    the log line of an accepted answer its detail (e.g. what the checks left out).
     """
     started = time.monotonic()
     messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
@@ -194,7 +196,7 @@ async def ask_model[T](
                     ChatMessage("user", Template(feedback).safe_substitute(problem=last_problem)),
                 ]
             continue
-        record("ok", result.content, None, usage)
+        record("ok", result.content, detail_of(value) if detail_of is not None else None, usage)
         return Answer(value, attempt, int((time.monotonic() - started) * 1000))
     raise fail("invalid_model_output", f"no valid answer after {attempts} attempts: {last_problem}")
 
