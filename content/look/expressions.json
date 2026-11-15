@@ -72,8 +72,7 @@
     {
       "event": "mail_repeated",
       "detail": "knock",
-      "expression": "knock",
-      "skips_pause": true
+      "expression": "knock"
     }
   ],
   "moods": [
