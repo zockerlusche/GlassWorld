@@ -534,7 +534,7 @@ public partial class WorldPresenter : Node3D
         var repository = LocalAiService.RepositoryRoot(ContentLocator.Variant is null ? contentDirectory : ContentLocator.RealContentDirectory(), System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         try
         {
-            _service = LocalAiService.Start(repository, System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service"));
+            _service = LocalAiService.Start(repository, GameData.At("ai-service"));
             if (_service.StaleKilled is { } stale)
             {
                 GD.Print($"AI_SERVICE ended leftover service from an earlier session (pid {stale})");
