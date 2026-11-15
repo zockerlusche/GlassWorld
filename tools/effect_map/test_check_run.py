@@ -109,3 +109,22 @@ def test_a_missing_day_ends_a_neglect_streak(tmp_path: Path) -> None:
     model = json.loads((module.CONTENT / "inhabitants" / "model.json").read_text(encoding="utf-8"))
     ok, text = module.check_trace(run, expectation, model)
     assert ok, text
+
+
+def test_resting_through_the_night_counts_only_by_day(tmp_path: Path) -> None:
+    """B2780: rested sleep at night is accepted; the same by day is found."""
+    module = _module()
+    night = _trace(
+        tmp_path / "night",
+        2,
+        lambda d, h: {"sleep": 1.0},
+        lambda d, h: "sleep" if h < 5 else "wander",
+    )
+    assert _results(module, night)["little_sleep_rested"]
+    day = _trace(
+        tmp_path / "day",
+        2,
+        lambda d, h: {"sleep": 1.0},
+        lambda d, h: "sleep" if 10 <= h < 16 else "wander",
+    )
+    assert not _results(module, day)["little_sleep_rested"]
