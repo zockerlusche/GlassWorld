@@ -1825,8 +1825,9 @@ public partial class GameScreen : CanvasLayer
                 CustomMinimumSize = new Vector2(_style.Tokens.Window.CardBarWidth, 0),
             };
 
-            // Urgency as a calm warm tint (B2466: never blinking, never a sound).
-            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
+            // Urgency as a calm warm tint (B2466: never blinking, never a sound), from the light text of the dark ground
+            // (A1736); the dark outline of the window theme keeps it readable.
+            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.World_text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
             row.AddChild(text);
             var read = new Button { Text = "ui.mailbox.read" };
             var id = message.Id;
