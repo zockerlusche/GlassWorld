@@ -316,6 +316,40 @@ class ChronicleResult(BaseModel):
     narrative: common_schema.GeneratedText | None
 
 
+class Act(StrEnum):
+    greet = 'greet'
+    ask = 'ask'
+    answer = 'answer'
+    tell = 'tell'
+    joke = 'joke'
+    agree = 'agree'
+    comfort = 'comfort'
+    wonder = 'wonder'
+
+
+class DialogueTurn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    speaker: str = Field(
+        ...,
+        description='Who says it: one of the two speakers of the job.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    text: common_schema.GeneratedText = Field(
+        ...,
+        description="What it says, in the player's language (about 100 characters at most).",
+    )
+    act: Act = Field(
+        ..., description='What kind of turn it is (for the look and the log, D1119).'
+    )
+    expression: common_schema.VocabId | None = Field(
+        ...,
+        description="Body expression while it speaks (one of the job's expressions), or null.",
+    )
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -353,6 +387,13 @@ class ProcessResult(BaseModel):
     rationale: str = Field(..., max_length=280)
 
 
+class DialogueResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    turns: list[DialogueTurn] = Field(..., max_length=4)
+
+
 class JobResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -369,6 +410,7 @@ class JobResult(BaseModel):
     review: ReviewResult | None = None
     milestone: MilestoneResult | None = None
     chronicle: ChronicleResult | None = None
+    dialogue: DialogueResult | None = None
 
 
 class JobStatus(BaseModel):

@@ -295,6 +295,38 @@
       "text": "Nobody lives here yet."
     },
     {
+      "key": "ui.inhabitants.column.pinned",
+      "text": "Favourite"
+    },
+    {
+      "key": "ui.inhabitants.search",
+      "text": "Search a name …"
+    },
+    {
+      "key": "ui.inhabitants.filter_tooltip",
+      "text": "Which inhabitants the list shows"
+    },
+    {
+      "key": "ui.inhabitants.filter.all",
+      "text": "All"
+    },
+    {
+      "key": "ui.inhabitants.filter.pinned",
+      "text": "Favourites"
+    },
+    {
+      "key": "ui.inhabitants.filter.asking",
+      "text": "With a question"
+    },
+    {
+      "key": "ui.inhabitants.filter.knocking",
+      "text": "Knocking"
+    },
+    {
+      "key": "ui.inhabitants.filter.weak",
+      "text": "Weak"
+    },
+    {
       "key": "ui.inhabitants.title",
       "text": "Inhabitants"
     },
@@ -1467,6 +1499,14 @@
       "text": "Ash"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birch"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Young tree"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Fieldstone"
     },
@@ -2016,7 +2056,11 @@
     },
     {
       "key": "ui.card.talk_hint",
-      "text": "What would you like to say?"
+      "text": "Say something …"
+    },
+    {
+      "key": "ui.card.whisper_hint",
+      "text": "Whisper …"
     },
     {
       "key": "ui.card.talk_send",
@@ -2137,6 +2181,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
+    },
+    {
+      "key": "vocab.event.out_of_reach",
+      "text": "Out of reach"
     },
     {
       "key": "vocab.event.caught_fire",
@@ -2523,6 +2571,58 @@
       "text": "Log"
     },
     {
+      "key": "ui.log.more",
+      "text": "Show more"
+    },
+    {
+      "key": "ui.log.less",
+      "text": "Show less"
+    },
+    {
+      "key": "ui.log.search",
+      "text": "Search …"
+    },
+    {
+      "key": "ui.log.filter_tooltip",
+      "text": "Which entries the log shows"
+    },
+    {
+      "key": "ui.log.empty_filter",
+      "text": "Nothing in this selection."
+    },
+    {
+      "key": "ui.log.category.all",
+      "text": "Everything"
+    },
+    {
+      "key": "ui.log.category.talk",
+      "text": "Talk"
+    },
+    {
+      "key": "ui.log.category.thought",
+      "text": "Thoughts"
+    },
+    {
+      "key": "ui.log.category.discovery",
+      "text": "Discoveries"
+    },
+    {
+      "key": "ui.log.category.idea",
+      "text": "Ideas"
+    },
+    {
+      "key": "ui.log.category.built",
+      "text": "Built"
+    },
+    {
+      "key": "ui.log.category.important",
+      "text": "Important"
+    },
+    {
+      "key": "ui.log.category.note",
+      "text": "Notes"
+    },
+    {
       "key": "ui.log.empty",
       "text": "Nobody has said or thought anything yet. Later this shows who said what - a click leads to the inhabitant."
     },
@@ -2875,10 +2975,6 @@
       "text": "{name} did not answer."
     },
     {
-      "key": "ui.settings.classic_layout",
-      "text": "Old screen layout (fallback)"
-    },
-    {
       "key": "ui.zone.people",
       "text": "Inhabitants"
     },
@@ -2905,6 +3001,14 @@
     {
       "key": "ui.corner.portrait_tip",
       "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.more",
+      "text": "+{count}"
+    },
+    {
+      "key": "ui.corner.more_tooltip",
+      "text": "Show all {count} inhabitants"
     },
     {
       "key": "ui.corner.weather",
@@ -2983,12 +3087,64 @@
       "text": "Day {day}, {time} - {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Trying it for the first time."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Wondering: What is that? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Wondering: Who is that?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Wondering: Who is there?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Pondering something."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "More questions ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "You: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Show more"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Show less"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Favour"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Favour {value} of {max}. It grows back slowly; gifts cost favour."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Timeline"
     },
     {
       "key": "ui.timeline.empty",
       "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
+    },
+    {
+      "key": "ui.night.dream",
+      "text": "{name} dreams: {text}"
     },
     {
       "key": "ui.night.learned.true",
@@ -3241,6 +3397,22 @@
     {
       "key": "msg.learnlog.idea",
       "text": "{time} has an idea"
+    },
+    {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (processed)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " and "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", but "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} has an idea about: {about}"
     },
     {
       "key": "msg.learnlog.dreamed",

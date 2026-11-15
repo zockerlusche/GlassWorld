@@ -295,6 +295,38 @@
       "text": "Hier lebt noch niemand."
     },
     {
+      "key": "ui.inhabitants.column.pinned",
+      "text": "Liebling"
+    },
+    {
+      "key": "ui.inhabitants.search",
+      "text": "Name suchen …"
+    },
+    {
+      "key": "ui.inhabitants.filter_tooltip",
+      "text": "Welche Bewohner die Liste zeigt"
+    },
+    {
+      "key": "ui.inhabitants.filter.all",
+      "text": "Alle"
+    },
+    {
+      "key": "ui.inhabitants.filter.pinned",
+      "text": "Lieblinge"
+    },
+    {
+      "key": "ui.inhabitants.filter.asking",
+      "text": "Mit Frage"
+    },
+    {
+      "key": "ui.inhabitants.filter.knocking",
+      "text": "Klopft an"
+    },
+    {
+      "key": "ui.inhabitants.filter.weak",
+      "text": "Schwach"
+    },
+    {
       "key": "ui.inhabitants.title",
       "text": "Bewohner"
     },
@@ -1467,6 +1499,14 @@
       "text": "Asche"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birke"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Junger Baum"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
@@ -2016,7 +2056,11 @@
     },
     {
       "key": "ui.card.talk_hint",
-      "text": "Was möchtest du sagen?"
+      "text": "Etwas sagen …"
+    },
+    {
+      "key": "ui.card.whisper_hint",
+      "text": "Zuflüstern …"
     },
     {
       "key": "ui.card.talk_send",
@@ -2137,6 +2181,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
+    },
+    {
+      "key": "vocab.event.out_of_reach",
+      "text": "Nicht erreichbar"
     },
     {
       "key": "vocab.event.caught_fire",
@@ -2523,6 +2571,58 @@
       "text": "Verlauf"
     },
     {
+      "key": "ui.log.more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.log.less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.log.search",
+      "text": "Suchen …"
+    },
+    {
+      "key": "ui.log.filter_tooltip",
+      "text": "Welche Einträge der Verlauf zeigt"
+    },
+    {
+      "key": "ui.log.empty_filter",
+      "text": "Nichts in dieser Auswahl."
+    },
+    {
+      "key": "ui.log.category.all",
+      "text": "Alles"
+    },
+    {
+      "key": "ui.log.category.talk",
+      "text": "Gespräche"
+    },
+    {
+      "key": "ui.log.category.thought",
+      "text": "Gedanken"
+    },
+    {
+      "key": "ui.log.category.discovery",
+      "text": "Entdeckungen"
+    },
+    {
+      "key": "ui.log.category.idea",
+      "text": "Ideen"
+    },
+    {
+      "key": "ui.log.category.built",
+      "text": "Gebautes"
+    },
+    {
+      "key": "ui.log.category.important",
+      "text": "Wichtiges"
+    },
+    {
+      "key": "ui.log.category.note",
+      "text": "Hinweise"
+    },
+    {
       "key": "ui.log.empty",
       "text": "Noch hat niemand etwas gesagt oder gedacht. Hier steht später, wer was gesagt hat – ein Klick führt zum Bewohner."
     },
@@ -2875,10 +2975,6 @@
       "text": "{name} hat nicht geantwortet."
     },
     {
-      "key": "ui.settings.classic_layout",
-      "text": "Alter Bildschirmaufbau (Rückfall)"
-    },
-    {
       "key": "ui.zone.people",
       "text": "Bewohner"
     },
@@ -2905,6 +3001,14 @@
     {
       "key": "ui.corner.portrait_tip",
       "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.more",
+      "text": "+{count}"
+    },
+    {
+      "key": "ui.corner.more_tooltip",
+      "text": "Alle {count} Bewohner zeigen"
     },
     {
       "key": "ui.corner.weather",
@@ -2983,12 +3087,64 @@
       "text": "Tag {day}, {time} – {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Probiert es zum ersten Mal aus."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Grübelt: Was ist das? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Grübelt: Wer ist das?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Grübelt: Wer ist da?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Grübelt über etwas."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "Weitere Fragen ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "Du: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Gunst"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Gunst {value} von {max}. Sie wächst langsam nach; Gaben kosten Gunst."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Zeitleiste"
     },
     {
       "key": "ui.timeline.empty",
       "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
+    },
+    {
+      "key": "ui.night.dream",
+      "text": "{name} träumt: {text}"
     },
     {
       "key": "ui.night.learned.true",
@@ -3241,6 +3397,22 @@
     {
       "key": "msg.learnlog.idea",
       "text": "{time} hat eine Idee"
+    },
+    {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (bearbeitet)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " und "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", aber "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} hat eine Idee zu: {about}"
     },
     {
       "key": "msg.learnlog.dreamed",

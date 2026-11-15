@@ -14,9 +14,11 @@
     "min_font_px",
     "font_sizes",
     "spacing",
+    "bars",
     "window",
     "button",
     "table",
+    "log",
     "toast",
     "durations_ms",
     "palettes",
@@ -78,6 +80,40 @@
     },
     "table": {
       "$ref": "#/$defs/UiTableTokens"
+    },
+    "log": {
+      "description": "The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corner_lines",
+        "box_keys",
+        "categories"
+      ],
+      "properties": {
+        "corner_lines": {
+          "description": "Lines the closed log shows (newest first); more on a click.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "box_keys": {
+          "description": "Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+          }
+        },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/UiLogCategory"
+          }
+        }
+      }
     },
     "toast": {
       "$ref": "#/$defs/UiToastTokens"
@@ -144,12 +180,15 @@
         "compact_portrait_px",
         "portrait_list_width",
         "portraits_compact_from",
+        "portraits_important_from",
+        "portraits_important_max",
         "portrait_list_height_share",
         "round_button_px",
         "favor_bar_width",
         "middle_share",
         "season_icons",
-        "weather_icons"
+        "weather_icons",
+        "card_width"
       ],
       "properties": {
         "side_panel_width": {
@@ -200,6 +239,18 @@
           "minimum": 2,
           "maximum": 1000
         },
+        "portraits_important_from": {
+          "description": "From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
+        },
+        "portraits_important_max": {
+          "description": "At most this many important inhabitants in the corner (B2749).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
         "portrait_list_height_share": {
           "description": "Largest share of the free height the portrait list takes; more scrolls.",
           "type": "number",
@@ -236,6 +287,50 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/UiIconChoice"
+          }
+        },
+        "card_width": {
+          "description": "Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.",
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 1600
+        }
+      }
+    },
+    "bars": {
+      "description": "One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_bad_below",
+        "state_good_from",
+        "burden_bad_from",
+        "moods"
+      ],
+      "properties": {
+        "state_bad_below": {
+          "description": "A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "state_good_from": {
+          "description": "A state value or an uplifting feeling from this on shows a thumb up.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "burden_bad_from": {
+          "description": "A burdening feeling (fear, sadness ...) from this on is in the bad range.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "moods": {
+          "description": "Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UiBarMood"
           }
         }
       }
@@ -308,7 +403,9 @@
         "world_outline_px",
         "scrim_alpha",
         "scrim_soft_px",
-        "world_check_grounds"
+        "world_check_grounds",
+        "card_diary_lines",
+        "card_talk_lines"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -512,6 +609,18 @@
             "type": "string",
             "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
           }
+        },
+        "card_diary_lines": {
+          "description": "Diary entries the card shows at once (B2603: the last ones on top, more on a click).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "card_talk_lines": {
+          "description": "Last sentences of the conversation the card shows above the talk field (B2603: one conversation).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
         }
       }
     },
@@ -833,8 +942,60 @@
             "frost",
             "heat",
             "drought",
+            "thumb_up",
+            "thumb_down",
             "unknown"
           ]
+        }
+      }
+    },
+    "UiBarMood": {
+      "description": "Whether a feeling uplifts or burdens (for the bar rule B2642).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "description": "Mood id of the vocabulary.",
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "description": "uplift: much is good; burden: much is bad.",
+          "type": "string",
+          "enum": [
+            "uplift",
+            "burden"
+          ]
+        }
+      }
+    },
+    "UiLogCategory": {
+      "description": "A category of log lines (B2607): its id (text key ui.log.category.<id>), the line kinds in it, and whether its lines stand out.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kinds",
+        "highlight"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "highlight": {
+          "type": "boolean"
         }
       }
     }

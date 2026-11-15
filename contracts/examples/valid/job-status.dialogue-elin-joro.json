@@ -1,0 +1,49 @@
+{
+  "contract_version": "0.2",
+  "job_id": "5c1d2e3f-4a5b-8c6d-9e0f-1a2b3c4d5e6f",
+  "tick": 2600,
+  "kind": "dialogue",
+  "state": "done",
+  "result": {
+    "dialogue": {
+      "turns": [
+        {
+          "speaker": "inh-000001",
+          "text": {
+            "locale": "de",
+            "text": "Joro, hast du die Haselnüsse am Ufer gesehen?"
+          },
+          "act": "ask",
+          "expression": "wave"
+        },
+        {
+          "speaker": "inh-000002",
+          "text": {
+            "locale": "de",
+            "text": "Ja! Die kleinen braunen? Die mag ich."
+          },
+          "act": "answer",
+          "expression": "cheer"
+        },
+        {
+          "speaker": "inh-000001",
+          "text": {
+            "locale": "de",
+            "text": "Morgen sammeln wir zusammen welche."
+          },
+          "act": "tell",
+          "expression": null
+        }
+      ]
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "ollama",
+    "model": "qwen3.5:9b",
+    "prompt_version": "dialogue/talk.v1",
+    "seed": 4242,
+    "latency_ms": 9800,
+    "attempts": 1
+  }
+}

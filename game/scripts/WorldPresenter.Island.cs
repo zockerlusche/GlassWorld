@@ -412,7 +412,8 @@ public partial class WorldPresenter
             _focusColor = Color.FromHtml(ringColor.Color);
         }
 
-        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground, objectLooks.InventionMinShownM);
+        var kit = Read<BuildKit>(content, "build", "kit.json");
+        _inventionsView = Build.InventionsView.Create(kit, _ground, objectLooks.InventionMinShownM);
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
@@ -433,10 +434,33 @@ public partial class WorldPresenter
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
         var looks = _objectsView.Looks;
+        var wornColors = new Dictionary<string, string?>(StringComparer.Ordinal);
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
+            Expressions = Read<LookExpressions>(content, "look", "expressions.json"),
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
+            // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.
+            WornColor = id =>
+            {
+                if (!host.Objects.TryGet(id, out var thing))
+                {
+                    return null;
+                }
+
+                if (!wornColors.TryGetValue(thing.TypeId, out var color))
+                {
+                    color = host.Inventions.Builds.FirstOrDefault(b => b.TypeId == thing.TypeId && b.PlanJson is not null) is { PlanJson: { } plan }
+                        ? InventionLooks.MainColor(plan, kit)
+                        : null;
+                    if (color is not null)
+                    {
+                        wornColors[thing.TypeId] = color;
+                    }
+                }
+
+                return color;
+            },
         };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
@@ -1001,5 +1025,21 @@ public partial class WorldPresenter
         }
 
         return (x / members.Count, z / members.Count);
+    }
+
+    /// <summary>A1733 (B2716 (3)): the awake figures near one that shows a moment look over and may join in (look expressions join_in).</summary>
+    private void JoinInAround(string id, FigureView figure, string expressionId)
+    {
+        if (_figureShared?.Expressions?.JoinIn is not { } join)
+        {
+            return;
+        }
+
+        var at = figure.GlobalPosition;
+        var onlookers = _islandFigures.Select(f => new Onlooker(f.Key, f.Value.GlobalPosition.X, f.Value.GlobalPosition.Z, !f.Value.Lying));
+        foreach (var other in JoinIn.Who(join, expressionId, id, at.X, at.Z, onlookers))
+        {
+            _islandFigures[other].Watch(figure.HeadAnchor, join.LookS, join.Expression);
+        }
     }
 }

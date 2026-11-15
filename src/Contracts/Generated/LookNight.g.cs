@@ -68,6 +68,20 @@ namespace GlassWorld.Contracts
         public double ReduceMotionFactor { get; set; } = default!;
 
         /// <summary>
+        /// A1716 (B2683, B2776): the dream of a done look back (night items 'dream', checked by the service) appears as a calm text 'Elin dreams: ...' among the images, with the same limit. Absent or false = no dreams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("show_dreams")]
+        public bool? ShowDreams { get; set; } = default!;
+
+        /// <summary>
+        /// How long a dream text stands (real seconds) - a sentence needs longer than an image. Absent = hold_s.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dream_hold_s")]
+        public double? DreamHoldS { get; set; } = default!;
+
+        /// <summary>
         /// A1618 (B2683): what an inhabitant learned in the night (night items 'learned') appears as a short text among the images, with the same timing and limit. Absent or false = no texts.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

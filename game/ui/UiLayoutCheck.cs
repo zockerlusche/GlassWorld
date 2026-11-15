@@ -15,6 +15,9 @@ namespace GlassWorld.Game.Ui;
 /// </summary>
 public static class UiLayoutCheck
 {
+    // The card's bars: will to live and the needs under their card words (B2642).
+    private static readonly string[] CardBarKeys = ["ui.card.will_to_live", "ui.card.need.hunger", "ui.card.need.thirst", "ui.card.need.sleep", "ui.card.need.warmth", "ui.card.need.safety", "ui.card.need.company", "ui.card.need.fun", "ui.card.need.purpose"];
+
     private static readonly (int Width, int Height)[] Resolutions = [(1920, 1080), (3840, 1600)];
     private static readonly double[] UiScales = [0.75, 1.0, 2.0];
     private static readonly double[] TextScales = [1.0, 2.0];
@@ -84,7 +87,7 @@ public static class UiLayoutCheck
         host.AddChild(stage);
         var window = new GwWindow();
         window.Setup("ui.settings.title", style);
-        foreach (var key in new[] { "ui.card.need.hunger", "ui.card.need.thirst", "ui.card.need.sleep", "ui.card.need.warmth", "ui.card.need.safety", "ui.card.need.company", "ui.card.need.fun", "ui.card.need.purpose" })
+        foreach (var key in CardBarKeys.Skip(1))
         {
             window.Content.AddChild(new Label { Text = key });
         }
@@ -119,7 +122,6 @@ public static class UiLayoutCheck
         }
 
         problems.AddRange(await CheckComponents(host, stage, style, area));
-        problems.AddRange(await CheckTopBar(host, stage, style, area, timeChoices));
         stage.QueueFree();
         return problems;
     }
@@ -198,11 +200,24 @@ public static class UiLayoutCheck
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
         var date = DateSample(host);
-        var favor = TextFill.Fill(host.Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = "100", ["max"] = "100" });
-        var corner = GameScreen.CornerSample(style, choices, date, "23:59", favor);
+        var corner = GameScreen.CornerSample(style, choices, date, "23:59", host.Tr("ui.favor.name"));
         var portraits = new GwPortraitList();
         var log = new GwSidePanel();
         log.Setup("ui.log.title");
+
+        // A1684: the opened log with its filter (every category) and search over its lines; it must not widen the log
+        // into the free middle at any size.
+        var logTools = new HBoxContainer();
+        var logFilter = new OptionButton();
+        logFilter.AddItem("ui.log.category.all");
+        foreach (var category in style.Tokens.Log.Categories)
+        {
+            logFilter.AddItem(LogModel.CategoryKey(category.Id));
+        }
+
+        logTools.AddChild(logFilter);
+        logTools.AddChild(new LineEdit { PlaceholderText = "ui.log.search", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        log.Content.AddChild(logTools);
         var window = new GwSidePanel();
         window.Setup("ui.inhabitants.title");
         for (var i = 0; i < 26; i++)
@@ -216,10 +231,24 @@ public static class UiLayoutCheck
         portraits.Theme = world;
         log.ThemeTypeVariation = UiTheme.WorldPanel;
         log.Theme = world;
+        // The card (A1683) with long texts: a long name, a long question, the hint of the talk field in the form for the inhabitant.
+        var longName = TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = "12" }) + " Maximiliane-Friederike";
+        var ask = TextFill.Fill(host.Tr(QuestionKeys.CardAsk("unknown_object")), new Dictionary<string, string> { ["thing"] = host.Tr("vocab.object.dry_wood") });
+        var talkLine = TextFill.Fill(host.Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = longName, ["text"] = host.Tr("ui.question.reason.unknown_inhabitant.female") });
+        var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, new[] { host.Tr("ui.card.talk_hint"), host.Tr("ui.card.whisper_hint") }.MaxBy(h => h.Length)!, [.. CardBarKeys]);
+
+        // A1736 (TL #26282): the window and the card on the right stand on the world's dark ground as in the game.
+        var windowTheme = UiTheme.BuildWindowOnWorld(style);
+        foreach (var onWorld in new[] { window, card })
+        {
+            onWorld.ThemeTypeVariation = UiTheme.WorldPanel;
+            onWorld.Theme = windowTheme;
+        }
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
         stage.AddChild(window);
+        stage.AddChild(card);
         portraits.Setup(style);
         var problems = new List<string>();
         var margin = style.Tokens.Window.SafeMargin;
@@ -227,13 +256,18 @@ public static class UiLayoutCheck
         var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, style.Tokens.Zones.MiddleShare);
         var middle = new Rect2((float)mx, (float)my, (float)mw, (float)mh);
         var activity = host.Tr("ui.activity.show.inhabitant_topic");
-        foreach (var count in new[] { 2, style.Tokens.Zones.PortraitsCompactFrom + 4 })
+        // B2749: a few (full rows), some (portraits only), many (the important ones and +N).
+        var zones = style.Tokens.Zones;
+        foreach (var (count, right, rightName) in new (int, GwSidePanel, string)[] { (2, window, "window"), (zones.PortraitsCompactFrom + 1, window, "window"), (50, window, "window"), (2, card, "card") })
         {
-            portraits.SetRows([.. Enumerable.Range(1, count).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))]);
+            window.Visible = right == window;
+            card.Visible = right == card;
+            var showing = count >= zones.PortraitsImportantFrom ? zones.PortraitsImportantMax : count;
+            portraits.SetRows([.. Enumerable.Range(1, showing).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))], count - showing);
             for (var pass = 0; pass < 2; pass++)
             {
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-                GameScreen.PlaceCorners(area, style, corner, portraits, log, [(window, 0f)]);
+                GameScreen.PlaceCorners(area, style, corner, portraits, log, [(right, 0f, right == card)]);
             }
 
             await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -242,7 +276,7 @@ public static class UiLayoutCheck
                 ("time block", new Rect2(corner.Position, corner.Size)),
                 ($"{count} portraits", new Rect2(portraits.Position, portraits.Size)),
                 ("log", new Rect2(log.Position, log.Size)),
-                ("window", new Rect2(window.Position, window.Size)),
+                (rightName, new Rect2(right.Position, right.Size)),
             };
             foreach (var (name, box) in parts)
             {
@@ -273,16 +307,60 @@ public static class UiLayoutCheck
             }
 
             problems.AddRange(WorldTextProblems(style, "log", log));
+            problems.AddRange(WorldTextProblems(style, rightName, right));
+            problems.AddRange(FramedLabelProblems(rightName, right));
             problems.AddRange(WorldTextProblems(style, "time block", corner));
+
+            // The talk field shows its whole hint (D1060 find 7: 'Was mö…' in a card too narrow).
+            if (right == card && talkField.GetThemeFont("font") is { } font)
+            {
+                var hint = font.GetStringSize(talkField.PlaceholderText, HorizontalAlignment.Left, -1, talkField.GetThemeFontSize("font_size")).X;
+                var inner = talkField.Size.X - (talkField.GetThemeStylebox("normal")?.GetMinimumSize().X ?? 0);
+                if (hint > inner + 0.5f)
+                {
+                    problems.Add($"card: the talk field shows {inner:0} of {hint:0} px of its hint");
+                }
+            }
 
             if (portraits.Compact != (count >= style.Tokens.Zones.PortraitsCompactFrom))
             {
                 problems.Add($"{count} portraits: compact is {portraits.Compact}");
             }
+
+            if (portraits.MoreButton.Visible != (count > showing))
+            {
+                problems.Add($"{count} portraits: '+N' shown is {portraits.MoreButton.Visible}");
+            }
         }
 
         stage.QueueFree();
         return problems;
+    }
+
+    /// <summary>
+    /// A1736 (review GW3 #470): the window theme makes every label light. A label that stands inside a light framed part
+    /// (a panel with its own opaque fill) would be light on light - each visible label is measured against the fill of
+    /// the nearest framed parent it really stands on, not against the window's dark ground.
+    /// </summary>
+    private static IEnumerable<string> FramedLabelProblems(string name, Control window)
+    {
+        static RgbaColor Rgba(Color c) => new(c.R, c.G, c.B, c.A);
+        foreach (var label in window.FindChildren("*", nameof(Label), true, false).OfType<Label>().Where(l => l.IsVisibleInTree() && l.Text.Length > 0))
+        {
+            for (var parent = label.GetParent() as Control; parent is not null && parent != window; parent = parent.GetParent() as Control)
+            {
+                if (parent is PanelContainer panel && panel.GetThemeStylebox("panel") is StyleBoxFlat { BgColor.A: > 0.5f } fill)
+                {
+                    var ratio = RgbaColor.Contrast(Rgba(label.GetThemeColor("font_color")), Rgba(fill.BgColor with { A = 1 }));
+                    if (ratio < UiStandardRules.TextContrast)
+                    {
+                        yield return $"{name}: label '{label.Text}' on the fill of {parent.Name} has contrast {ratio:0.00}, needs {UiStandardRules.TextContrast:0.0}";
+                    }
+
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -327,44 +405,6 @@ public static class UiLayoutCheck
     /// <summary>Season and game day as the time block shows them side by side.</summary>
     private static string DateSample(Node host) =>
         TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host)) + "  " + TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
-
-    /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
-    private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
-    {
-        var (bar, date, day, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host));
-        day.Text = TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
-        time.Text = "23:59";
-        var side = new GwSideBar();
-        side.Add("inhabitants", "ui.inhabitants.title");
-        side.Add("questions", "ui.questions.title");
-        stage.AddChild(bar);
-        stage.AddChild(side);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var margin = style.Tokens.Window.SafeMargin;
-        var room = area.X - (2 * margin) - side.GetCombinedMinimumSize().X - style.Tokens.Window.Gap;
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var problems = new List<string>();
-        // The bar flows into more lines at large UI and text sizes (up to 4x on 1080p); it must keep its
-        // room next to the side bar and leave at least half of the height to the world (D366 section 2).
-        if (bar.GetCombinedMinimumSize().X > room + 0.5f || bar.Size.Y > area.Y / 2)
-        {
-            problems.Add($"top bar {bar.Size} (minimum {bar.GetCombinedMinimumSize()}) does not fit room {room:0} px or takes more than half the height");
-        }
-
-        bar.QueueFree();
-        foreach (var panel in side.Panels)
-        {
-            // The side bar creates its panels; here they never joined the tree, so free them directly.
-            panel.Free();
-        }
-
-        side.QueueFree();
-        return problems;
-    }
 
     /// <summary>Side panel with table, hint stack and a long speech bubble in the same case.</summary>
     private static async Task<IReadOnlyList<string>> CheckComponents(Node host, Control stage, UiStyle style, Vector2 area)
@@ -481,7 +521,8 @@ public static class UiLayoutCheck
             problems.Add($"table header needs {table.HeaderMinimumWidth():0} px, panel offers {inner:0} px");
         }
 
-        if (board.Visible.Count != style.Tokens.Toast.MaxVisible - 1 || board.Visible[1].Count != 13)
+        // One plain hint and thirteen knocks bundled into one (A1684: the box shows at most two).
+        if (board.Visible.Count != Math.Min(2, style.Tokens.Toast.MaxVisible) || board.Visible[^1].Count != 13)
         {
             problems.Add("hint bundling does not match the board");
         }

@@ -42,6 +42,26 @@ public partial class FigureView : Node3D
     private string _shownPose = string.Empty;
     private bool _standsIdle;
     private bool _lying;
+    private ShaderMaterial? _paint;
+    private string _topColor = "#ffffff";
+    private string? _wornShown;
+
+    /// <summary>A1732: an event of this inhabitant - the expression layer may show it (cheering at an invention); what shows, else null.</summary>
+    public ExpressionShown? Express(string kind) => _expressions?.Event(kind);
+
+    /// <summary>
+    /// A1733 (B2716 (3)): another figure nearby shows a moment - this one looks over at it (head and upper body) for
+    /// its seconds and may show an expression of its own (joining in), subject to its own calm pause.
+    /// </summary>
+    public void Watch(Node3D at, double seconds, string? joinIn)
+    {
+        _watched = at;
+        _watchLeft = Math.Max(_watchLeft, seconds);
+        if (joinIn is not null)
+        {
+            _expressions?.Show(joinIn);
+        }
+    }
 
     /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
     public bool Lying => _lying;
@@ -76,6 +96,13 @@ public partial class FigureView : Node3D
     private KneeStraightenModifier _knees = null!;
     private GestureLayer? _gestures;
     private FigureGesture? _gestureWanted;
+    private ComfortLook _comfortLook = ComfortLook.None;
+    private ExpressionLayer? _expressions;
+    private ExpressionShown? _expressionShown;
+    private IReadOnlyDictionary<string, double> _moods = new Dictionary<string, double>();
+    private IReadOnlyDictionary<string, double> _needs = new Dictionary<string, double>();
+    private double _shiverSeconds;
+    private bool _shivering;
     private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
     private SeatPose? _seat;
@@ -89,6 +116,8 @@ public partial class FigureView : Node3D
     private double _expressLeft;
     private double _waveLeft;
     private double _talkLeft;
+    private Node3D? _watched;
+    private double _watchLeft;
 
     /// <summary>Inhabitant id.</summary>
     public string InhabitantId { get; private set; } = string.Empty;
@@ -152,6 +181,9 @@ public partial class FigureView : Node3D
             // Where the skeleton is in the figure: the watched bones are read in the skeleton's space.
             view._skeletonInBody = node is Node3D spatial ? spatial.Transform * view._skeletonInBody : view._skeletonInBody;
         }
+        // A1577: the shared paint of body and clothing - a worn thing colours the top (region_top) while it is worn.
+        view._paint = figure.Body.MaterialOverride as ShaderMaterial;
+        view._topColor = spec.Top;
         if (figures.Silhouette.Enabled && figure.Body.MaterialOverride is { } material)
         {
             // Behind a tree, rock or object the figure shows as a calm silhouette in its colour (W1689).
@@ -214,12 +246,23 @@ public partial class FigureView : Node3D
             : null;
         _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
+        // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
+        _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
+        (_moods, _needs) = (inhabitant.Moods, inhabitant.Needs);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
         // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count, _lying);
+
+        // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
+        var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
+        if (worn != _wornShown && _paint is not null)
+        {
+            _paint.SetShaderParameter("region_top", Color.FromHtml(worn ?? _topColor));
+            _wornShown = worn;
+        }
         if (place)
         {
             // Placed (after a warm-up, a load) it lies or stands at once, without the way there.
@@ -438,8 +481,24 @@ public partial class FigureView : Node3D
         _knees.Share = (float)knees;
         _knees.HipShare = (float)hips;
 
+        // A1732 (B2716): what it feels shows over the action - an event's short expression, else a mood or need.
+        _expressions ??= _shared.Expressions is { } expressionData ? new ExpressionLayer(expressionData, figures.Gestures) : null;
+        _expressionShown = !_lying && _lieSeconds <= 0 ? _expressions?.Update(delta, _moods, _needs) : null;
         HearAndAnswer(delta, figures.Greeting);
-        _gestures?.Update(delta, _actionShown && !_lying && _lieSeconds <= 0 ? _gestureWanted : null);
+        var still = !_lying && _lieSeconds <= 0;
+        var actionGesture = _actionShown && still ? _gestureWanted : null;
+        // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
+        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
+
+        // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
+        _shiverSeconds += delta;
+        var shiver = still && !_laid ? GestureCadence.ShiverAt(_comfortLook, _shiverSeconds, _bodyScale.X) : 0;
+        if (shiver != 0 || _shivering)
+        {
+            _body.Position = _bodyPosition + new Vector3((float)shiver, 0, 0);
+            _shivering = shiver != 0;
+        }
+
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {
@@ -513,6 +572,7 @@ public partial class FigureView : Node3D
         _expressLeft = Math.Max(0, _expressLeft - delta);
         _waveLeft = Math.Max(0, _waveLeft - delta);
         _talkLeft = Math.Max(0, _talkLeft - delta);
+        _watchLeft = Math.Max(0, _watchLeft - delta);
         var ease = greeting.EasePerS;
         var looking = _lookLeft > 0 && GetViewport()?.GetCamera3D() is not null;
         if (looking)
@@ -527,10 +587,17 @@ public partial class FigureView : Node3D
             }
         }
 
+        // A1733: the voice first; otherwise it looks over at another's moment while awake (head and upper body only).
+        var watching = !looking && _watchLeft > 0 && !_lying && _lieSeconds <= 0 && _watched is not null && IsInstanceValid(_watched);
+        if (watching)
+        {
+            _lookAt.Target = _watched!.GlobalPosition;
+        }
+
         // Lying it keeps its arms down: no wave from the ground.
-        _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking ? 1 : 0, ease, delta);
+        _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking || watching ? 1 : 0, ease, delta);
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
-        _face.Expression = _talkLeft > 0 ? "talk" : "neutral";
+        _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
     }
 
     /// <summary>The see-through pass: drawn only where something in front hides the figure (W1689).</summary>

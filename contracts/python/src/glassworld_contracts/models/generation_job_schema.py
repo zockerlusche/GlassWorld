@@ -477,6 +477,24 @@ class ChronicleDayLine(BaseModel):
     )
 
 
+class DialogueSpeaker(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    inhabitant: common_schema.InhabitantState = Field(
+        ...,
+        description='As in a question: needs, mood, traits, memory, knowledge, relationships; name and life_stage when known (a minor never gets the reserved topics, B9).',
+    )
+    calls_other: common_schema.LocalizedName | None = Field(
+        ...,
+        description="What THIS speaker calls the other one - the name it learned, by its own knowledge only; null while it knows none (then 'du', never a made-up name).",
+    )
+    last_thought: common_schema.GeneratedText | None = Field(
+        None,
+        description='Its latest shown thought, so the talk can start from what is on its mind. Optional.',
+    )
+
+
 class ChroniclePayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -498,6 +516,27 @@ class ChroniclePayload(BaseModel):
     )
 
 
+class DialoguePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    speakers: list[DialogueSpeaker] = Field(
+        ...,
+        description='The two speakers, the one who began first.',
+        max_length=2,
+        min_length=2,
+    )
+    max_turns: int = Field(..., description='Most turns (data; B2782: 4).', ge=2, le=4)
+    max_words: int = Field(
+        ..., description='Most words per turn (data; B2782: 14).', ge=4, le=20
+    )
+    expressions: list[common_schema.VocabId] = Field(
+        ...,
+        description='Body expressions a turn may show (vocabulary expression, D958), sorted by the core.',
+        max_length=64,
+    )
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -514,6 +553,7 @@ class JobPayload(BaseModel):
     review: ReviewPayload | None = None
     milestone: MilestonePayload | None = None
     chronicle: ChroniclePayload | None = None
+    dialogue: DialoguePayload | None = None
 
 
 class GenerationJob(BaseModel):

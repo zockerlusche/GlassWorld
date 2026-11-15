@@ -31,6 +31,9 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public Func<Inhabitant, string, bool>? Feels { get; set; }
 
+    /// <summary>B2773: whether a thing near keeps the weather off an inhabitant (the body's shelter lookup); null = never.</summary>
+    public Func<Inhabitant, bool>? Sheltered { get; set; }
+
     /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
     /// the air the inhabitant feels; null = none. Set by the host.
@@ -144,6 +147,28 @@ public sealed partial class InhabitantsSystem
         }
 
         return points[^1].PerHour;
+    }
+
+    // A1729/A1730 (review GW4 #467): the snapshot's comfort level, worked out once per inhabitant and world tick -
+    // the look asks every frame, the full felt air (sun and shade, wind shelter, fire, others) is not cheap. Not state.
+    private readonly Dictionary<string, (long Tick, string? Level)> _comfortForView = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The comfort level for the look (A1730): <see cref="ComfortLevelOf"/>, kept for the rest of the tick. Asked between
+    /// ticks (snapshots), so it never sees a half-done tick (the felt cache of #435 is the core's, inside its loop).
+    /// </summary>
+    public string? ComfortLevelForView(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_comfortForView.TryGetValue(inhabitant.Id, out var known) && known.Tick == world.Tick)
+        {
+            return known.Level;
+        }
+
+        var level = ComfortLevelOf(world, inhabitant);
+        _comfortForView[inhabitant.Id] = (world.Tick, level);
+        return level;
     }
 
     /// <summary>

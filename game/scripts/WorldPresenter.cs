@@ -103,6 +103,30 @@ public partial class WorldPresenter : Node3D
     /// <summary>State hash right after restoring, before open questions are sent again (save/load check).</summary>
     public string? HashAtLoad { get; private set; }
 
+    /// <summary>
+    /// The start population for tours and measurements (<c>--inhabitants=N</c> after <c>--</c>; B2749: the click tour
+    /// with 50 inhabitants; debug builds only, like <c>--load-save</c>, review GW3 #454); null = the data's start
+    /// inhabitants, as every game starts.
+    /// </summary>
+    private static int? StartInhabitants()
+    {
+        const string prefix = "--inhabitants=";
+        if (!OS.IsDebugBuild())
+        {
+            return null;
+        }
+
+        foreach (var arg in OS.GetCmdlineUserArgs())
+        {
+            if (arg.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(arg[prefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var count) && count > 0)
+            {
+                return count;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
     public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null, null);
 
@@ -131,7 +155,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate })
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate }, StartInhabitants())
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {
@@ -561,6 +585,12 @@ public partial class WorldPresenter : Node3D
             {
                 // D1112 #8: a figure lying asleep neither speaks nor thinks on screen (the core keeps sleepers quiet too, A1710).
                 continue;
+            }
+
+            // A1732 (B2716): the inhabitant's own moments may show on its body (cheering at an invention).
+            if (_islandFigures.TryGetValue(e.InhabitantId, out var expressing) && expressing.Express(e.Kind) is { } shown)
+            {
+                JoinInAround(e.InhabitantId, expressing, shown.Id);
             }
 
             if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)

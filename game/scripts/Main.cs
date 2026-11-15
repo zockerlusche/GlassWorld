@@ -123,13 +123,6 @@ public partial class Main : Node3D
             _settingsPath = SettingsStore.DefaultPath;
             _settings = _smokeFrames > 0 || _shotsFolder is not null ? PlayerSettings.Parse(null, _limits) : SettingsStore.Load(_settingsPath, _limits);
 
-            // The smoke's screen checks were written for the old layout; the corners (the standard, A1682) have their
-            // own check, CheckCornersAsync, until step 3 removes the old layout.
-            if (_smokeFrames > 0)
-            {
-                _settings = _settings with { ClassicLayout = true };
-            }
-
             ApplySettings(_settings);
         }
 
@@ -534,6 +527,8 @@ public partial class Main : Node3D
         }
 
         _audio = new WorldAudio { Name = "WorldAudio" };
+        var presenter = _world;
+        _audio.Trace = () => presenter?.Trace;
         AddChild(_audio);
         if (_world.Mode == WorldLookMode.Island)
         {

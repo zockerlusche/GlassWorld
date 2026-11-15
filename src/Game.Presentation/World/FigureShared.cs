@@ -40,6 +40,12 @@ public sealed class FigureShared
     /// <summary>A1632: where a hand meets a thing of this type (look/objects visuals' reach), or null; set by the presenter.</summary>
     public Func<string, AnimationMappingReach?>? ReachOf { get; init; }
 
+    /// <summary>A1577 (K4): the colour (#rrggbb) a worn thing gives the figure's top, by its object id; null = unchanged.</summary>
+    public Func<string, string?>? WornColor { get; init; }
+
+    /// <summary>A1732 (B2716): the expression layer's data (look expressions), or null = no expressions.</summary>
+    public LookExpressions? Expressions { get; init; }
+
     /// <summary>Whether the figures get the ink outline of the quality level (<see cref="QualityPlan.HullOutline"/>; the figure look data can still switch it off).</summary>
     public bool HullOutline { get; init; } = true;
 

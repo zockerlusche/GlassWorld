@@ -1,0 +1,93 @@
+{
+  "contract_version": "0.2",
+  "cooldown_s": 20,
+  "expressions": [
+    {
+      "id": "cheer",
+      "face": "smile",
+      "gesture": "arms_up",
+      "seconds": 2.5
+    },
+    {
+      "id": "glad",
+      "face": "smile",
+      "seconds": 3
+    },
+    {
+      "id": "sad",
+      "face": "sad"
+    },
+    {
+      "id": "afraid",
+      "face": "surprised"
+    },
+    {
+      "id": "yawn",
+      "gesture": "yawn"
+    },
+    {
+      "id": "join",
+      "face": "smile",
+      "gesture": "hands_together",
+      "seconds": 2.5
+    }
+  ],
+  "events": [
+    {
+      "event": "invented",
+      "expression": "cheer"
+    },
+    {
+      "event": "built",
+      "expression": "cheer"
+    },
+    {
+      "event": "milestone_reached",
+      "expression": "cheer"
+    },
+    {
+      "event": "first_use",
+      "expression": "glad"
+    },
+    {
+      "event": "discovered_process",
+      "expression": "glad"
+    },
+    {
+      "event": "praised",
+      "expression": "glad"
+    }
+  ],
+  "moods": [
+    {
+      "mood": "fear",
+      "at_least": 0.7,
+      "expression": "afraid"
+    },
+    {
+      "mood": "sadness",
+      "at_least": 0.7,
+      "expression": "sad"
+    },
+    {
+      "mood": "joy",
+      "at_least": 0.85,
+      "expression": "glad"
+    }
+  ],
+  "needs": [
+    {
+      "need": "sleep",
+      "at_most": 0.2,
+      "expression": "yawn"
+    }
+  ],
+  "join_in": {
+    "notice": [
+      "cheer"
+    ],
+    "radius_m": 8,
+    "look_s": 3,
+    "expression": "join"
+  }
+}

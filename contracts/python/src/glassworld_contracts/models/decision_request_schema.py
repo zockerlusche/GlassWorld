@@ -48,6 +48,12 @@ class PerceivedObject(BaseModel):
     )
     distance_m: float = Field(..., ge=0.0)
     known_properties: list[common_schema.KnownProperty]
+    above_m: float | None = Field(
+        None,
+        description="D1105 H2: how high the thing is above the ground, in metres (a fruit in a tree's crown); absent = on the ground. What one sees; whether it can be reached is the core's (H3).",
+        ge=0.0,
+        le=100.0,
+    )
     label: common_schema.LocalizedName | None = Field(
         None,
         description="What THIS inhabitant calls this kind of thing (type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",

@@ -84,10 +84,17 @@ public sealed class MeetingTests
         Assert.Single(meetings, e => e.InhabitantId == one.Id && e.TargetId == other.Id);
         var strangers = Of(Starts.Strangers);
 
-        // Within the day after the meeting a relationship between the pairs has changed. (For a while this
-        // needed two more days: the decider's first choice towards a stranger, queued behind a running talk,
-        // was replaced by its own answer to the next question. A1487 ended that: one thing at a time.)
-        Assert.Contains(all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))), r => r != strangers);
+        // Within two days after the meeting a relationship between the pairs has changed. (For a while this
+        // needed more: the decider's first choice towards a stranger, queued behind a running talk, was replaced
+        // by its own answer to the next question. A1487 ended that: one thing at a time. With the tree kinds of
+        // D1105 H1 the start island of seed 1 changed, and the pairs need a little longer to meet again.)
+        bool Changed() => all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))).Any(r => r != strangers);
+        for (var t = 0; t < ticksPerDay && !Changed(); t++)
+        {
+            host.World.Step();
+        }
+
+        Assert.True(Changed(), "no relationship between the pairs changed within two days of meeting");
     }
 
     [Fact]

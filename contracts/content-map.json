@@ -303,6 +303,10 @@
       "schema": "look-figures"
     },
     {
+      "pattern": "look/expressions.json",
+      "schema": "look-expressions"
+    },
+    {
       "pattern": "look/world.json",
       "schema": "look-world"
     },

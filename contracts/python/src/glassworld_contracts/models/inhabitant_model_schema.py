@@ -11,22 +11,33 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class NeedModel(BaseModel):
+class NeedDecayWhen(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    per_hour: float = Field(
+        ..., description='Decay per hour while the conditions hold.', ge=0.0, le=1.0
     )
-    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
-    neglect_below: float = Field(
-        ...,
-        description='Below this value the need counts as neglected (will to live).',
+    recover_per_hour: float | None = Field(
+        None,
+        description='While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual.',
         ge=0.0,
         le=1.0,
+    )
+    day_phases: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Day phases (vocabulary time_of_day) in which it holds.',
+        max_length=4,
+    )
+    alone_m: float | None = Field(
+        None,
+        description='No other inhabitant within this many metres.',
+        ge=0.0,
+        le=1000.0,
+    )
+    unsheltered: bool | None = Field(
+        None,
+        description="true: no thing with the body data's shelter property within its shelter reach.",
     )
 
 
@@ -112,6 +123,14 @@ class ComfortFelt(BaseModel):
     )
 
 
+class Reach(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    height_cm: int = Field(..., ge=0, le=1000)
+    actions: list[common_schema.VocabId] = Field(..., max_length=32)
+
+
 class MoodDriver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -174,6 +193,19 @@ class ComfortZoneActionFactor(BaseModel):
     )
 
 
+class WakeRested(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    at: float = Field(..., gt=0.0, le=1.0)
+
+
 class Togetherness(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -205,11 +237,36 @@ class Togetherness(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    silent_while_asleep: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.",
+        max_length=16,
+    )
+    thoughts_on_waking: int | None = Field(
+        None,
+        description="A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.",
+        ge=0,
+        le=5,
+    )
     bedtime_after_nightfall_hours: float | None = Field(
         None,
         description='B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.',
         ge=0.0,
         le=12.0,
+    )
+    bedtime_window_hours: float | None = Field(
+        None,
+        description="A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).",
+        gt=0.0,
+        le=12.0,
+    )
+    wake_rested: WakeRested | None = Field(
+        None,
+        description="B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.",
+    )
+    sleep_through_night: bool | None = Field(
+        None,
+        description="B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).",
     )
 
 
@@ -318,6 +375,26 @@ class NeedRules(BaseModel):
         le=1.0,
     )
     max_runtime_needs: int = Field(..., ge=0, le=64)
+
+
+class NeedModel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
+    neglect_below: float = Field(
+        ...,
+        description='Below this value the need counts as neglected (will to live).',
+        ge=0.0,
+        le=1.0,
+    )
+    decay_when: NeedDecayWhen | None = None
 
 
 class ComfortZone(BaseModel):
@@ -452,5 +529,6 @@ class InhabitantModel(BaseModel):
     skill_rules: SkillRules
     need_rules: NeedRules | None = None
     togetherness: Togetherness | None = None
+    reach: Reach | None = None
     diary: Diary | None = None
     comfort_zone: ComfortZone | None = None

@@ -105,13 +105,15 @@ public sealed class RunTraceWriter : IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(kind);
         ArgumentNullException.ThrowIfNull(fields);
-        Write(tick, kind, json =>
+
+        // The game calls this from its own code (the sound director): a write error switches the trace off there too.
+        Guarded(() => Write(tick, kind, json =>
         {
             foreach (var (name, value) in fields.OrderBy(f => f.Key, StringComparer.Ordinal))
             {
                 WriteOptional(json, name, value);
             }
-        });
+        }));
     }
 
     /// <summary>Writes what the logs gained since the last call and flushes (call it after a step or before closing).</summary>
