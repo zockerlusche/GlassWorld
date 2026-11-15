@@ -249,7 +249,7 @@ public sealed class ContentSet
                 ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json"))),
                 ContractSerializer.Deserialize<ImageGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "image", "generation.json"))),
                 jobPhases.WaitForSleepersHours,
-                jobPhases.NotBeforeHours))
+                jobPhases.NotBeforeMinute))
         {
             BaseFunctions = LoadBaseFunctions(contentDirectory, objects.PropertyVocabulary),
         };

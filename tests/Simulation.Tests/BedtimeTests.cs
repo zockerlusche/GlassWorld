@@ -163,23 +163,31 @@ public sealed class BedtimeTests
         thirsty.Needs["thirst"] = 0.01;
         Assert.NotEqual(JobPhase.Night, port.Phases[^1].Phase);
 
-        // The thirsty one stays awake: night comes at the limit.
-        host.World.Run((long)(Wait * host.World.Calendar.Settings.TicksPerHour));
+        // The thirsty one stays awake: night comes at the limit - but not before the data's clock minute (B2839).
+        host.World.Run((long)((Wait + 2) * host.World.Calendar.Settings.TicksPerHour));
         var night = port.Phases.Last(p => p.Phase == JobPhase.Night);
-        Assert.Equal((int)(Wait * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value);
+        var since = host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value;
+        var at = host.World.Calendar.At(night.Tick);
+        var clock = (at.Hour * 60) + at.Minute;
+        Assert.True(since >= (int)(Wait * 60), $"night after {since} min");
+        Assert.True(clock >= Content.Inventions.Build.NotBeforeMinute!.Value || clock < 12 * 60, $"night at {clock}");
+        Assert.True(since == (int)(Wait * 60) || clock == Content.Inventions.Build.NotBeforeMinute!.Value, $"night at {clock}, {since} min after nightfall");
     }
 
     [Fact]
     public void AllAsleepEarlyTheComputeNightStillWaitsForItsHour()
     {
         // A1798 (Marcel W2243): the compute night falls about midnight - not right at nightfall when all lie down early.
-        var notBefore = Content.Inventions.Build.NotBeforeHours!.Value;
+        var notBeforeMinute = Content.Inventions.Build.NotBeforeMinute!.Value;
         var port = new PhasePort();
         var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de", port);
         var sleeper = Person("inh-000001", new Position(0, 0));
         host.Inhabitants.Add(sleeper);
         var nightfall = FirstNightTick(host.World.Calendar);
         host.World.Run(nightfall + 2 - host.World.Tick);
+        var atNightfall = host.World.Calendar.At(nightfall);
+        var notBefore = (notBeforeMinute - ((atNightfall.Hour * 60) + atNightfall.Minute)) / 60.0;
+        Assert.True(notBefore > 0.5, $"nightfall {atNightfall.Hour}:{atNightfall.Minute:00} lies before {notBeforeMinute} minutes");
 
         // Fed and tired after the long first day: nothing but the clock decides the night here.
         foreach (var need in sleeper.Needs.Keys.ToList())
@@ -196,7 +204,8 @@ public sealed class BedtimeTests
 
         host.World.Run((long)(0.5 * host.World.Calendar.Settings.TicksPerHour));
         var night = port.Phases.Last(p => p.Phase == JobPhase.Night);
-        Assert.Equal((int)(notBefore * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value);
+        var at = host.World.Calendar.At(night.Tick);
+        Assert.Equal(notBeforeMinute, (at.Hour * 60) + at.Minute);
     }
 
     [Fact]
