@@ -83,6 +83,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tone")]
         public string Tone { get; set; } = default!;
 
+        /// <summary>
+        /// The language the dream is written in (the job's display locale), so a scene can leave out a dream in a language the player has switched away from (review GW3 #452). Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("locale")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
+        public Locale? Locale { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -23,6 +23,7 @@ from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
 
 OPEN_STATES = frozenset({"queued", "running", "deferred"})
 NIGHT_FACTS_MAX = 4  # A1618: the contract's limit of learned facts per night item
+DREAM_MAX_CHARS = 280  # A1716: the contract's limit of NightItem.dream.text
 
 
 class JobFailedError(Exception):
@@ -410,7 +411,22 @@ def _dream(record: _Record) -> dict[str, object] | None:
     tone: object = cast(dict[str, object], dream).get("tone")
     if not isinstance(text, str) or not text.strip() or not isinstance(tone, str):
         return None
-    return {"text": text.strip()[:280], "tone": tone}
+    item: dict[str, object] = {"text": _short(text.strip(), DREAM_MAX_CHARS), "tone": tone}
+    # The dream's language (review GW3 #452): a scene can leave out a dream in another language.
+    locale: object = (
+        cast(dict[str, object], shown).get("locale") if isinstance(shown, dict) else None
+    )
+    if isinstance(locale, str):
+        item["locale"] = locale
+    return item
+
+
+def _short(text: str, limit: int) -> str:
+    """The text, or cut at the last space before the limit with an ellipsis (review GW3 #452)."""
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+    return cut + "…"
 
 
 def _learned(record: _Record, object_type: object) -> list[dict[str, object]]:

@@ -43,6 +43,10 @@ class NightDream(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    locale: common_schema.Locale | None = Field(
+        None,
+        description="The language the dream is written in (the job's display locale), so a scene can leave out a dream in a language the player has switched away from (review GW3 #452). Optional.",
+    )
 
 
 class NightFact(BaseModel):

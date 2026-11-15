@@ -238,8 +238,17 @@ def test_a_done_review_shows_its_dream_and_a_refused_one_none(settings: Settings
     assert done[str(good.request_id)]["dream"] == {
         "text": "Ich laufe über den Strand.",
         "tone": "calm",
+        "locale": "de",
     }
     assert "dream" not in done[str(refused.request_id)]
     validator = ContractValidator(settings.schemas_dir)
     body = {"contract_version": "0.2", "phase": "night", "session": runner.session, "items": items}
     assert validator.errors("night-items", body) == []
+
+
+def test_a_long_dream_is_cut_at_a_word() -> None:
+    """Review GW3 #452: never inside a word."""
+    from glassworld_ai.jobs import _short  # pyright: ignore[reportPrivateUsage]
+
+    assert _short("Ich laufe weit", 280) == "Ich laufe weit"
+    assert _short("Ich laufe über den Strand", 14) == "Ich laufe…"

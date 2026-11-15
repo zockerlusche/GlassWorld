@@ -13,7 +13,8 @@
       "image": null,
       "dream": {
         "text": "Ich laufe über den warmen Strand, und die Steine summen leise.",
-        "tone": "calm"
+        "tone": "calm",
+        "locale": "de"
       }
     }
   ]

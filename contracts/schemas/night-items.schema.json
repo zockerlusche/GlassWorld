@@ -64,7 +64,8 @@
       "required": ["text", "tone"],
       "properties": {
         "text": { "description": "The dream, one to three short sentences.", "type": "string", "minLength": 1, "maxLength": 280 },
-        "tone": { "description": "Its tone (as in the review result).", "$ref": "common.schema.json#/$defs/VocabId" }
+        "tone": { "description": "Its tone (as in the review result).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "locale": { "description": "The language the dream is written in (the job's display locale), so a scene can leave out a dream in a language the player has switched away from (review GW3 #452). Optional.", "$ref": "common.schema.json#/$defs/Locale" }
       }
     },
     "NightFact": {
