@@ -162,7 +162,7 @@ internal static class ReplayCommand
                 }
 
                 var then = saved[_checked];
-                if (now != then)
+                if (!DecisionLog.Agree(now, then))
                 {
                     return Math.Min(now.Tick, then.Tick);
                 }
