@@ -68,6 +68,14 @@ public partial class GameScreen : CanvasLayer
     private ConversationLog? _log;
     private long _logShown = -1;
 
+    // A1684 (B2607): the log shows its newest lines; opened it has categories and a search.
+    private readonly HBoxContainer _logTools = new() { Name = "LogTools", Visible = false };
+    private readonly OptionButton _logFilter = new() { Name = "LogFilter", TooltipText = "ui.log.filter_tooltip" };
+    private readonly LineEdit _logSearch = new() { Name = "LogSearch", PlaceholderText = "ui.log.search", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClearButtonEnabled = true };
+    private readonly Button _logMore = new() { Name = "LogMore", Flat = true, Alignment = HorizontalAlignment.Left, Visible = false };
+    private bool _logOpen;
+    private IReadOnlyList<InhabitantRow> _logRows = [];
+
     // The theme of the parts on the world without a box (S1b): light text with a dark outline; built per style.
     private Theme? _worldTheme;
     private string _questionShape = "-";
@@ -228,7 +236,26 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
 
         // Who said or thought what (Marcel W1696): the readable source, while the bubbles stay short.
-        _sideBar.Add("log", "ui.log.title").Content.AddChild(_logList);
+        var logContent = _sideBar.Add("log", "ui.log.title").Content;
+        _logTools.AddChild(_logFilter);
+        _logTools.AddChild(_logSearch);
+        logContent.AddChild(_logTools);
+        logContent.AddChild(_logList);
+        logContent.AddChild(_logMore);
+        _logFilter.AddItem("ui.log.category.all", 0);
+        foreach (var (category, i) in style.Tokens.Log.Categories.Select((c, i) => (c, i)))
+        {
+            _logFilter.AddItem(LogModel.CategoryKey(category.Id), i + 1);
+        }
+
+        _logFilter.ItemSelected += _ => RedrawLog();
+        _logSearch.TextChanged += _ => RedrawLog();
+        _logMore.Pressed += () =>
+        {
+            _logOpen = !_logOpen;
+            RedrawLog();
+            Layout();
+        };
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
         _sideBar.Add("help", "ui.help.title").Content.AddChild(_helpList);
         _sideBar.Add("mailbox", "ui.mailbox.title").Content.AddChild(_mailList);
@@ -458,6 +485,21 @@ public partial class GameScreen : CanvasLayer
         return _sideBar.OpenKey;
     }
 
+    /// <summary>
+    /// UI tour only (A1684): the log opened or closed, with a category (null = all) and a search; how many lines it
+    /// shows and how many the log holds.
+    /// </summary>
+    public (int Shown, int Held) LogForShots(bool open, string? category, string search)
+    {
+        _logOpen = open;
+        var index = category is null ? 0 : _style!.Tokens.Log.Categories.Select((c, i) => (c, i)).First(x => x.c.Id == category).i + 1;
+        _logFilter.Select(index);
+        _logSearch.Text = search;
+        RedrawLog();
+        Layout();
+        return (_logList.GetChildren().OfType<Button>().Count(), _log?.Newest().Count ?? 0);
+    }
+
     /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
     public void OpenPanelForShots(string? key)
     {
@@ -632,7 +674,18 @@ public partial class GameScreen : CanvasLayer
             _log?.Add(events);
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
-                _board.Push(hint, fastForward: _presenter.Speed > 1);
+                // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
+                // line, and "no answer" is a log line already.
+                var help = hint.Group == "help";
+                if (help || hint.TextKey == ScreenModel.KnockHint || !_zones)
+                {
+                    _board.Push(hint, fastForward: _presenter.Speed > 1);
+                }
+
+                if (_zones && _log is not null && hint.TextKey != ScreenModel.KnockHint && hint.Group != "no_answer")
+                {
+                    _log.AddHint(hint.LookAt, help ? LogModel.HelpHint : LogModel.QuestionHint, hint.TextKey, hint.Args, _presenter.Host?.World.Tick ?? 0, hint.LookAt);
+                }
             }
 
             foreach (var knock in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
@@ -843,7 +896,8 @@ public partial class GameScreen : CanvasLayer
             ResetPortraits(style.ContentScaleFactor);
         }
 
-        SetZones(!settings.ClassicLayout);
+        // S3b (A1684): the corners of Variante A are the only layout; the old top bar and side bar are gone.
+        SetZones(true);
 
         // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
         _logShown = -1;
@@ -1320,8 +1374,13 @@ public partial class GameScreen : CanvasLayer
     {
         if (_chronicle is not null && _presenter?.Host is { } host)
         {
-            // The core keeps the chronicle (saved state, #75); take what is new.
-            _chronicle.Sync(host.Chronicle);
+            // The core keeps the chronicle (saved state, #75); take what is new - and into the log (A1684, B2607:
+            // discoveries, ideas, births are easy to find there).
+            var added = _chronicle.Sync(host.Chronicle);
+            if (added > 0)
+            {
+                _log?.AddChronicle(_chronicle.Entries, added, entry => ChronicleBook.Line(entry, ChronicleNamesNow()));
+            }
         }
 
         // A day narrative from the computing night (A1355) shows the page anew as well.
@@ -1805,8 +1864,24 @@ public partial class GameScreen : CanvasLayer
         return text == sexed ? Tr(key).ToString() : text;
     }
 
-    /// <summary>Shows a calm hint (e.g. saving failed).</summary>
-    public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
+    /// <summary>
+    /// Shows a calm hint (e.g. saving failed): in the corner layout a line of the log (A1684: the hint box keeps only
+    /// knocks and calls for help), else a hint.
+    /// </summary>
+    public void ShowHint(ToastMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        // A failure the player must notice (B2712: saving, a faulted world) and the AI self-check stay in the box
+        // (review GW3 #463); confirmations and answers become log lines.
+        if (_zones && _log is not null && _style?.Tokens.Log.BoxKeys.Contains(message.TextKey) != true)
+        {
+            _log.AddHint(message.LookAt, LogModel.NoteHint, message.TextKey, message.Args, _presenter?.Host?.World.Tick ?? 0, message.LookAt);
+            return;
+        }
+
+        _board?.Push(message, fastForward: false);
+    }
 
     /// <summary>
     /// A new thought: a calm hint with a "look" button, at most one at a time (at high speed thoughts come
@@ -1814,7 +1889,8 @@ public partial class GameScreen : CanvasLayer
     /// </summary>
     private void NoticeThought(string inhabitantId)
     {
-        if (_board is null || _board.Waiting > 0 || _board.Visible.Any(t => t.Message.LookAt is not null))
+        // A1684: in the corner layout the thought is a line of the log, which leads to the inhabitant.
+        if (_zones || _board is null || _board.Waiting > 0 || _board.Visible.Any(t => t.Message.LookAt is not null))
         {
             return;
         }
@@ -1999,9 +2075,21 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
+    /// <summary>The log again from scratch (a filter, the search or open/closed changed).</summary>
+    private void RedrawLog()
+    {
+        _logShown = -1;
+        RefreshLog(_logRows);
+    }
+
+    /// <summary>
+    /// The log (Marcel W1696; A1684, B2607): closed its newest lines, opened all of them with a category filter and a
+    /// search; lines of a highlighted category (discovery, idea, built, important) in bold, so they stand out by shape.
+    /// </summary>
     private void RefreshLog(IReadOnlyList<InhabitantRow> rows)
     {
-        if (_log is null || _log.Version == _logShown)
+        _logRows = rows;
+        if (_log is null || _style is null || _log.Version == _logShown)
         {
             return;
         }
@@ -2013,18 +2101,89 @@ public partial class GameScreen : CanvasLayer
             child.QueueFree();
         }
 
-        var lines = _log.Newest();
-        if (lines.Count == 0)
+        var data = _style.Tokens.Log;
+        var open = _logOpen || !_zones;
+        _logTools.Visible = open;
+        var all = _log.Newest();
+        _logMore.Visible = _zones && (open || all.Count > data.CornerLines);
+        _logMore.Text = open ? "ui.log.less" : "ui.log.more";
+        if (all.Count == 0)
         {
             _logList.AddChild(new Label { Text = "ui.log.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
             return;
         }
 
+        var selected = _logFilter.GetSelectedId();
+        var category = selected > 0 ? data.Categories.ElementAt(selected - 1).Id : null;
+        var lines = open ? LogModel.Filter(all, category, _logSearch.Text, data, l => LogText(l, rows) ?? string.Empty) : all;
+        var bold = UiTheme.BoldFont();
+        var shown = 0;
         foreach (var line in lines)
+        {
+            if (!open && shown >= data.CornerLines)
+            {
+                break;
+            }
+
+            if (LogText(line, rows) is not { } text)
+            {
+                continue;
+            }
+
+            shown++;
+            var button = new Button
+            {
+                Text = text,
+                Flat = true,
+                Alignment = HorizontalAlignment.Left,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            if (LogModel.CategoryOf(line, data)?.Highlight == true && bold is not null)
+            {
+                button.AddThemeFontOverride("font", bold);
+            }
+
+            var id = line.LookAt ?? (rows.Any(r => r.Id == line.InhabitantId) ? line.InhabitantId : null);
+            var builtId = line.Kind == LogLineKind.Built ? line.Text : null;
+            // A1715: a built thing's line takes the camera to the thing (if it is still there), else to the inhabitant.
+            button.Pressed += () =>
+            {
+                if (builtId is not null && _presenter?.FocusThing(builtId) == true)
+                {
+                    return;
+                }
+
+                if (id is not null)
+                {
+                    ShowInhabitant(id);
+                }
+            };
+            _logList.AddChild(button);
+        }
+
+        if (shown == 0)
+        {
+            _logList.AddChild(new Label { Text = "ui.log.empty_filter", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        }
+    }
+
+    /// <summary>A log line as the player reads it, or null for a line of an inhabitant no longer there.</summary>
+    private string? LogText(LogLine line, IReadOnlyList<InhabitantRow> rows)
+    {
+        string text;
+        if (line.Kind is LogLineKind.Hint or LogLineKind.Chronicle && line.Key is { } textKey)
+        {
+            // A hint's or the chronicle's words: values that are keys (a need, an action) are translated now.
+            var args = (line.Args ?? new Dictionary<string, string>()).ToDictionary(a => a.Key, a => TextKeys.LooksLikeKey(a.Value) ? Tr(a.Value).ToString() : a.Value, StringComparer.Ordinal);
+            text = TextFill.Fill(Tr(textKey), args);
+        }
+        else
         {
             if (rows.FirstOrDefault(r => r.Id == line.InhabitantId) is not { } row)
             {
-                continue;
+                return null;
             }
 
             var key = line.Kind switch
@@ -2044,35 +2203,12 @@ public partial class GameScreen : CanvasLayer
                     ? TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? built.En : built.De
                     : Tr("ui.chronicle.something")
                 : string.Empty;
-            var text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text, ["thing"] = thing });
-            if (line.Count > 1)
-            {
-                text = TextFill.Fill(Tr("ui.log.again"), new Dictionary<string, string> { ["line"] = text, ["count"] = Number(line.Count) });
-            }
-
-            var button = new Button
-            {
-                Text = text,
-                Flat = true,
-                Alignment = HorizontalAlignment.Left,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            };
-            var id = row.Id;
-            var builtId = line.Kind == LogLineKind.Built ? line.Text : null;
-            // A1715: a built thing's line takes the camera to the thing (if it is still there), else to the inhabitant.
-            button.Pressed += () =>
-            {
-                if (builtId is not null && _presenter?.FocusThing(builtId) == true)
-                {
-                    return;
-                }
-
-                ShowInhabitant(id);
-            };
-            _logList.AddChild(button);
+            text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text, ["thing"] = thing });
         }
+
+        return line.Count > 1
+            ? TextFill.Fill(Tr("ui.log.again"), new Dictionary<string, string> { ["line"] = text, ["count"] = Number(line.Count) })
+            : text;
     }
 
     /// <summary>
@@ -2577,7 +2713,9 @@ public partial class GameScreen : CanvasLayer
 
         _presenter.Speed = speed;
         Refresh();
-        if (_cardId != id || _card is null || !_card.IsInsideTree())
+        // S3b: the card is the inspector's tab on the right (the old card window is gone with the old layout).
+        var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
+        if (_cardId != id || _sideBar.OpenKey != ScreenZones.Card || !cardPanel.IsVisibleInTree())
         {
             return "card did not open";
         }
@@ -2649,14 +2787,14 @@ public partial class GameScreen : CanvasLayer
 
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
-        if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
+        if (UiSetup.CurrentTheme is { } theme && cardPanel.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
         {
             return "the UI theme does not reach the game screen";
         }
 
         // Text size too, not only the frames (GW1 review #65 T3).
         var label = new Label();
-        _card.Content.AddChild(label);
+        cardPanel.Content.AddChild(label);
         var size = label.GetThemeFontSize("font_size");
         label.Free();
         if (_style is not null && size != _style.FontPx(UiFontSizeId.Body))
@@ -2717,20 +2855,17 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
-    /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
-    /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
+    /// The card stays inside the safe area and out of the free middle at the smallest and largest UI size (found in
+    /// the 3840x1600 screenshots: the card kept its old place after a size change; S3b: the card in its corner).
     /// </summary>
     private async Task<string> CheckCardPlacementAsync()
     {
-        if (_style is null || _card is null)
+        if (_style is null || _cardId is null)
         {
             return "card missing";
         }
 
-        if (_sideBar.OpenKey != "inhabitants")
-        {
-            _sideBar.Toggle("inhabitants");
-        }
+        var card = _sideBar.PanelOf(ScreenZones.Card);
 
         var original = _style;
         var problem = string.Empty;
@@ -2743,13 +2878,13 @@ public partial class GameScreen : CanvasLayer
             }
 
             var area = GetViewport().GetVisibleRect().Size;
-            var cardRect = new Rect2(_card.Position, _card.Size);
-            var foreground = CardArea(area).X >= area.X;
-            var overlap = (!foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect)))
-                || (_topBar is not null && new Rect2(_topBar.Position, _topBar.Size).Intersects(cardRect));
-            if (!_card.IsInsideSafeArea(area) || overlap)
+            var cardRect = new Rect2(card.Position, card.Size);
+            var margin = _style.Tokens.Window.SafeMargin;
+            var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin)).Grow(0.5f);
+            var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, _style.Tokens.Zones.MiddleShare);
+            if (!safe.Encloses(cardRect) || cardRect.Intersects(new Rect2((float)mx, (float)my, (float)mw, (float)mh)))
             {
-                problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
+                problem = $"card at UI {scale:0.##}: outside the safe area or in the free middle ({cardRect} in {area})";
                 break;
             }
         }

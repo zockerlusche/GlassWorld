@@ -30,9 +30,18 @@ public sealed class SleepTests
         Assert.True(host.Inhabitants.IsAsleep(sleeper));
         Assert.True(sleeper.Needs["sleep"] > 0.6, $"half a night: sleep {sleeper.Needs["sleep"]:0.000}");
 
+        // It wakes by the end of the night at the latest (B2778: rested by day it may wake earlier); what it slept stays.
+        double? atWaking = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == sleeper.Id && e.Action == SleepAction && e.Kind is InhabitantsSystem.ActionFinished or InhabitantsSystem.ActionCancelled)
+            {
+                atWaking ??= sleeper.Needs["sleep"];
+            }
+        };
         host.World.Run((duration / 2) + 2);
         Assert.False(host.Inhabitants.IsAsleep(sleeper));
-        Assert.True(sleeper.Needs["sleep"] >= 0.95, $"a night: sleep {sleeper.Needs["sleep"]:0.000}");
+        Assert.True(atWaking >= 0.95, $"a night: sleep {atWaking:0.000}");
     }
 
     [Fact]

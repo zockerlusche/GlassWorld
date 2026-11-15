@@ -206,7 +206,12 @@
       "regrow_hours": 72,
       "grows_on": {
         "object_type": "fruit_tree",
-        "within_cells": 2
+        "within_cells": 2,
+        "hangs": {
+          "min_permille": 300,
+          "max_permille": 800,
+          "falls_per_day_permille": 150
+        }
       }
     },
     {
@@ -532,6 +537,36 @@
       },
       "max_total": 16,
       "regrow_hours": 72
+    },
+    {
+      "biome": "forest",
+      "object_type": "birch_tree",
+      "per_1000_cells": 8,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 60
+    },
+    {
+      "biome": "forest",
+      "object_type": "young_tree",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 30
+    },
+    {
+      "biome": "meadow",
+      "object_type": "young_tree",
+      "per_1000_cells": 2,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20
     }
   ],
   "mandatory": [

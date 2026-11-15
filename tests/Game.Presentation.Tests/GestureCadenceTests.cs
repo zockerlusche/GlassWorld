@@ -7,6 +7,9 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>D958 D2: eating and drinking show as arm gestures from the look data.</summary>
 public sealed class GestureCadenceTests
 {
+    private static readonly string[] SomeActions = ["idle", "eat", "drink", "wander", "sleep", "use"];
+    private static readonly string[] ComfortGestures = ["hug_self", "wipe_brow"];
+
     private static LookFigures Figures() => ContractSerializer.Deserialize<LookFigures>(
         File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "figures.json")));
 
@@ -21,6 +24,44 @@ public sealed class GestureCadenceTests
         Assert.Equal("hand_to_mouth", GestureCadence.Choose(gestures, "eat", AnimationMappingReach.Low)?.Id);
         Assert.Null(GestureCadence.Choose(gestures, "inspect", AnimationMappingReach.Low));
         Assert.Null(GestureCadence.Choose(gestures, null, null));
+    }
+
+    [Fact]
+    public void ColdHugsAndShiversHeatWipesTheBrowAndNeitherIsAnActionsGesture()
+    {
+        // A1729 (A1379 rest): the comfort level shows through its own gestures, never through an action's choice.
+        var figures = Figures();
+        var cold = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, "cold");
+        var hot = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, "hot");
+        Assert.Equal("hug_self", cold.Gesture?.Id);
+        Assert.True(cold.ShiverM > 0 && cold.ShiverHz > 0);
+        Assert.Equal("wipe_brow", hot.Gesture?.Id);
+        Assert.Equal(0, hot.ShiverM);
+        Assert.Same(ComfortLook.None, GestureCadence.ForComfort(figures.Comfort, figures.Gestures, "comfortable"));
+        Assert.Same(ComfortLook.None, GestureCadence.ForComfort(figures.Comfort, figures.Gestures, null));
+        foreach (var action in SomeActions)
+        {
+            Assert.DoesNotContain(GestureCadence.Choose(figures.Gestures, action, null)?.Id, ComfortGestures);
+        }
+
+        // Calm: a small sideways shiver, scaled by the figure, back and forth around the place.
+        var peak = Enumerable.Range(0, 200).Select(i => Math.Abs(GestureCadence.ShiverAt(cold, i * 0.005, 1.0))).Max();
+        Assert.InRange(peak, cold.ShiverM * 0.9, cold.ShiverM);
+        Assert.Equal(0, GestureCadence.ShiverAt(hot, 0.3, 1.0));
+    }
+
+    [Fact]
+    public void EveryComfortEntryNamesAKnownLevelAndAnExistingGesture()
+    {
+        var figures = Figures();
+        var levels = ContractSerializer.Deserialize<Vocabulary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "vocabulary", "comfort_levels.json")))
+            .Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.NotEmpty(figures.Comfort!);
+        Assert.All(figures.Comfort!, c =>
+        {
+            Assert.Contains(c.Level, levels);
+            Assert.True(c.Gesture is null || figures.Gestures!.Any(g => g.Id == c.Gesture), c.Gesture);
+        });
     }
 
     [Fact]

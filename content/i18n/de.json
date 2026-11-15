@@ -1499,6 +1499,14 @@
       "text": "Asche"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birke"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Junger Baum"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
@@ -2559,6 +2567,58 @@
       "text": "Verlauf"
     },
     {
+      "key": "ui.log.more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.log.less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.log.search",
+      "text": "Suchen …"
+    },
+    {
+      "key": "ui.log.filter_tooltip",
+      "text": "Welche Einträge der Verlauf zeigt"
+    },
+    {
+      "key": "ui.log.empty_filter",
+      "text": "Nichts in dieser Auswahl."
+    },
+    {
+      "key": "ui.log.category.all",
+      "text": "Alles"
+    },
+    {
+      "key": "ui.log.category.talk",
+      "text": "Gespräche"
+    },
+    {
+      "key": "ui.log.category.thought",
+      "text": "Gedanken"
+    },
+    {
+      "key": "ui.log.category.discovery",
+      "text": "Entdeckungen"
+    },
+    {
+      "key": "ui.log.category.idea",
+      "text": "Ideen"
+    },
+    {
+      "key": "ui.log.category.built",
+      "text": "Gebautes"
+    },
+    {
+      "key": "ui.log.category.important",
+      "text": "Wichtiges"
+    },
+    {
+      "key": "ui.log.category.note",
+      "text": "Hinweise"
+    },
+    {
       "key": "ui.log.empty",
       "text": "Noch hat niemand etwas gesagt oder gedacht. Hier steht später, wer was gesagt hat – ein Klick führt zum Bewohner."
     },
@@ -2909,10 +2969,6 @@
     {
       "key": "ui.log.no_answer",
       "text": "{name} hat nicht geantwortet."
-    },
-    {
-      "key": "ui.settings.classic_layout",
-      "text": "Alter Bildschirmaufbau (Rückfall)"
     },
     {
       "key": "ui.zone.people",

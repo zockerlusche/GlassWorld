@@ -79,6 +79,9 @@ public partial class FigureView : Node3D
     private KneeStraightenModifier _knees = null!;
     private GestureLayer? _gestures;
     private FigureGesture? _gestureWanted;
+    private ComfortLook _comfortLook = ComfortLook.None;
+    private double _shiverSeconds;
+    private bool _shivering;
     private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
     private SeatPose? _seat;
@@ -220,6 +223,8 @@ public partial class FigureView : Node3D
             : null;
         _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
+        // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
+        _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
@@ -453,7 +458,20 @@ public partial class FigureView : Node3D
         _knees.HipShare = (float)hips;
 
         HearAndAnswer(delta, figures.Greeting);
-        _gestures?.Update(delta, _actionShown && !_lying && _lieSeconds <= 0 ? _gestureWanted : null);
+        var still = !_lying && _lieSeconds <= 0;
+        var actionGesture = _actionShown && still ? _gestureWanted : null;
+        // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
+        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _comfortLook.Gesture : null));
+
+        // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
+        _shiverSeconds += delta;
+        var shiver = still && !_laid ? GestureCadence.ShiverAt(_comfortLook, _shiverSeconds, _bodyScale.X) : 0;
+        if (shiver != 0 || _shivering)
+        {
+            _body.Position = _bodyPosition + new Vector3((float)shiver, 0, 0);
+            _shivering = shiver != 0;
+        }
+
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {

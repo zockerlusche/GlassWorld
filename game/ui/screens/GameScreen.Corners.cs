@@ -453,7 +453,8 @@ public partial class GameScreen
 
         // The log at the bottom left, below the portraits (it gets its own corner shape in step 3).
         var logTop = Math.Max(margin + listHeight + gap, area.Y - margin - ((area.Y - (2 * margin)) * (float)zones.LogHeightShare));
-        log.Dock(area, style, 0, logTop, left: true, widthPx: zones.LogWidth, maxWidth: leftRoom);
+        // A1684: a few lines on the bottom edge; opened it grows upwards, at most to its share of the height.
+        log.Dock(area, style, 0, logTop, left: true, widthPx: zones.LogWidth, maxWidth: leftRoom, fitContent: true, fromBottom: true);
     }
 
     /// <summary>
@@ -582,7 +583,7 @@ public partial class GameScreen
         static Rect2 Box(Control c) => new(c.Position, c.Size);
 
         _card?.Close();
-        ApplySettings(settings with { ClassicLayout = false }, _style);
+        ApplySettings(settings, _style);
         await Frames();
         try
         {

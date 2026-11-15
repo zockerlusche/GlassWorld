@@ -1499,6 +1499,14 @@
       "text": "Ash"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birch"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Young tree"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Fieldstone"
     },
@@ -2559,6 +2567,58 @@
       "text": "Log"
     },
     {
+      "key": "ui.log.more",
+      "text": "Show more"
+    },
+    {
+      "key": "ui.log.less",
+      "text": "Show less"
+    },
+    {
+      "key": "ui.log.search",
+      "text": "Search …"
+    },
+    {
+      "key": "ui.log.filter_tooltip",
+      "text": "Which entries the log shows"
+    },
+    {
+      "key": "ui.log.empty_filter",
+      "text": "Nothing in this selection."
+    },
+    {
+      "key": "ui.log.category.all",
+      "text": "Everything"
+    },
+    {
+      "key": "ui.log.category.talk",
+      "text": "Talk"
+    },
+    {
+      "key": "ui.log.category.thought",
+      "text": "Thoughts"
+    },
+    {
+      "key": "ui.log.category.discovery",
+      "text": "Discoveries"
+    },
+    {
+      "key": "ui.log.category.idea",
+      "text": "Ideas"
+    },
+    {
+      "key": "ui.log.category.built",
+      "text": "Built"
+    },
+    {
+      "key": "ui.log.category.important",
+      "text": "Important"
+    },
+    {
+      "key": "ui.log.category.note",
+      "text": "Notes"
+    },
+    {
       "key": "ui.log.empty",
       "text": "Nobody has said or thought anything yet. Later this shows who said what - a click leads to the inhabitant."
     },
@@ -2909,10 +2969,6 @@
     {
       "key": "ui.log.no_answer",
       "text": "{name} did not answer."
-    },
-    {
-      "key": "ui.settings.classic_layout",
-      "text": "Old screen layout (fallback)"
     },
     {
       "key": "ui.zone.people",

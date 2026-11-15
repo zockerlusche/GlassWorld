@@ -57,13 +57,6 @@ public sealed record PlayerSettings
     /// <summary>Hide everything that is not interactive (XAG 117: watch the world only).</summary>
     public bool HideUi { get; init; }
 
-    /// <summary>
-    /// The old screen layout (side bar on the right, top bar over the full width) as a fallback until the corner
-    /// layout is complete (TL #23224, D957 v4 step 3); off = the corners of Variante A, the standard (A1682). A new
-    /// name, so a saved "zones preview" from before does not keep anyone on the old layout.
-    /// </summary>
-    public bool ClassicLayout { get; init; }
-
     /// <summary>Volume per bus in dB (missing = default of the mix data).</summary>
     public Dictionary<string, double> BusVolumesDb { get; init; } = new(StringComparer.Ordinal);
 

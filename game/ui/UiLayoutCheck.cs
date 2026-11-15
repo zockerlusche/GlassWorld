@@ -122,7 +122,6 @@ public static class UiLayoutCheck
         }
 
         problems.AddRange(await CheckComponents(host, stage, style, area));
-        problems.AddRange(await CheckTopBar(host, stage, style, area, timeChoices));
         stage.QueueFree();
         return problems;
     }
@@ -205,6 +204,20 @@ public static class UiLayoutCheck
         var portraits = new GwPortraitList();
         var log = new GwSidePanel();
         log.Setup("ui.log.title");
+
+        // A1684: the opened log with its filter (every category) and search over its lines; it must not widen the log
+        // into the free middle at any size.
+        var logTools = new HBoxContainer();
+        var logFilter = new OptionButton();
+        logFilter.AddItem("ui.log.category.all");
+        foreach (var category in style.Tokens.Log.Categories)
+        {
+            logFilter.AddItem(LogModel.CategoryKey(category.Id));
+        }
+
+        logTools.AddChild(logFilter);
+        logTools.AddChild(new LineEdit { PlaceholderText = "ui.log.search", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        log.Content.AddChild(logTools);
         var window = new GwSidePanel();
         window.Setup("ui.inhabitants.title");
         for (var i = 0; i < 26; i++)
@@ -357,44 +370,6 @@ public static class UiLayoutCheck
     private static string DateSample(Node host) =>
         TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host)) + "  " + TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
 
-    /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
-    private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
-    {
-        var (bar, date, day, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host));
-        day.Text = TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
-        time.Text = "23:59";
-        var side = new GwSideBar();
-        side.Add("inhabitants", "ui.inhabitants.title");
-        side.Add("questions", "ui.questions.title");
-        stage.AddChild(bar);
-        stage.AddChild(side);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var margin = style.Tokens.Window.SafeMargin;
-        var room = area.X - (2 * margin) - side.GetCombinedMinimumSize().X - style.Tokens.Window.Gap;
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var problems = new List<string>();
-        // The bar flows into more lines at large UI and text sizes (up to 4x on 1080p); it must keep its
-        // room next to the side bar and leave at least half of the height to the world (D366 section 2).
-        if (bar.GetCombinedMinimumSize().X > room + 0.5f || bar.Size.Y > area.Y / 2)
-        {
-            problems.Add($"top bar {bar.Size} (minimum {bar.GetCombinedMinimumSize()}) does not fit room {room:0} px or takes more than half the height");
-        }
-
-        bar.QueueFree();
-        foreach (var panel in side.Panels)
-        {
-            // The side bar creates its panels; here they never joined the tree, so free them directly.
-            panel.Free();
-        }
-
-        side.QueueFree();
-        return problems;
-    }
-
     /// <summary>Side panel with table, hint stack and a long speech bubble in the same case.</summary>
     private static async Task<IReadOnlyList<string>> CheckComponents(Node host, Control stage, UiStyle style, Vector2 area)
     {
@@ -510,7 +485,8 @@ public static class UiLayoutCheck
             problems.Add($"table header needs {table.HeaderMinimumWidth():0} px, panel offers {inner:0} px");
         }
 
-        if (board.Visible.Count != style.Tokens.Toast.MaxVisible - 1 || board.Visible[1].Count != 13)
+        // One plain hint and thirteen knocks bundled into one (A1684: the box shows at most two).
+        if (board.Visible.Count != Math.Min(2, style.Tokens.Toast.MaxVisible) || board.Visible[^1].Count != 13)
         {
             problems.Add("hint bundling does not match the board");
         }
