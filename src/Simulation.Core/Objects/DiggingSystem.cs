@@ -48,6 +48,7 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
     private readonly Action<WorldEvent> _report;
     private readonly SortedDictionary<(int X, int Z), int> _depth = [];
     private readonly List<string> _pending = [];
+    private readonly List<WorldObject> _near = [];
 
     /// <summary>Creates the system.</summary>
     /// <param name="data">Digging data (content/world/digging.json).</param>
@@ -197,9 +198,11 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The pit (or well) of a cell: the thing of that type at the cell's centre, or null.</summary>
     private WorldObject? PitAt((int X, int Z) cell)
     {
+        // Only the things at the cell's centre, not every thing of the world (review GW1 #506).
         var at = _map.CentreOf(cell.X, cell.Z);
-        return _objects.All.FirstOrDefault(o => (o.TypeId == _data.PitType || o.TypeId == _data.WellType)
-            && Math.Abs(o.Position.X - at.X) < 0.01 && Math.Abs(o.Position.Z - at.Z) < 0.01);
+        _near.Clear();
+        _objects.Within(at, 0.05, _near);
+        return _near.FirstOrDefault(o => o.TypeId == _data.PitType || o.TypeId == _data.WellType);
     }
 
     private ulong Roll((int X, int Z) cell, int depth) =>
