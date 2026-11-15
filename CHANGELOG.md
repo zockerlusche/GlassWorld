@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Schnelldurchlauf (A1743, B2787): `tools/schnelldurchlauf/run.py` and `Schnelldurchlauf.cmd` in the test package - a new world runs without graphics as fast as the computer can (with or without AI), saves every day, writes learning log and run trace, and is then in the game's world list. Measured without AI: 30 game days in 55 s.
 - Nightly look back v3 (A1728, night run 15.11.: 'I met another person named Lena' - nobody is called Lena): other people appear by the name the inhabitant learned (the events' labels) or as 'someone'; a summary that calls someone by a name it never learned is refused with the reason. config: review prompt 3.
 - Cold and heat show on the figure (A1729 + A1730, A1379 rest): the inhabitant snapshot carries the comfort level (`ComfortLevel`, computed fresh); when cold, a figure standing or walking holds its arms to the body and shivers slightly; when hot, it wipes its brow now and then (look figures `comfort`, gestures `hug_self`/`wipe_brow`; calm placeholder values for the TL). Never over an action's own gesture, never while it lies.
 - A worn thing shows on the figure (A1577, K4 part 2): the top takes the kit colour of the worn invention's largest part while it is worn. Putting on is only the decider's choice (TL B2779): the routine entry is gone; the decider is offered put_on/take_off when they fit.
