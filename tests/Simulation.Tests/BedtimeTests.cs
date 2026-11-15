@@ -106,6 +106,50 @@ public sealed class BedtimeTests
     }
 
     [Fact]
+    public void ByDayASleeperWakesOnceRestedAtNightItSleepsOn()
+    {
+        // B2778 (A1711): a nap ends when the sleeper is rested; the night's sleep keeps its length.
+        var rested = Content.InhabitantModel.Togetherness!.WakeRested!;
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de");
+        var napper = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(napper);
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        var calendar = host.World.Calendar;
+        var noon = FirstNightTick(calendar) - (6 * calendar.Settings.TicksPerHour);
+        host.World.Run(noon - host.World.Tick);
+        Assert.Null(calendar.MinutesSinceNightfall(host.World.Tick));
+
+        foreach (var need in napper.Needs.Keys.ToList())
+        {
+            napper.Needs[need] = 1.0;
+        }
+
+        napper.Needs[rested.Need] = rested.At - 0.05;
+        napper.Activity = new Activity("sleep", null, napper.Position, null);
+        napper.Planned = null;
+        double? atWaking = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == napper.Id && e.Detail == InhabitantsSystem.WokenRested)
+            {
+                atWaking ??= napper.Needs[rested.Need];
+            }
+        };
+        host.World.Run(3 * calendar.Settings.TicksPerHour);
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.Detail == InhabitantsSystem.WokenRested && e.InhabitantId == napper.Id);
+        Assert.True(atWaking >= rested.At, $"woken at {atWaking:0.000}");
+
+        // At night the same sleeper sleeps on, rested or not, until the morning (sleep_through_night).
+        var night = FirstNightTick(calendar) + (3 * calendar.Settings.TicksPerHour);
+        host.World.Run(night - host.World.Tick);
+        napper.Needs[rested.Need] = 1.0;
+        napper.Activity = new Activity("sleep", null, napper.Position, null);
+        host.World.Run(2 * calendar.Settings.TicksPerHour);
+        Assert.True(host.Inhabitants.IsAsleep(napper));
+    }
+
+    [Fact]
     public void TheServiceHearsNightWhenAllSleepOrAtTheLimitNotAtNightfall()
     {
         var port = new PhasePort();

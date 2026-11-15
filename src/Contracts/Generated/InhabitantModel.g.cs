@@ -365,6 +365,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("bedtime_window_hours")]
         public double? BedtimeWindowHours { get; set; } = default!;
 
+        /// <summary>
+        /// B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wake_rested")]
+        public WakeRested? WakeRested { get; set; } = default!;
+
+        /// <summary>
+        /// B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sleep_through_night")]
+        public bool? SleepThroughNight { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -561,6 +575,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("comfort_zone")]
         public ComfortZone? ComfortZone { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WakeRested
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        public double At { get; set; } = default!;
 
     }
 
