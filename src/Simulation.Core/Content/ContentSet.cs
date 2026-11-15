@@ -162,6 +162,12 @@ public sealed class ContentSet
         var model = ContractSerializer.Deserialize<InhabitantModel>(File.ReadAllText(Path.Combine(contentDirectory, "inhabitants", "model.json")));
         var needs = Ids(vocabularies, VocabularyKind.Need);
         var moods = Ids(vocabularies, VocabularyKind.Mood);
+        // D1105 H3: the reach names known actions.
+        if (model.Reach?.Actions.Where(a => !Ids(vocabularies, VocabularyKind.Action).Contains(a)).ToList() is { Count: > 0 } unknownReach)
+        {
+            throw new InvalidDataException($"Inhabitant model: reach names unknown actions [{string.Join(", ", unknownReach)}].");
+        }
+
         CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait),
             vocabularies.TryGetValue(VocabularyKind.Sensation, out var sensations) ? sensations.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : []);
         var conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json")));

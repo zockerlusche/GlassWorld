@@ -174,6 +174,21 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// D1105 H3: how high an inhabitant reaches standing, and which actions need its hands on the thing; such an action on a thing that hangs higher fails honestly (event out_of_reach, detail too_high) - the core never names a way up.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Reach
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("height_cm")]
+        public int HeightCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
     /// While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -628,6 +643,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("togetherness")]
         public Togetherness? Togetherness { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reach")]
+        public Reach? Reach { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("diary")]

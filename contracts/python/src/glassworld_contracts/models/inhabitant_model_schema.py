@@ -123,6 +123,14 @@ class ComfortFelt(BaseModel):
     )
 
 
+class Reach(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    height_cm: int = Field(..., ge=0, le=1000)
+    actions: list[common_schema.VocabId] = Field(..., max_length=32)
+
+
 class MoodDriver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -521,5 +529,6 @@ class InhabitantModel(BaseModel):
     skill_rules: SkillRules
     need_rules: NeedRules | None = None
     togetherness: Togetherness | None = None
+    reach: Reach | None = None
     diary: Diary | None = None
     comfort_zone: ComfortZone | None = None

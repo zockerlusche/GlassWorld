@@ -92,6 +92,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Event: an action finished and its effects applied.</summary>
     public const string ActionFinished = "action_finished";
 
+    /// <summary>D1105 H3: an inhabitant could not get its hands on a thing (detail: why).</summary>
+    public const string OutOfReach = "out_of_reach";
+
+    /// <summary>Detail of <see cref="OutOfReach"/>: the thing hangs above one's reach.</summary>
+    public const string TooHigh = "too_high";
+
+    /// <summary>D1105 H3: how high a thing hangs above the ground in centimetres (the map); null = all on the ground.</summary>
+    public Func<string, int>? AboveCm { get; set; }
+
     /// <summary>An inhabitant took a thing into its hand (AK1a).</summary>
     public const string PickedUp = "picked_up";
 
@@ -1382,6 +1391,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             {
                 // B2687: the rule checker at the start - the partner thing must still lie within reach.
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = PartnerGone });
+                inhabitant.Activity = null;
+                return;
+            }
+
+            // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
+            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above && above > reach.HeightCm
+                && reach.Actions.Contains(activity.Action, StringComparer.Ordinal))
+            {
+                // A cancelled try as every other (review GW3 #471: building frees its pending thing, the repeat rest
+                // counts it), and the reason as its own event for memory and ideas.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = TooHigh });
+                Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = TooHigh });
                 inhabitant.Activity = null;
                 return;
             }

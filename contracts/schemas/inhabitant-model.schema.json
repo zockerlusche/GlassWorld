@@ -20,6 +20,7 @@
     "skill_rules": { "$ref": "#/$defs/SkillRules" },
     "need_rules": { "$ref": "#/$defs/NeedRules" },
     "togetherness": { "$ref": "#/$defs/Togetherness" },
+    "reach": { "$ref": "#/$defs/Reach" },
     "diary": { "$ref": "#/$defs/Diary" },
     "comfort_zone": { "$ref": "#/$defs/ComfortZone" }
   },
@@ -88,6 +89,16 @@
       "properties": {
         "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
         "levels": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }, "description": "Comfort levels at which it is felt." }
+      }
+    },
+    "Reach": {
+      "description": "D1105 H3: how high an inhabitant reaches standing, and which actions need its hands on the thing; such an action on a thing that hangs higher fails honestly (event out_of_reach, detail too_high) - the core never names a way up.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["height_cm", "actions"],
+      "properties": {
+        "height_cm": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "actions": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
       }
     },
     "MoodDriver": {
