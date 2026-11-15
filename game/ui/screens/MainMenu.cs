@@ -32,6 +32,7 @@ public partial class MainMenu : CanvasLayer
     private UiStyle? _style;
     private GwWindow? _window;
     private PanelContainer? _loading;
+    private PanelContainer? _menuBox;
 
     /// <summary>The player wants a new world.</summary>
     public event Action<NewWorldChoice>? NewWorldRequested;
@@ -58,7 +59,9 @@ public partial class MainMenu : CanvasLayer
         AddChild(_root);
         UiSetup.Bind(_root);
 
-        var panel = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
+        // B2791: the menu's box on the same dark ground as every window.
+        var panel = new PanelContainer { ThemeTypeVariation = UiTheme.WorldPanel, Theme = UiTheme.BuildWindowOnWorld(style) };
+        _menuBox = panel;
         panel.SetAnchorsPreset(Control.LayoutPreset.Center);
         panel.GrowHorizontal = Control.GrowDirection.Both;
         panel.GrowVertical = Control.GrowDirection.Both;
@@ -133,7 +136,7 @@ public partial class MainMenu : CanvasLayer
         }
 
         _loading?.QueueFree();
-        _loading = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
+        _loading = new PanelContainer { ThemeTypeVariation = UiTheme.WorldPanel, Theme = UiTheme.BuildWindowOnWorld(_style) };
         _loading.SetAnchorsPreset(Control.LayoutPreset.Center);
         _loading.GrowHorizontal = Control.GrowDirection.Both;
         _loading.GrowVertical = Control.GrowDirection.Both;
@@ -461,5 +464,18 @@ public partial class MainMenu : CanvasLayer
         control.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         row.AddChild(control);
         window.Content.AddChild(row);
+    }
+
+    public override void _EnterTree() => UiSetup.ThemeApplied += OnThemeApplied;
+
+    public override void _ExitTree() => UiSetup.ThemeApplied -= OnThemeApplied;
+
+    // A new style (text size, high contrast) reaches the menu's dark box too (B2791).
+    private void OnThemeApplied(Theme theme)
+    {
+        if (_menuBox is not null && UiSetup.Current is { } style)
+        {
+            _menuBox.Theme = UiTheme.BuildWindowOnWorld(style);
+        }
     }
 }

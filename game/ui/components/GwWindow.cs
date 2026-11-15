@@ -57,6 +57,24 @@ public partial class GwWindow : PanelContainer
     {
         _title.Text = titleKey;
         _style = style;
+
+        // B2791: every window - settings, pause, forms, messages, down to the deepest dialog - stands on the dark ground
+        // Marcel liked (S1b, A1736): light outlined text, the buttons, fields and tables keep their light form.
+        ThemeTypeVariation = UiTheme.WorldPanel;
+        Theme = UiTheme.BuildWindowOnWorld(style);
+    }
+
+    public override void _EnterTree() => UiSetup.ThemeApplied += OnThemeApplied;
+
+    public override void _ExitTree() => UiSetup.ThemeApplied -= OnThemeApplied;
+
+    // A new style (text size, high contrast) reaches the window's own theme too, not only the main theme.
+    private void OnThemeApplied(Theme theme)
+    {
+        if (_style is not null && UiSetup.Current is { } style)
+        {
+            Theme = UiTheme.BuildWindowOnWorld(style);
+        }
     }
 
     /// <summary>
