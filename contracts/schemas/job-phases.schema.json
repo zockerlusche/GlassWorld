@@ -28,6 +28,45 @@
       "type": "number",
       "minimum": 0,
       "maximum": 12
+    },
+    "night_queue": {
+      "description": "A1766 (A1568 step 2b, B2789, D1113 v3 4b): with the player's day mode 'night_only' the jobs of these kinds are not sent by day but held in the save game's night queue, and sent when the compute night begins - most important first (the job's own priority plus a bonus per night it waited), the oldest and each inhabitant in turn, at most cap_per_night; the rest waits for the next night, never dropped. Switching back to 'ai' sends what waits at once. Omitted = nothing is held.",
+      "$ref": "#/$defs/NightQueue"
+    }
+  },
+  "$defs": {
+    "NightQueue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "held_kinds",
+        "cap_per_night",
+        "age_bonus_per_night"
+      ],
+      "properties": {
+        "held_kinds": {
+          "description": "Job kinds (generation-job kind) held by day in night_only; the night kinds (question, memory, review, dream, chronicle) go at night anyway, a talk (dialogue) belongs to its moment and is not sent by day at all.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cap_per_night": {
+          "description": "Jobs sent from the queue per compute night at most (placeholder 24 for 4 inhabitants).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "age_bonus_per_night": {
+          "description": "Priority added per night a job waited, so what is left over moves up.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
     }
   }
 }

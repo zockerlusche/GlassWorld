@@ -40,6 +40,7 @@ public partial class CameraRig : Node3D
     public const string SelectAction = "gw_select";
 
     private Camera3D _camera = null!;
+    private string? _followedId;
     private float _pickRadiusM;
     private Func<IEnumerable<(string Id, Vector3 Position)>> _figures = () => [];
     private ClickGate _select = null!;
@@ -105,9 +106,13 @@ public partial class CameraRig : Node3D
     /// <summary>Godot camera of the rig.</summary>
     public Camera3D Camera => _camera;
 
+    /// <summary>The figure the camera follows, or null when it follows nobody (A1587: the core paces the AI by it).</summary>
+    public string? FollowedId => Model.Following ? _followedId : null;
+
     /// <summary>Follows the figure with this id (its position is read every frame), at the follow distance or <paramref name="distanceM"/>.</summary>
     public void FollowFigure(string id, double? distanceM = null)
     {
+        _followedId = id;
         if (FindFigure is { } find)
         {
             Model.Follow(() => find(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM);
