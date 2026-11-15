@@ -679,6 +679,14 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
+
+            // A1752: an inhabitant's own aha (invented, built, a new word) marks its portrait.
+            if (_presenter.Host is { } ahaHost)
+            {
+                _aha ??= new AhaMarks(_style.Tokens.PortraitStates, ahaHost.World.Calendar.Settings.TicksPerHour);
+                _aha.Take(events);
+            }
+
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
@@ -1582,7 +1590,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
@@ -3465,7 +3473,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The head's values: portrait, what it does, a first try.</summary>
     private void RefreshCardHead(InhabitantCard card, string inhabitantId)
     {
-        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row) ? PortraitState.Question : PortraitState.None, selected: false);
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
         if (_cardActionIcon is not null)

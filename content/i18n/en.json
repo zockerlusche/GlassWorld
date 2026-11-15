@@ -3083,6 +3083,18 @@
       "text": "Help and gifts"
     },
     {
+      "key": "ui.corner.knocking",
+      "text": "Knocking at the glass"
+    },
+    {
+      "key": "ui.corner.worry",
+      "text": "Something has been missing for a long time"
+    },
+    {
+      "key": "ui.corner.aha",
+      "text": "Just managed something - click, and the star goes"
+    },
+    {
       "key": "ui.corner.brooding",
       "text": "Puzzling over a question"
     },
