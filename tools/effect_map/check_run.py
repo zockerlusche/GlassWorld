@@ -56,6 +56,8 @@ class Run:
         # Per row the game hours since the same inhabitant's last snapshot (review GW3 #461: from the ticks, so a
         # changing population, a partial first or last day or a missing day file do not distort it); 0 = first.
         self.hours: list[float] = []
+        # Per row whether it lies between sunrise and sunset of its season (time.json), for day-only expectations.
+        self.daytime: list[bool] = []
         ticks_per_hour = float(load("world/time.json")["ticks_per_hour"])
         last: dict[str, int] = {}
         for line in snapshots(folder):
@@ -65,11 +67,21 @@ class Run:
                 needs = {k: float(v) for k, v in cast(Json, who.get("needs", {})).items()}
                 ident = str(who["id"])
                 self.rows.append((day, ident, cast(str | None, who.get("action")), needs))
+                self.daytime.append(is_daytime(day, str(line["clock"])))
                 self.hours.append((tick - last[ident]) / ticks_per_hour if ident in last else 0.0)
                 last[ident] = tick
         steps = sorted(h for h in self.hours if h > 0)
         # The usual time between two snapshots; a longer step is a gap in the trace.
         self.interval = steps[len(steps) // 2] if steps else 1.0
+
+
+def is_daytime(day: int, clock: str) -> bool:
+    """Whether day/hh:mm lies between sunrise and sunset of the day's season (time.json)."""
+    time = load("world/time.json")
+    season = next(s for s in cast(list[Json], time["seasons"]) if s["id"] == season_of(day))
+    hours, _, minutes = clock.partition("/")[2].partition(":")
+    minute = int(hours) * 60 + int(minutes or 0)
+    return int(season["sunrise_minute"]) <= minute < int(season["sunset_minute"])
 
 
 def season_of(day: int) -> str:
@@ -114,12 +126,17 @@ def check_trace(run: Run, expectation: Json, model: Json) -> tuple[bool, str]:
         )
     if kind == "max_share_doing_while_need_above":
         action, need = str(expectation["action"]), str(expectation["need"])
-        doing = [v for _, _, a, v in run.rows if a == action and need in v]
+        daytime_only = bool(expectation.get("daytime_only"))
+        doing = [
+            v
+            for (_, _, a, v), day in zip(run.rows, run.daytime, strict=True)
+            if a == action and need in v and (day or not daytime_only)
+        ]
         if not doing:
-            return True, f"nobody did {action} (not checked)"
+            return True, f"nobody did {action}{' by day' if daytime_only else ''} (not checked)"
         share = sum(1 for v in doing if v[need] >= float(expectation["above"])) / len(doing)
         return share <= float(expectation["max_share"]), (
-            f"{action} while {need} >= {expectation['above']}: {share:.0%} "
+            f"{action}{' by day' if daytime_only else ''} while {need} >= {expectation['above']}: {share:.0%} "
             f"(at most {float(expectation['max_share']):.0%})"
         )
     if kind == "decaying_needs_change":

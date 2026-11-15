@@ -17,12 +17,13 @@
     },
     {
       "id": "little_sleep_rested",
-      "source": "D1112 #4, A1711 (GW1 #457)",
+      "source": "D1112 #4, A1711 (GW1 #457); by day only - a rested sleep through the winter night is accepted (B2780, GW1 #26230)",
       "kind": "max_share_doing_while_need_above",
       "action": "sleep",
       "need": "sleep",
       "above": 0.95,
-      "max_share": 0.2
+      "max_share": 0.2,
+      "daytime_only": true
     },
     {
       "id": "decaying_needs_move",
