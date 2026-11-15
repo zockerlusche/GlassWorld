@@ -888,7 +888,7 @@
       }
     },
     "DialogueResult": {
-      "description": "B2782 (A1735): the turns of a talk, in order. Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).",
+      "description": "B2782 (A1735): the turns of a talk, in order; they alternate between the two speakers, the first speaker of the job first (the service checks the order and that every speaker is one of the two, review GW3 #474). Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).",
       "type": "object",
       "additionalProperties": false,
       "required": [

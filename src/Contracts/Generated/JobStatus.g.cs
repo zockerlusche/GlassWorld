@@ -541,7 +541,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// B2782 (A1735): the turns of a talk, in order. Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).
+    /// B2782 (A1735): the turns of a talk, in order; they alternate between the two speakers, the first speaker of the job first (the service checks the order and that every speaker is one of the two, review GW3 #474). Every text passed the service's checks (content guard, the world check A1613, no number or key, the right language, no made-up name); a talk ends before the first turn that fails. Empty = no words this time (the core shows the talk without text).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class DialogueResult
