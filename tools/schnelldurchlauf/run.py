@@ -27,7 +27,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "src" / "Simulation.Headless"
-TICKS_PER_DAY = 1440  # content/world/time.json: 60 ticks per hour x 24 hours
 
 
 def worlds_folder() -> Path:
@@ -68,6 +67,12 @@ def free_folder(root: Path, name: str) -> Path:
     return folder
 
 
+def ticks_per_day() -> int:
+    """From content/world/time.json (review GW3 #473): ticks per hour x hours per day."""
+    data = json.loads((ROOT / "content" / "world" / "time.json").read_text("utf-8-sig"))
+    return int(data["ticks_per_hour"]) * int(data["hours_per_day"])
+
+
 def options_defaults() -> tuple[str, str]:
     data = json.loads((ROOT / "content" / "player" / "world_options.json").read_text("utf-8-sig"))
     return str(data["default_size"]), str(data["default_climate"])
@@ -91,7 +96,6 @@ def main(argv: list[str] | None = None) -> int:
     name = args.name or f"Schnell {seed}"
     size, climate = options_defaults()
     folder = free_folder(worlds_folder(), name)
-    folder.mkdir(parents=True)
     ai_word = "an" if args.ai == "on" else "aus"
     print(f"Welt '{name}' (Seed {seed}, {args.days} Spieltage, KI {ai_word})")
     print(f"Ordner: {folder}")
@@ -102,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
     if build.returncode != 0:
         print("SCHNELL_FAIL: build of Simulation.Headless failed", file=sys.stderr)
         return 2
+    # Only after the build (review GW3 #473): a failed build leaves no empty world in the list.
+    folder.mkdir(parents=True)
     save = folder / "world.sqlite"
     command = [
         "dotnet", "run", "--project", str(PROJECT), "-c", "Release", "--no-build", "--",
@@ -120,6 +126,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"SCHNELL_FAIL: no save at the end (exit {run.returncode}) - see {log_file}")
         return 3
     tick = int(final.group(1))
+    per_day = ticks_per_day()
     meta = {
         "id": folder.name,
         "name": name,
@@ -127,13 +134,13 @@ def main(argv: list[str] | None = None) -> int:
         "size": size,
         "climate": climate,
         "start_favor": 50,
-        "day": tick // TICKS_PER_DAY,
+        "day": tick // per_day + 1,  # as the game writes it (Main.cs: tick / TicksPerDay + 1)
         "last_played_utc": datetime.now(UTC).isoformat(),
     }
     (folder / "meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False) + "\n", "utf-8"
     )
-    days = tick / TICKS_PER_DAY
+    days = tick / per_day
     per_minute = days / (seconds / 60) if seconds > 0 else 0.0
     minutes = seconds / 60
     print(f"Fertig: {days:.1f} Spieltage in {minutes:.1f} min ({per_minute:.1f} je Minute).")
