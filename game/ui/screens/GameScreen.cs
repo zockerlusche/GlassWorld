@@ -3773,7 +3773,8 @@ public partial class GameScreen : CanvasLayer
         // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
         // has looked at since leaves only the effect open; the questions panel still lists every open question.
         mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
-        mark.Visible = row.PuzzlingQuestions > 0;
+        // Never over a figure lying asleep (review GW5 #510, like the feeling symbols in #499 and the dots, D1112 #8).
+        mark.Visible = row.PuzzlingQuestions > 0 && _presenter?.LiesNow(row.Id) != true;
     }
 
     private string? PickAt(Vector2 screen)
