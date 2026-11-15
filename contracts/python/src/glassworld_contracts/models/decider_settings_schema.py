@@ -106,6 +106,12 @@ class DeciderSettings(BaseModel):
         ge=1,
         le=10080,
     )
+    request_log_full_hours: int | None = Field(
+        None,
+        description='A1750 (B2768): game hours a request stays whole in the decision and job logs; older ones keep only a fingerprint (sha256 and length) - the replay needs only the answers, commands and that fingerprint. Absent = every request stays whole.',
+        ge=1,
+        le=8760,
+    )
     ask_cooldown_hours: int = Field(
         ...,
         description='Game hours before the same inhabitant asks about the same subject again.',
