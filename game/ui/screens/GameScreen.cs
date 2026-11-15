@@ -77,6 +77,9 @@ public partial class GameScreen : CanvasLayer
     private IReadOnlyList<InhabitantRow> _logRows = [];
 
     // The theme of the parts on the world without a box (S1b): light text with a dark outline; built per style.
+    // A1736: the theme of the windows on the right, on the world's dark ground (light text, framed parts as they are).
+    private Theme? _windowTheme;
+
     private Theme? _worldTheme;
     private string _questionShape = "-";
     private readonly VBoxContainer _chronicleList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -889,6 +892,7 @@ public partial class GameScreen : CanvasLayer
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
         _worldTheme = UiTheme.BuildWorld(style);
+        _windowTheme = UiTheme.BuildWindowOnWorld(style);
         ApplyWorldTheme();
         _portraits.Setup(style);
         if (style.ContentScaleFactor != _portraitScale)
@@ -1500,8 +1504,10 @@ public partial class GameScreen : CanvasLayer
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+
+                // Quieter by size, not by a dark grey (A1736: on the dark ground the grey could not be read).
+                ThemeTypeVariation = UiTheme.SmallLabel,
             };
-            story.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
             _chronicleList.AddChild(story);
         }
 
@@ -1512,6 +1518,7 @@ public partial class GameScreen : CanvasLayer
             {
                 Text = ChronicleLine(entry),
                 Flat = true,
+                ThemeTypeVariation = UiTheme.WorldFlatButton,
                 Alignment = HorizontalAlignment.Left,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
@@ -1818,8 +1825,9 @@ public partial class GameScreen : CanvasLayer
                 CustomMinimumSize = new Vector2(_style.Tokens.Window.CardBarWidth, 0),
             };
 
-            // Urgency as a calm warm tint (B2466: never blinking, never a sound).
-            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
+            // Urgency as a calm warm tint (B2466: never blinking, never a sound), from the light text of the dark ground
+            // (A1736); the dark outline of the window theme keeps it readable.
+            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.World_text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
             row.AddChild(text);
             var read = new Button { Text = "ui.mailbox.read" };
             var id = message.Id;
@@ -1833,8 +1841,8 @@ public partial class GameScreen : CanvasLayer
             _mailList.AddChild(new Label { Text = "ui.mailbox.history", ThemeTypeVariation = UiTheme.SubheaderLabel });
             foreach (var message in history)
             {
-                var old = new Label { Text = MailText(message), AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-                old.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+                // Older messages: quieter by size, not by a dark grey (A1736: unreadable on the dark ground).
+                var old = new Label { Text = MailText(message), ThemeTypeVariation = UiTheme.SmallLabel, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
                 _mailList.AddChild(old);
             }
         }
@@ -2027,7 +2035,7 @@ public partial class GameScreen : CanvasLayer
         var id = row.Id;
         if (withName)
         {
-            var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            var who = new Button { Text = DisplayName(row), Flat = true, ThemeTypeVariation = UiTheme.WorldFlatButton, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             who.Pressed += () => ShowInhabitant(id);
             box.AddChild(who);
         }
@@ -3297,7 +3305,7 @@ public partial class GameScreen : CanvasLayer
         _cardDiaryBox = new VBoxContainer { Name = "CardDiary" };
         _cardDiaryShown = default;
         content.AddChild(_cardDiaryBox);
-        _cardDiaryMore = new Button { Name = "CardDiaryMore", Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more", Flat = true, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, Visible = false };
+        _cardDiaryMore = new Button { Name = "CardDiaryMore", Text = _cardDiaryOpen ? "ui.card.diary_less" : "ui.card.diary_more", Flat = true, ThemeTypeVariation = UiTheme.WorldFlatButton, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin, Visible = false };
         _cardDiaryMore.Pressed += () =>
         {
             _cardDiaryOpen = !_cardDiaryOpen;

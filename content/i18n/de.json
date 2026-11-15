@@ -3399,6 +3399,22 @@
       "text": "{time} hat eine Idee"
     },
     {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (bearbeitet)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " und "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", aber "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} hat eine Idee zu: {about}"
+    },
+    {
       "key": "msg.learnlog.dreamed",
       "text": "{time} träumt"
     },
