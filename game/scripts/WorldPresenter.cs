@@ -587,6 +587,12 @@ public partial class WorldPresenter : Node3D
                 continue;
             }
 
+            // A1732 (B2716): the inhabitant's own moments may show on its body (cheering at an invention).
+            if (_islandFigures.TryGetValue(e.InhabitantId, out var expressing))
+            {
+                expressing.Express(e.Kind);
+            }
+
             if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
             {
                 // Talking (B6 R13): "..." while it thinks, then the answer or a question mark; the figures

@@ -209,6 +209,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v12",
         "decider/decide.v13",
         "decider/decide.v14",
+        "decider/decide.v15",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -548,6 +549,26 @@ def test_v14_names_trying_as_possible_without_a_value() -> None:
     # Without an occasion only the trying paragraph differs from v13.
     plain13 = _render(_leisure(None), version=13).split("=== user ===")[1]
     assert plain13 == _render(_leisure(None), version=14).split("=== user ===")[1]
+
+
+def test_v15_the_thought_adds_what_the_action_does_not_show() -> None:
+    """A1734 (B2782, D1119 #4): with v14, 39 % of the thoughts in the 30-day night run told the
+    chosen action ('Ich gehe zu dir und rede mit dir'). v15 says the game shows the action, so the
+    thought is a feeling, a wish, a wonder or a remark - and what one SAYS when turning to someone.
+    Nothing else changes."""
+    v14 = _render(_leisure(), version=14)
+    v15 = _render(_leisure(), version=15)
+    assert "The game already shows what this person does." in v15
+    assert "the thought is what\n    you SAY to them" in v15
+    assert "never what you do." in v15
+    assert "The game already shows" not in v14
+    # The user part (situation, options) is word for word v14's.
+    assert (
+        v14.split("=== user ===")[1].replace(
+            "10 words.", "10 words - what\nyou feel, wish, wonder or say, never what you do."
+        )
+        == v15.split("=== user ===")[1]
+    )
 
 
 def test_no_prompt_in_use_names_a_season() -> None:

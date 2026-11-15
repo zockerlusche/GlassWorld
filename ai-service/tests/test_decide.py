@@ -51,7 +51,12 @@ def _ollama_answer(content: str) -> httpx.Response:
 
 
 def _ollama_app(
-    settings: Settings, handler: Handler, *, retries: int = 2, queue_size: int = 8
+    settings: Settings,
+    handler: Handler,
+    *,
+    retries: int = 2,
+    queue_size: int = 8,
+    version: int = 1,
 ) -> tuple[FastAPI, CallLog]:
     log = CallLog(settings.log_dir / "decider.jsonl")
     client = OllamaClient(
@@ -63,7 +68,7 @@ def _ollama_app(
     decider = OllamaDecider(
         client=client,
         queue=ModelQueue(queue_size),
-        template=load_prompt(settings.prompts_dir, "decider/decide", 1),
+        template=load_prompt(settings.prompts_dir, "decider/decide", version),
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=ModelSettings(
             temperature=0.7, num_ctx=8192, char_budget=6000, max_retries=retries
@@ -333,3 +338,25 @@ def test_internal_ids_are_caught_in_any_spelling(settings: Settings, spelling: s
     answers = iter([_good(thought=f"Was ist {spelling} nur?"), _good()])
     app, _ = _ollama_app(settings, lambda _: _ollama_answer(next(answers)))
     assert post(app, "/decide", REQUEST).json()["meta"]["attempts"] == 2
+
+
+def test_a_thought_in_the_wrong_language_is_asked_again(settings: Settings) -> None:
+    """TL #26281 (D1126 'I schaue mir das Meerwasser genauer an'): v15 asks again for a thought
+    with a word of the other language; the second answer is shown."""
+    answers = iter([_good(thought="I schaue mir das Meerwasser genauer an."), _good()])
+    app, log = _ollama_app(settings, lambda _: _ollama_answer(next(answers)), version=15)
+    body = post(app, "/decide", REQUEST).json()
+    assert body["meta"]["attempts"] == 2
+    assert [r["outcome"] for r in log.read()] == ["invalid", "ok"]
+    assert "wrong language ('i')" in str(log.read()[0]["detail"])
+
+
+def test_on_the_last_attempt_the_foreign_thought_is_left_out_the_choice_holds(
+    settings: Settings,
+) -> None:
+    app, log = _ollama_app(
+        settings, lambda _: _ollama_answer(_good(thought="I schaue mir das an.")), version=15
+    )
+    body = post(app, "/decide", REQUEST).json()
+    assert body["option_id"] == "o1" and body.get("thought") is None
+    assert "language 'i'" in str(log.read()[-1]["detail"])
