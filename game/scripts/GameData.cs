@@ -25,8 +25,39 @@ public static class GameData
     /// <summary>The data folder (created if needed).</summary>
     public static string Root => _root ??= Resolve();
 
+    /// <summary>Name of the log folder next to an exported game (Marcel W2246: <c>&lt;game folder&gt;\log</c>).</summary>
+    public const string LogsBesideGame = "log";
+
+    private static string? _logs;
+
+    /// <summary>
+    /// A1787 part 2 (Marcel W2246): the game's log folder - Godot's log (start scripts), the AI service's logs (<c>ki</c>)
+    /// and one folder per world (<c>welten/&lt;world&gt;</c>: run trace, learning log; <c>archiv</c> when the world is gone,
+    /// <see cref="GlassWorld.Presentation.World.WorldLogArchive"/>). Next to the data folder when that is <c>daten</c> beside
+    /// the game (an exported game, the quick run of a package), else <c>log</c> inside the data folder. Created if needed.
+    /// </summary>
+    public static string Logs => _logs ??= ResolveLogs();
+
+    /// <summary>The log folder of one world (run trace, learning log) - outside the world folder, so it outlives it.</summary>
+    public static string WorldLogs(string worldId) => GlassWorld.Presentation.World.WorldLogArchive.Of(Logs, worldId);
+
     /// <summary>A path inside the data folder.</summary>
     public static string At(params string[] parts) => System.IO.Path.Combine([Root, .. parts]);
+
+    private static string ResolveLogs()
+    {
+        var data = System.IO.Path.TrimEndingDirectorySeparator(Root);
+        var parent = System.IO.Path.GetDirectoryName(data);
+        if (string.Equals(System.IO.Path.GetFileName(data), BesideGame, StringComparison.OrdinalIgnoreCase) && parent is { Length: > 0 }
+            && Writable(System.IO.Path.Combine(parent, LogsBesideGame)))
+        {
+            return System.IO.Path.Combine(parent, LogsBesideGame);
+        }
+
+        var inside = System.IO.Path.Combine(data, LogsBesideGame);
+        System.IO.Directory.CreateDirectory(inside);
+        return inside;
+    }
 
     private static string Resolve()
     {
