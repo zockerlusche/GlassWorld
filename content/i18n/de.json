@@ -3071,6 +3071,62 @@
       "text": "Biom unter dem Mauszeiger: {biome}"
     },
     {
+      "key": "ui.debug.knowledge",
+      "text": "Wissen von {name}: {count} Einträge (neueste zuerst)"
+    },
+    {
+      "key": "ui.debug.belief",
+      "text": "{thing} · {property}: {value} · {source} · {percent} %"
+    },
+    {
+      "key": "ui.debug.yes",
+      "text": "ja"
+    },
+    {
+      "key": "ui.debug.no",
+      "text": "nein"
+    },
+    {
+      "key": "ui.debug.source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "ui.debug.source.heard.by",
+      "text": "gehört von {name}"
+    },
+    {
+      "key": "ui.debug.source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "ui.debug.source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "ui.debug.source.read.by",
+      "text": "gelesen von {name}"
+    },
+    {
+      "key": "ui.debug.source.seen",
+      "text": "gesehen"
+    },
+    {
+      "key": "ui.debug.source.seen.by",
+      "text": "bei {name} gesehen"
+    },
+    {
+      "key": "ui.debug.source.experienced.by",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.guessed.by",
+      "text": "vermutet"
+    },
+    {
       "key": "ui.debug.jumps",
       "text": "Debug-Sprünge: {back} und {forward} wechseln die Epoche"
     },

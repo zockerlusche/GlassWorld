@@ -80,7 +80,7 @@ public partial class GwDebugOverlay : PanelContainer
         (double X, double Z)? pointer = viewport?.GetCamera3D() is { } camera && _presenter.GroundPoint(camera, viewport.GetMousePosition()) is { } point
             ? (point.X, point.Z)
             : null;
-        var data = DebugOverlayModel.Read(host, _stateHash, _hashTick, Engine.GetFramesPerSecond(), pointer, (KeyName(DebugOverlayModel.EpochBackAction), KeyName(DebugOverlayModel.EpochForwardAction)));
+        var data = DebugOverlayModel.Read(host, _stateHash, _hashTick, Engine.GetFramesPerSecond(), pointer, (KeyName(DebugOverlayModel.EpochBackAction), KeyName(DebugOverlayModel.EpochForwardAction)), _presenter.ChosenInhabitant);
         Lines = DebugOverlayModel.Lines(data, key => Tr(key));
         _label.Text = string.Join('\n', Lines);
         _sinceLines = 0;

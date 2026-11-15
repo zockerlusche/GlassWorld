@@ -118,6 +118,9 @@ public sealed class ContentSet
     /// <summary>Talking with an inhabitant: limits and changes by outcome (content/player/conversation.json, B6 R13).</summary>
     public ConversationSettings Conversation { get; init; } = new();
 
+    /// <summary>A1766 (B2789): which jobs the night queue holds by day in night_only, and how many a night sends (content/jobs/phases.json); null = none held.</summary>
+    public NightQueue? NightQueue { get; init; }
+
     /// <summary>The basic processing rules (content/processes/rules.json, B2537) as a combine trial applies them (B2687 K2); null without the file.</summary>
     public ProcessRuleSet? Processes { get; init; }
 
@@ -221,6 +224,13 @@ public sealed class ContentSet
         var gaits = ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json")));
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar, gaits.Spacing?.MinSeparationM ?? 0);
         var jobPhases = ContractSerializer.Deserialize<JobPhases>(File.ReadAllText(Path.Combine(contentDirectory, "jobs", "phases.json")));
+        // A1766: a typo in a held kind would silently hold nothing of it.
+        var jobKinds = Enum.GetValues<JobKind>().Select(k => k.ToString().ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
+        if (jobPhases.NightQueue?.HeldKinds.FirstOrDefault(k => !jobKinds.Contains(k)) is { } unknownKind)
+        {
+            throw new InvalidDataException($"jobs/phases.json night_queue holds '{unknownKind}', which is no job kind");
+        }
+
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
             inventionSettings,
@@ -312,6 +322,7 @@ public sealed class ContentSet
             SkillLevels = LoadSkillLevels(contentDirectory),
             LearningLog = LoadLearningLog(contentDirectory, events),
             Conversation = conversation,
+            NightQueue = jobPhases.NightQueue,
             Processes = processes,
             Milestones = milestones,
             Fire = File.Exists(Path.Combine(contentDirectory, "fire", "settings.json"))
