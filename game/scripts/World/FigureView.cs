@@ -661,6 +661,9 @@ public partial class FigureView : Node3D
             CarryWayLie.Slanted => new Basis(Vector3.Forward, Mathf.Pi / 4) * new Basis(Vector3.Right, -Mathf.Pi / 8),
             _ => Basis.Identity,
         };
+        // Under the figure's root, which carries the figure's own scale (review GW1 #500): height and distance are metres
+        // for size 1 times the figure's size, so divided by the root's scale; the thing keeps its size in the world.
+        var root = new Vector3(Math.Abs(_bodyScale.X), _bodyScale.Y, _bodyScale.Z);
         var size = (float)shape.SizeM;
         _carried = new MeshInstance3D
         {
@@ -668,7 +671,7 @@ public partial class FigureView : Node3D
             Mesh = shape.Mesh,
             MaterialOverride = shape.Material,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            Transform = new Transform3D(turn.Scaled(new Vector3(size, size, size)), new Vector3(0, (float)(look.HeightM * _scale), (float)(look.ForwardM * _scale))),
+            Transform = new Transform3D(turn.Scaled(new Vector3(size / root.X, size / root.Y, size / root.Z)), new Vector3(0, (float)(look.HeightM * _scale) / root.Y, (float)(look.ForwardM * _scale) / root.Z)),
         };
         _body.AddChild(_carried);
         var gesture = CarriedPose.GestureOf(look);
