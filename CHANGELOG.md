@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Feelings show on the body (A1732, B2716 (2)): `look/expressions.json` maps events (invented, built, a milestone: cheering with arms up; first use, praise: a smile), moods (fear, sadness, much joy: the face) and needs (tired: a yawn now and then) to a face and a gesture over the running action - short for events with a calm pause, while it lasts for moods and needs; never over an action's own gesture, never lying. Placeholder values for the TL.
 - Decider v15 (A1734, B2782, D1112 #3): the thought adds what the action does not show - a feeling, a wish, a wonder; turning to someone it is what one says. With v14 39 % of the thoughts told the chosen action ('Ich gehe zu dir und rede mit dir'). config: decider prompt 15.
 - Learning log (A1717, D1112 #9): processed things by name ('Schiefer (bearbeitet)'), a file for every finished day, facts as one sentence ('ist essbar, aber nicht trinkbar'), ideas name what they are built on.
 - Nightly look back v3 (A1728, night run 15.11.: 'I met another person named Lena' - nobody is called Lena): other people appear by the name the inhabitant learned (the events' labels) or as 'someone'; a summary that calls someone by a name it never learned is refused with the reason. config: review prompt 3.
