@@ -597,7 +597,7 @@
           "maximum": 1
         },
         "window_ground_alpha": {
-          "description": "Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it never shows through its text.",
+          "description": "Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it shows at most faintly through its text (1 = fully opaque).",
           "type": "number",
           "minimum": 0,
           "maximum": 1
