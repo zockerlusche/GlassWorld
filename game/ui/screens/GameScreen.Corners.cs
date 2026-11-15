@@ -151,6 +151,13 @@ public partial class GameScreen
         log.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
         log.Theme = _zones ? _worldTheme : null;
 
+        // A1736 (TL #26282): the card and every window a button opens stand on the same dark ground as the corners.
+        foreach (var panel in _sideBar.Panels.Where(p => p != log))
+        {
+            panel.ThemeTypeVariation = _zones ? UiTheme.WorldPanel : UiTheme.WindowPanel;
+            panel.Theme = _zones ? _windowTheme : null;
+        }
+
         // The log stands pinned in its corner: nothing to close there (its 'x' is for the side window of the old layout).
         log.CloseButton.Visible = !_zones;
     }

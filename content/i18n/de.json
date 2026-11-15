@@ -2183,6 +2183,10 @@
       "text": "Feuer vom Regen gelöscht"
     },
     {
+      "key": "vocab.event.out_of_reach",
+      "text": "Nicht erreichbar"
+    },
+    {
       "key": "vocab.event.caught_fire",
       "text": "Etwas hat Feuer gefangen"
     },
@@ -3393,6 +3397,22 @@
     {
       "key": "msg.learnlog.idea",
       "text": "{time} hat eine Idee"
+    },
+    {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (bearbeitet)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " und "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", aber "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} hat eine Idee zu: {about}"
     },
     {
       "key": "msg.learnlog.dreamed",

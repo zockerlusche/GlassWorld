@@ -2183,6 +2183,10 @@
       "text": "Fire put out by rain"
     },
     {
+      "key": "vocab.event.out_of_reach",
+      "text": "Out of reach"
+    },
+    {
       "key": "vocab.event.caught_fire",
       "text": "Something caught fire"
     },
@@ -3393,6 +3397,22 @@
     {
       "key": "msg.learnlog.idea",
       "text": "{time} has an idea"
+    },
+    {
+      "key": "msg.learnlog.changed",
+      "text": "{thing} (processed)"
+    },
+    {
+      "key": "msg.learnlog.and",
+      "text": " and "
+    },
+    {
+      "key": "msg.learnlog.but",
+      "text": ", but "
+    },
+    {
+      "key": "msg.learnlog.idea.about",
+      "text": "{time} has an idea about: {about}"
     },
     {
       "key": "msg.learnlog.dreamed",

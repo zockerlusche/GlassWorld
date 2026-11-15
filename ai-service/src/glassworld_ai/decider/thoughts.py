@@ -39,6 +39,19 @@ def thought_problem(text: str, locale: str, settings: dict[str, Any]) -> str | N
     return None
 
 
+def wrong_language(text: str, locale: str, settings: dict[str, Any]) -> str | None:
+    """v15 (TL #26281): the first word of the other language in a thought ('I schaue ...'), or
+    None. The words are the prompt's thought_check.foreign_words per locale (data)."""
+    raw: object = settings.get("thought_check")
+    if not isinstance(raw, dict):
+        return None
+    foreign_raw: object = cast(dict[str, Any], raw).get("foreign_words", {})
+    if not isinstance(foreign_raw, dict):
+        return None
+    foreign = {str(w).lower() for w in cast(dict[str, list[Any]], foreign_raw).get(locale, [])}
+    return next((w for w in (w.lower() for w in _WORD.findall(text)) if w in foreign), None)
+
+
 def _words(text: str) -> frozenset[str]:
     return frozenset(w.lower() for w in _WORD.findall(text))
 
