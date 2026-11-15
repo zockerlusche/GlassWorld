@@ -8,6 +8,12 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
+type BoxKey = Annotated[
+    str, Field(..., pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$')
+]
+
 
 class HeadSymbol(BaseModel):
     model_config = ConfigDict(
@@ -446,6 +452,37 @@ class UiBarMood(BaseModel):
     kind: Kind = Field(..., description='uplift: much is good; burden: much is bad.')
 
 
+class UiLogCategory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    kinds: list[common_schema.VocabId] = Field(..., min_length=1)
+    highlight: bool
+
+
+class Log(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    corner_lines: int = Field(
+        ...,
+        description='Lines the closed log shows (newest first); more on a click.',
+        ge=1,
+        le=20,
+    )
+    box_keys: list[BoxKey] = Field(
+        ...,
+        description='Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.',
+    )
+    categories: list[UiLogCategory] = Field(..., min_length=1)
+
+
 class Zones(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -620,6 +657,10 @@ class UiTokens(BaseModel):
     window: UiWindowTokens
     button: UiButtonTokens
     table: UiTableTokens
+    log: Log = Field(
+        ...,
+        description="The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.",
+    )
     toast: UiToastTokens
     durations_ms: list[UiDuration] = Field(
         ...,
