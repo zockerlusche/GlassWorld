@@ -60,7 +60,7 @@ public partial class MainMenu : CanvasLayer
         UiSetup.Bind(_root);
 
         // B2791: the menu's box on the same dark ground as every window.
-        var panel = new PanelContainer { ThemeTypeVariation = UiTheme.WorldPanel, Theme = UiTheme.BuildWindowOnWorld(style) };
+        var panel = new PanelContainer { ThemeTypeVariation = UiTheme.WindowGround, Theme = UiTheme.BuildWindowOnWorld(style) };
         _menuBox = panel;
         panel.SetAnchorsPreset(Control.LayoutPreset.Center);
         panel.GrowHorizontal = Control.GrowDirection.Both;
@@ -136,7 +136,7 @@ public partial class MainMenu : CanvasLayer
         }
 
         _loading?.QueueFree();
-        _loading = new PanelContainer { ThemeTypeVariation = UiTheme.WorldPanel, Theme = UiTheme.BuildWindowOnWorld(_style) };
+        _loading = new PanelContainer { ThemeTypeVariation = UiTheme.WindowGround, Theme = UiTheme.BuildWindowOnWorld(_style) };
         _loading.SetAnchorsPreset(Control.LayoutPreset.Center);
         _loading.GrowHorizontal = Control.GrowDirection.Both;
         _loading.GrowVertical = Control.GrowDirection.Both;

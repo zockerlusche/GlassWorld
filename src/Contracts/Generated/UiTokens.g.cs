@@ -219,6 +219,12 @@ namespace GlassWorld.Contracts
         public double ScrimAlpha { get; set; } = default!;
 
         /// <summary>
+        /// Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it never shows through its text.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("window_ground_alpha")]
+        public double WindowGroundAlpha { get; set; } = default!;
+
+        /// <summary>
         /// How far that dark ground fades out at its edges (a soft gradient, no box).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scrim_soft_px")]

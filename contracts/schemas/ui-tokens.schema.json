@@ -402,6 +402,7 @@
         "button_radius",
         "world_outline_px",
         "scrim_alpha",
+        "window_ground_alpha",
         "scrim_soft_px",
         "world_check_grounds",
         "card_diary_lines",
@@ -591,6 +592,12 @@
         },
         "scrim_alpha": {
           "description": "Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "window_ground_alpha": {
+          "description": "Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it never shows through its text.",
           "type": "number",
           "minimum": 0,
           "maximum": 1

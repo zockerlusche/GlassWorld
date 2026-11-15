@@ -60,7 +60,7 @@ public partial class GwWindow : PanelContainer
 
         // B2791: every window - settings, pause, forms, messages, down to the deepest dialog - stands on the dark ground
         // Marcel liked (S1b, A1736): light outlined text, the buttons, fields and tables keep their light form.
-        ThemeTypeVariation = UiTheme.WorldPanel;
+        ThemeTypeVariation = UiTheme.WindowGround;
         Theme = UiTheme.BuildWindowOnWorld(style);
     }
 

@@ -655,7 +655,8 @@ public partial class SettingsWindow : GwWindow
         // No word breaks inside, whatever the language and text size (D705 A6: "Gesamtlautstärk / e").
         UiFit.LongestWordFits(label, _labelWidth);
         row.AddChild(label);
-        control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        // A switch is only as wide as itself: stretched it was a wide empty box with the switch at its end (B2791 pictures).
+        control.SizeFlagsHorizontal = control is CheckButton ? SizeFlags.ShrinkBegin : SizeFlags.ExpandFill;
         row.AddChild(control);
 
         // The description column says what the row under the pointer (or with the keyboard focus) does (D957 v4 section 10).
