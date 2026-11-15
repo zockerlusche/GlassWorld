@@ -163,7 +163,9 @@ public sealed class InhabitantActivityTests
         Assert.Equal("red_berry", type);
         var name = Tr(locale)(VocabKeys.ObjectType(type!));
         Assert.NotEqual(VocabKeys.ObjectType(type!), name);
-        Assert.Equal(start + name, InhabitantActivity.WithCarrying(Describe(holding, snapshot, locale), name, Tr(locale)));
+        var small = locale == "en"; // English names start small inside the sentence (review GW3 #516); German nouns keep their capital
+        var shown = small ? char.ToLowerInvariant(name[0]) + name[1..] : name;
+        Assert.Equal(start + shown, InhabitantActivity.WithCarrying(Describe(holding, snapshot, locale), name, Tr(locale), small));
 
         // Nothing in the hand, the thing gone, or the thing it works on right now: the line alone.
         Assert.Null(InhabitantActivity.CarriedType(Inhabitant("inh-000001", null, null), index));

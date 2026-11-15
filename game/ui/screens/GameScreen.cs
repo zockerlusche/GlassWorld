@@ -3834,7 +3834,8 @@ public partial class GameScreen : CanvasLayer
                 ? InhabitantActivity.WithCarrying(
                     InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf),
                     InhabitantActivity.CarriedType(inhabitant, index) is { } carried ? ThingName(carried) : null, // A1784: what it carries
-                    key => Tr(key))
+                    key => Tr(key),
+                    smallThing: !TranslationServer.GetLocale().StartsWith("de", StringComparison.OrdinalIgnoreCase))
                 : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }

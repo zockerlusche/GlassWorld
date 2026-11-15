@@ -51,14 +51,21 @@ public static class InhabitantActivity
         return inhabitant.Held is { } held && held != inhabitant.TargetId && index.Objects.TryGetValue(held, out var thing) ? thing.TypeId : null;
     }
 
-    /// <summary>A1784: the activity line, and what the inhabitant carries after it when <paramref name="thingName"/> is given.</summary>
-    public static string WithCarrying(string activity, string? thingName, Func<string, string> tr)
+    /// <summary>
+    /// A1784: the activity line, and what the inhabitant carries after it when <paramref name="thingName"/> is given.
+    /// With <paramref name="smallThing"/> (English, review GW3 #516) the name starts small inside the sentence: 'carrying wood'.
+    /// </summary>
+    public static string WithCarrying(string activity, string? thingName, Func<string, string> tr, bool smallThing = false)
     {
         ArgumentNullException.ThrowIfNull(activity);
         ArgumentNullException.ThrowIfNull(tr);
-        return thingName is null
-            ? activity
-            : Ui.TextFill.Fill(tr(CarryingKey), new Dictionary<string, string>(StringComparer.Ordinal) { ["activity"] = activity, ["thing"] = thingName });
+        if (thingName is null)
+        {
+            return activity;
+        }
+
+        var thing = smallThing && thingName.Length > 0 ? char.ToLowerInvariant(thingName[0]) + thingName[1..] : thingName;
+        return Ui.TextFill.Fill(tr(CarryingKey), new Dictionary<string, string>(StringComparer.Ordinal) { ["activity"] = activity, ["thing"] = thing });
     }
 
     /// <summary>Prefix of the activity texts: <c>ui.activity.&lt;action&gt;[.inhabitant|.inhabitant_topic|.object]</c>.</summary>
