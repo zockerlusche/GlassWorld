@@ -704,6 +704,7 @@ public sealed class SimulationHost
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
+            Pace = new AiPace(world.Calendar.Settings.FastForwardFactors),
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
@@ -711,6 +712,12 @@ public sealed class SimulationHost
 
         // Learning by day as well (B2652, A1568): a logged command, so a replay switches at the same tick.
         decisions.RegisterCommand(DecisionsSystem.SetLearnByDay, CheckLearnByDay, (_, command) => decisions.LearnByDay = command.Text == DecisionsSystem.LearnByDayOn);
+
+        // The game's speed, whom the camera follows and how long an AI job takes (A1587, B2804): logged commands,
+        // so a replay paces the AI the same way at the same ticks.
+        decisions.RegisterCommand(AiPace.SetSpeed, host.Pace.CheckSpeed, (_, command) => host.Pace.Apply(command));
+        decisions.RegisterCommand(AiPace.SetFollowed, command => CheckFollowed(inhabitants, command), (_, command) => host.Pace.Apply(command));
+        decisions.RegisterCommand(AiPace.SetAiRate, AiPace.CheckAiRate, (_, command) => host.Pace.Apply(command));
         return host;
     }
 
@@ -751,6 +758,9 @@ public sealed class SimulationHost
         }
 
         Decisions.LearnByDay = learnByDay;
+
+        // Speed, followed inhabitant and AI job time the same way (A1587): the last logged one of each.
+        Pace.FromLog(Decisions.Log);
     }
 
     /// <summary>
@@ -771,6 +781,12 @@ public sealed class SimulationHost
             }
         }
     }
+
+    /// <summary>A <see cref="AiPace.SetFollowed"/> names nobody or an inhabitant of the world.</summary>
+    private static CommandResult CheckFollowed(InhabitantsSystem inhabitants, PlayerCommand command) =>
+        command.InhabitantId is null || inhabitants.TryGet(command.InhabitantId, out _)
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonNoInhabitant);
 
     private static CommandResult CheckLearnByDay(PlayerCommand command) =>
         command.Text is DecisionsSystem.LearnByDayOn or DecisionsSystem.LearnByDayOff
@@ -985,6 +1001,9 @@ public sealed class SimulationHost
 
     /// <summary>The player's favourites (B6 R19, B2518).</summary>
     public Player.FavouritesSystem Favourites { get; private init; } = null!;
+
+    /// <summary>The game's speed, whom the camera follows and how long an AI job takes, from logged commands (A1587, B2804).</summary>
+    public AiPace Pace { get; private init; } = null!;
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;
