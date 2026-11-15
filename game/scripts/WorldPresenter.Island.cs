@@ -463,6 +463,8 @@ public partial class WorldPresenter
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
             Expressions = Read<LookExpressions>(content, "look", "expressions.json"),
+            Carried = Read<LookCarried>(content, "look", "carried.json"),
+            PropertiesOf = type => host.Types.Contains(type) ? host.Types.TrueProperties(type) : new HashSet<string>(),
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
             // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.
@@ -770,6 +772,13 @@ public partial class WorldPresenter
             objects = planned.Count == 0 ? snapshot.Objects : [.. snapshot.Objects.Where(o => !planned.Contains(o.TypeId))];
         }
 
+        // A1785 (B2823): a carried thing is drawn in its carrier's hands, not where the core keeps it (at the feet).
+        var carried = snapshot.Inhabitants.Select(i => i.Held).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        if (carried.Count > 0)
+        {
+            objects = [.. objects.Where(o => !carried.Contains(o.Id))];
+        }
+
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(objects) != false || _seats is null)
         {
@@ -822,6 +831,8 @@ public partial class WorldPresenter
 
             var spec = FigureSpec.From(appearance, inhabitant.Sex, _figuresLook!, _appearanceLook!);
             var figure = FigureView.Create(inhabitant, spec, _figureShared!, (x, z) => (float)_ground(x, z), () => _seats ?? []);
+            // A1785: the carried thing has the shape and size the object view gives its type.
+            figure.ShapeOf = type => _objectsView is { } view && view.LayerOf(view.Looks.For(type).VisualId) is { } layer ? (layer.Mesh, layer.Material, view.Looks.For(type).SizeM) : null;
             figure.SetFrozen(_freeze.Frozen);
             _islandFigures[inhabitant.Id] = figure;
             node = figure;

@@ -95,6 +95,10 @@ class FigureGesture(BaseModel):
         ge=0.0,
         le=10.0,
     )
+    steady: bool | None = Field(
+        None,
+        description='A1785: once risen the gesture holds as long as it is shown (carrying) - no lowering, no rest; missing = it cycles.',
+    )
     hold_s: float = Field(
         ...,
         description='Real seconds the hand stays at the head (mouth).',

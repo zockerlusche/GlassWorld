@@ -98,6 +98,13 @@ namespace GlassWorld.Contracts
         public double? LiftS { get; set; } = default!;
 
         /// <summary>
+        /// A1785: once risen the gesture holds as long as it is shown (carrying) - no lowering, no rest; missing = it cycles.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("steady")]
+        public bool? Steady { get; set; } = default!;
+
+        /// <summary>
         /// Real seconds the hand stays at the head (mouth).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hold_s")]

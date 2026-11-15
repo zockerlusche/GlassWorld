@@ -88,6 +88,9 @@ public partial class FigureView : Node3D
     private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
     private readonly Label3D[] _dots = new Label3D[ThinkingDots.Count];
     private Node3D _body = null!;
+    private MeshInstance3D? _carried;
+    private string? _carriedType;
+    private FigureGesture? _carryGesture;
     private Vector3 _bodyScale = Vector3.One;
     private Vector3 _bodyRotation;
     private bool _mirrored;
@@ -259,6 +262,8 @@ public partial class FigureView : Node3D
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
         // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
         _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
+        // A1785 (B2823): what it carries sits in its hands - drawn here, not on the ground by the object view.
+        Carry(inhabitant.Held is { } held ? objects?.FirstOrDefault(o => o.Id == held)?.TypeId : null, figures);
         (_moods, _needs) = (inhabitant.Moods, inhabitant.Needs);
         _gait = inhabitant.Gait;
         _to = to;
@@ -510,7 +515,8 @@ public partial class FigureView : Node3D
         var still = !_lying && _lieSeconds <= 0;
         var actionGesture = _actionShown && still ? _gestureWanted : null;
         // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
-        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
+        // A1785: carrying holds the arms over every other gesture but an action's own.
+        _gestures?.Update(delta, actionGesture ?? (still && _carryGesture is not null ? _carryGesture : !_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
 
         // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
         _shiverSeconds += delta;
@@ -620,6 +626,53 @@ public partial class FigureView : Node3D
         _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking || watching ? 1 : 0, ease, delta);
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
         _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
+    }
+
+    /// <summary>A1785: the shape of an object type and its size factor (from the object view), set by the presenter.</summary>
+    public Func<string, (Mesh Mesh, Material Material, double SizeM)?>? ShapeOf { get; set; }
+
+    /// <summary>The type it carries now (checks), or null.</summary>
+    public string? CarriedType => _carriedType;
+
+    /// <summary>
+    /// A1785 (B2823): the carried thing in front of the body at the data's height and lie, turning with the body; the arms
+    /// hold it with a steady carry gesture. Changed only when another thing (or none) is carried.
+    /// </summary>
+    private void Carry(string? typeId, LookFigures figures)
+    {
+        if (string.Equals(typeId, _carriedType, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _carriedType = typeId;
+        _carried?.QueueFree();
+        _carried = null;
+        _carryGesture = null;
+        if (typeId is null || _shared.Carried is not { } data || ShapeOf?.Invoke(typeId) is not { } shape)
+        {
+            return;
+        }
+
+        var look = CarriedPose.For(data, typeId, _shared.PropertiesOf?.Invoke(typeId) ?? new HashSet<string>());
+        var turn = look.Lie switch
+        {
+            CarryWayLie.Across => new Basis(Vector3.Forward, Mathf.Pi / 2),
+            CarryWayLie.Slanted => new Basis(Vector3.Forward, Mathf.Pi / 4) * new Basis(Vector3.Right, -Mathf.Pi / 8),
+            _ => Basis.Identity,
+        };
+        var size = (float)shape.SizeM;
+        _carried = new MeshInstance3D
+        {
+            Name = "Carried",
+            Mesh = shape.Mesh,
+            MaterialOverride = shape.Material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Transform = new Transform3D(turn.Scaled(new Vector3(size, size, size)), new Vector3(0, (float)(look.HeightM * _scale), (float)(look.ForwardM * _scale))),
+        };
+        _body.AddChild(_carried);
+        var gesture = CarriedPose.GestureOf(look);
+        _carryGesture = figures.Gestures?.FirstOrDefault(g => string.Equals(g.Id, gesture, StringComparison.Ordinal));
     }
 
     /// <summary>The see-through pass: drawn only where something in front hides the figure (W1689).</summary>

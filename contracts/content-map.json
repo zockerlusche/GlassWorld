@@ -7,6 +7,10 @@
       "schema": "vocabulary"
     },
     {
+      "pattern": "look/carried.json",
+      "schema": "look-carried"
+    },
+    {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
     },
