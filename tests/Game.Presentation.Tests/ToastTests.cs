@@ -137,12 +137,14 @@ public sealed class ToastTests
     }
 
     [Fact]
-    public void NormalSpeedDoesNotBundle()
+    public void NormalSpeedBundlesOnlyTheVerySameHint()
     {
+        // TL #25508 (A1684): the very same hint again counts up at any speed; different ones stay apart.
         var queue = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
         queue.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: false);
         queue.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: false);
-        Assert.Equal(2, queue.Visible.Count);
+        queue.Push(Msg("msg.mail.kind.knock", "knock-2"), fastForward: false);
+        Assert.Equal([2, 1], queue.Visible.Select(t => t.Count));
     }
 
     [Fact]

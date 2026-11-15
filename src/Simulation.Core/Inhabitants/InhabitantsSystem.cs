@@ -92,6 +92,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Event: an action finished and its effects applied.</summary>
     public const string ActionFinished = "action_finished";
 
+    /// <summary>D1105 H3: an inhabitant could not get its hands on a thing (detail: why).</summary>
+    public const string OutOfReach = "out_of_reach";
+
+    /// <summary>Detail of <see cref="OutOfReach"/>: the thing hangs above one's reach.</summary>
+    public const string TooHigh = "too_high";
+
+    /// <summary>D1105 H3: how high a thing hangs above the ground in centimetres (the map); null = all on the ground.</summary>
+    public Func<string, int>? AboveCm { get; set; }
+
     /// <summary>An inhabitant took a thing into its hand (AK1a).</summary>
     public const string PickedUp = "picked_up";
 
@@ -951,7 +960,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(world);
         // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        // A1711 (D1112 #4): only within the data's window from bedtime - after a whole night one wakes rested and
+        // is not sent back to bed; then only tiredness lies it down.
         return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && (_model.Togetherness.BedtimeWindowHours is not { } window || since < (hours + window) * 60)
             && world.Calendar.NightBeganInWorld(world.Tick);
     }
 
@@ -1221,6 +1233,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Reason of a sleep cut short because a pressing need fell below its neglect threshold (B2681, W1938).</summary>
     public const string WokenByNeed = "woken_by_need";
 
+    /// <summary>Reason of a sleep ended by day because the sleeper is rested (B2778, A1711).</summary>
+    public const string WokenRested = "woken_rested";
+
     /// <summary>
     /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
     /// inhabitant is below its neglect threshold (neglect_below of the inhabitant model) and the action - one
@@ -1380,6 +1395,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
+            // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
+            if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above && above > reach.HeightCm
+                && reach.Actions.Contains(activity.Action, StringComparer.Ordinal))
+            {
+                // A cancelled try as every other (review GW3 #471: building frees its pending thing, the repeat rest
+                // counts it), and the reason as its own event for memory and ideas.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = TooHigh });
+                Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = TooHigh });
+                inhabitant.Activity = null;
+                return;
+            }
+
             if (listener is not null)
             {
                 KeepConversationDistance(inhabitant, listener);
@@ -1421,9 +1448,26 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 inhabitant.Activity = null;
                 return;
             }
+
+            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep.
+            if (IsAsleep(inhabitant) && timingNow.DurationTicks - activity.RemainingTicks.Value >= timingNow.WakeAfterTicks
+                && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
+                && inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
+                inhabitant.Activity = null;
+                return;
+            }
         }
 
         var remaining = activity.RemainingTicks.Value - 1;
+        if (remaining <= 0 && _model.Togetherness is { SleepThroughNight: true } && IsAsleep(inhabitant)
+            && world.Calendar.MinutesSinceNightfall(world.Tick) is not null)
+        {
+            // B2778 (A1711): the night's sleep lasts until morning - the day wakes it (or a pressing need).
+            remaining = 1;
+        }
+
         if (remaining > 0)
         {
             inhabitant.Activity = activity with { RemainingTicks = remaining };

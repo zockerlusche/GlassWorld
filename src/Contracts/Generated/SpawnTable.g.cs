@@ -69,6 +69,31 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("within_cells")]
         public int WithinCells { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("hangs")]
+        public SpawnHangs? Hangs { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// D1105 H2: the thing hangs in its plant's crown while it grows there - each at its own height (seeded from its id) between min and max permille of the plant's shade_height_cm - and falls to the ground with a chance per day; fallen, it lies there (and ages) and the plant grows a new one. Absent = it grows at ground height.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SpawnHangs
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("min_permille")]
+        public int MinPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_permille")]
+        public int MaxPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Chance per game day that it falls (checked hourly).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("falls_per_day_permille")]
+        public int FallsPerDayPermille { get; set; } = default!;
+
     }
 
     /// <summary>

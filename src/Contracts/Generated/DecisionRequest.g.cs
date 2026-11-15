@@ -59,6 +59,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<KnownProperty> KnownProperties { get; set; } = new System.Collections.ObjectModel.Collection<KnownProperty>();
 
         /// <summary>
+        /// D1105 H2: how high the thing is above the ground, in metres (a fruit in a tree's crown); absent = on the ground. What one sees; whether it can be reached is the core's (H3).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("above_m")]
+        public double? AboveM { get; set; } = default!;
+
+        /// <summary>
         /// What THIS inhabitant calls this kind of thing (type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

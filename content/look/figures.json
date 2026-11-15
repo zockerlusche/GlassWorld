@@ -374,6 +374,108 @@
         0.9,
         -0.25
       ]
+    },
+    {
+      "id": "hug_self",
+      "actions": [],
+      "arms": [
+        "left",
+        "right"
+      ],
+      "rise_s": 0.9,
+      "hold_s": 6.0,
+      "lower_s": 0.9,
+      "rest_s": 1.5,
+      "influence": 0.7,
+      "to_head": [
+        0.08,
+        -0.34,
+        0.16
+      ],
+      "pole": [
+        0.35,
+        0.4,
+        -0.25
+      ]
+    },
+    {
+      "id": "wipe_brow",
+      "actions": [],
+      "arms": [
+        "right"
+      ],
+      "rise_s": 0.7,
+      "hold_s": 0.6,
+      "lower_s": 0.7,
+      "rest_s": 9.0,
+      "influence": 0.85,
+      "to_head": [
+        0.04,
+        0.07,
+        0.11
+      ],
+      "pole": [
+        0.35,
+        0.9,
+        -0.25
+      ]
+    },
+    {
+      "id": "arms_up",
+      "actions": [],
+      "arms": [
+        "left",
+        "right"
+      ],
+      "rise_s": 0.4,
+      "hold_s": 1.2,
+      "lower_s": 0.6,
+      "rest_s": 25.0,
+      "influence": 0.85,
+      "to_head": [
+        0.18,
+        0.32,
+        0.04
+      ],
+      "pole": [
+        0.6,
+        0.3,
+        -0.3
+      ]
+    },
+    {
+      "id": "yawn",
+      "actions": [],
+      "arms": [
+        "right"
+      ],
+      "rise_s": 0.6,
+      "hold_s": 1.2,
+      "lower_s": 0.6,
+      "rest_s": 14.0,
+      "influence": 0.8,
+      "to_head": [
+        0.02,
+        -0.1,
+        0.12
+      ],
+      "pole": [
+        0.35,
+        0.9,
+        -0.25
+      ]
+    }
+  ],
+  "comfort": [
+    {
+      "level": "cold",
+      "gesture": "hug_self",
+      "shiver_m": 0.004,
+      "shiver_hz": 9
+    },
+    {
+      "level": "hot",
+      "gesture": "wipe_brow"
     }
   ]
 }

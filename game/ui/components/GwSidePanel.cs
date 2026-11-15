@@ -14,7 +14,7 @@ public partial class GwSidePanel : PanelContainer
     // A long title (an inhabitant's long name) ends in an ellipsis beside the '×' and shows whole as a tooltip, so it never
     // widens the window into the free middle.
     private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel, SizeFlagsHorizontal = SizeFlags.ExpandFill, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis, MouseFilter = MouseFilterEnum.Pass };
-    private readonly Button _close = new() { Name = "Close", Text = CloseSymbol, Flat = true, TooltipText = "ui.common.close", SizeFlagsVertical = SizeFlags.ShrinkBegin };
+    private readonly Button _close = new() { Name = "Close", Text = CloseSymbol, Flat = true, ThemeTypeVariation = UiTheme.WorldFlatButton, TooltipText = "ui.common.close", SizeFlagsVertical = SizeFlags.ShrinkBegin };
 
     // Docks again in one frame at most this often: a layout that does not settle stops instead of filling the call
     // queue (S2 tour: millions of deferred calls, then a crash).
@@ -105,7 +105,8 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="contentPx">Width the content asks for in pixels as measured (a table's headers), without the panel's frame; 0 = no wish. Capped at the room like the token width.</param>
     /// <param name="maxWidth">Widest the panel may be (corner layout: never into the free middle, A1682); 0 = no cap but the room.</param>
     /// <param name="fitContent">True: no higher than its content needs (S1b: no full-height window for one sentence); more scrolls.</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0, bool fitContent = false)
+    /// <param name="fromBottom">True with <paramref name="fitContent"/>: it stands on the bottom edge and grows upwards, at most up to <paramref name="top"/> (A1684: the log in its corner).</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0, float maxWidth = 0, bool fitContent = false, bool fromBottom = false)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
@@ -145,7 +146,7 @@ public partial class GwSidePanel : PanelContainer
             _title.CustomMinimumSize = new Vector2(width - padding, 0);
         }
 
-        _redock = fitContent ? () => Dock(area, style, rightOffset, top, left, heightShare, widthPx, contentPx, maxWidth, fitContent: true) : null;
+        _redock = fitContent ? () => Dock(area, style, rightOffset, top, left, heightShare, widthPx, contentPx, maxWidth, fitContent: true, fromBottom) : null;
         var y = top > 0 ? top : margin;
         var height = (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1);
         if (fitContent)
@@ -163,6 +164,10 @@ public partial class GwSidePanel : PanelContainer
         }
 
         Size = new Vector2(width, height);
+        if (fitContent && fromBottom)
+        {
+            y = area.Y - margin - Size.Y;
+        }
 
         // The size is the asked one or, if the content needs more, its minimum: placed by what it really is,
         // a panel on the right grows to the left instead of under the buttons beside it (D747 A2: the

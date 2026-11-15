@@ -123,6 +123,14 @@ class ComfortFelt(BaseModel):
     )
 
 
+class Reach(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    height_cm: int = Field(..., ge=0, le=1000)
+    actions: list[common_schema.VocabId] = Field(..., max_length=32)
+
+
 class MoodDriver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -185,6 +193,19 @@ class ComfortZoneActionFactor(BaseModel):
     )
 
 
+class WakeRested(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    at: float = Field(..., gt=0.0, le=1.0)
+
+
 class Togetherness(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -232,6 +253,20 @@ class Togetherness(BaseModel):
         description='B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.',
         ge=0.0,
         le=12.0,
+    )
+    bedtime_window_hours: float | None = Field(
+        None,
+        description="A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).",
+        gt=0.0,
+        le=12.0,
+    )
+    wake_rested: WakeRested | None = Field(
+        None,
+        description="B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.",
+    )
+    sleep_through_night: bool | None = Field(
+        None,
+        description="B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).",
     )
 
 
@@ -494,5 +529,6 @@ class InhabitantModel(BaseModel):
     skill_rules: SkillRules
     need_rules: NeedRules | None = None
     togetherness: Togetherness | None = None
+    reach: Reach | None = None
     diary: Diary | None = None
     comfort_zone: ComfortZone | None = None

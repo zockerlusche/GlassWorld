@@ -437,6 +437,7 @@ public partial class WorldPresenter
         var wornColors = new Dictionary<string, string?>(StringComparer.Ordinal);
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
+            Expressions = Read<LookExpressions>(content, "look", "expressions.json"),
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
             // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.

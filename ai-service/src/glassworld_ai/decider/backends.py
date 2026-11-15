@@ -22,7 +22,7 @@ from glassworld_ai.decider.output import (
     parse_choice,
     readable_name,
 )
-from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem
+from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem, wrong_language
 from glassworld_ai.grounding import (
     checks_nouns,
     request_words,
@@ -312,7 +312,25 @@ class OllamaDecider:
                 log("invalid", result.content, str(error), usage)
                 last_problem = str(error)
                 continue
+            # v15 (TL #26281): a thought in the other language is asked again while attempts are
+            # left; on the last one the check below leaves the thought out and the choice holds.
+            foreign = (
+                wrong_language(
+                    choice.thought, _plain(request.display_locale), self._template.settings
+                )
+                if choice.thought
+                else None
+            )
+            if foreign is not None and attempt < attempts:
+                last_problem = f"thought in the wrong language ('{foreign}')"
+                log("invalid", result.content, last_problem, usage)
+                continue
+            if foreign is not None:
+                choice = replace(choice, thought=None)
             choice, note = self._natural(request, choice)
+            if foreign is not None:
+                note = (f"{note}; " if note else "") + f"thought left out (language '{foreign}')"
+
             choice = self._b9_fields(request, choice)
             log("ok", result.content, note or None, usage)
             return _response(

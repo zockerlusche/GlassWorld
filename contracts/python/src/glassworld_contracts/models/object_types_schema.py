@@ -96,6 +96,40 @@ class ObjectParams(BaseModel):
         ge=0,
         le=1000,
     )
+    grip_permille: int | None = Field(
+        None,
+        description='How well one holds on to it, in permille (D1105: climbing, standing on it); a smooth trunk is low.',
+        ge=0,
+        le=1000,
+    )
+    nest_possible: bool | None = Field(
+        None,
+        description='Whether birds may nest in it (D1105 H4: nests only from the animal stock, never placed for a purpose).',
+    )
+    length_cm: int | None = Field(
+        None,
+        description='How long a thing is, in centimetres (D1105: leaning it against something, reach).',
+        ge=0,
+        le=5000,
+    )
+    density_permille: int | None = Field(
+        None,
+        description='Density against water, in permille (D1105 W1: below 1000 it floats).',
+        ge=0,
+        le=20000,
+    )
+    load_kg: int | None = Field(
+        None,
+        description='What it carries before it gives way, in kilograms (D1105 S1: stacking, stepping on it).',
+        ge=0,
+        le=10000,
+    )
+    weight_kg: float | None = Field(
+        None,
+        description='How heavy it is, in kilograms (D1105: carrying, stacking).',
+        ge=0.0,
+        le=10000.0,
+    )
 
 
 class ObjectType(BaseModel):

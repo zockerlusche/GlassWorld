@@ -47,6 +47,9 @@ public static class UiTheme
     /// </summary>
     public const string WorldPanel = "GwWorldPanel";
 
+    /// <summary>A button without a frame in a window on the world (A1736): light text with the dark outline.</summary>
+    public const string WorldFlatButton = "GwWorldFlatButton";
+
     /// <summary>Theme type variation for speech and thought bubbles.</summary>
     public const string BubblePanel = "GwBubblePanel";
 
@@ -163,6 +166,9 @@ public static class UiTheme
 
     private static FontFile LoadFont(string file) => GD.Load<FontFile>(FontFolder + file);
 
+    /// <summary>The bold face (A1684: highlighted log lines stand out by shape, not colour).</summary>
+    public static FontFile BoldFont() => LoadFont("AtkinsonHyperlegible-Bold.ttf");
+
     /// <summary>
     /// A frame picture as 9-slice, optionally tinted; or a flat box with the same padding while the
     /// picture is missing. The picture is drawn at 1/source_scale of its pixel size (sharp downscale),
@@ -225,6 +231,43 @@ public static class UiTheme
         }
 
         return frame;
+    }
+
+    /// <summary>
+    /// The theme of the windows on the right on the world's dark ground (A1736): light outlined text and frameless
+    /// buttons (<see cref="WorldFlatButton"/>), the framed parts keep the main theme.
+    /// </summary>
+    public static Theme BuildWindowOnWorld(UiStyle style)
+    {
+        // A1736 (TL #26282, D1121): the card and the windows on the right stand on the same soft dark ground as the
+        // corners. Text there is light with the dark outline (contrast as S1b), and so are buttons without a frame
+        // (WorldFlatButton). Buttons, fields, tables, bars and the sections' titles keep their own light form with dark
+        // text - the three forms of S1b read apart by brightness and shape.
+        ArgumentNullException.ThrowIfNull(style);
+        var world = BuildWorld(style);
+        var theme = new Theme();
+        theme.SetColor("font_color", "Label", world.GetColor("font_color", "Label"));
+        theme.SetColor("font_outline_color", "Label", world.GetColor("font_outline_color", "Label"));
+        theme.SetConstant("outline_size", "Label", world.GetConstant("outline_size", "Label"));
+        theme.SetTypeVariation(WorldFlatButton, "Button");
+        theme.SetColor("font_outline_color", WorldFlatButton, world.GetColor("font_outline_color", "Button"));
+        theme.SetConstant("outline_size", WorldFlatButton, world.GetConstant("outline_size", "Button"));
+        foreach (var name in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color" })
+        {
+            theme.SetColor(name, WorldFlatButton, world.GetColor(name, "Button"));
+        }
+
+        foreach (var state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled" })
+        {
+            theme.SetStylebox(state, WorldFlatButton, new StyleBoxEmpty());
+        }
+
+        foreach (var box in new[] { "scroll", "scroll_focus", "grabber", "grabber_highlight", "grabber_pressed" })
+        {
+            theme.SetStylebox(box, "VScrollBar", world.GetStylebox(box, "VScrollBar"));
+        }
+
+        return theme;
     }
 
     /// <summary>

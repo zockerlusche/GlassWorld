@@ -189,6 +189,19 @@ public sealed class SimulationHost
             var tides = new Tides(preset.Tides);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
+                // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
+                Hangs = content.WorldGen.Spawns.Spawns
+                    .Where(r => r.GrowsOn?.Hangs is not null)
+                    .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
+                    .ToDictionary(
+                        g => g.Key,
+                        g =>
+                        {
+                            var grows = g.First().GrowsOn!;
+                            var height = content.Objects.Contains(grows.ObjectType) ? content.Objects.Params(grows.ObjectType).ShadeHeightCm ?? 0 : 0;
+                            return (grows.Hangs!.MinPermille, grows.Hangs.MaxPermille, grows.Hangs.FallsPerDayPermille, height);
+                        },
+                        StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
                 Tides = tides,
                 TideWalk = tides.Active
@@ -608,6 +621,13 @@ public sealed class SimulationHost
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
             world.Add(body);
+        }
+
+        if (map is not null)
+        {
+            // D1105 H2: the decider sees how high a thing hangs (a fruit in the crown); H3: the core checks the reach.
+            decisions.AboveCm = map.AboveCm;
+            inhabitants.AboveCm = map.AboveCm;
         }
 
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.

@@ -46,6 +46,9 @@ public partial class FigureView : Node3D
     private string _topColor = "#ffffff";
     private string? _wornShown;
 
+    /// <summary>A1732: an event of this inhabitant - the expression layer may show it (cheering at an invention).</summary>
+    public void Express(string kind) => _expressions?.Event(kind);
+
     /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
     public bool Lying => _lying;
     private double _lieSeconds;
@@ -79,6 +82,13 @@ public partial class FigureView : Node3D
     private KneeStraightenModifier _knees = null!;
     private GestureLayer? _gestures;
     private FigureGesture? _gestureWanted;
+    private ComfortLook _comfortLook = ComfortLook.None;
+    private ExpressionLayer? _expressions;
+    private ExpressionShown? _expressionShown;
+    private IReadOnlyDictionary<string, double> _moods = new Dictionary<string, double>();
+    private IReadOnlyDictionary<string, double> _needs = new Dictionary<string, double>();
+    private double _shiverSeconds;
+    private bool _shivering;
     private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
     private SeatPose? _seat;
@@ -220,6 +230,9 @@ public partial class FigureView : Node3D
             : null;
         _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
+        // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
+        _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
+        (_moods, _needs) = (inhabitant.Moods, inhabitant.Needs);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
@@ -452,8 +465,24 @@ public partial class FigureView : Node3D
         _knees.Share = (float)knees;
         _knees.HipShare = (float)hips;
 
+        // A1732 (B2716): what it feels shows over the action - an event's short expression, else a mood or need.
+        _expressions ??= _shared.Expressions is { } expressionData ? new ExpressionLayer(expressionData, figures.Gestures) : null;
+        _expressionShown = !_lying && _lieSeconds <= 0 ? _expressions?.Update(delta, _moods, _needs) : null;
         HearAndAnswer(delta, figures.Greeting);
-        _gestures?.Update(delta, _actionShown && !_lying && _lieSeconds <= 0 ? _gestureWanted : null);
+        var still = !_lying && _lieSeconds <= 0;
+        var actionGesture = _actionShown && still ? _gestureWanted : null;
+        // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
+        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
+
+        // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
+        _shiverSeconds += delta;
+        var shiver = still && !_laid ? GestureCadence.ShiverAt(_comfortLook, _shiverSeconds, _bodyScale.X) : 0;
+        if (shiver != 0 || _shivering)
+        {
+            _body.Position = _bodyPosition + new Vector3((float)shiver, 0, 0);
+            _shivering = shiver != 0;
+        }
+
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {
@@ -544,7 +573,7 @@ public partial class FigureView : Node3D
         // Lying it keeps its arms down: no wave from the ground.
         _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking ? 1 : 0, ease, delta);
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
-        _face.Expression = _talkLeft > 0 ? "talk" : "neutral";
+        _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
     }
 
     /// <summary>The see-through pass: drawn only where something in front hides the figure (W1689).</summary>

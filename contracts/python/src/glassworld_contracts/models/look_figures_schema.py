@@ -10,6 +10,33 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+
+class FigureComfort(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    level: str = Field(
+        ...,
+        description='Comfort level (vocabulary comfort_level).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    gesture: str | None = Field(
+        None,
+        description='Id of a gesture of gestures; missing = none.',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    shiver_m: float | None = Field(
+        None,
+        description='Amplitude of the shiver of the body, metres for a figure of size 1; missing or 0 = none.',
+        ge=0.0,
+        le=0.02,
+    )
+    shiver_hz: float | None = Field(
+        None, description='How fast it shivers.', ge=1.0, le=20.0
+    )
+
+
 type Action = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
@@ -37,9 +64,9 @@ class FigureGesture(BaseModel):
     )
     actions: list[Action] = Field(
         ...,
-        description='Core actions the gesture shows (vocabulary actions).',
+        description='Core actions the gesture shows (vocabulary actions). Empty = it shows only through comfort (A1729), never for an action.',
         max_length=16,
-        min_length=1,
+        min_length=0,
     )
     reach: list[ReachItem] | None = Field(
         None,
@@ -669,6 +696,11 @@ class LookFigures(BaseModel):
         None,
         description='Arm gestures over the running pose (D958 D2): the first gesture whose action and reach fit the shown action clip moves the arms by two-bone IK. Frame, not outcome: the core says what is done, this only shows it.',
         max_length=32,
+    )
+    comfort: list[FigureComfort] | None = Field(
+        None,
+        description="A1729 (A1379 rest): how a comfort level shows on the figure while it stands idle or walks - a gesture of gestures (arms to the body when cold, a hand to the forehead when hot) and a slight shiver. Never over an action's own gesture, never while it works or lies. Calm values (B2466); absent = nothing.",
+        max_length=8,
     )
     sitting: FigureSitting = Field(
         ...,
