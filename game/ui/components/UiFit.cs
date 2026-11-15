@@ -140,6 +140,20 @@ public static class UiFit
     }
 
     /// <summary>
+    /// A label whose numbers change (the clock, the date) keeps one width while they do: it takes the width of its text
+    /// with every digit as wide as the widest digit of its font, so a minute or a day passing moves nothing beside it
+    /// (A1762, Marcel W2183: the time block jittered). Call it after each new text; only a new number of digits or
+    /// letters changes the width.
+    /// </summary>
+    public static void SteadyDigits(Label label)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        var widest = "0123456789".MaxBy(d => Width(label, d.ToString()));
+        var steady = new string([.. label.Text.Select(c => char.IsAsciiDigit(c) ? widest : c)]);
+        label.CustomMinimumSize = new Vector2(Width(label, steady), label.CustomMinimumSize.Y);
+    }
+
+    /// <summary>
     /// Layout check: the texts below <paramref name="root"/> that are cut or broken inside a word - a hint
     /// text wider than its field (whether or not the field holds text now; a field at its limit may cut),
     /// a wrapping label narrower than its longest word. Empty if all fit.

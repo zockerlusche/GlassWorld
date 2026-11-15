@@ -30,6 +30,7 @@ public partial class GameScreen
     private readonly Queue<string> _portraitWanted = new();
     private readonly HashSet<string> _portraitAsked = new(StringComparer.Ordinal);
     private HFlowContainer? _topRow;
+    private Vector2? _cornerArea;
     private bool _portraitBusy;
     private int _portraitRound;
     private double _portraitScale;
@@ -65,6 +66,7 @@ public partial class GameScreen
         _favorThumb.CustomMinimumSize = icon;
 
         _root.AddChild(_corner);
+        _corner.MinimumSizeChanged += KeepCornerRight;
         _root.AddChild(_portraits);
         _portraits.Setup(_style);
         _portraits.Chosen += id =>
@@ -122,6 +124,81 @@ public partial class GameScreen
         Move(_weatherIcon, _cornerDate, 1);
         Move(_favorBar, _cornerFavor, 0);
         Move(_favorThumb, _cornerFavor, 1);
+    }
+
+    /// <summary>
+    /// A1762 (Marcel W2183): the time block changes its size between two layouts (another date, a longer season name, a
+    /// larger text). A container only grows to the right and never shrinks by itself, so the block stood out of the
+    /// picture and jumped back at the next layout. It keeps its right edge at the safe margin instead, at once; a new
+    /// height moves the windows below it, so that asks for a full layout in the next frame.
+    /// </summary>
+    private void KeepCornerRight()
+    {
+        if (_style is null || _cornerArea is not { } area || !_corner.IsInsideTree())
+        {
+            return;
+        }
+
+        var height = _corner.Size.Y;
+        _corner.Size = _corner.GetCombinedMinimumSize();
+        _corner.Position = new Vector2(area.X - _style.Tokens.Window.SafeMargin - _corner.Size.X, _corner.Position.Y);
+        if (Math.Abs(_corner.Size.Y - height) > 0.5f)
+        {
+            _relayoutFrames = Math.Max(_relayoutFrames, 1);
+        }
+    }
+
+    /// <summary>
+    /// Self-check (A1762): every digit in turn in the time, the date and the day (as the clock and fast days show them);
+    /// the time block must end at the safe margin each time and keep its width. Empty if it does; the clock is shown
+    /// again afterwards.
+    /// </summary>
+    private async Task<string> SteadyCornerProblem(Vector2 view)
+    {
+        if (_style is null || _time is null || _date is null || _day is null)
+        {
+            return "the clock is not set up";
+        }
+
+        var edge = view.X - _style.Tokens.Window.SafeMargin;
+        var labels = new[] { _time, _date, _day };
+        var shown = labels.Select(l => l.Text).ToArray();
+        float? width = null;
+        try
+        {
+            foreach (var digit in "0123456789")
+            {
+                for (var i = 0; i < labels.Length; i++)
+                {
+                    labels[i].Text = new string([.. shown[i].Select(c => char.IsAsciiDigit(c) ? digit : c)]);
+                    UiFit.SteadyDigits(labels[i]);
+                }
+
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                var end = _corner.Position.X + _corner.Size.X;
+                if (Math.Abs(end - edge) > 0.5f)
+                {
+                    return $"the time block ends at {end:0} with the clock at '{_time.Text}', not at the safe margin {edge:0}";
+                }
+
+                width ??= _corner.Size.X;
+                if (Math.Abs(_corner.Size.X - width.Value) > 0.5f)
+                {
+                    return $"the time block is {_corner.Size.X:0} wide with the clock at '{_time.Text}', {width:0} before: it jitters";
+                }
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < labels.Length; i++)
+            {
+                labels[i].Text = shown[i];
+                UiFit.SteadyDigits(labels[i]);
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
@@ -408,6 +485,7 @@ public partial class GameScreen
     /// </summary>
     private void LayoutCorners(Vector2 area, float margin, float gap)
     {
+        _cornerArea = area;
         var log = _sideBar.PanelOf(ScreenZones.Pinned);
         var list = _sideBar.PanelOf("inhabitants");
         var card = _sideBar.PanelOf(ScreenZones.Card);
@@ -607,6 +685,14 @@ public partial class GameScreen
             if (_corner.Position.X < view.X / 2 || _portraits.Position.X > view.X / 2 || log.Position.X > view.X / 2 || log.Position.Y < view.Y / 2)
             {
                 return $"a corner is not in its corner (time block {Box(_corner)}, portraits {Box(_portraits)}, log {Box(log)})";
+            }
+
+            // A1762 (Marcel W2183): the time block ends at the safe margin and keeps that edge and its width while the
+            // clock and the date show any digits - nothing jitters, nothing leaves the picture.
+            var steady = await SteadyCornerProblem(view);
+            if (steady.Length > 0)
+            {
+                return steady;
             }
 
             if (_timeButtons.Any(b => !_cornerSpeed.IsAncestorOf(b.Button)) || !_cornerDate.IsAncestorOf(_date) || _cornerButtons.GetChildCount() != 1 + ScreenZones.Themes.Count)

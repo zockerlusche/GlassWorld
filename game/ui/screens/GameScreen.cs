@@ -2716,6 +2716,11 @@ public partial class GameScreen : CanvasLayer
         });
         _day.TooltipText = _date.TooltipText;
         _time.Text = clock.Time;
+
+        // A1762: the numbers change, the widths do not - nothing beside them moves each minute or day.
+        UiFit.SteadyDigits(_date);
+        UiFit.SteadyDigits(_day);
+        UiFit.SteadyDigits(_time);
         RefreshCorners(rows, clock);
 
         // Each inhabitant's diary (W1726): the core keeps it (TL #20472); take what is new.
