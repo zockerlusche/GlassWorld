@@ -78,6 +78,34 @@ public sealed class BedtimeTests
     }
 
     [Fact]
+    public void AfterTheWindowNobodyIsSentBackToBedRested()
+    {
+        // A1711 (D1112 #4): woken rested in the small hours, it stays up; only tiredness would lie it down.
+        var window = Content.InhabitantModel.Togetherness!.BedtimeWindowHours!.Value;
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de");
+        var rested = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(rested);
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        var ticksPerHour = host.World.Calendar.Settings.TicksPerHour;
+        var late = FirstNightTick(host.World.Calendar) + (long)((Bedtime + window) * ticksPerHour);
+        host.World.Run(late - host.World.Tick);
+        Assert.True(host.Inhabitants.AtBedtime(host.World) is false);
+        Assert.NotNull(host.World.Calendar.MinutesSinceNightfall(host.World.Tick)); // still night
+
+        foreach (var need in rested.Needs.Keys.ToList())
+        {
+            rested.Needs[need] = 1.0;
+        }
+
+        rested.Activity = null;
+        rested.Planned = null;
+        events.Clear();
+        host.World.Run(ticksPerHour);
+        Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == "sleep" && e.Detail == InhabitantsSystem.Bedtime);
+    }
+
+    [Fact]
     public void TheServiceHearsNightWhenAllSleepOrAtTheLimitNotAtNightfall()
     {
         var port = new PhasePort();

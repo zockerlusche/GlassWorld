@@ -358,6 +358,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("bedtime_after_nightfall_hours")]
         public double? BedtimeAfterNightfallHours { get; set; } = default!;
 
+        /// <summary>
+        /// A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("bedtime_window_hours")]
+        public double? BedtimeWindowHours { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -925,7 +925,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(world);
         // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        // A1711 (D1112 #4): only within the data's window from bedtime - after a whole night one wakes rested and
+        // is not sent back to bed; then only tiredness lies it down.
         return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && (_model.Togetherness.BedtimeWindowHours is not { } window || since < (hours + window) * 60)
             && world.Calendar.NightBeganInWorld(world.Tick);
     }
 

@@ -211,6 +211,12 @@ class Togetherness(BaseModel):
         ge=0.0,
         le=12.0,
     )
+    bedtime_window_hours: float | None = Field(
+        None,
+        description="A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).",
+        gt=0.0,
+        le=12.0,
+    )
 
 
 class WillToLiveModel(BaseModel):
