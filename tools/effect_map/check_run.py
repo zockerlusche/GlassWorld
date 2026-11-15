@@ -17,6 +17,7 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Iterator
+from functools import cache
 from pathlib import Path
 from typing import Any, cast
 
@@ -75,9 +76,15 @@ class Run:
         self.interval = steps[len(steps) // 2] if steps else 1.0
 
 
+@cache
+def world_time() -> Json:
+    """time.json, read once per run (review GW2 #464: not once per snapshot line)."""
+    return load("world/time.json")
+
+
 def is_daytime(day: int, clock: str) -> bool:
     """Whether day/hh:mm lies between sunrise and sunset of the day's season (time.json)."""
-    time = load("world/time.json")
+    time = world_time()
     season = next(s for s in cast(list[Json], time["seasons"]) if s["id"] == season_of(day))
     hours, _, minutes = clock.partition("/")[2].partition(":")
     minute = int(hours) * 60 + int(minutes or 0)
@@ -85,7 +92,7 @@ def is_daytime(day: int, clock: str) -> bool:
 
 
 def season_of(day: int) -> str:
-    time = load("world/time.json")
+    time = world_time()
     seasons = [str(s["id"]) for s in cast(list[Json], time["seasons"])]
     per = int(time["days_per_season"])
     return seasons[((day - 1) // per) % len(seasons)] if day > 0 else seasons[0]
