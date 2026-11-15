@@ -15,6 +15,9 @@ keys i1, i2, .... The service maps names back and checks before anything goes ou
 - from review v2 on (A1721, Marcel's test 14.11.: "Tick 8453 showed me an egg", "Driftwood t2 and
   t3") the prompt shows no tick, the service keeps the formative events itself, and the summary,
   the dream and the thoughts may name no tick, no number and no key (else ask again, saying why);
+- from v3 on (A1728, 'I met another person named Lena') other people appear by the name the
+  inhabitant learned (the events' labels) or as 'someone', and a summary that calls someone by a
+  name it never learned is refused;
 - roots of an idea and the subject of an intention come only from the input - only its own
   knowledge, its own ideas (R29 "can it come up with it"); an idea or intention that names
   anything else is dropped, the rest stays;
@@ -78,6 +81,45 @@ def _flag(settings: dict[str, Any] | None, key: str, default: bool) -> bool:
     return value if isinstance(value, bool) else default
 
 
+# A1728: a person called by a name - English ('named Lena', 'called Lena', 'her name is Lena') and
+# German ('namens Lena', 'sie heißt Lena', 'hieß', 'genannt Lena'; review GW1 #462).
+_CALLED = re.compile(
+    r"(?P<before>\b\w+\s+)?\b(?:named|called|name is|name was|namens"
+    r"|heißt|heisst|hieß|hiess|genannt)"
+    r"\s+(?P<name>[A-ZÄÖÜ][\w'-]+)",
+    re.UNICODE,
+)
+# Speaking of itself ('my name is Elin', 'I am called Elin', 'ich heiße Elin'): its own name is not
+# in the job, and naming itself invents nobody (review GW1 #462).
+_SELF = {"my", "i", "am", "ich", "mein", "meine"}
+
+
+def person_names(job: GenerationJob) -> dict[str, str]:
+    """A1728: the inhabitants' names this inhabitant learned, by id - from the events' labels
+    (the core resolves them by its knowledge only), in the player's language."""
+    locale = plain_id(job.display_locale)
+    names: dict[str, str] = {}
+    for event in review_payload(job).events:
+        about, label = event.about, getattr(event, "label", None)
+        if about is None or label is None or plain_id(about.kind) != "inhabitant":
+            continue
+        text = getattr(label, locale, None) or getattr(label, "en", None)
+        if isinstance(text, str) and text.strip():
+            names[plain_id(about.id)] = text.strip()
+    return names
+
+
+def made_up_name(text: str, known_names: set[str]) -> str | None:
+    """A1728: a name the text calls someone by that is not one it learned, or None."""
+    for found in _CALLED.finditer(text):
+        before = (found.group("before") or "").strip().lower()
+        if before in _SELF:
+            continue
+        if found.group("name") not in known_names:
+            return found.group("name")
+    return None
+
+
 def not_plain(text: str) -> str | None:
     """The first tick, key or long number in a text, or None (A1721)."""
     found = _NOT_PLAIN.search(text)
@@ -107,8 +149,9 @@ def _keyed(
     """Subjects by the name the prompt shows (player's language); a name two subjects share, or
     none, falls back to a neutral key (prefix + number), so every key names exactly one subject."""
     locale = plain_id(job.display_locale)
+    persons = person_names(job) if _flag(settings, "person_names", False) else None
     named = [
-        (_name(k, i, settings, texts, locale) if settings is not None else "", k, i)
+        (_name(k, i, settings, texts, locale, persons) if settings is not None else "", k, i)
         for k, i in pairs
     ]
     counts: dict[str, int] = {}
@@ -159,10 +202,17 @@ def _table(settings: dict[str, Any], key: str) -> dict[str, str]:
 
 
 def _name(
-    kind: str, ident: str, settings: dict[str, Any] | None, texts: TextCatalog | None, locale: str
+    kind: str,
+    ident: str,
+    settings: dict[str, Any] | None,
+    texts: TextCatalog | None,
+    locale: str,
+    persons: dict[str, str] | None = None,
 ) -> str:
     settings = settings or {}
     if kind == "inhabitant":
+        if persons and ident in persons:
+            return persons[ident]
         return _table(settings, "subject_kinds").get("inhabitant", "another person")
     found = texts.thing(locale, ident) if texts is not None and kind == "type" else None
     if found:
@@ -186,8 +236,10 @@ def build_values(
     if language is None:
         raise ContextError(f"no language name for {locale}")
 
+    persons = person_names(job) if _flag(settings, "person_names", False) else None
+
     def name(raw: Any) -> str:
-        return _name(plain_id(raw.kind), plain_id(raw.id), settings, texts, locale)
+        return _name(plain_id(raw.kind), plain_id(raw.id), settings, texts, locale, persons)
 
     events = []
     formative = sorted({e.tick for e in payload.events if e.formative})
@@ -423,6 +475,12 @@ def parse_review(
     if _flag(settings, "plain_texts", False) and (found := not_plain(summary)) is not None:
         raise InvalidOutputError(
             f"the summary names a tick, a number or a key ('{found}') - use names and words only"
+        )
+    if _flag(settings, "person_names", False) and (
+        invented := made_up_name(summary, set(person_names(job).values()))
+    ):
+        raise InvalidOutputError(
+            f"the summary calls someone '{invented}', a name it never learned - say 'someone'"
         )
     locale = plain_id(job.display_locale)
     shown = Shown(job, guard, texts, settings or {})
