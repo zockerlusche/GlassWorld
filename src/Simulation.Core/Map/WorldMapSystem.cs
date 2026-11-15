@@ -328,8 +328,10 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 
     /// <summary>
     /// A1498 (B2828): the nearest dry ground to a position within a distance - the position itself when its cell is dry
-    /// land, else the centre of the nearest dry cell that can be walked on (the same walkable area when the position has
-    /// one; ties by cell); null when there is none within the distance or the position lies outside the map.
+    /// land, else the centre of the nearest dry cell that can be walked on in the same walkable area (ties by cell). Shallow
+    /// water belongs to the area of its banks, so the dry cell is one the walker can reach - never across deep water (review
+    /// GW3 #507). Null when there is none within the distance, the position lies outside the map, or it stands on ground
+    /// nobody can walk (area 0): then it sleeps where it stands, and no walk can fail and be tried again tick after tick.
     /// </summary>
     public Position? DryGroundNear(Position at, double withinM)
     {
@@ -344,6 +346,11 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         }
 
         var area = AreaOf(here.X, here.Z);
+        if (area == 0)
+        {
+            return null;
+        }
+
         var cells = (int)Math.Ceiling(withinM * 100 / CellSizeCm);
         Position? best = null;
         var bestDistance = double.MaxValue;
@@ -352,7 +359,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             for (var x = here.X - cells; x <= here.X + cells; x++)
             {
                 if (!Map.Contains(x, z) || Map.Cell(x, z).Water != WaterKind.None || Map.Cell(x, z).WalkCost == MapCell.Blocked
-                    || (area != 0 && AreaOf(x, z) != area))
+                    || AreaOf(x, z) != area)
                 {
                     continue;
                 }

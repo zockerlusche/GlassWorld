@@ -225,6 +225,23 @@ public sealed class SleepTests
         Assert.NotNull(where);
         var at = map.CellOf(where!.Value)!.Value;
         Assert.Equal(Map.WaterKind.None, map.Map.Cell(at.X, at.Z).Water);
+
+        // Review GW3 #507: the dry ground lies in the walker's own area (reachable, not across deep water) ...
+        var start = map.CellOf(wet!.Value)!.Value;
+        Assert.Equal(map.AreaOf(start.X, start.Z), map.AreaOf(at.X, at.Z));
+
+        // ... and on ground nobody can walk there is none: it sleeps where it stands instead of trying a walk again and again.
+        for (var z = 0; z < map.Map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.Map.WidthCells; x++)
+            {
+                if (map.Map.Cell(x, z).Water != Map.WaterKind.None && map.AreaOf(x, z) == 0)
+                {
+                    Assert.Null(map.DryGroundNear(map.CentreOf(x, z), within));
+                    return;
+                }
+            }
+        }
     }
 
     private static (SimulationHost Host, Inhabitant Sleeper) Alone()
