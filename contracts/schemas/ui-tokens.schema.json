@@ -24,7 +24,8 @@
     "palettes",
     "knock",
     "head_symbol",
-    "zones"
+    "zones",
+    "portrait_states"
   ],
   "properties": {
     "contract_version": {
@@ -334,6 +335,9 @@
           }
         }
       }
+    },
+    "portrait_states": {
+      "$ref": "#/$defs/UiPortraitStates"
     }
   },
   "$defs": {
@@ -1003,6 +1007,88 @@
         },
         "highlight": {
           "type": "boolean"
+        }
+      }
+    },
+    "UiPortraitStates": {
+      "description": "A1752 (B2792, Marcel W2166/W2167): the states of a portrait in the inhabitants corner - knock, worry, aha, question - told apart by shape and motion, never by colour alone; at most one shows, the most important (knock > worry > aha > question). Calm: only the knock moves, and with reduced motion it stands still.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knock_taps",
+        "knock_tap_s",
+        "knock_gap_s",
+        "knock_pause_s",
+        "ring_share",
+        "aha_flash_s",
+        "aha_hours",
+        "aha_events",
+        "worry_after_hours",
+        "badge_share"
+      ],
+      "properties": {
+        "knock_taps": {
+          "description": "Pulses of the ring per knock (B2792: twice short, then a pause).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "knock_tap_s": {
+          "description": "How long one pulse of the knock ring lasts (real seconds).",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 2
+        },
+        "knock_gap_s": {
+          "description": "The pause between two pulses of one knock (real seconds).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "knock_pause_s": {
+          "description": "The pause after a knock before the next one (real seconds).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "ring_share": {
+          "description": "Thickness of a state's ring as a share of the portrait's diameter.",
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.3
+        },
+        "aha_flash_s": {
+          "description": "The aha ring lights up once this long (real seconds), then stays calmly bright without pulsing.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "aha_hours": {
+          "description": "How long an aha stays (game hours, B2792: about one game day) unless the portrait is clicked.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 240
+        },
+        "aha_events": {
+          "description": "The inhabitant's own events that are an aha (GW1 #27065: invented, built, word_heard); vocabulary event ids.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "worry_after_hours": {
+          "description": "A need below its neglect line this long (game hours, the snapshot's NeglectHours) shows the worry mark; a fading inhabitant shows it too.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 240
+        },
+        "badge_share": {
+          "description": "Diameter of the badge on the portrait's edge as a share of the portrait's diameter.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 0.7
         }
       }
     }

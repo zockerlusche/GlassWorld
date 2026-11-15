@@ -3083,6 +3083,18 @@
       "text": "Hilfe und Gaben"
     },
     {
+      "key": "ui.corner.knocking",
+      "text": "Klopft an die Scheibe"
+    },
+    {
+      "key": "ui.corner.worry",
+      "text": "Etwas fehlt schon lange"
+    },
+    {
+      "key": "ui.corner.aha",
+      "text": "Hat gerade etwas geschafft - Klick, und der Stern geht"
+    },
+    {
       "key": "ui.corner.brooding",
       "text": "Grübelt über eine Frage"
     },
