@@ -386,13 +386,6 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("alpha_max")]
         public double AlphaMax { get; set; } = default!;
 
-        /// <summary>
-        /// A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm "?" of this size stands in the dots' place; once only the effect is open, the dots again. Missing = dots only.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("question_font_px")]
-        public int? QuestionFontPx { get; set; } = default!;
-
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

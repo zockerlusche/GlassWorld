@@ -8,7 +8,7 @@ namespace GlassWorld.Game.Ui;
 public static class SettingsStore
 {
     /// <summary>Default place of the settings file.</summary>
-    public static string DefaultPath => ProjectSettings.GlobalizePath("user://settings.json");
+    public static string DefaultPath => GameData.At("settings.json");
 
     /// <summary>Reads the settings; a missing or broken file gives the defaults.</summary>
     public static PlayerSettings Load(string path, SettingsLimits limits)
