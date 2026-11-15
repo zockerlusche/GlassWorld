@@ -729,6 +729,18 @@ public partial class GameScreen
                 return $"a corner is not in its corner (time block {Box(_corner)}, portraits {Box(_portraits)}, log {Box(log)})";
             }
 
+            if (_timeButtons.Any(b => !_cornerSpeed.IsAncestorOf(b.Button)) || !_cornerDate.IsAncestorOf(_date) || _cornerButtons.GetChildCount() != 1 + ScreenZones.Themes.Count)
+            {
+                return "the time block misses its speeds, its date or one of the five round buttons";
+            }
+
+            var questions = CornerModel.Badge(_feed.Questions().Count);
+            if (((GwRoundButton)_themeButtons["questions"]).Count != questions)
+            {
+                return $"the questions button shows '{((GwRoundButton)_themeButtons["questions"]).Count}', the world has '{questions}'";
+            }
+
+            // The checks below take many frames while the world runs on: after the question count, which they would leave stale.
             // A1762 (Marcel W2183): the time block ends at the safe margin and keeps that edge and its width while the
             // clock and the date show any digits - nothing jitters, nothing leaves the picture.
             var steady = await SteadyCornerProblem(view);
@@ -755,17 +767,6 @@ public partial class GameScreen
             if ((log.Size - logBefore).Abs().Length() > 0.5f)
             {
                 return $"the closed log changed its size from {logBefore} to {log.Size} when a long line came";
-            }
-
-            if (_timeButtons.Any(b => !_cornerSpeed.IsAncestorOf(b.Button)) || !_cornerDate.IsAncestorOf(_date) || _cornerButtons.GetChildCount() != 1 + ScreenZones.Themes.Count)
-            {
-                return "the time block misses its speeds, its date or one of the five round buttons";
-            }
-
-            var questions = CornerModel.Badge(_feed.Questions().Count);
-            if (((GwRoundButton)_themeButtons["questions"]).Count != questions)
-            {
-                return $"the questions button shows '{((GwRoundButton)_themeButtons["questions"]).Count}', the world has '{questions}'";
             }
 
             string Free(params (string Name, Control Part)[] parts)

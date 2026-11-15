@@ -2139,7 +2139,7 @@ public partial class GameScreen : CanvasLayer
     /// </summary>
     private float ClosedLogHeight(int lines)
     {
-        var probe = new Button { Text = "Ag", Flat = true, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        var probe = new Button { Text = "ui.log.more", Flat = true, AutowrapMode = TextServer.AutowrapMode.Off, ClipText = true };
         _logList.AddChild(probe);
         var line = probe.GetCombinedMinimumSize().Y;
         _logList.RemoveChild(probe);
