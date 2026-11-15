@@ -352,6 +352,20 @@ namespace GlassWorld.Contracts
         public string SleepAction { get; set; } = default!;
 
         /// <summary>
+        /// A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("silent_while_asleep")]
+        public System.Collections.Generic.ICollection<string>? SilentWhileAsleep { get; set; } = default!;
+
+        /// <summary>
+        /// A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("thoughts_on_waking")]
+        public int? ThoughtsOnWaking { get; set; } = default!;
+
+        /// <summary>
         /// B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
