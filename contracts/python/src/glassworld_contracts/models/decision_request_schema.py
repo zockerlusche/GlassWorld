@@ -205,6 +205,30 @@ class RememberedInhabitant(BaseModel):
     )
 
 
+class FailedAction(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    target_type: str | None = Field(
+        None,
+        description='Object type of the target, or absent (an action without a thing, or aimed at another inhabitant).',
+    )
+    reason: str = Field(
+        ...,
+        description="The core's reason code (without the part after a '/').",
+        max_length=64,
+        min_length=1,
+    )
+    x: float | None = Field(None, description='Where it failed (m), rounded to 0.1.')
+    z: float | None = Field(None, description='Where it failed (m), rounded to 0.1.')
+
+
 class Option(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -335,4 +359,8 @@ class DecisionRequest(BaseModel):
     intention: MorningIntention | None = Field(
         None,
         description="Only with occasion 'intention' (B2687, A1584): what the inhabitant meant to do this morning (from its nightly look back) - an action, what it is about, and the morning thought it had. The core makes sure that action on a thing of that kind is among the options; the AI may take it up or do something else (PR2). Absent otherwise, and from an older core.",
+    )
+    failure: FailedAction | None = Field(
+        None,
+        description="Only with occasion 'action_failed' (A1778, B2814): what failed - the action, the kind of thing it was aimed at, the core's reason code (vocabulary-like id, e.g. too_high, too_smooth, no_walkable_step) and where. The options are the core's as always; nothing says what would work (PR2). Absent otherwise, and from an older core.",
     )
