@@ -8,7 +8,7 @@ namespace GlassWorld.Game;
 /// so a test package is self-contained and one look into its folder shows everything; when that folder cannot be
 /// written (a protected program folder), in <c>Documents/GlassWorld</c>. The environment variable
 /// <see cref="Variable"/> names another folder; the editor and development runs keep Godot's user folder as before.
-/// Resolved once per start. Godot's own log is the one exception: the start scripts pass <c>--log-file daten\logs\godot.log</c>
+/// Resolved once per start. Godot's own log is the one exception: the start scripts pass <c>--log-file log\godot.log</c>
 /// next to the game before any code runs, so when the data falls back to Documents that log still goes beside the game
 /// (review GW5 #503) - and it is not written at all when that folder is protected.
 /// </summary>
