@@ -896,7 +896,8 @@ public partial class GameScreen : CanvasLayer
             ResetPortraits(style.ContentScaleFactor);
         }
 
-        SetZones(!settings.ClassicLayout);
+        // S3b (A1684): the corners of Variante A are the only layout; the old top bar and side bar are gone.
+        SetZones(true);
 
         // The log lines are filled once in the language of that moment: after a change they are built again (D1060 find 2).
         _logShown = -1;

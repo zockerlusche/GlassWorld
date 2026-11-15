@@ -2963,10 +2963,6 @@
       "text": "{name} hat nicht geantwortet."
     },
     {
-      "key": "ui.settings.classic_layout",
-      "text": "Alter Bildschirmaufbau (Rückfall)"
-    },
-    {
       "key": "ui.zone.people",
       "text": "Bewohner"
     },
