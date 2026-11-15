@@ -17,6 +17,7 @@ passes only through teach. The service checks every turn before it goes out:
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, cast
 
 from jsonschema import Draft202012Validator
@@ -86,18 +87,28 @@ def minors(job: GenerationJob, settings: dict[str, Any]) -> bool:
     )
 
 
-def known_names(job: GenerationJob) -> set[str]:
-    """The names a turn may use: both speakers' own names and what each calls the other."""
-    locale = plain_id(job.display_locale)
-    names: set[str] = set()
-    for speaker in dialogue_payload(job).speakers:
-        own = getattr(speaker.inhabitant, "name", None)
-        if isinstance(own, str) and own.strip():
-            names.add(own.strip())
-        other = _name_of(speaker.calls_other, locale)
-        if other:
-            names.add(other)
+def _own_name(speaker: Any) -> str | None:
+    own = getattr(speaker.inhabitant, "name", None)
+    return own.strip() if isinstance(own, str) and own.strip() else None
+
+
+def speaker_names(job: GenerationJob, index: int) -> set[str]:
+    """Review GW1 #476: the names speaker `index` may use - its own and what IT calls the other."""
+    speaker = dialogue_payload(job).speakers[index]
+    names = {
+        n
+        for n in (_own_name(speaker), _name_of(speaker.calls_other, plain_id(job.display_locale)))
+        if n
+    }
     return names
+
+
+def _speaker_job(job: GenerationJob, index: int) -> dict[str, Any]:
+    """The job as speaker `index` sees it: only its own block (its knowledge, memory, thought)."""
+    data = job.model_dump(mode="json")
+    speakers = data["payload"]["dialogue"]["speakers"]
+    data["payload"]["dialogue"]["speakers"] = [speakers[index]]
+    return data
 
 
 def _speaker_block(
@@ -248,24 +259,27 @@ class Turns:
         self._guard, self._settings = guard, settings
         self._locale = plain_id(job.display_locale)
         self._max_words = int(dialogue_payload(job).max_words)
-        self._names = known_names(job)
+        count = len(dialogue_payload(job).speakers)
+        self._names = [speaker_names(job, i) for i in range(count)]
+        # Every person's own name: a speaker who did not learn the other's may not say it.
+        self._people = {n for n in (_own_name(sp) for sp in dialogue_payload(job).speakers) if n}
         self._minor = minors(job, settings)
         self._minor_stems = [
             str(w).lower()
             for w in cast(list[Any], _table(settings, "minor_words").get(self._locale, []))
         ]
-        self._words: set[str] | None = None
+        # A1613 per speaker (review GW1 #476): A may name only what A knows, not what only B knows.
+        self._words: list[set[str]] | None = None
         self._world: set[str] = set()
         if checks_nouns(settings, self._locale):
-            self._words = request_words(
-                job.model_dump(mode="json"),
-                texts,
-                self._locale,
-                settings_words(settings, "general_words", self._locale),
-            ) | {n for n in self._names}
+            general = settings_words(settings, "general_words", self._locale)
+            self._words = [
+                request_words(_speaker_job(job, i), texts, self._locale, general) | self._names[i]
+                for i in range(count)
+            ]
             self._world = world_things(texts, self._locale)
 
-    def problem(self, text: str) -> str | None:
+    def problem(self, text: str, speaker: int) -> str | None:
         if not self._guard.check(text).allowed:
             return "content guard"
         if (found := not_plain(text)) is not None:
@@ -274,12 +288,16 @@ class Turns:
             return f"language ({foreign})"
         if len(text.split()) > self._max_words:
             return "too many words"
-        if (invented := made_up_name(text, self._names)) is not None:
+        if (invented := made_up_name(text, self._names[speaker])) is not None:
             return f"made-up name ({invented})"
+        words = set(re.findall(r"[^\W\d_]+", text))
+        unlearned = sorted(n for n in self._people - self._names[speaker] if n in words)
+        if unlearned:
+            return f"a name it never learned ({unlearned[0]})"
         if self._minor and (hit := _reserved(text, self._minor_stems)) is not None:
             return f"reserved topic for a minor ({hit})"
         if self._words is not None:
-            unknown = unknown_nouns(text, self._words, heads=True, only=self._world)
+            unknown = unknown_nouns(text, self._words[speaker], heads=True, only=self._world)
             if unknown:
                 return f"unknown: {', '.join(unknown[:3])}"
         return None
@@ -316,7 +334,7 @@ def parse_dialogue(
     notes: list[str] = []
     for n, turn in enumerate(turns, start=1):
         text = " ".join(str(turn["text"]).split())
-        problem = check.problem(text)
+        problem = check.problem(text, SPEAKER_KEYS.index(str(turn["speaker"])))
         if problem is not None:
             notes.append(f"talk ends before turn {n} ({problem}): {text}")
             break

@@ -151,3 +151,36 @@ def test_reserved_stems_find_inflections_and_compounds(text: str) -> None:
     young = GenerationJob.model_validate(data)
     result, notes = _parse(_answer(GOOD[0], _turn("b", text)), young)
     assert len(result["turns"]) == 1 and "reserved topic" in notes[0]
+
+
+def test_a_speaker_uses_only_the_name_it_learned() -> None:
+    """Review GW1 #476: B has no name for A (calls_other null) - B saying 'Elin' is refused,
+    A saying 'Joro' (its calls_other) is fine."""
+    result, notes = _parse(_answer(GOOD[0], _turn("b", "Elin, ja, die mag ich!")))
+    assert len(result["turns"]) == 1 and "never learned (Elin)" in notes[0]
+    result, notes = _parse(_answer(*GOOD))
+    assert notes == [] and len(result["turns"]) == 2
+
+
+def test_a_speaker_names_only_things_it_knows_itself() -> None:
+    """Review GW1 #476: A1613 per speaker - A knows the hazelnut and may name it; B does not and
+    may not (the whole job would have let B use A's knowledge)."""
+    data = json.loads(json.dumps(JOB_DATA))
+    data["payload"]["dialogue"]["speakers"][0]["inhabitant"]["knowledge"].append(
+        {
+            "subject": {"kind": "type", "id": "hazelnut"},
+            "property": "edible",
+            "value": True,
+            "confidence": 0.9,
+            "source": "experienced",
+            "told_by": None,
+            "tick": 5,
+        }
+    )
+    job = GenerationJob.model_validate(data)
+    result, notes = _parse(_answer(_turn("a", "Joro, die Haselnuss mag ich."), GOOD[1]), job)
+    assert notes == [] and len(result["turns"]) == 2
+    result, notes = _parse(
+        _answer(_turn("a", "Joro, wie geht es dir?"), _turn("b", "Die Haselnuss mag ich.")), job
+    )
+    assert len(result["turns"]) == 1 and "unknown: Haselnuss" in notes[0]
