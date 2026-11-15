@@ -116,6 +116,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<Inhabitant> _ordered = [];
 
+    // A1710: thoughts that came while their inhabitant slept, shown when it wakes (presentation, not state).
+    private readonly Dictionary<string, List<WorldEvent>> _heldThoughts = new(StringComparer.Ordinal);
+
+    private const string ThoughtKind = "thought";
+
     // Where everybody stood when the tick began, side by side in id order (not state): the passes over all
     // pairs at the start of a tick (being together, meeting, bonding) read these instead of every object.
     private double[] _xs = [];
@@ -229,6 +234,25 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         if (EventKinds.Count > 0 && !EventKinds.Contains(worldEvent.Kind))
         {
             throw new InvalidDataException($"Event kind '{worldEvent.Kind}' is not in the event vocabulary (content/vocabulary/events.json).");
+        }
+
+        // A1710 (D1112 #8): a sleeper neither speaks nor thinks aloud - the one gate for every source (a late
+        // answer, the night look-back, a conversation). What it decided stands; only the words are left out.
+        if (_model.Togetherness?.SilentWhileAsleep is { Count: > 0 } silent && silent.Contains(worldEvent.Kind)
+            && TryGet(worldEvent.InhabitantId, out var speaker) && IsAsleep(speaker))
+        {
+            // GW2 #455: the night look-back's thoughts are morning thoughts - the latest few wait for the waking.
+            if (worldEvent.Kind == ThoughtKind && _model.Togetherness.ThoughtsOnWaking is > 0 and var keep)
+            {
+                var held = _heldThoughts.TryGetValue(speaker.Id, out var list) ? list : _heldThoughts[speaker.Id] = [];
+                held.Add(worldEvent);
+                if (held.Count > keep)
+                {
+                    held.RemoveRange(0, held.Count - keep);
+                }
+            }
+
+            return;
         }
 
         if (worldEvent.Tick != _eventsTick)
@@ -642,6 +666,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _zs[i] = at.Z;
         }
 
+        ReleaseHeldThoughts(world);
         var together = Together();
         Meet(world);
         Bond();
@@ -966,6 +991,52 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private static bool Asleep(Inhabitant inhabitant, Togetherness data) =>
         inhabitant.Activity is { RemainingTicks: not null } activity && string.Equals(activity.Action, data.SleepAction, StringComparison.Ordinal);
+
+    /// <summary>
+    /// A1710 (GW3 #455): the player's word wakes a sleeper - it answers awake. What it slept stays; the sleep ends
+    /// as when a need wakes it (action_cancelled, detail woken_by_player).
+    /// </summary>
+    public void WakeForPlayer(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (!IsAsleep(inhabitant))
+        {
+            return;
+        }
+
+        Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, inhabitant.Activity!.Action, null) { Detail = WokenByPlayer });
+        inhabitant.Activity = null;
+    }
+
+    /// <summary>Detail of the action_cancelled event when the player's word wakes a sleeper (A1710).</summary>
+    public const string WokenByPlayer = "woken_by_player";
+
+    // In inhabitant order: the thoughts held for one that is awake now come, oldest first, at this tick.
+    private void ReleaseHeldThoughts(World world)
+    {
+        if (_heldThoughts.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var inhabitant in _ordered)
+        {
+            if (_heldThoughts.TryGetValue(inhabitant.Id, out var held) && !IsAsleep(inhabitant))
+            {
+                _heldThoughts.Remove(inhabitant.Id);
+                foreach (var thought in held)
+                {
+                    Report(thought with { Tick = world.Tick });
+                }
+            }
+        }
+
+        foreach (var gone in _heldThoughts.Keys.Where(id => !TryGet(id, out _)).ToList())
+        {
+            _heldThoughts.Remove(gone);
+        }
+    }
 
     /// <summary>Togetherness fills its need by the data's rate per hour, never above the cap (TL #20190).</summary>
     private void FillTogether(Inhabitant inhabitant, Togetherness data)
