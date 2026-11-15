@@ -54,7 +54,9 @@ public static class UiLayoutCheck
                             var style = baseStyle.With(baseStyle.Settings with { UiScale = uiScale, TextScale = textScale });
                             var (w, h) = UiScaling.LogicalSize(width, height, style.Tokens, style.ContentScaleFactor);
                             var label = $"{locale} {width}x{height} ui {uiScale:P0} text {textScale:P0}";
-                            problems.AddRange((await CheckOne(host, style, new Vector2((float)w, (float)h), timeChoices, windows)).Select(p => $"{label}: {p}"));
+                            // B2791: at the normal sizes (UI up to 100 %, normal text) the settings never scroll.
+                            var strict = uiScale <= 1.0 && textScale <= 1.0;
+                            problems.AddRange((await CheckOne(host, style, new Vector2((float)w, (float)h), timeChoices, windows, strict)).Select(p => $"{label}: {p}"));
                         }
                     }
                 }
@@ -81,7 +83,7 @@ public static class UiLayoutCheck
         return problems;
     }
 
-    private static async Task<IReadOnlyList<string>> CheckOne(Node host, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> timeChoices, Func<UiStyle, IReadOnlyList<(string Name, GwWindow Window)>>? windows)
+    private static async Task<IReadOnlyList<string>> CheckOne(Node host, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> timeChoices, Func<UiStyle, IReadOnlyList<(string Name, GwWindow Window)>>? windows, bool strict)
     {
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
@@ -118,7 +120,7 @@ public static class UiLayoutCheck
         window.QueueFree();
         if (windows is not null)
         {
-            problems.AddRange(await CheckWindows(host, stage, area, windows(style)));
+            problems.AddRange(await CheckWindows(host, stage, area, windows(style), strict));
         }
 
         problems.AddRange(await CheckComponents(host, stage, style, area));
@@ -128,9 +130,10 @@ public static class UiLayoutCheck
 
     /// <summary>
     /// Real windows (main menu forms, settings, pause; GW1 review #50 K1) fit inside the safe area with a
-    /// readable header in this case; long content scrolls.
+    /// readable header in this case; long content scrolls. The settings keep one size in all their tabs and, at the
+    /// normal sizes (<paramref name="strict"/>), show every tab without scrolling (B2791).
     /// </summary>
-    private static async Task<IReadOnlyList<string>> CheckWindows(Node host, Control stage, Vector2 area, IReadOnlyList<(string Name, GwWindow Window)> windows)
+    private static async Task<IReadOnlyList<string>> CheckWindows(Node host, Control stage, Vector2 area, IReadOnlyList<(string Name, GwWindow Window)> windows, bool strict)
     {
         var problems = new List<string>();
         var tabsWalked = false;
@@ -159,6 +162,7 @@ public static class UiLayoutCheck
             // per case is enough and keeps the check within the smoke run's frame budget.
             var tabs = window is SettingsWindow settings && !tabsWalked ? settings.TabKeys : [];
             tabsWalked |= tabs.Count > 0;
+            var sizes = new List<(string Tab, Vector2 Size)>();
             foreach (var tab in tabs)
             {
                 ((SettingsWindow)window).ShowTab(tab);
@@ -169,6 +173,18 @@ public static class UiLayoutCheck
                 {
                     problems.Add($"{name} tab {tab}: {hidden}");
                 }
+                else if (strict && window.HiddenContent() > 1)
+                {
+                    problems.Add($"{name} tab {tab}: scrolls ({window.HiddenContent():0} px hidden in a window of height {window.Size.Y:0})");
+                }
+
+                sizes.Add((tab, window.Size));
+            }
+
+            // B2791: the window does not jump when the player changes tabs.
+            if (sizes.Count > 1 && sizes.Any(s => (s.Size - sizes[0].Size).Abs().Length() > 0.5f))
+            {
+                problems.Add($"{name}: size changes between tabs ({string.Join(", ", sizes.Select(s => $"{s.Tab.Replace("ui.settings.tab.", string.Empty, StringComparison.Ordinal)} {s.Size.X:0}x{s.Size.Y:0}"))})");
             }
 
             if (tabs.Count == 0)
