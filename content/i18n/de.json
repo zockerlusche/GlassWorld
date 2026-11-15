@@ -2511,6 +2511,10 @@
       "text": "denkt nach"
     },
     {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · trägt {thing}"
+    },
+    {
       "key": "ui.activity.idle",
       "text": "ruht sich aus"
     },

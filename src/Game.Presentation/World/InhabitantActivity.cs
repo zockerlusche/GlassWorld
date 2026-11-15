@@ -37,6 +37,30 @@ public static class InhabitantActivity
     /// <summary>Text key when there is no action but an open question (the inhabitant waits for an idea, B2487).</summary>
     public const string ThinkingKey = "ui.activity.thinking";
 
+    /// <summary>A1784: the activity line with what the inhabitant carries ("{activity} · trägt {thing}").</summary>
+    public const string CarryingKey = "ui.activity.carrying";
+
+    /// <summary>
+    /// A1784 (Marcel W2231): the type of the thing the inhabitant holds in its hand (AK1a), or null when it holds
+    /// nothing or the thing is gone. A thing it is busy with right now (its target) is already named by the line itself.
+    /// </summary>
+    public static string? CarriedType(InhabitantSnapshot inhabitant, SnapshotIndex index)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(index);
+        return inhabitant.Held is { } held && held != inhabitant.TargetId && index.Objects.TryGetValue(held, out var thing) ? thing.TypeId : null;
+    }
+
+    /// <summary>A1784: the activity line, and what the inhabitant carries after it when <paramref name="thingName"/> is given.</summary>
+    public static string WithCarrying(string activity, string? thingName, Func<string, string> tr)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        ArgumentNullException.ThrowIfNull(tr);
+        return thingName is null
+            ? activity
+            : Ui.TextFill.Fill(tr(CarryingKey), new Dictionary<string, string>(StringComparer.Ordinal) { ["activity"] = activity, ["thing"] = thingName });
+    }
+
     /// <summary>Prefix of the activity texts: <c>ui.activity.&lt;action&gt;[.inhabitant|.inhabitant_topic|.object]</c>.</summary>
     public const string Prefix = "ui.activity.";
 
