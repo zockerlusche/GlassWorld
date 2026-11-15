@@ -32,6 +32,9 @@ public sealed class ReachTests
         Try(host, inhabitant, high!);
         var failed = Assert.Single(events, e => e.Kind == InhabitantsSystem.OutOfReach && e.TargetId == high!.Id);
         Assert.Equal(InhabitantsSystem.TooHigh, failed.Detail);
+
+        // A cancelled try like any other (review GW3 #471: a build waiting for the thing lets go of it).
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.TargetId == high!.Id && e.Detail == InhabitantsSystem.TooHigh);
         Assert.True(host.Objects.TryGet(high!.Id, out _), "the high apple still hangs");
 
         Try(host, inhabitant, low!);

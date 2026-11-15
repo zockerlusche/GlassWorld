@@ -1399,6 +1399,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             if (target is not null && _model.Reach is { } reach && AboveCm?.Invoke(target.Id) is { } above && above > reach.HeightCm
                 && reach.Actions.Contains(activity.Action, StringComparer.Ordinal))
             {
+                // A cancelled try as every other (review GW3 #471: building frees its pending thing, the repeat rest
+                // counts it), and the reason as its own event for memory and ideas.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = TooHigh });
                 Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = TooHigh });
                 inhabitant.Activity = null;
                 return;
