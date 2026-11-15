@@ -308,7 +308,7 @@ public partial class WorldPresenter
     }
 
     /// <summary>
-    /// Check runs (A1712): the camera looks at a spot from a given direction, distance and pitch, as if the player had
+    /// Check runs only (A1712; the game itself never calls it): the camera looks at a spot from a given direction, distance and pitch, as if the player had
     /// taken it - for pictures across a cover. False on the placeholder.
     /// </summary>
     public bool LookFrom(double x, double z, double yawDeg, double distanceM, double pitchDeg)
