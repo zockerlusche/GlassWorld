@@ -254,6 +254,12 @@ public sealed class WorldGenContent
             {
                 problems.Add($"spawn rule '{rule.ObjectType}' grows on '{grows.ObjectType}', which no spawn rule places on its own");
             }
+
+            // Review GW1 #468: a thing hangs at one plant's height - every hanging rule of a type names the same plant.
+            if (rule.GrowsOn?.Hangs is not null && spawns.Spawns.Any(p => p.ObjectType == rule.ObjectType && p.GrowsOn?.Hangs is not null && p.GrowsOn.ObjectType != rule.GrowsOn.ObjectType))
+            {
+                problems.Add($"spawn rules let '{rule.ObjectType}' hang on different plants");
+            }
         }
 
         Duplicates(spawns.Mandatory.Select(m => m.Id), "mandatory resource", problems);
