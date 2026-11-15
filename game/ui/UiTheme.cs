@@ -163,6 +163,9 @@ public static class UiTheme
 
     private static FontFile LoadFont(string file) => GD.Load<FontFile>(FontFolder + file);
 
+    /// <summary>The bold face (A1684: highlighted log lines stand out by shape, not colour).</summary>
+    public static FontFile BoldFont() => LoadFont("AtkinsonHyperlegible-Bold.ttf");
+
     /// <summary>
     /// A frame picture as 9-slice, optionally tinted; or a flat box with the same padding while the
     /// picture is missing. The picture is drawn at 1/source_scale of its pixel size (sharp downscale),

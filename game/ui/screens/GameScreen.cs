@@ -2112,7 +2112,7 @@ public partial class GameScreen : CanvasLayer
         var selected = _logFilter.GetSelectedId();
         var category = selected > 0 ? data.Categories.ElementAt(selected - 1).Id : null;
         var lines = open ? LogModel.Filter(all, category, _logSearch.Text, data, l => LogText(l, rows) ?? string.Empty) : all;
-        var bold = _logList.GetThemeFont("bold_font", "RichTextLabel");
+        var bold = UiTheme.BoldFont();
         var shown = 0;
         foreach (var line in lines)
         {
