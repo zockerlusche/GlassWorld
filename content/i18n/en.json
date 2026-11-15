@@ -523,32 +523,96 @@
       "text": "Reduce motion"
     },
     {
-      "key": "ui.settings.section.audio",
-      "text": "Sound"
-    },
-    {
-      "key": "ui.settings.section.display",
-      "text": "Display"
-    },
-    {
-      "key": "ui.settings.section.hints",
-      "text": "Hints"
-    },
-    {
-      "key": "ui.settings.section.language",
-      "text": "Language"
-    },
-    {
-      "key": "ui.settings.section.player",
-      "text": "Player"
-    },
-    {
       "key": "ui.settings.text_scale",
       "text": "Text size"
     },
     {
       "key": "ui.settings.title",
       "text": "Settings"
+    },
+    {
+      "key": "ui.settings.tab.game",
+      "text": "Game"
+    },
+    {
+      "key": "ui.settings.tab.graphics",
+      "text": "Graphics"
+    },
+    {
+      "key": "ui.settings.tab.audio",
+      "text": "Sound"
+    },
+    {
+      "key": "ui.settings.tab.interface",
+      "text": "Interface"
+    },
+    {
+      "key": "ui.settings.tab.controls",
+      "text": "Controls"
+    },
+    {
+      "key": "ui.settings.tab.accessibility",
+      "text": "Accessibility"
+    },
+    {
+      "key": "ui.settings.tab.ai",
+      "text": "AI"
+    },
+    {
+      "key": "ui.settings.coming",
+      "text": "These settings come with a later step."
+    },
+    {
+      "key": "ui.settings.restore",
+      "text": "Restore defaults"
+    },
+    {
+      "key": "ui.settings.desc_hint",
+      "text": "Point at a setting to read what it does."
+    },
+    {
+      "key": "ui.settings.language.desc",
+      "text": "The language of all texts in the game. The inhabitants speak it too."
+    },
+    {
+      "key": "ui.settings.player_name.desc",
+      "text": "What the inhabitants call you when they talk about you. You may leave it empty."
+    },
+    {
+      "key": "ui.settings.ui_scale.desc",
+      "text": "How large windows, buttons and text are together."
+    },
+    {
+      "key": "ui.settings.text_scale.desc",
+      "text": "Only the text larger or smaller; the windows grow with it."
+    },
+    {
+      "key": "ui.settings.feeling_symbols.desc",
+      "text": "Small signs above the heads show what an inhabitant feels."
+    },
+    {
+      "key": "ui.settings.hint_duration.desc",
+      "text": "How long a hint stays, as a multiple of the shortest time."
+    },
+    {
+      "key": "ui.settings.hints_until_dismissed.desc",
+      "text": "Hints stay until you close them."
+    },
+    {
+      "key": "ui.settings.hide_ui.desc",
+      "text": "Hides everything you cannot use, to watch only the world."
+    },
+    {
+      "key": "ui.settings.high_contrast.desc",
+      "text": "Stronger difference between text and background."
+    },
+    {
+      "key": "ui.settings.reduce_motion.desc",
+      "text": "Less motion: no trembling glass, calmer transitions."
+    },
+    {
+      "key": "ui.settings.volume.desc",
+      "text": "The volume of each channel; locked channels are grey."
     },
     {
       "key": "ui.settings.ui_scale",
@@ -2905,10 +2969,6 @@
     {
       "key": "ui.settings.learn_by_day_switch",
       "text": "Learn by day as well"
-    },
-    {
-      "key": "ui.settings.section.ai",
-      "text": "AI"
     },
     {
       "key": "ui.selfcheck.checking",
