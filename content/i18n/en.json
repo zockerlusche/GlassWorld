@@ -295,6 +295,38 @@
       "text": "Nobody lives here yet."
     },
     {
+      "key": "ui.inhabitants.column.pinned",
+      "text": "Favourite"
+    },
+    {
+      "key": "ui.inhabitants.search",
+      "text": "Search a name …"
+    },
+    {
+      "key": "ui.inhabitants.filter_tooltip",
+      "text": "Which inhabitants the list shows"
+    },
+    {
+      "key": "ui.inhabitants.filter.all",
+      "text": "All"
+    },
+    {
+      "key": "ui.inhabitants.filter.pinned",
+      "text": "Favourites"
+    },
+    {
+      "key": "ui.inhabitants.filter.asking",
+      "text": "With a question"
+    },
+    {
+      "key": "ui.inhabitants.filter.knocking",
+      "text": "Knocking"
+    },
+    {
+      "key": "ui.inhabitants.filter.weak",
+      "text": "Weak"
+    },
+    {
       "key": "ui.inhabitants.title",
       "text": "Inhabitants"
     },
@@ -2016,7 +2048,11 @@
     },
     {
       "key": "ui.card.talk_hint",
-      "text": "What would you like to say?"
+      "text": "Say something …"
+    },
+    {
+      "key": "ui.card.whisper_hint",
+      "text": "Whisper …"
     },
     {
       "key": "ui.card.talk_send",
@@ -2907,6 +2943,14 @@
       "text": "{name}: {activity}"
     },
     {
+      "key": "ui.corner.more",
+      "text": "+{count}"
+    },
+    {
+      "key": "ui.corner.more_tooltip",
+      "text": "Show all {count} inhabitants"
+    },
+    {
       "key": "ui.corner.weather",
       "text": "Weather: {weather}"
     },
@@ -2983,12 +3027,64 @@
       "text": "Day {day}, {time} - {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Trying it for the first time."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Wondering: What is that? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Wondering: Who is that?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Wondering: Who is there?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Pondering something."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "More questions ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "You: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Show more"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Show less"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Favour"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Favour {value} of {max}. It grows back slowly; gifts cost favour."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Timeline"
     },
     {
       "key": "ui.timeline.empty",
       "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
+    },
+    {
+      "key": "ui.night.dream",
+      "text": "{name} dreams: {text}"
     },
     {
       "key": "ui.night.learned.true",

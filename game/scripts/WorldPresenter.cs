@@ -103,6 +103,30 @@ public partial class WorldPresenter : Node3D
     /// <summary>State hash right after restoring, before open questions are sent again (save/load check).</summary>
     public string? HashAtLoad { get; private set; }
 
+    /// <summary>
+    /// The start population for tours and measurements (<c>--inhabitants=N</c> after <c>--</c>; B2749: the click tour
+    /// with 50 inhabitants; debug builds only, like <c>--load-save</c>, review GW3 #454); null = the data's start
+    /// inhabitants, as every game starts.
+    /// </summary>
+    private static int? StartInhabitants()
+    {
+        const string prefix = "--inhabitants=";
+        if (!OS.IsDebugBuild())
+        {
+            return null;
+        }
+
+        foreach (var arg in OS.GetCmdlineUserArgs())
+        {
+            if (arg.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(arg[prefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var count) && count > 0)
+            {
+                return count;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
     public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null, null);
 
@@ -131,7 +155,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate })
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate }, StartInhabitants())
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {
