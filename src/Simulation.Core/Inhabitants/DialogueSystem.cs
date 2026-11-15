@@ -52,6 +52,9 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The answer came after the data's hours.</summary>
     public const string TooLate = "dialogue_too_late";
 
+    /// <summary>The kind a talk has for the ranking of day requests (A1587 S3).</summary>
+    public const string DialogueKind = "dialogue";
+
     /// <summary>The kind of the events the turns become.</summary>
     public const string SaidKind = "said";
 
@@ -222,9 +225,15 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
         }
 
         // A1587 (B7 R24): over the game hour's budget for day requests the two talk without words this time.
-        if (Budget is { } budget && !budget.HasRoom(worldEvent.Tick))
+        if (Budget is { } budget)
         {
-            return;
+            // S3 (R23, B2804): a talk ranks like its better speaker - the followed one or one near it (2), else the rest (4).
+            Objects.Position? Where(string id) => _inhabitants.TryGet(id, out var who) ? who.Position : null;
+            var rank = Math.Min(budget.RankOf(speaker.Id, DialogueKind, Where), budget.RankOf(listener.Id, DialogueKind, Where));
+            if (!budget.Allows(rank) || !budget.HasRoom(worldEvent.Tick))
+            {
+                return;
+            }
         }
 
         _lastTalk[pair] = worldEvent.Tick;

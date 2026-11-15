@@ -142,6 +142,83 @@ public sealed class AiBudgetTests
         Assert.Equal(host.World.StateHash(), restored.World.StateHash());
     }
 
+    [Fact]
+    public void TheRankFollowsTheCameraTheDistanceAndTheKind()
+    {
+        var pace = new AiPace(Content.Calendar.Settings.FastForwardFactors);
+        var budget = new AiBudget(Settings().Throughput, pace, Content.Calendar);
+        var where = new Dictionary<string, Position> { ["a"] = new(0, 0), ["b"] = new(10, 0), ["c"] = new(100, 0) };
+        Position? At(string id) => where.TryGetValue(id, out var p) ? p : null;
+
+        // Nobody followed: the player's 1, a first-time kind 3, the rest 4.
+        Assert.Equal(AiBudget.RankPlayer, budget.RankOf("c", DecisionsSystem.NoticedPlayer, At));
+        Assert.Equal(AiBudget.RankFirst, budget.RankOf("c", DecisionsSystem.UnknownObject, At));
+        Assert.Equal(AiBudget.RankOther, budget.RankOf("c", DecisionsSystem.Leisure, At));
+
+        // The followed one and who is near it rank 2, whatever the kind; one far away does not.
+        pace.Apply(new PlayerCommand(AiPace.SetFollowed, "a"));
+        Assert.Equal(AiBudget.RankFollowed, budget.RankOf("a", DecisionsSystem.Leisure, At));
+        Assert.Equal(AiBudget.RankFollowed, budget.RankOf("b", DecisionsSystem.Leisure, At));
+        Assert.Equal(AiBudget.RankOther, budget.RankOf("c", DecisionsSystem.Leisure, At));
+
+        // A followed one no longer in the world ranks nobody (review GW1 #487).
+        where.Remove("a");
+        Assert.Equal(AiBudget.RankOther, budget.RankOf("b", DecisionsSystem.Leisure, At));
+    }
+
+    [Fact]
+    public void TheFasterTheGameTheFewerRanksGoToTheAi()
+    {
+        var pace = new AiPace(Content.Calendar.Settings.FastForwardFactors);
+        var budget = new AiBudget(Settings().Throughput, pace, Content.Calendar);
+        Assert.Equal(AiBudget.RankOther, budget.UpToRank);
+        foreach (var (speed, upTo) in Settings().Throughput!.LevelsBySpeed!.Select(l => (l.Speed, l.UpToLevel)))
+        {
+            pace.Apply(new PlayerCommand(AiPace.SetSpeed, null) { Amount = speed });
+            Assert.Equal(upTo, budget.UpToRank);
+        }
+
+        // B2804: at the fastest speed the followed inhabitant still gets the AI, the player always.
+        pace.Apply(new PlayerCommand(AiPace.SetSpeed, null) { Amount = Fastest });
+        Assert.True(budget.Allows(AiBudget.RankFollowed));
+        Assert.True(budget.Allows(AiBudget.RankPlayer));
+        Assert.False(budget.Allows(AiBudget.RankOther));
+    }
+
+    [Fact]
+    public void AtTheFastestSpeedOnlyTheFollowedOneAsksTheOthersKeepTheirMark()
+    {
+        var w = NewWorld(fastest: true, ranked: true);
+        var followed = w.Inhabitants.All.First().Id;
+        w.Pace.Apply(new PlayerCommand(AiPace.SetFollowed, followed));
+        w.SpawnAThingBesideEveryone();
+        w.World.Run((3 * Content.Calendar.Settings.TicksPerHour) + 2);
+
+        // Every request went out for the followed one; the others' questions wait with their mark (or lapsed).
+        var asked = w.Decisions.Log.Entries.Where(e => e.Kind == DecisionLogKind.Request).Select(e => ContractSerializer.Deserialize<DecisionRequest>(e.Json).Inhabitant.Id).ToList();
+        Assert.NotEmpty(asked);
+        Assert.All(asked, id => Assert.Equal(followed, id));
+        Assert.Contains(w.Decisions.Open, q => q.InhabitantId != followed && q.RequestId.Length == 0);
+    }
+
+    [Fact]
+    public void WaitingQuestionsOfTheFollowedOneGoFirst()
+    {
+        // Normal speed, but a slow AI: one request per game hour. The followed one's question waits behind none.
+        var w = NewWorld(fastest: false, ranked: true);
+        w.Pace.Apply(new PlayerCommand(AiPace.SetAiRate, null) { Amount = 35_000 });
+        w.SpawnAThingBesideEveryone();
+        w.World.Step();
+        var first = w.Decisions.Open.Single(q => q.RequestId.Length > 0).InhabitantId;
+        var followed = w.Decisions.Open.Where(q => q.RequestId.Length == 0).Select(q => q.InhabitantId).Last();
+        w.Pace.Apply(new PlayerCommand(AiPace.SetFollowed, followed));
+
+        w.World.Run(Content.Calendar.Settings.TicksPerHour + 2);
+        var second = w.Decisions.Log.Entries.Where(e => e.Kind == DecisionLogKind.Request).Skip(1).Select(e => ContractSerializer.Deserialize<DecisionRequest>(e.Json).Inhabitant.Id).FirstOrDefault();
+        Assert.NotEqual(first, followed);
+        Assert.Equal(followed, second);
+    }
+
     private static DeciderSettings Settings(Action<DeciderSettings>? change = null)
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
@@ -150,12 +227,15 @@ public sealed class AiBudgetTests
     }
 
     /// <summary>The start inhabitants far apart on an empty plain, a decider that never answers and a budget for day requests.</summary>
-    private static TestWorld NewWorld(bool fastest)
+    private static TestWorld NewWorld(bool fastest, bool ranked = false)
     {
         var settings = Settings(s =>
         {
             s.MaxRequestsPerStep = null;
-            s.Throughput = Throughput();
+            if (!ranked)
+            {
+                s.Throughput = Throughput();
+            }
         });
         var world = new World(1, Content.Calendar);
         var pace = new AiPace(Content.Calendar.Settings.FastForwardFactors);
@@ -172,10 +252,10 @@ public sealed class AiBudgetTests
         inhabitants.SpawnStartInhabitants(world, Places);
         var events = new List<WorldEvent>();
         inhabitants.Reported += events.Add;
-        return new TestWorld(world, objects, inhabitants, decisions, events);
+        return new TestWorld(world, objects, inhabitants, decisions, events, pace);
     }
 
-    private sealed record TestWorld(World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions, List<WorldEvent> Events)
+    private sealed record TestWorld(World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions, List<WorldEvent> Events, AiPace Pace)
     {
         public int Requests => Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request);
 

@@ -88,6 +88,7 @@ public sealed class DialogueTests : IDisposable
         // A1587 (B7 R24): at the fastest speed one day request per game hour; the decider has used it.
         var (host, port) = World();
         host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = host.World.Calendar.Settings.FastForwardFactors.Max() });
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetFollowed, "inh-000001"));
         host.World.Step();
         Assert.Equal(1, host.Budget.PerHour);
         host.Budget.Note(host.World.Tick);
@@ -100,6 +101,25 @@ public sealed class DialogueTests : IDisposable
         Talk(host, "inh-000001", "inh-000002");
         Assert.Single(port.Dialogue);
         Assert.False(host.Budget.HasRoom(host.World.Tick));
+    }
+
+    [Fact]
+    public void AtTheFastestSpeedOnlyTheFollowedOnesTalkHasWords()
+    {
+        // A1587 S3 (B2804): at the fastest speed the AI is for the followed inhabitant (and the player). A fast AI leaves
+        // the hour's budget open, so only the rank decides here.
+        var (host, port) = World();
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = host.World.Calendar.Settings.FastForwardFactors.Max() });
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetAiRate, null) { Amount = 100 });
+        host.World.Step();
+        Assert.True(host.Budget.HasRoom(host.World.Tick));
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Empty(port.Dialogue);
+
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetFollowed, "inh-000002"));
+        host.World.Step();
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Single(port.Dialogue);
     }
 
     [Theory]

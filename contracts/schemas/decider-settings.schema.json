@@ -47,7 +47,22 @@
         "day_share": { "description": "Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).", "type": "number", "minimum": 0.05, "maximum": 1 },
         "fallback_job_ms": { "description": "Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).", "type": "integer", "minimum": 100, "maximum": 600000 },
         "min_per_hour": { "description": "At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).", "type": "integer", "minimum": 0, "maximum": 1000 },
-        "answer_within_minutes": { "description": "Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.", "type": "integer", "minimum": 1, "maximum": 1440 }
+        "answer_within_minutes": { "description": "Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.", "type": "integer", "minimum": 1, "maximum": 1440 },
+        "levels_by_speed": {
+          "description": "A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["speed", "up_to_level"],
+            "properties": {
+              "speed": { "description": "Speed factor from which the entry holds (1 = normal).", "type": "integer", "minimum": 1, "maximum": 1000 },
+              "up_to_level": { "description": "Highest rank that still goes to the AI (1-4).", "type": "integer", "minimum": 1, "maximum": 4 }
+            }
+          }
+        },
+        "near_followed_m": { "description": "Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.", "type": "number", "minimum": 0, "maximum": 1000 },
+        "first_kinds": { "description": "Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.", "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 64 } }
       }
     },
     "LeisureSettings": {
