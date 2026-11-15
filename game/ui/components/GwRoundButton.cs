@@ -111,7 +111,8 @@ public partial class GwRoundButton : Button
         if (_badge.Visible)
         {
             _badge.Size = _badge.GetCombinedMinimumSize();
-            _badge.Position = new Vector2(Size.X - (_badge.Size.X * 0.7f), -_badge.Size.Y * 0.3f);
+            // Half outside the circle's upper right (S1 tour at 150 %: further in, the count covered half the symbol).
+            _badge.Position = new Vector2(Size.X - (_badge.Size.X * 0.5f), -_badge.Size.Y * 0.5f);
         }
     }
 }

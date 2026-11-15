@@ -94,6 +94,16 @@ public sealed class InventionLooksTests
         Assert.Equal(expected, InventionLooks.ShownScale(largestM, minShownM), 9);
     }
 
+    [Theory]
+    [InlineData(0.0, 0.6, 0.2, 0.6)]
+    [InlineData(0.4, 0.6, 0.2, 0.6)]
+    [InlineData(2.0, 0.6, 0.2, 1.2)]
+    public void TheFocusRingFitsAroundTheDrawnThing(double extentM, double radiusM, double marginM, double expected)
+    {
+        // A1684: at least the data's radius; a large drawn thing gets half its extent plus the margin.
+        Assert.Equal(expected, InventionLooks.FocusRadiusM(extentM, radiusM, marginM), 9);
+    }
+
     private static BuildTask Task(int steps = 0, string? planJson = "plan") =>
         new(Type, "inh-000001", 1, null, null, planJson == "plan" ? Plan.Value : planJson, 10, 20, steps, [], null, null, null, false);
 }
