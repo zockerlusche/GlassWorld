@@ -45,6 +45,14 @@ public sealed partial class DecisionsSystem
 
         var targetType = worldEvent.TargetType
             ?? (worldEvent.TargetId is { } id && _objects.TryGet(id, out var thing) ? thing.TypeId : null);
+
+        // One failure can be reported twice (action_cancelled and out_of_reach with the same reason, review GW4 #494):
+        // it is kept once per tick.
+        if (_failed.Any(f => f.InhabitantId == worldEvent.InhabitantId && f.Action == action && f.TargetId == worldEvent.TargetId && f.Reason == reason))
+        {
+            return;
+        }
+
         _failed.Add((worldEvent.InhabitantId, action, worldEvent.TargetId, targetType, reason));
     }
 
@@ -72,6 +80,12 @@ public sealed partial class DecisionsSystem
             {
                 inhabitant.Resting.RemoveAll(r => r.Action == action && r.TargetId == targetId);
                 inhabitant.Resting.Add(new RestingAction(action, targetId, inhabitant.Position, world.Tick + restTicks));
+            }
+
+            // TL B2821: some reasons only rest (a jammed way) - a question per jam would be noise.
+            if (failures.RestOnlyReasons?.Contains(reason) == true)
+            {
+                continue;
             }
 
             var target = targetId is { } id && _objects.TryGet(id, out var thing) ? thing : null;

@@ -109,6 +109,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> TransientReasons { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
+        /// Reason codes that rest the action on its target but ask nothing (TL B2821: blocked - a jammed way; the rest turns them to another target, a question per jam would be noise). Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("rest_only_reasons")]
+        public System.Collections.Generic.ICollection<string>? RestOnlyReasons { get; set; } = default!;
+
+        /// <summary>
         /// Game hours the failed action rests on that target (or here, without one).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rest_hours")]

@@ -70,6 +70,7 @@
       "properties": {
         "event_kinds": { "description": "Event kinds that are a failed action (vocabulary events); their detail is the reason code.", "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "transient_reasons": { "description": "Reason codes that pass by themselves (woken up, kept awake by a need, a way briefly taken): no question, no rest. Matched on the code before a slash. An event without a reason (the thing is gone) asks nothing either.", "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "rest_only_reasons": { "description": "Reason codes that rest the action on its target but ask nothing (TL B2821: blocked - a jammed way; the rest turns them to another target, a question per jam would be noise). Omitted = none.", "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "rest_hours": { "description": "Game hours the failed action rests on that target (or here, without one).", "type": "number", "minimum": 0, "maximum": 168 },
         "ask_again_after_hours": { "description": "Game hours before the same failure (action, kind of target, reason) is asked about again.", "type": "number", "minimum": 0, "maximum": 8760 }
       }

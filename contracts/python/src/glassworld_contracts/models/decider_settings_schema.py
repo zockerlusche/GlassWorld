@@ -87,6 +87,9 @@ type EventKind = Annotated[str, Field(..., min_length=1)]
 type TransientReason = Annotated[str, Field(..., min_length=1)]
 
 
+type RestOnlyReason = Annotated[str, Field(..., min_length=1)]
+
+
 class Failures(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -99,6 +102,10 @@ class Failures(BaseModel):
     transient_reasons: list[TransientReason] = Field(
         ...,
         description='Reason codes that pass by themselves (woken up, kept awake by a need, a way briefly taken): no question, no rest. Matched on the code before a slash. An event without a reason (the thing is gone) asks nothing either.',
+    )
+    rest_only_reasons: list[RestOnlyReason] | None = Field(
+        None,
+        description='Reason codes that rest the action on its target but ask nothing (TL B2821: blocked - a jammed way; the rest turns them to another target, a question per jam would be noise). Omitted = none.',
     )
     rest_hours: float = Field(
         ...,

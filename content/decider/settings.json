@@ -17,7 +17,8 @@
   ],
   "failures": {
     "event_kinds": ["action_cancelled", "out_of_reach"],
-    "transient_reasons": ["woken_rested", "woken_by_player", "woken_by_need", "kept_awake_by", "resting", "blocked"],
+    "transient_reasons": ["woken_rested", "woken_by_player", "woken_by_need", "kept_awake_by", "resting"],
+    "rest_only_reasons": ["blocked"],
     "rest_hours": 6,
     "ask_again_after_hours": 72
   },

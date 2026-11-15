@@ -72,6 +72,18 @@ public sealed class FailureQuestionTests
     }
 
     [Fact]
+    public void AJammedWayRestsTheActionButAsksNothing()
+    {
+        // TL B2821: blocked rests (they turn to another target) but asks no question.
+        var (host, _, thing) = World();
+        Fail(host, thing, "blocked");
+        host.World.Step();
+
+        Assert.DoesNotContain(host.Decisions.Open, q => q.Kind == DecisionsSystem.ActionFailed);
+        Assert.Single(host.Inhabitants.Get("inh-000001").Resting, r => r.Action == "eat" && r.TargetId == thing.Id);
+    }
+
+    [Fact]
     public void AFailureQuestionIsReadBackFromItsSubject()
     {
         var failure = DecisionsSystem.FailureOf("failed:talk_to|-|listener_asleep")!;
