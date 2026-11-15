@@ -157,6 +157,18 @@
     {
       "id": "stone",
       "description": "Looks like stone or rock; seen by looking."
+    },
+    {
+      "id": "digs",
+      "description": "Shaped so that it bites into the ground."
+    },
+    {
+      "id": "ore_bearing",
+      "description": "Heavy, with glinting veins in the stone."
+    },
+    {
+      "id": "dug",
+      "description": "A hole in the ground."
     }
   ]
 }

@@ -10,6 +10,7 @@
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
+    { "action": "dig", "destination": "here", "duration_minutes": 30, "reach_m": 0 },
     { "action": "use_instead", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "decider_option": false },
     { "action": "build_smaller", "destination": "here", "duration_minutes": 10, "reach_m": 0, "decider_option": false },
     { "action": "ask_for_help", "destination": "here", "duration_minutes": 5, "reach_m": 2, "decider_option": false },
@@ -76,6 +77,7 @@
     { "action": "use", "requires_property": "hot", "requires_also": "crafted", "consumes_target": false, "effects": [
       { "kind": "need", "id": "warmth", "delta": 0.2 }
     ] },
+    { "action": "dig", "requires_property": null, "consumes_target": false, "effects": [] },
     { "action": "build_step", "requires_property": null, "consumes_target": true, "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },

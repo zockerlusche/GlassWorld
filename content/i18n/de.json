@@ -3845,6 +3845,54 @@
     {
       "key": "vocab.event.arrival",
       "text": "Angekommen"
+    },
+    {
+      "key": "vocab.action.dig",
+      "text": "graben"
+    },
+    {
+      "key": "vocab.property.digs",
+      "text": "greift in den Boden"
+    },
+    {
+      "key": "vocab.property.ore_bearing",
+      "text": "erzhaltig"
+    },
+    {
+      "key": "vocab.property.dug",
+      "text": "gegraben"
+    },
+    {
+      "key": "vocab.event.dug",
+      "text": "Gegraben"
+    },
+    {
+      "key": "vocab.event.dig_failed",
+      "text": "Graben ging nicht"
+    },
+    {
+      "key": "vocab.event.well_dug",
+      "text": "Wasser im Loch"
+    },
+    {
+      "key": "vocab.object.pit",
+      "text": "Grube"
+    },
+    {
+      "key": "vocab.object.waterhole",
+      "text": "Brunnen"
+    },
+    {
+      "key": "vocab.object.earth",
+      "text": "Erde"
+    },
+    {
+      "key": "vocab.object.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.object.ore_chunk",
+      "text": "Erzbrocken"
     }
   ]
 }
