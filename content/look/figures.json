@@ -176,7 +176,7 @@
     "period_s": 2.4,
     "alpha_min": 0.2,
     "alpha_max": 0.85,
-    "question_font_px": 64
+    "question_font_px": 48
   },
   "lying": {
     "clips": [
