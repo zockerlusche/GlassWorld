@@ -27,6 +27,15 @@ public sealed class JobRouter
     public IJobPort Rest { get; }
 
     /// <summary>
+    /// A1766 (B2789): asked for every job a system submits (request id, job JSON); true = it is held (the night
+    /// queue keeps it and sends it later through <see cref="SendHeld"/>), false or null = it goes out now.
+    /// </summary>
+    public Func<string, string, bool>? Holds { get; set; }
+
+    /// <summary>Sends a job the night queue held, as the system that built it would have.</summary>
+    public void SendHeld(string requestId, string jobJson) => _inner.Submit(requestId, jobJson);
+
+    /// <summary>
     /// A port that receives only the outcomes of jobs <paramref name="waitsFor"/> names (asked when outcomes
     /// arrive, so it also holds after loading a save game).
     /// </summary>
@@ -57,7 +66,13 @@ public sealed class JobRouter
 
     private sealed class Part(JobRouter router, Func<string, bool>? waitsFor) : IJobPort
     {
-        public void Submit(string requestId, string jobJson) => router._inner.Submit(requestId, jobJson);
+        public void Submit(string requestId, string jobJson)
+        {
+            if (router.Holds?.Invoke(requestId, jobJson) != true)
+            {
+                router._inner.Submit(requestId, jobJson);
+            }
+        }
 
         public IReadOnlyList<PortMessage> Receive(long tick) => router.Take(tick, waitsFor);
 

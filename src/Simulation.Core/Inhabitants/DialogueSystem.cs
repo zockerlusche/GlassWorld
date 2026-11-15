@@ -125,6 +125,9 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     public Func<Inhabitant, IReadOnlyList<string>>? PerceivedTypes { get; set; }
 
+    /// <summary>A1766 (D1119 §5): true while talks have no words (by day in the day mode night_only); null = never.</summary>
+    public Func<bool>? Quiet { get; set; }
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
@@ -197,6 +200,7 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     private void OnReported(WorldEvent worldEvent)
     {
         if (_settings is null
+            || Quiet?.Invoke() == true
             || worldEvent.Kind != InhabitantsSystem.ActionStarted
             || worldEvent.Action is not { } action
             || !_settings.Actions.Contains(action)

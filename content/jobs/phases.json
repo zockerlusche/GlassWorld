@@ -3,5 +3,17 @@
   "night_day_phases": [
     "night"
   ],
-  "wait_for_sleepers_hours": 2.5
+  "wait_for_sleepers_hours": 2.5,
+  "night_queue": {
+    "held_kinds": [
+      "invention",
+      "build_plan",
+      "process",
+      "milestone",
+      "image",
+      "sound"
+    ],
+    "cap_per_night": 24,
+    "age_bonus_per_night": 10
+  }
 }

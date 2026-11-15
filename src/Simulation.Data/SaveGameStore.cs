@@ -627,6 +627,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("dialogue", JsonSerializer.Serialize(s.Dialogue, Json)));
         }
 
+        if (s.NightQueue is not null)
+        {
+            // Jobs held by day for the night (A1766); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("night_queue", JsonSerializer.Serialize(s.NightQueue, Json)));
+        }
+
         if (s.ContentFingerprint is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
@@ -920,6 +926,7 @@ public static class SaveGameStore
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,
             Dialogue = meta.TryGetValue("dialogue", out var dialogue) ? JsonSerializer.Deserialize<Simulation.Inhabitants.DialogueState>(dialogue, Json) : null,
+            NightQueue = meta.TryGetValue("night_queue", out var nightQueue) ? JsonSerializer.Deserialize<Simulation.Night.NightQueueState>(nightQueue, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),
