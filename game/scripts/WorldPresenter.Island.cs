@@ -434,14 +434,32 @@ public partial class WorldPresenter
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
         var looks = _objectsView.Looks;
+        var wornColors = new Dictionary<string, string?>(StringComparer.Ordinal);
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
-            WornColor = id => host.Objects.TryGet(id, out var thing)
-                && host.Inventions.Builds.FirstOrDefault(b => b.TypeId == thing.TypeId && b.PlanJson is not null) is { PlanJson: { } plan }
-                ? InventionLooks.MainColor(plan, kit)
-                : null,
+            // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.
+            WornColor = id =>
+            {
+                if (!host.Objects.TryGet(id, out var thing))
+                {
+                    return null;
+                }
+
+                if (!wornColors.TryGetValue(thing.TypeId, out var color))
+                {
+                    color = host.Inventions.Builds.FirstOrDefault(b => b.TypeId == thing.TypeId && b.PlanJson is not null) is { PlanJson: { } plan }
+                        ? InventionLooks.MainColor(plan, kit)
+                        : null;
+                    if (color is not null)
+                    {
+                        wornColors[thing.TypeId] = color;
+                    }
+                }
+
+                return color;
+            },
         };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
