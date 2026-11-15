@@ -412,7 +412,8 @@ public partial class WorldPresenter
             _focusColor = Color.FromHtml(ringColor.Color);
         }
 
-        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground, objectLooks.InventionMinShownM);
+        var kit = Read<BuildKit>(content, "build", "kit.json");
+        _inventionsView = Build.InventionsView.Create(kit, _ground, objectLooks.InventionMinShownM);
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
@@ -437,6 +438,10 @@ public partial class WorldPresenter
         {
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
+            WornColor = id => host.Objects.TryGet(id, out var thing)
+                && host.Inventions.Builds.FirstOrDefault(b => b.TypeId == thing.TypeId && b.PlanJson is not null) is { PlanJson: { } plan }
+                ? InventionLooks.MainColor(plan, kit)
+                : null,
         };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);

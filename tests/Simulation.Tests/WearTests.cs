@@ -151,24 +151,23 @@ public sealed class WearTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void TheRoutinePutsOnAWearableThingOnlyWhenTooCold(bool cold)
+    public void TheRoutineNeverPutsOnByItself(bool cold)
     {
-        // Review GW1 #436: the warmth need falls in the heat as well - the routine offers putting on only while it feels
-        // too cold (the AI may still propose it; this is the routine's own offer, through the real felt check).
+        // TL B2779: putting on is the decider's choice (offered when it fits), never a routine automatism - cold or warm.
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
         Register(host);
         var zone = host.Content.InhabitantModel.ComfortZone!;
         (zone.MinTenthC, zone.MaxTenthC) = cold ? (900, 990) : (-990, -900); // everyone feels too cold / too warm
         var wearer = host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
         var wrap = host.Objects.Spawn(Wrap, wearer.Position);
-        wearer.Needs["warmth"] = 0.05; // low either way: cold and heat both lower it
+        wearer.Needs["warmth"] = 0.05;
         wearer.Beliefs.Set(Wrap, "wearable", true, 1.0);
         wearer.Beliefs.Set(Wrap, "crafted", true, 1.0);
 
         var scratch = new Behaviour.UtilityBrain.Scratch { Feels = host.Inhabitants.Feels };
         var options = host.Content.Brain.Candidates(wearer, host.Inhabitants.InAim(wearer), new HashSet<string>(StringComparer.Ordinal), null, null, scratch);
 
-        Assert.Equal(cold, options.Any(o => o.Action == PutOn && o.TargetId == wrap.Id));
+        Assert.DoesNotContain(options, o => o.Action == PutOn && o.TargetId == wrap.Id);
     }
 
     private static void Register(SimulationHost host)
