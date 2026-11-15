@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Decider v15 (A1734, B2782, D1112 #3): the thought adds what the action does not show - a feeling, a wish, a wonder; turning to someone it is what one says. With v14 39 % of the thoughts told the chosen action ('Ich gehe zu dir und rede mit dir'). config: decider prompt 15.
 - Learning log (A1717, D1112 #9): processed things by name ('Schiefer (bearbeitet)'), a file for every finished day, facts as one sentence ('ist essbar, aber nicht trinkbar'), ideas name what they are built on.
 - Nightly look back v3 (A1728, night run 15.11.: 'I met another person named Lena' - nobody is called Lena): other people appear by the name the inhabitant learned (the events' labels) or as 'someone'; a summary that calls someone by a name it never learned is refused with the reason. config: review prompt 3.
 - Cold and heat show on the figure (A1729 + A1730, A1379 rest): the inhabitant snapshot carries the comfort level (`ComfortLevel`, computed fresh); when cold, a figure standing or walking holds its arms to the body and shivers slightly; when hot, it wipes its brow now and then (look figures `comfort`, gestures `hug_self`/`wipe_brow`; calm placeholder values for the TL). Never over an action's own gesture, never while it lies.
