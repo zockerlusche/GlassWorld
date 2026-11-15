@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Presentation.Audio;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -174,5 +175,36 @@ public sealed class MixTests
         var e = new[] { new WorldEvent(InhabitantsSystem.ActionStarted, 42, "inh-1", "drink", null) };
         var none = new Dictionary<MixBusId, int>();
         Assert.Equal(director.Plan(e, positions, new Position(0, 0), 0.5, none)[0].Variant, director.Plan(e, positions, new Position(0, 0), 0.5, none)[0].Variant);
+    }
+
+    [Fact]
+    public void WalkingRustlesOnlyThroughPlantsAndStepsOnTheGroundElsewhere()
+    {
+        // A1515 (B2608, W1741): every sound has a visible cause - no rustling on sand, rock or snow.
+        var director = new SoundDirector(Library, Mixer);
+        var positions = new Dictionary<string, Position>(StringComparer.Ordinal) { ["inh-1"] = new(1, 0) };
+        var walk = new[] { new WorldEvent(InhabitantsSystem.ActionStarted, 10, "inh-1", "wander", null) };
+        string? On(string? biome, long snowMm) =>
+            director.Plan(walk, positions, new Position(0, 0), 0.5, new Dictionary<MixBusId, int>(), null, _ => Library.SurfaceAt(biome, snowMm)).SingleOrDefault()?.SoundId;
+
+        Assert.Equal("action.rustle", On("meadow", 0));
+        Assert.Equal("step.sand", On("beach_sea", 0));
+        Assert.Equal("step.rock", On("rocks_hills", 0));
+        Assert.Equal("step.snow", On("meadow", Library.Map.Underfoot!.SnowFromMm!.Value));
+        Assert.Equal("step.water", On("freshwater", Library.Map.Underfoot.SnowFromMm.Value)); // a stream in winter stays a stream
+        Assert.Equal("action.rustle", On(null, 0)); // nothing known under the feet: its own sound
+        Assert.Equal("action.eat", Library.ForAction("eat", "sand")); // an action without only_on sounds everywhere
+    }
+
+    [Fact]
+    public void EveryBiomeAndSurfaceUnderfootIsKnown()
+    {
+        var biomes = ContractSerializer.Deserialize<BiomeTable>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "world", "biomes.json"))).Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
+        var surfaces = Library.Map.Surfaces.Select(s => s.Surface).ToHashSet(StringComparer.Ordinal);
+        var underfoot = Library.Map.Underfoot!;
+        Assert.Equal(biomes, underfoot.Biomes.Select(b => b.Biome).ToHashSet(StringComparer.Ordinal));
+        Assert.All(underfoot.Biomes, b => Assert.Contains(b.Surface, surfaces));
+        Assert.Contains(underfoot.SnowSurface!, surfaces);
+        Assert.All(Library.Map.Actions.Where(a => a.OnlyOn is not null).SelectMany(a => a.OnlyOn!), s => Assert.Contains(s, surfaces));
     }
 }
