@@ -104,6 +104,16 @@ public sealed class InventionLooksTests
         Assert.Equal(expected, InventionLooks.FocusRadiusM(extentM, radiusM, marginM), 9);
     }
 
+    [Fact]
+    public void AWornThingGivesTheColourOfItsLargestPart()
+    {
+        // A1577 (K4): the figure's top takes the kit colour of the plan's largest part.
+        var kit = ContractSerializer.Deserialize<BuildKit>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "build", "kit.json")));
+        var plan = InventionSystem.PlanOf(Plan.Value);
+        var largest = plan.Parts.OrderByDescending(p => p.SizeM.X * p.SizeM.Y * p.SizeM.Z).First();
+        Assert.Equal(kit.Colors.Single(c => c.Id == largest.Color).Color, InventionLooks.MainColor(Plan.Value, kit));
+    }
+
     private static BuildTask Task(int steps = 0, string? planJson = "plan") =>
         new(Type, "inh-000001", 1, null, null, planJson == "plan" ? Plan.Value : planJson, 10, 20, steps, [], null, null, null, false);
 }

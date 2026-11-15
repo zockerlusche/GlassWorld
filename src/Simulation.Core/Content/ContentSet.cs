@@ -966,6 +966,9 @@ public sealed class ContentSet
         return catalog;
     }
 
+    /// <summary>The day phases a need's decay_when may name (the calendar's phases, B2773).</summary>
+    private static readonly HashSet<string> DayPhaseIds = [.. Enum.GetNames<DayPhase>().Select(n => n.ToLowerInvariant())];
+
     private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits, HashSet<string> sensations)
     {
         // A mood driver follows exactly one of: a need below a threshold, a sensation (B5 R47).
@@ -984,6 +987,7 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
             .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
             .Concat((model.ComfortZone?.NeedModifiers ?? []).Select(m => m.Need).Where(id => !needs.Contains(id)))
+            .Concat(model.Needs.SelectMany(n => n.DecayWhen?.DayPhases ?? []).Where(id => !DayPhaseIds.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

@@ -603,6 +603,7 @@ public sealed class SimulationHost
                 HeatFrom = fire.HeatFrom,
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
+            inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
