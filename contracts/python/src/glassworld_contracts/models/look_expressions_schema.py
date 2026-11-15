@@ -4,9 +4,40 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+type NoticeItem = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class ExpressionJoinIn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    notice: list[NoticeItem] = Field(
+        ...,
+        description='Expressions (ids) the others notice.',
+        max_length=16,
+        min_length=1,
+    )
+    radius_m: float = Field(
+        ...,
+        description='How near (metres, on the ground) another figure must be to notice it.',
+        gt=0.0,
+        le=50.0,
+    )
+    look_s: float = Field(
+        ...,
+        description='Real seconds the others look over (head and upper body).',
+        gt=0.0,
+        le=30.0,
+    )
+    expression: str | None = Field(
+        None,
+        description='The expression they show themselves (subject to their own calm pause); missing = they only look.',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
 
 
 class Face(StrEnum):
@@ -106,4 +137,8 @@ class LookExpressions(BaseModel):
         None,
         description='A need at or below a level shows an expression while it lasts (after the moods).',
         max_length=32,
+    )
+    join_in: ExpressionJoinIn | None = Field(
+        None,
+        description='A1733 (B2716 (3)): others nearby and awake notice one of these expressions - they look over for a while and may show an expression of their own (joining in the joy). Presentation only; absent = nobody looks over.',
     )

@@ -106,6 +106,45 @@ if [[ -n "$WORLD" ]]; then
 fi
 printf '@echo off\r\nrem GlassWorld mit lokaler KI starten (Testpaket). Der KI-Dienst laeuft aus dem Repository.\r\nset GLASSWORLD_AI=live\r\nset GLASSWORLD_AI_ROOT=%s\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$ROOT" "$WORLD_LINE" > "$OUT/Start-mit-KI.cmd"
 printf '@echo off\r\nrem GlassWorld ohne KI starten (Routine-Modus, zum Vergleich).\r\n%sstart "" "%%~dp0GlassWorld.exe"\r\n' "$WORLD_LINE" > "$OUT/Start-ohne-KI.cmd"
+# A1743 (B2787): a world runs without graphics as fast as the computer can, then it is in the menu's world list.
+cat > "$OUT/Schnelldurchlauf.cmd" <<'CMD'
+@echo off
+rem Schnelldurchlauf (B2787): eine Welt ohne Grafik so schnell wie der Rechner kann, mit oder ohne KI.
+rem Danach im Spiel: Hauptmenue - Welten - die Welt laden. Ohne KI rechnet nur der Prozessor.
+set TAGE=
+set /p TAGE=Wie viele Spieltage? [10]
+if "%TAGE%"=="" set TAGE=10
+set KI=
+set /p KI=Mit KI? (j/n) [n]
+set AI=off
+if /i "%KI%"=="j" set AI=on
+set SEED=
+set /p SEED=Seed (leer = zufaellig):
+set SEEDARG=
+if not "%SEED%"=="" set SEEDARG=--seed %SEED%
+cd /d "@ROOT@"
+uv run python tools/schnelldurchlauf/run.py --days %TAGE% --ai %AI% %SEEDARG%
+pause
+CMD
+sed -i -e "s|@ROOT@|$ROOT|" -e 's/$/\r/' "$OUT/Schnelldurchlauf.cmd"
+cat > "$OUT/Schnelldurchlauf-LIESMICH.txt" <<'TXT'
+Schnelldurchlauf (B2787)
+
+Doppelklick auf Schnelldurchlauf.cmd. Es fragt:
+- Wie viele Spieltage (Vorgabe 10),
+- Mit KI? j/n (Vorgabe n),
+- Seed (leer = zufaellig).
+
+Die Welt laeuft ohne Grafik, so schnell der Rechner kann. Sie speichert nach jedem Spieltag und am
+Ende und schreibt Lern-Protokoll und Ablauf-Protokoll neben den Spielstand.
+Ohne KI rechnet nur der Prozessor (gemessen: etwa 30 Spieltage in 1 Minute). Mit KI arbeitet die
+Grafikkarte fuer die KI (etwa 1 Spieltag je Minute).
+
+Danach: Spiel starten (Start-mit-KI.cmd oder Start-ohne-KI.cmd) -> Hauptmenue -> Welten -> die Welt
+"Schnell <Seed>" laden und mit Grafik weiterspielen. Eine vorhandene Welt wird nie ueberschrieben.
+Waehrend eines Laufs mit KI bitte kein Spiel mit KI offen haben (beide brauchen den KI-Dienst).
+TXT
+sed -i -e 's/$/\r/' "$OUT/Schnelldurchlauf-LIESMICH.txt"
 # The AI service's environment is made now, not at the first start (TL #24536): uv would build it there in
 # minutes while the game waits 60 s, and the first start "with AI" would run without AI. SKIP_UV_SYNC=1 skips it.
 if [[ "${SKIP_UV_SYNC:-}" != "1" ]]; then

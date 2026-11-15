@@ -1,0 +1,25 @@
+"""Schnelldurchlauf (A1743): the world folder follows the game's world list."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import run
+
+
+def test_the_folder_name_is_the_game_slug() -> None:
+    """As WorldLibrary.Slug, so the menu finds meta.json under the id it expects."""
+    assert run.slug("Schnell 123") == "schnell-123"
+    assert run.slug("Grüße & Ö") == "gruesse-oe"
+    assert run.slug("con") == "con-world"
+    assert run.slug("***") == "world"
+    assert len(run.slug("x" * 50)) == 32
+
+
+def test_an_existing_world_is_never_overwritten(tmp_path: Path) -> None:
+    (tmp_path / "probe").mkdir()
+    (tmp_path / "probe-2").mkdir()
+    assert run.free_folder(tmp_path, "Probe") == tmp_path / "probe-3"

@@ -588,9 +588,9 @@ public partial class WorldPresenter : Node3D
             }
 
             // A1732 (B2716): the inhabitant's own moments may show on its body (cheering at an invention).
-            if (_islandFigures.TryGetValue(e.InhabitantId, out var expressing))
+            if (_islandFigures.TryGetValue(e.InhabitantId, out var expressing) && expressing.Express(e.Kind) is { } shown)
             {
-                expressing.Express(e.Kind);
+                JoinInAround(e.InhabitantId, expressing, shown.Id);
             }
 
             if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
