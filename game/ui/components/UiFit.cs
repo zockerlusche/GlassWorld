@@ -55,6 +55,89 @@ public static class UiFit
     }
 
     /// <summary>
+    /// Like <see cref="LongestWordFits(Label, float)"/> for a label that shows one of several texts in turn (the
+    /// settings' description): wide enough for the longest word of any of them, so none breaks inside a word.
+    /// </summary>
+    public static void LongestWordFits(Label label, float least, IReadOnlyCollection<string> texts)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        ArgumentNullException.ThrowIfNull(texts);
+        void Fit() => label.CustomMinimumSize = new Vector2(Math.Max(least, texts.Count == 0 ? 0 : texts.Max(t => LongestWord(label, t))), label.CustomMinimumSize.Y);
+        label.Ready += Fit;
+        label.ThemeChanged += Fit;
+    }
+
+    /// <summary>
+    /// The height <paramref name="control"/> needs at <paramref name="width"/>, measured now and also while it is hidden
+    /// (B2791: the settings hold the room of their highest tab). Its containers are laid out at once, three times, since
+    /// a wrapping label is only as high as the width its container gave it; a label's cached size is renewed by hand,
+    /// as Godot renews it only when the label is drawn. A control outside a container keeps its own minimum.
+    /// </summary>
+    public static float HeightAt(Control control, float width)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        if (control.GetParent() is not Container parent)
+        {
+            return control.GetCombinedMinimumSize().Y;
+        }
+
+        var shown = control.Visible;
+        control.Visible = true;
+        for (var pass = 0; pass < 3; pass++)
+        {
+            parent.FitChildInRect(control, new Rect2(control.Position, new Vector2(width, control.GetCombinedMinimumSize().Y)));
+            LayOutNow(control);
+        }
+
+        var height = control.GetCombinedMinimumSize().Y;
+        control.Visible = shown;
+        return height;
+    }
+
+    /// <summary>
+    /// The height of the highest of <paramref name="texts"/> in <paramref name="label"/> at <paramref name="width"/>,
+    /// without the room reserved so far (a label that shows one text after another keeps the room of the longest).
+    /// The label keeps its text and its minimum size.
+    /// </summary>
+    public static float HighestText(Label label, IReadOnlyCollection<string> texts, float width)
+    {
+        ArgumentNullException.ThrowIfNull(label);
+        ArgumentNullException.ThrowIfNull(texts);
+        var text = label.Text;
+        var least = label.CustomMinimumSize;
+        label.CustomMinimumSize = new Vector2(least.X, 0);
+        var highest = 0f;
+        foreach (var candidate in texts)
+        {
+            label.Text = candidate;
+            highest = Math.Max(highest, HeightAt(label, width));
+        }
+
+        label.Text = text;
+        label.CustomMinimumSize = least;
+        HeightAt(label, width);
+        return highest;
+    }
+
+    private static void LayOutNow(Control control)
+    {
+        if (control is Label)
+        {
+            control.UpdateMinimumSize();
+        }
+
+        if (control is Container container)
+        {
+            container.Notification((int)Container.NotificationSortChildren);
+        }
+
+        foreach (var child in control.GetChildren().OfType<Control>().Where(c => c.Visible))
+        {
+            LayOutNow(child);
+        }
+    }
+
+    /// <summary>
     /// Layout check: the texts below <paramref name="root"/> that are cut or broken inside a word - a hint
     /// text wider than its field (whether or not the field holds text now; a field at its limit may cut),
     /// a wrapping label narrower than its longest word. Empty if all fit.
@@ -95,7 +178,9 @@ public static class UiFit
     private static float HintWidth(LineEdit field) =>
         Width(field, field.Tr(field.PlaceholderText)) + (field.GetThemeStylebox("normal")?.GetMinimumSize().X ?? 0);
 
-    private static float LongestWord(Label label) => (float)TextFit.LongestWord(label.Tr(label.Text), word => Width(label, word));
+    private static float LongestWord(Label label) => LongestWord(label, label.Text);
+
+    private static float LongestWord(Label label, string text) => (float)TextFit.LongestWord(label.Tr(text), word => Width(label, word));
 
     private static float Width(Control control, string text) =>
         (float)Math.Ceiling(control.GetThemeFont("font").GetStringSize(text, HorizontalAlignment.Left, -1, control.GetThemeFontSize("font_size")).X);

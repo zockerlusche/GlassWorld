@@ -16,6 +16,10 @@ public partial class SettingsWindow : GwWindow
 {
     private const string TabPrefix = "ui.settings.tab.";
     private const string AiTab = TabPrefix + "ai";
+    private const string DescriptionHint = "ui.settings.desc_hint";
+
+    // What the name row can say is wrong; the page keeps room for the longest, so it never grows (B2791).
+    private static readonly string[] NameProblems = ["ui.settings.problem.name_long", "ui.settings.problem.name_characters", "ui.settings.problem.name_blocked", "ui.settings.problem.name_empty"];
 
     private static readonly Lazy<SettingsLayout> Layout = new(() =>
         GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<SettingsLayout>(UiSetup.ReadEmbedded("content.ui.settings.json")));
@@ -37,6 +41,10 @@ public partial class SettingsWindow : GwWindow
     private HFlowContainer _tabsTop = new();
     private VBoxContainer _page = new();
     private Label _description = new();
+    private Label? _nameProblem;
+
+    // Every text the description column can show (the room of the longest stays reserved, B2791).
+    private readonly List<string> _descriptions = [DescriptionHint];
     private float _labelWidth;
 
     /// <summary>Raised after every change with the new, already clamped settings.</summary>
@@ -67,13 +75,13 @@ public partial class SettingsWindow : GwWindow
         _description = new Label
         {
             Name = "Description",
-            Text = "ui.settings.desc_hint",
+            Text = DescriptionHint,
             ThemeTypeVariation = UiTheme.SmallLabel,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(_labelWidth, 0),
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
-        UiFit.LongestWordFits(_description, _labelWidth);
+        UiFit.LongestWordFits(_description, _labelWidth, _descriptions);
         _body.AddChild(_tabs);
         _body.AddChild(_tabsLine);
         _pageColumn.AddChild(_pagesBox);
@@ -119,7 +127,9 @@ public partial class SettingsWindow : GwWindow
             case "player_name":
                 var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength };
                 UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
-                var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                // Always in its place, empty while the name is fine: a message that appears does not move the window (B2791).
+                var nameProblem = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                _nameProblem = nameProblem;
                 void TakeName()
                 {
                     // Empty = no name; otherwise the same checks as every player input (length, content guard).
@@ -133,7 +143,6 @@ public partial class SettingsWindow : GwWindow
                         null => string.Empty,
                         _ => "ui.settings.problem.name_empty",
                     };
-                    nameProblem.Visible = problem is not null;
                     if (problem is null && text != (_settings.PlayerName ?? string.Empty))
                     {
                         Apply(_settings with { PlayerName = text.Length == 0 ? null : text });
@@ -391,6 +400,9 @@ public partial class SettingsWindow : GwWindow
             {
                 lines.AddChild(control);
             }
+
+            // The answer came later than the window's fit: every tab takes the new height at once (B2791).
+            FitAgain();
         }
 
         Label Text(string key) => new() { Text = key, AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -491,6 +503,7 @@ public partial class SettingsWindow : GwWindow
             make.Disabled = true;
             status.Text = Tr("ui.selfcheck.report_running");
             status.Visible = true;
+            FitAgain();
             var answer = await report();
             if (!IsInstanceValid(this) || !IsInsideTree())
             {
@@ -508,6 +521,7 @@ public partial class SettingsWindow : GwWindow
                 ? TextFill.Fill(Tr("ui.selfcheck.report_saved"), new Dictionary<string, string> { ["file"] = answer.Report!.FileName, ["folder"] = reportFolder })
                 : Tr("ui.selfcheck.report_failed");
             open.Visible = saved;
+            FitAgain();
         }
 
         again.Pressed += Run;
@@ -534,10 +548,8 @@ public partial class SettingsWindow : GwWindow
             tab.SetPressedNoSignal(tab == chosen.Tab);
         }
 
-        if (IsInsideTree())
-        {
-            FitInto(GetViewport().GetVisibleRect().Size);
-        }
+        // Into the room of the last fit (the layout check fits into a smaller picture than the viewport).
+        FitAgain();
     }
 
     /// <inheritdoc/>
@@ -557,6 +569,31 @@ public partial class SettingsWindow : GwWindow
         {
             PlaceTabs(left: false);
         }
+
+        ReserveHeights();
+    }
+
+    /// <summary>
+    /// One size for every tab (B2791): the pages as high as the highest, measured at the width they share; the
+    /// description with room for its longest text and the name row with room for its longest message, so neither
+    /// grows the window when the pointer moves or the player types.
+    /// </summary>
+    private void ReserveHeights()
+    {
+        var width = _pagesBox.CustomMinimumSize.X;
+        if (_nameProblem is not null)
+        {
+            _nameProblem.CustomMinimumSize = new Vector2(0, UiFit.HighestText(_nameProblem, NameProblems, width));
+        }
+
+        // Beside the rows the description is as wide as its own minimum, below them as wide as the pages.
+        var beside = _description.GetParent() == _body;
+        var descriptionWidth = beside ? _description.CustomMinimumSize.X : width;
+        _description.CustomMinimumSize = new Vector2(_description.CustomMinimumSize.X, UiFit.HighestText(_description, _descriptions, descriptionWidth));
+
+        _pagesBox.CustomMinimumSize = new Vector2(width, 0);
+        var height = _pages.Values.Max(p => UiFit.HeightAt(p.Page, width));
+        _pagesBox.CustomMinimumSize = new Vector2(width, height);
     }
 
     private void PlaceTabs(bool left)
@@ -626,6 +663,11 @@ public partial class SettingsWindow : GwWindow
         row.AddChild(control);
 
         // The description column says what the row under the pointer (or with the keyboard focus) does (D957 v4 section 10).
+        if (!_descriptions.Contains(descriptionKey))
+        {
+            _descriptions.Add(descriptionKey);
+        }
+
         row.MouseFilter = MouseFilterEnum.Pass;
         row.MouseEntered += () => _description.Text = descriptionKey;
         control.FocusEntered += () => _description.Text = descriptionKey;

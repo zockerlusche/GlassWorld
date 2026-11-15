@@ -116,6 +116,7 @@ public partial class GwWindow : PanelContainer
             return;
         }
 
+        _area = area;
         var limit = area * (float)_style.Tokens.Window.MaxScreenFraction;
         var safe = area - (Vector2.One * 2 * _style.Tokens.Window.SafeMargin);
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
@@ -145,6 +146,7 @@ public partial class GwWindow : PanelContainer
     }
 
     private bool _settling;
+    private Vector2? _area;
     private Vector2 _settleArea;
     private Vector2 _fittedAt;
 
@@ -207,6 +209,21 @@ public partial class GwWindow : PanelContainer
         var limit = Math.Min(area.Y * (float)_style.Tokens.Window.MaxScreenFraction, area.Y - (2 * _style.Tokens.Window.SafeMargin));
         return Size.Y >= limit - 0.5f ? string.Empty : $"{hidden:0} px of content hidden in a window of height {Size.Y:0} that may grow to {limit:0}";
     }
+
+    /// <summary>
+    /// Fits the window again into the area of its last fit (or the picture, if it was never fitted): its content
+    /// changed - another settings tab, an answer that came later.
+    /// </summary>
+    protected void FitAgain()
+    {
+        if (IsInsideTree())
+        {
+            FitInto(_area ?? GetViewport().GetVisibleRect().Size);
+        }
+    }
+
+    /// <summary>How many pixels of the content the scroll area hides now (0: all of it is visible).</summary>
+    public float HiddenContent() => Math.Max(0, Content.Size.Y - _scroll.Size.Y);
 
     /// <summary>True if the window lies fully inside the safe area of <paramref name="area"/>.</summary>
     public bool IsInsideSafeArea(Vector2 area)
