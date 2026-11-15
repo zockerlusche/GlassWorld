@@ -205,6 +205,20 @@ public static class UiLayoutCheck
         var portraits = new GwPortraitList();
         var log = new GwSidePanel();
         log.Setup("ui.log.title");
+
+        // A1684: the opened log with its filter (every category) and search over its lines; it must not widen the log
+        // into the free middle at any size.
+        var logTools = new HBoxContainer();
+        var logFilter = new OptionButton();
+        logFilter.AddItem("ui.log.category.all");
+        foreach (var category in style.Tokens.Log.Categories)
+        {
+            logFilter.AddItem(LogModel.CategoryKey(category.Id));
+        }
+
+        logTools.AddChild(logFilter);
+        logTools.AddChild(new LineEdit { PlaceholderText = "ui.log.search", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        log.Content.AddChild(logTools);
         var window = new GwSidePanel();
         window.Setup("ui.inhabitants.title");
         for (var i = 0; i < 26; i++)
