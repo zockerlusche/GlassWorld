@@ -50,7 +50,13 @@
         "heat_radius_cm": { "description": "Distance up to which the heat is felt, in centimetres (B5-2, R7).", "type": "integer", "minimum": 0, "maximum": 5000 },
         "light_radius_cm": { "description": "Radius it lights, in centimetres (B5-2b, D634 R44).", "type": "integer", "minimum": 0, "maximum": 5000 },
         "light_permille": { "description": "Strength of the light at the source, in permille of daylight (B5-2b, D634 R44).", "type": "integer", "minimum": 0, "maximum": 1000 },
-        "tool_value_permille": { "description": "How good it is as a tool, in permille; an input of the build quality (B5-7, D634 R38).", "type": "integer", "minimum": 0, "maximum": 1000 }
+        "tool_value_permille": { "description": "How good it is as a tool, in permille; an input of the build quality (B5-7, D634 R38).", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "grip_permille": { "description": "How well one holds on to it, in permille (D1105: climbing, standing on it); a smooth trunk is low.", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "nest_possible": { "description": "Whether birds may nest in it (D1105 H4: nests only from the animal stock, never placed for a purpose).", "type": "boolean" },
+        "length_cm": { "description": "How long a thing is, in centimetres (D1105: leaning it against something, reach).", "type": "integer", "minimum": 0, "maximum": 5000 },
+        "density_permille": { "description": "Density against water, in permille (D1105 W1: below 1000 it floats).", "type": "integer", "minimum": 0, "maximum": 20000 },
+        "load_kg": { "description": "What it carries before it gives way, in kilograms (D1105 S1: stacking, stepping on it).", "type": "integer", "minimum": 0, "maximum": 10000 },
+        "weight_kg": { "description": "How heavy it is, in kilograms (D1105: carrying, stacking).", "type": "number", "minimum": 0, "maximum": 10000 }
       }
     }
   }
