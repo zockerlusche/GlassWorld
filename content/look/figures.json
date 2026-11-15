@@ -175,7 +175,8 @@
     "spacing_px": 22,
     "period_s": 2.4,
     "alpha_min": 0.2,
-    "alpha_max": 0.85
+    "alpha_max": 0.85,
+    "question_font_px": 64
   },
   "lying": {
     "clips": [
