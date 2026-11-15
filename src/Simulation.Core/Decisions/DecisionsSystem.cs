@@ -1303,10 +1303,11 @@ public sealed class DecisionsSystem : IWorldSystem
                 continue;
             }
 
-            // A meeting action carries its own conditions (need, need_below - A1726: approach someone also when cold,
-            // a stranger whatever the needs), so the needs' say is that of its data, not the considerations'.
+            // A meeting option without a need of its own (approach a stranger) is offered whatever the needs say, as
+            // before A1726 gave approach a consideration (cold); options with a need (talk_to) still yield to the
+            // considerations as before (review GW2 #479).
             if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId)
-                && (Knowledge is not { } meets || InhabitantsSystem.MeetingOptionsOf(meets, action) is null))
+                && (Knowledge is not { } meets || InhabitantsSystem.MeetingOptionsOf(meets, action)?.Any(o => o.Need is null) != true))
             {
                 continue;
             }

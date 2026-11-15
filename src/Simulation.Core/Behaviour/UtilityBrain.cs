@@ -542,11 +542,6 @@ public sealed class UtilityBrain
         }
     }
 
-    /// <summary>
-    /// Belief that an object of <paramref name="typeId"/> has <paramref name="property"/>: the confidence
-    /// of a positive belief, 0 for a negative belief, and the data value for "not known yet" (trying
-    /// unknown things is how inhabitants learn without prior knowledge).
-    /// </summary>
     /// <summary>A1726 (known_only): the confidence that a type has a property, 0 when the inhabitant believes nothing about it.</summary>
     public static double BelievedFactor(Inhabitant inhabitant, string typeId, string property)
     {
@@ -554,7 +549,11 @@ public sealed class UtilityBrain
         return inhabitant.Beliefs.TryGet(typeId, property, out var belief) && belief.Value ? belief.Confidence : 0.0;
     }
 
-    /// <summary>The confidence that a type has a property; an unknown one gets the unknown-target belief (made properties 0).</summary>
+    /// <summary>
+    /// Belief that an object of <paramref name="typeId"/> has <paramref name="property"/>: the confidence
+    /// of a positive belief, 0 for a negative belief, and the data value for "not known yet" (trying
+    /// unknown things is how inhabitants learn without prior knowledge); a made property not known yet is 0.
+    /// </summary>
     public double BeliefFactor(Inhabitant inhabitant, string typeId, string property)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
