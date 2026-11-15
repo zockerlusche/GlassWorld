@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/fauna-ambient.schema.json",
+  "title": "FaunaAmbient",
+  "description": "A1383 (B5-6 R16, B2608): ambient animals near the camera - presentation only, never in the core, not saved, not hashed. Which animal shows where and when comes from the sound map's animals (biomes, seasons, times of day), so what is heard has a visible cause; this file says how each one looks and moves. Calm placeholders (B2466).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "cell_m",
+    "radius_m",
+    "animals"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "cell_m": {
+      "description": "Animals live in square cells of this size around the camera's target (their homes stay put when the camera moves a little).",
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 500
+    },
+    "radius_m": {
+      "description": "Shown only within this distance of the camera's target; they fade out towards it.",
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 500
+    },
+    "animals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/AmbientAnimal"
+      }
+    }
+  },
+  "$defs": {
+    "AmbientAnimal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "animal",
+        "shape",
+        "color",
+        "size_m",
+        "per_cell",
+        "stay_s",
+        "motion"
+      ],
+      "properties": {
+        "animal": {
+          "description": "Animal id of the sound map (content/sound/sound_map.json animals).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "shape": {
+          "type": "string",
+          "enum": [
+            "wings",
+            "body",
+            "glow"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "size_m": {
+          "description": "Length (wings: span) in metres.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3
+        },
+        "per_cell": {
+          "description": "How many live in one cell (where the biome fits).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "stay_s": {
+          "description": "Real seconds one stays near its home before it is elsewhere (fades out and in).",
+          "type": "number",
+          "minimum": 2,
+          "maximum": 600
+        },
+        "motion": {
+          "$ref": "#/$defs/AmbientMotion"
+        }
+      }
+    },
+    "AmbientMotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "height_m",
+        "wander_m",
+        "speed"
+      ],
+      "properties": {
+        "kind": {
+          "description": "glide: wide circles in the air; flutter: a wavering path; hover: small quick drift; hop: hops on the ground; blink: slow drift, glowing on and off; jump: now and then a leap out of the water.",
+          "type": "string",
+          "enum": [
+            "glide",
+            "flutter",
+            "hover",
+            "hop",
+            "blink",
+            "jump"
+          ]
+        },
+        "height_m": {
+          "description": "Height above the ground (hop and jump: the height of a hop or leap).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "wander_m": {
+          "description": "How far it moves around its home.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "speed": {
+          "description": "Turns, hops or leaps per second.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "flap_hz": {
+          "description": "Wing beats per second (wings and body shapes); missing = still.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        }
+      }
+    }
+  }
+}

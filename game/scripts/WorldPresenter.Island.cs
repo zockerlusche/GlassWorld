@@ -38,6 +38,7 @@ public partial class WorldPresenter
     private Color _focusColor = Colors.White;
     private MeshInstance3D? _focusRing;
     private GrassView? _grassView;
+    private AmbientFaunaView? _faunaView;
     private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
@@ -438,6 +439,16 @@ public partial class WorldPresenter
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
+        // A1383 (B5-6 R16, B2608): ambient animals near the camera - the ones the sound map says live here now.
+        var soundMap = Read<SoundMap>(content, "sound", "sound_map.json");
+        _faunaView = AmbientFaunaView.Create(
+            Read<FaunaAmbient>(content, "fauna", "ambient.json"),
+            host.World.Seed,
+            () => _rig is { } rig ? rig.Model.Target : null,
+            () => _host is { } h ? LivingAnimals(soundMap, h) : [],
+            (x, z) => Presentation.Ui.DebugOverlayModel.BiomeAt(_host?.Map, x, z),
+            (x, z) => _ground(x, z));
+        AddChild(_faunaView);
         AddChild(_nature);
 
         // Cloud cover over what the player has not seen yet (B2-6 R25); the land a new or loaded world
@@ -560,6 +571,7 @@ public partial class WorldPresenter
         _inventionsView = null;
         _focusRing = null;
         _grassView = null;
+        _faunaView = null;
         _cover = null;
         _nature = null;
         _rig = null;
@@ -730,6 +742,11 @@ public partial class WorldPresenter
             foreach (var figure in _islandFigures.Values)
             {
                 figure.SetFrozen(_freeze.Frozen);
+            }
+
+            if (_faunaView is not null)
+            {
+                _faunaView.Frozen = _freeze.Frozen;
             }
         }
 
@@ -1062,5 +1079,12 @@ public partial class WorldPresenter
         {
             _islandFigures[other].Watch(figure.HeadAnchor, join.LookS, join.Expression);
         }
+    }
+
+    /// <summary>A1383: the sound map's animals that live at this season and time of day (the biome is checked at each home).</summary>
+    private static IReadOnlyList<SoundForAnimal> LivingAnimals(SoundMap map, Simulation.SimulationHost host)
+    {
+        var now = Presentation.Audio.HourTime.Of(host.World.Now);
+        return [.. map.Animals.Where(a => a.Seasons.Contains(now.Season, StringComparer.Ordinal) && a.TimesOfDay.Contains(now.TimeOfDay, StringComparer.Ordinal))];
     }
 }
