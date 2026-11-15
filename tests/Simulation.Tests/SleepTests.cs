@@ -16,6 +16,7 @@ public sealed class SleepTests
     private static readonly ContentSet Content = ContentSet.Load(ContentDirectory);
     private static readonly string SleepAction = Content.InhabitantModel.Togetherness!.SleepAction;
     private static readonly double SleepNeglect = Content.InhabitantModel.Needs.Single(n => n.Id == "sleep").NeglectBelow;
+    private static readonly string[] NightThoughts = ["Morgen ist viel zu tun.", "Noch einer."];
 
     [Fact]
     public void SleepRisesWhileSleepingAndAWholeNightFillsIt()
@@ -51,9 +52,33 @@ public sealed class SleepTests
         host.Inhabitants.Report(new WorldEvent("action_finished", tick, sleeper.Id, "idle", null));
         Assert.Equal(["action_finished"], events.Select(e => e.Kind));
 
+        // The night's thoughts wait for the morning (data: the latest thoughts_on_waking), the words are gone.
+        var keep = host.Content.InhabitantModel.Togetherness!.ThoughtsOnWaking!.Value;
+        host.Inhabitants.Report(new WorldEvent("thought", tick, sleeper.Id, null, null) { Text = "Noch einer." });
         sleeper.Activity = null;
-        host.Inhabitants.Report(new WorldEvent("thought", tick, sleeper.Id, null, null) { Text = "Guten Morgen." });
-        Assert.Equal("thought", events[^1].Kind);
+        events.Clear();
+        host.World.Step();
+        var morning = events.Where(e => e.Kind == "thought" && e.InhabitantId == sleeper.Id).Select(e => e.Text).ToList();
+        Assert.Equal(NightThoughts.TakeLast(keep), morning);
+        Assert.DoesNotContain(events, e => e.Kind == "said");
+    }
+
+    [Fact]
+    public void ThePlayersWordWakesASleeperSoItsAnswerIsShown()
+    {
+        // A1710 (GW3/GW2 #455): talking to a sleeper wakes it; it answers awake, nothing hangs.
+        var (host, sleeper) = Alone();
+        sleeper.Needs["sleep"] = 0.4;
+        Start(host, sleeper);
+        host.World.Run(2);
+        Assert.True(host.Inhabitants.IsAsleep(sleeper));
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        host.Inhabitants.WakeForPlayer(host.World, sleeper);
+        Assert.False(host.Inhabitants.IsAsleep(sleeper));
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.Detail == InhabitantsSystem.WokenByPlayer);
+        host.Inhabitants.Report(new WorldEvent("said", host.World.Tick, sleeper.Id, null, null) { Text = "Ich habe geschlafen." });
+        Assert.Equal("said", events[^1].Kind);
     }
 
     [Fact]

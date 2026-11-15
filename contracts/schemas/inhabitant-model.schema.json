@@ -5,268 +5,100 @@
   "description": "Data file content/inhabitants/model.json: how needs, moods and the will to live change over time, and the ranges for start inhabitants drawn from the world seed (B2503). All numbers are placeholders until Marcel decides. Rates are per game hour.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "contract_version",
-    "needs",
-    "moods",
-    "mood_drivers",
-    "will_to_live",
-    "start",
-    "skills",
-    "skill_rules"
-  ],
+  "required": ["contract_version", "needs", "moods", "mood_drivers", "will_to_live", "start", "skills", "skill_rules"],
   "properties": {
-    "contract_version": {
-      "$ref": "common.schema.json#/$defs/ContractVersion"
-    },
-    "needs": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 64,
-      "items": {
-        "$ref": "#/$defs/NeedModel"
-      }
-    },
-    "moods": {
-      "type": "array",
-      "maxItems": 64,
-      "items": {
-        "$ref": "#/$defs/MoodModel"
-      }
-    },
-    "mood_drivers": {
-      "type": "array",
-      "maxItems": 256,
-      "items": {
-        "$ref": "#/$defs/MoodDriver"
-      }
-    },
-    "will_to_live": {
-      "$ref": "#/$defs/WillToLiveModel"
-    },
-    "start": {
-      "$ref": "#/$defs/StartModel"
-    },
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "needs": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/NeedModel" } },
+    "moods": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/MoodModel" } },
+    "mood_drivers": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/MoodDriver" } },
+    "will_to_live": { "$ref": "#/$defs/WillToLiveModel" },
+    "start": { "$ref": "#/$defs/StartModel" },
     "skills": {
       "description": "Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/skills/practice.json.",
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 64,
-      "items": {
-        "$ref": "#/$defs/SkillModel"
-      }
+      "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/SkillModel" }
     },
-    "skill_rules": {
-      "$ref": "#/$defs/SkillRules"
-    },
-    "need_rules": {
-      "$ref": "#/$defs/NeedRules"
-    },
-    "togetherness": {
-      "$ref": "#/$defs/Togetherness"
-    },
-    "diary": {
-      "$ref": "#/$defs/Diary"
-    },
-    "comfort_zone": {
-      "$ref": "#/$defs/ComfortZone"
-    }
+    "skill_rules": { "$ref": "#/$defs/SkillRules" },
+    "need_rules": { "$ref": "#/$defs/NeedRules" },
+    "togetherness": { "$ref": "#/$defs/Togetherness" },
+    "diary": { "$ref": "#/$defs/Diary" },
+    "comfort_zone": { "$ref": "#/$defs/ComfortZone" }
   },
   "$defs": {
     "NeedModel": {
       "description": "A need: 1 = fully satisfied, 0 = urgent.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "decay_per_hour",
-        "neglect_below"
-      ],
+      "required": ["id", "decay_per_hour", "neglect_below"],
       "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "decay_per_hour": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "neglect_below": {
-          "description": "Below this value the need counts as neglected (will to live).",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "decay_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
+        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "MoodModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "baseline",
-        "return_per_hour"
-      ],
+      "required": ["id", "baseline", "return_per_hour"],
       "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "baseline": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "return_per_hour": {
-          "description": "How fast the feeling returns to its baseline.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "baseline": { "type": "number", "minimum": 0, "maximum": 1 },
+        "return_per_hour": { "description": "How fast the feeling returns to its baseline.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "ComfortNeedModifier": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "level",
-        "need",
-        "factor"
-      ],
+      "type": "object", "additionalProperties": false, "required": ["level", "need", "factor"],
       "properties": {
-        "level": {
-          "$ref": "common.schema.json#/$defs/VocabId",
-          "description": "Comfort level."
-        },
-        "need": {
-          "$ref": "common.schema.json#/$defs/VocabId",
-          "description": "The need whose decay changes."
-        },
-        "factor": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 5,
-          "description": "Factor on its decay per hour."
-        }
+        "level": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Comfort level." },
+        "need": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The need whose decay changes." },
+        "factor": { "type": "number", "minimum": 0, "maximum": 5, "description": "Factor on its decay per hour." }
       }
     },
     "ComfortPaceFactor": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "level",
-        "factor"
-      ],
+      "type": "object", "additionalProperties": false, "required": ["level", "factor"],
       "properties": {
-        "level": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "factor": {
-          "type": "number",
-          "minimum": 0.1,
-          "maximum": 2,
-          "description": "Factor on the walking pace."
-        }
+        "level": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "factor": { "type": "number", "minimum": 0.1, "maximum": 2, "description": "Factor on the walking pace." }
       }
     },
     "ComfortLossPoint": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "degrees",
-        "per_hour"
-      ],
+      "type": "object", "additionalProperties": false, "required": ["degrees", "per_hour"],
       "properties": {
-        "degrees": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 80,
-          "description": "Whole degrees outside the zone."
-        },
-        "per_hour": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Loss of the need per hour there."
-        }
+        "degrees": { "type": "integer", "minimum": 0, "maximum": 80, "description": "Whole degrees outside the zone." },
+        "per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "Loss of the need per hour there." }
       }
     },
     "ComfortFelt": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "sensation",
-        "levels"
-      ],
+      "required": ["sensation", "levels"],
       "properties": {
-        "sensation": {
-          "$ref": "common.schema.json#/$defs/VocabId",
-          "description": "Sensation of the vocabulary."
-        },
-        "levels": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 5,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "common.schema.json#/$defs/VocabId"
-          },
-          "description": "Comfort levels at which it is felt."
-        }
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Sensation of the vocabulary." },
+        "levels": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }, "description": "Comfort levels at which it is felt." }
       }
     },
     "MoodDriver": {
       "description": "While a need is below a threshold - or while a sensation is felt (B5 R47; exactly one of need+below and sensation) - a feeling changes per hour (may be negative).",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "mood",
-        "delta_per_hour"
-      ],
+      "required": ["mood", "delta_per_hour"],
       "properties": {
-        "need": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "below": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "sensation": {
-          "$ref": "common.schema.json#/$defs/VocabId",
-          "description": "A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by."
-        },
-        "mood": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "delta_per_hour": {
-          "type": "number",
-          "minimum": -1,
-          "maximum": 1
-        }
+        "need": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "below": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sensation": { "$ref": "common.schema.json#/$defs/VocabId", "description": "A sensation of the vocabulary (kind sensation) the core reports from the world's data, e.g. a big fire close by." },
+        "mood": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "delta_per_hour": { "type": "number", "minimum": -1, "maximum": 1 }
       }
     },
     "Diary": {
       "description": "Each inhabitant's diary (TL #20472): one entry per started action, newest kept, oldest dropped. Presentation-only history: saved with the game, outside the world hash, never read by the simulation. Omitted = no diary.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "capacity"
-      ],
+      "required": ["capacity"],
       "properties": {
-        "capacity": {
-          "description": "Entries kept per inhabitant.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10000
-        },
+        "capacity": { "description": "Entries kept per inhabitant.", "type": "integer", "minimum": 0, "maximum": 10000 },
         "left_out_actions": {
           "description": "Actions that get no entry (resting in place).",
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "common.schema.json#/$defs/VocabId"
-          }
+          "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }
         }
       }
     },
@@ -274,423 +106,151 @@
       "description": "Comfort zone (B2582, W1745): the air temperature at the inhabitant's place (climate: season, weather, time of day, height of its cell) moves a need. Inside the zone the need recovers per hour; below the zone it sinks per hour by the cold loss times the degrees below, above the zone by the heat loss times the degrees above. Only a need effect, no behaviour: what warms or cools an inhabitant otherwise stays the business of the action effects. Worlds without a climate have no air temperature, there nothing moves. Omitted = the air moves no need. Temperatures in tenths of a degree Celsius like the climate data.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "need",
-        "min_tenth_c",
-        "max_tenth_c",
-        "cold_loss_per_hour_per_degree",
-        "heat_loss_per_hour_per_degree",
-        "recover_per_hour"
-      ],
+      "required": ["need", "min_tenth_c", "max_tenth_c", "cold_loss_per_hour_per_degree", "heat_loss_per_hour_per_degree", "recover_per_hour"],
       "properties": {
-        "need": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "min_tenth_c": {
-          "description": "Lower edge of the zone; colder air is too cold.",
-          "type": "integer",
-          "minimum": -500,
-          "maximum": 600
-        },
-        "max_tenth_c": {
-          "description": "Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.",
-          "type": "integer",
-          "minimum": -500,
-          "maximum": 600
-        },
-        "band_tenth_c": {
-          "description": "Width of the cool and the warm band just outside the zone, in tenths of a degree (A1379): the request tells the decider comfortable inside the zone, cool/warm within the band, cold/hot beyond (vocabulary comfort_level, in its order). Omitted = no comfort in the request.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 300
-        },
-        "individual_shift_tenth_c": {
-          "description": "Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 200
-        },
-        "cold_loss_per_hour_per_degree": {
-          "description": "Loss of the need per hour for every degree Celsius the air is below the zone.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "heat_loss_per_hour_per_degree": {
-          "description": "Loss of the need per hour for every degree Celsius the air is above the zone.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "recover_per_hour": {
-          "description": "Gain of the need per hour while the air is inside the zone.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "floor": {
-          "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "precipitation_cold_factor": {
-          "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 10
-        },
+        "need": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "min_tenth_c": { "description": "Lower edge of the zone; colder air is too cold.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "max_tenth_c": { "description": "Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "band_tenth_c": { "description": "Width of the cool and the warm band just outside the zone, in tenths of a degree (A1379): the request tells the decider comfortable inside the zone, cool/warm within the band, cold/hot beyond (vocabulary comfort_level, in its order). Omitted = no comfort in the request.", "type": "integer", "minimum": 1, "maximum": 300 },
+        "individual_shift_tenth_c": { "description": "Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.", "type": "integer", "minimum": 0, "maximum": 200 },
+        "cold_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is below the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "heat_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is above the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "recover_per_hour": { "description": "Gain of the need per hour while the air is inside the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "floor": { "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
+        "precipitation_cold_factor": { "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
         "need_modifiers": {
           "description": "B5 R5/R6: at a comfort level other needs fall faster or slower (cold: hunger and sleep faster; hot: thirst faster) - factors on their decay. Omitted = none.",
-          "type": "array",
-          "maxItems": 32,
-          "items": {
-            "$ref": "#/$defs/ComfortNeedModifier"
-          }
+          "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/ComfortNeedModifier" }
         },
         "pace_factors": {
           "description": "B5 R6: the walking pace at a comfort level (cold: slower). Omitted = unchanged.",
-          "type": "array",
-          "maxItems": 8,
-          "items": {
-            "$ref": "#/$defs/ComfortPaceFactor"
-          }
+          "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/ComfortPaceFactor" }
         },
         "cold_loss_table": {
           "description": "B5 R5: the warmth need's loss per hour by whole degrees below the zone, as points (linear between, the last holds beyond); replaces cold_loss_per_hour_per_degree when given.",
-          "type": "array",
-          "maxItems": 16,
-          "items": {
-            "$ref": "#/$defs/ComfortLossPoint"
-          }
+          "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/ComfortLossPoint" }
         },
         "heat_loss_table": {
           "description": "B5 R5: as cold_loss_table, by degrees above the zone; replaces heat_loss_per_hour_per_degree when given.",
-          "type": "array",
-          "maxItems": 16,
-          "items": {
-            "$ref": "#/$defs/ComfortLossPoint"
-          }
+          "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/ComfortLossPoint" }
         },
         "felt": {
           "description": "B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.",
-          "type": "array",
-          "maxItems": 8,
-          "items": {
-            "$ref": "#/$defs/ComfortFelt"
-          }
+          "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/ComfortFelt" }
         },
         "action_factors": {
           "description": "Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.",
-          "type": "array",
-          "maxItems": 64,
-          "items": {
-            "$ref": "#/$defs/ComfortZoneActionFactor"
-          }
+          "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ComfortZoneActionFactor" }
         }
       }
     },
     "ComfortZoneActionFactor": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "action"
-      ],
+      "required": ["action"],
       "properties": {
-        "action": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "cold_factor": {
-          "description": "Factor on the cold loss during the action. Omitted = 1.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 10
-        },
-        "heat_factor": {
-          "description": "Factor on the heat loss during the action. Omitted = 1.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 10
-        }
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "cold_factor": { "description": "Factor on the cold loss during the action. Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
+        "heat_factor": { "description": "Factor on the heat loss during the action. Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 }
       }
     },
     "Togetherness": {
       "description": "Being together (TL #20190): an inhabitant within the distance of a familiar other (its own relationship to the other at least min_trust and min_affection; start values count when they have not met), both not sleeping, slowly fills a need per hour, never above the cap. Only a need effect, no behaviour. Omitted = no togetherness.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "need",
-        "per_hour",
-        "cap",
-        "min_trust",
-        "min_affection",
-        "sleep_action"
-      ],
+      "required": ["need", "per_hour", "cap", "min_trust", "min_affection", "sleep_action"],
       "properties": {
-        "need": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "per_hour": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "cap": {
-          "description": "Togetherness fills the need up to this value, not above.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "distance_m": {
-          "description": "Distance in metres; omitted = spacing.conversation_max_m of content/behaviour/gaits.json.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
-        },
-        "min_trust": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "min_affection": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "sleep_action": {
-          "description": "Action during which an inhabitant counts as asleep (once it has started).",
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "bedtime_after_nightfall_hours": {
-          "description": "B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 12
-        },
-        "silent_while_asleep": {
-          "description": "A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a night look-back) is left out; what it decided still stands. Absent = every kind is reported.",
-          "type": "array",
-          "uniqueItems": true,
-          "maxItems": 16,
-          "items": {
-            "$ref": "common.schema.json#/$defs/VocabId"
-          }
-        }
+        "need": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
+        "cap": { "description": "Togetherness fills the need up to this value, not above.", "type": "number", "minimum": 0, "maximum": 1 },
+        "distance_m": { "description": "Distance in metres; omitted = spacing.conversation_max_m of content/behaviour/gaits.json.", "type": "number", "minimum": 0, "maximum": 100 },
+        "min_trust": { "type": "number", "minimum": 0, "maximum": 1 },
+        "min_affection": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sleep_action": { "description": "Action during which an inhabitant counts as asleep (once it has started).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "silent_while_asleep": { "description": "A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.", "type": "array", "uniqueItems": true, "maxItems": 16, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "thoughts_on_waking": { "description": "A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.", "type": "integer", "minimum": 0, "maximum": 5 },
+        "bedtime_after_nightfall_hours": { "description": "B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.", "type": "number", "minimum": 0, "maximum": 12 }
       }
     },
     "WillToLiveModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "start",
-        "neglect_hours_before_decline",
-        "decline_per_hour",
-        "recover_per_hour",
-        "fading_below"
-      ],
+      "required": ["start", "neglect_hours_before_decline", "decline_per_hour", "recover_per_hour", "fading_below"],
       "properties": {
-        "start": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "neglect_hours_before_decline": {
-          "description": "Continuous hours with a neglected need before the will to live sinks (B2484: only after long neglect).",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100000
-        },
-        "decline_per_hour": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "recover_per_hour": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "fading_below": {
-          "description": "Below this the inhabitant is 'fading' (state only in B1; consequences in B9).",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
+        "start": { "type": "number", "minimum": 0, "maximum": 1 },
+        "neglect_hours_before_decline": { "description": "Continuous hours with a neglected need before the will to live sinks (B2484: only after long neglect).", "type": "integer", "minimum": 1, "maximum": 100000 },
+        "decline_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recover_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
+        "fading_below": { "description": "Below this the inhabitant is 'fading' (state only in B1; consequences in B9).", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "StartModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "inhabitants",
-        "traits",
-        "needs"
-      ],
+      "required": ["inhabitants", "traits", "needs"],
       "properties": {
         "inhabitants": {
           "description": "Start inhabitants (B2517, F5249 = C: two pairs, a woman and a man each, at different beaches). Traits and needs are drawn from the world seed; sex and group come from here.",
           "type": "array",
           "minItems": 1,
           "maxItems": 16,
-          "items": {
-            "$ref": "#/$defs/StartInhabitant"
-          }
+          "items": { "$ref": "#/$defs/StartInhabitant" }
         },
-        "traits": {
-          "type": "array",
-          "maxItems": 64,
-          "items": {
-            "$ref": "#/$defs/ValueRange"
-          }
-        },
-        "needs": {
-          "type": "array",
-          "maxItems": 64,
-          "items": {
-            "$ref": "#/$defs/ValueRange"
-          }
-        }
+        "traits": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ValueRange" } },
+        "needs": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ValueRange" } }
       }
     },
     "StartInhabitant": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "sex",
-        "group"
-      ],
+      "required": ["sex", "group"],
       "properties": {
-        "sex": {
-          "type": "string",
-          "enum": [
-            "female",
-            "male"
-          ]
-        },
-        "group": {
-          "description": "Start group; members of a group wake up near each other, groups apart.",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 8
-        }
+        "sex": { "type": "string", "enum": ["female", "male"] },
+        "group": { "description": "Start group; members of a group wake up near each other, groups apart.", "type": "integer", "minimum": 1, "maximum": 8 }
       }
     },
     "ValueRange": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "min",
-        "max"
-      ],
+      "required": ["id", "min", "max"],
       "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "min": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "max": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "max": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "SkillModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "start_level_min",
-        "start_level_max"
-      ],
+      "required": ["id", "start_level_min", "start_level_max"],
       "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "start_level_min": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "start_level_max": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "start_level_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "start_level_max": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "SkillRules": {
       "description": "New skills from inventions (B4b R11, NewAbility): allowed start level, practice gain of their actions, how many per world.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "runtime_start_level_min",
-        "runtime_start_level_max",
-        "runtime_gain",
-        "max_runtime_skills"
-      ],
+      "required": ["runtime_start_level_min", "runtime_start_level_max", "runtime_gain", "max_runtime_skills"],
       "properties": {
-        "runtime_start_level_min": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "runtime_start_level_max": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "runtime_gain": {
-          "description": "Practice gain per use of one of the new skill's actions.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "max_runtime_skills": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 64
-        }
+        "runtime_start_level_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "runtime_start_level_max": { "type": "number", "minimum": 0, "maximum": 1 },
+        "runtime_gain": { "description": "Practice gain per use of one of the new skill's actions.", "type": "number", "minimum": 0, "maximum": 1 },
+        "max_runtime_skills": { "type": "integer", "minimum": 0, "maximum": 64 }
       }
     },
     "NeedRules": {
       "description": "New needs from inventions (B4b R11, NewNeed; TL B2658: bound to the invention's type). An inhabitant gains such a need the first time it uses a thing of that type with one of the need's actions; using it again fills it, and it falls by its own decay_per_day. A new need is never neglected (no harm from it). Omitted = inventions bring no needs.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "runtime_decay_per_day_min",
-        "runtime_decay_per_day_max",
-        "fill_per_use",
-        "max_runtime_needs"
-      ],
+      "required": ["runtime_decay_per_day_min", "runtime_decay_per_day_max", "fill_per_use", "max_runtime_needs"],
       "properties": {
-        "runtime_decay_per_day_min": {
-          "description": "Lowest decay per game day a new need may have.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "runtime_decay_per_day_max": {
-          "description": "Highest decay per game day a new need may have.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "fill_per_use": {
-          "description": "How much one use of a thing of the invention's type with one of the need's actions fills it.",
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "max_runtime_needs": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 64
-        }
+        "runtime_decay_per_day_min": { "description": "Lowest decay per game day a new need may have.", "type": "number", "minimum": 0, "maximum": 1 },
+        "runtime_decay_per_day_max": { "description": "Highest decay per game day a new need may have.", "type": "number", "minimum": 0, "maximum": 1 },
+        "fill_per_use": { "description": "How much one use of a thing of the invention's type with one of the need's actions fills it.", "type": "number", "minimum": 0, "maximum": 1 },
+        "max_runtime_needs": { "type": "integer", "minimum": 0, "maximum": 64 }
       }
     }
   }
