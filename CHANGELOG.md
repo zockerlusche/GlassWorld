@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Wish for a weather (A1340 rest, B6-8, Bogen 31): the help panel lists the weathers of the climate; one click wishes one for favour (`weather` in content/player/favor.json, core WeatherIntervention from #179), the weather goes its own way afterwards. Never asked for; the current weather and too little favour are greyed out with the reason.
 - A knock is seen as well as heard (A1542 rest, B8 R17, B2792): an inhabitant who knocks for the player turns to the camera and knocks at the glass - the hand rises in front of the face and taps a few times (look expressions `knock` with `look_s`, events `mail_arrived`/`mail_repeated` with detail `knock` and `skips_pause`; gesture `knock_glass` with `tap_hz`/`tap_m`; calm placeholder values for the TL).
 - AI service: a talk the checks shortened says why in the call log (`detail` of the accepted answer: which turn ended the talk and the reason), so a measurement can read it back (A1735, D1169).
 - Core: the game's speed, whom the camera follows and how long an AI job takes reach the core as logged player commands `set_speed`, `set_followed`, `set_ai_rate` (A1587 step 1, B2804, D1161) - checked, the last of each restored with a save game, outside the state hash; the game sends speed and camera target when they change, the headless runner takes `--speed N` (busy ticks pass at that speed). They pace the AI in the next steps; by themselves they change nothing.

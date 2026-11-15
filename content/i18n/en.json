@@ -1575,6 +1575,14 @@
       "text": "The gift now lies in the world. It belongs to nobody."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wish for a weather (costs {cost} favour; afterwards the weather goes its own way):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "The weather turns: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Help"
     },
