@@ -1575,6 +1575,14 @@
       "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wetter wünschen (kostet {cost} Gunst; danach geht das Wetter seinen eigenen Weg):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "Das Wetter wendet sich: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Hilfe"
     },
@@ -1813,6 +1821,14 @@
     {
       "key": "vocab.event.build_plan_rejected",
       "text": "Bauplan abgelehnt"
+    },
+    {
+      "key": "vocab.event.build_interrupted",
+      "text": "Bau unterbrochen"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Bau wieder aufgenommen"
     },
     {
       "key": "vocab.event.build_step",

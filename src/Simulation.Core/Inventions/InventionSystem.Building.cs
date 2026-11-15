@@ -67,6 +67,8 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="HelperPendingObjectId">Material object the helper is on the way to, or null.</param>
 /// <param name="HelperPendingType">The plan type that material stands for.</param>
 /// <param name="HelpSinceTick">When the helper was asked (its help ends after the data's help_hours), or null.</param>
+/// <param name="InterruptedBy">A1373 (D827 R15): what took the builder away from a step it was on (a pressing need, or another
+/// action), while it is away; null while it builds or waits for material.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -93,7 +95,8 @@ public sealed record BuildTask(
     string? Helper = null,
     string? HelperPendingObjectId = null,
     string? HelperPendingType = null,
-    long? HelpSinceTick = null);
+    long? HelpSinceTick = null,
+    string? InterruptedBy = null);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -143,6 +146,12 @@ public sealed partial class InventionSystem
 
     /// <summary>Event: a substitute lacks what was missing (target = invention type, detail = substitute type); the builder learned it.</summary>
     public const string SubstituteFailed = "substitute_failed";
+
+    /// <summary>Event (A1373, D827 R15): the builder left a step it was on (detail: the pressing need, or the action that came first).</summary>
+    public const string BuildInterrupted = "build_interrupted";
+
+    /// <summary>Event (A1373): the builder takes up an interrupted building again.</summary>
+    public const string BuildResumed = "build_resumed";
 
     /// <summary>
     /// A1373 step 2 (set by the host): asks the decider what to do about a stuck building, with the given options
@@ -349,15 +358,37 @@ public sealed partial class InventionSystem
             {
                 if (inhabitant.Activity?.TargetId == pending || inhabitant.Planned?.TargetId == pending)
                 {
+                    // Back at the step after an interruption: it is taken up again once the builder is on its way (R15).
+                    if (task.InterruptedBy is not null && inhabitant.Activity?.TargetId == pending)
+                    {
+                        _inhabitants.Report(new WorldEvent(BuildResumed, world.Tick, task.InhabitantId, Build.Settings.StepAction, null) { Detail = task.TypeId });
+                        _builds[task.TypeId] = task with { InterruptedBy = null };
+                    }
+
                     continue;
                 }
 
-                // Something else came first (a decision, the object is gone): look again.
-                _builds[task.TypeId] = task with { PendingObjectId = null, PendingType = null };
+                // Something else came first (a decision, a need, sleep - or the object is gone): look again. When the
+                // builder went off to something else, the building is interrupted until it takes it up again (R15).
+                var looking = task with { PendingObjectId = null, PendingType = null };
+                if ((inhabitant.Activity ?? inhabitant.Planned) is { } other && other.Action != Build.Settings.StepAction)
+                {
+                    looking = Interrupt(world, looking, other.Action);
+                }
+
+                _builds[task.TypeId] = looking;
             }
 
-            if (inhabitant.Planned is not null
-                || Build.NeglectableNeeds.Any(n => inhabitant.Needs.GetValueOrDefault(n, 1.0) < Build.Settings.MinNeedToBuild))
+            // A need below the data's line comes first: the begun building is interrupted by it (R15), whether the
+            // inhabitant already went for it or has planned it.
+            var pressing = Build.NeglectableNeeds.Where(n => inhabitant.Needs.GetValueOrDefault(n, 1.0) < Build.Settings.MinNeedToBuild).Order(StringComparer.Ordinal).FirstOrDefault();
+            if (pressing is not null)
+            {
+                _builds[task.TypeId] = Interrupt(world, _builds[task.TypeId], pressing);
+                continue;
+            }
+
+            if (inhabitant.Planned is not null)
             {
                 continue;
             }
@@ -1127,6 +1158,18 @@ public sealed partial class InventionSystem
         }
     }
 
+    /// <summary>Marks a building interrupted (once, with the event); a building already interrupted stays as it is.</summary>
+    private BuildTask Interrupt(World world, BuildTask task, string by)
+    {
+        if (task.InterruptedBy is not null)
+        {
+            return task;
+        }
+
+        _inhabitants.Report(new WorldEvent(BuildInterrupted, world.Tick, task.InhabitantId, Build.Settings.StepAction, null) { Detail = by });
+        return task with { InterruptedBy = by };
+    }
+
     private void WriteBuildState(StateHasher hasher)
     {
         hasher.Write(_builds.Count);
@@ -1141,6 +1184,12 @@ public sealed partial class InventionSystem
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
                 .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
+
+            // An interruption only while there is one, so buildings without keep their hashes (A1373).
+            if (b.InterruptedBy is { } interrupted)
+            {
+                hasher.Write("interrupted").Write(interrupted);
+            }
             if (b.Quality is { } quality)
             {
                 // A1376 (R19), only when there is one: worlds without the data hash as before.

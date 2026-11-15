@@ -7,7 +7,8 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Face">smile, sad or surprised; null = neutral.</param>
 /// <param name="Gesture">The gesture, or null.</param>
 /// <param name="Seconds">How long it shows as a moment (real seconds); null = the default.</param>
-public sealed record ExpressionShown(string Id, string? Face, FigureGesture? Gesture, double? Seconds = null);
+/// <param name="LookS">A1542: seconds the figure looks to the player as it starts; null = it does not.</param>
+public sealed record ExpressionShown(string Id, string? Face, FigureGesture? Gesture, double? Seconds = null, double? LookS = null);
 
 /// <summary>
 /// The expression layer of one figure (A1732, B2716 (2)), without Godot: an event of the inhabitant shows its expression
@@ -23,21 +24,26 @@ public sealed class ExpressionLayer(LookExpressions data, IEnumerable<FigureGest
     private double _calmUntil;
     private double _now;
 
-    /// <summary>An event of the inhabitant: its expression shows unless one showed less than the cooldown ago; the shown one, else null.</summary>
-    public ExpressionShown? Event(string kind)
+    /// <summary>
+    /// An event of the inhabitant (with its detail, A1542: the message kind of mail_arrived): its expression shows unless
+    /// one showed less than the cooldown ago - or the entry skips the pause (a knock); the shown one, else null.
+    /// </summary>
+    public ExpressionShown? Event(string kind, string? detail = null)
     {
         ArgumentNullException.ThrowIfNull(kind);
-        return _data.Events?.FirstOrDefault(e => string.Equals(e.Event, kind, StringComparison.Ordinal)) is { } trigger ? Show(trigger.Expression) : null;
+        return _data.Events?.FirstOrDefault(e => string.Equals(e.Event, kind, StringComparison.Ordinal) && (e.Detail is null || string.Equals(e.Detail, detail, StringComparison.Ordinal))) is { } trigger
+            ? Show(trigger.Expression, trigger.SkipsPause == true)
+            : null;
     }
 
     /// <summary>
     /// Shows this expression for its seconds unless one showed less than the cooldown ago (an event's, or A1733 joining in
     /// another's); the shown one, else null.
     /// </summary>
-    public ExpressionShown? Show(string expressionId)
+    public ExpressionShown? Show(string expressionId, bool skipPause = false)
     {
         ArgumentNullException.ThrowIfNull(expressionId);
-        if (_now < _calmUntil || Shown(expressionId) is not { } shown)
+        if ((!skipPause && _now < _calmUntil) || Shown(expressionId) is not { } shown)
         {
             return null;
         }
@@ -88,7 +94,7 @@ public sealed class ExpressionLayer(LookExpressions data, IEnumerable<FigureGest
         }
 
         var gesture = expression.Gesture is { } g ? _gestures.FirstOrDefault(x => string.Equals(x.Id, g, StringComparison.Ordinal)) : null;
-        return new ExpressionShown(expression.Id, expression.Face?.ToString().ToLowerInvariant(), gesture, expression.Seconds);
+        return new ExpressionShown(expression.Id, expression.Face?.ToString().ToLowerInvariant(), gesture, expression.Seconds, expression.LookS);
     }
 }
 

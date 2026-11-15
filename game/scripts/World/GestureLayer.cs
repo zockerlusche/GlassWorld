@@ -87,7 +87,8 @@ public sealed class GestureLayer
                 continue;
             }
 
-            var atHead = head + (facing * Point(gesture!.ToHead, arm.Outward, _scale));
+            // A1542: a tap draws the hand back along the facing (knocking at the glass).
+            var atHead = head + (facing * (Point(gesture!.ToHead, arm.Outward, _scale) - new Vector3(0, 0, (float)(state.PullM * _scale))));
             var target = gesture.FromBody is { Count: 3 } from
                 ? (ground + (facing * Point(from, arm.Outward, _scale))).Lerp(atHead, (float)state.ToHead)
                 : atHead;
