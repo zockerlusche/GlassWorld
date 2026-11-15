@@ -8,17 +8,26 @@
     {
       "action": "wander",
       "sound": "action.rustle",
-      "group": "moving"
+      "group": "moving",
+      "only_on": [
+        "grass"
+      ]
     },
     {
       "action": "explore",
       "sound": "action.rustle",
-      "group": "moving"
+      "group": "moving",
+      "only_on": [
+        "grass"
+      ]
     },
     {
       "action": "move_to",
       "sound": "action.rustle",
-      "group": "moving"
+      "group": "moving",
+      "only_on": [
+        "grass"
+      ]
     },
     {
       "action": "inspect",
@@ -47,7 +56,10 @@
     {
       "action": "approach",
       "sound": "action.rustle",
-      "group": "moving"
+      "group": "moving",
+      "only_on": [
+        "grass"
+      ]
     },
     {
       "action": "talk_to",
@@ -540,6 +552,40 @@
       "per_hour": 3
     }
   ],
+  "underfoot": {
+    "biomes": [
+      {
+        "biome": "beach_sea",
+        "surface": "sand"
+      },
+      {
+        "biome": "meadow",
+        "surface": "grass"
+      },
+      {
+        "biome": "field",
+        "surface": "grass"
+      },
+      {
+        "biome": "forest",
+        "surface": "grass"
+      },
+      {
+        "biome": "freshwater",
+        "surface": "water"
+      },
+      {
+        "biome": "rocks_hills",
+        "surface": "rock"
+      },
+      {
+        "biome": "swamp",
+        "surface": "grass"
+      }
+    ],
+    "snow_from_mm": 20,
+    "snow_surface": "snow"
+  },
   "signals": [
     {
       "signal": "knock",

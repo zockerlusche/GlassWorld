@@ -52,6 +52,42 @@ public sealed class SoundLibrary
     /// <summary>Sound id for a signal to the player (B8 R17: knock at the glass), or null if silent or not in the data.</summary>
     public string? ForSignal(SoundForSignalSignal signal) => Map.Signals?.FirstOrDefault(s => s.Signal == signal)?.Sound;
 
+    /// <summary>The sound of a surface under the feet (step.grass …), or null.</summary>
+    public string? ForSurface(string surface) => Map.Surfaces.FirstOrDefault(s => string.Equals(s.Surface, surface, StringComparison.Ordinal))?.Sound;
+
+    /// <summary>
+    /// A1515 (B2608): the surface under the feet - snow from the data's depth, else the biome's surface; null without
+    /// underfoot data or for a biome without one.
+    /// </summary>
+    public string? SurfaceAt(string? biome, long snowMm)
+    {
+        if (Map.Underfoot is not { } underfoot)
+        {
+            return null;
+        }
+
+        if (underfoot.SnowFromMm is { } from && underfoot.SnowSurface is { } snow && snowMm >= from)
+        {
+            return snow;
+        }
+
+        return biome is null ? null : underfoot.Biomes.FirstOrDefault(b => string.Equals(b.Biome, biome, StringComparison.Ordinal))?.Surface;
+    }
+
+    /// <summary>
+    /// A1515 (B2608, W1741): an action's sound where it is done - an action that sounds only on some surfaces (rustling
+    /// through plants) plays the surface's own sound elsewhere; with no surface known, its own sound.
+    /// </summary>
+    public string? ForAction(string action, string? surface)
+    {
+        if (Map.Actions.FirstOrDefault(a => string.Equals(a.Action, action, StringComparison.Ordinal)) is not { } entry)
+        {
+            return null;
+        }
+
+        return surface is null || entry.OnlyOn is not { Count: > 0 } only || only.Contains(surface, StringComparer.Ordinal) ? entry.Sound : ForSurface(surface);
+    }
+
     /// <summary>Animals that can be heard in a biome, season and time of day (B2481 data table).</summary>
     public IReadOnlyList<SoundForAnimal> AudibleAnimals(string biome, string season, string timeOfDay) =>
         [.. Map.Animals.Where(a => a.Biomes.Contains(biome) && a.Seasons.Contains(season) && a.TimesOfDay.Contains(timeOfDay))];

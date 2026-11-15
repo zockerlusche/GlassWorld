@@ -52,6 +52,10 @@
         "$ref": "#/$defs/SoundForAnimal"
       }
     },
+    "underfoot": {
+      "description": "A1515 (B2608): what lies under the feet at a place - the surface of its biome, or snow above a depth - for actions that sound only on some surfaces (only_on). Omitted = the action's sound plays everywhere.",
+      "$ref": "#/$defs/Underfoot"
+    },
     "signals": {
       "description": "Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.",
       "type": "array",
@@ -85,10 +89,58 @@
             }
           ]
         },
+        "only_on": {
+          "description": "A1515 (B2608, W1741): the sound plays only where the surface under the feet is one of these (rustling through plants: grass); elsewhere that surface's own sound (surfaces) plays. Omitted = everywhere.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
         "group": {
           "description": "Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).",
           "type": "string",
           "pattern": "^[a-z][a-z_]{1,31}$"
+        }
+      }
+    },
+    "Underfoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biomes"
+      ],
+      "properties": {
+        "biomes": {
+          "description": "The surface of each biome (world biomes); a biome without an entry has none - its actions keep their own sound.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "biome",
+              "surface"
+            ],
+            "properties": {
+              "biome": {
+                "$ref": "common.schema.json#/$defs/VocabId"
+              },
+              "surface": {
+                "$ref": "common.schema.json#/$defs/VocabId"
+              }
+            }
+          }
+        },
+        "snow_from_mm": {
+          "description": "From this snow depth (mm, the core's snow cover at the place) the surface is snow_surface.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "snow_surface": {
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     },
