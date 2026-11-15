@@ -96,18 +96,19 @@ public partial class GwWindow : PanelContainer
     }
 
     /// <summary>
-    /// Sizes the window to its content within the allowed share of the parent area and centres it;
-    /// content that does not fit scrolls vertically.
-    /// </summary>
-    /// <summary>
-    /// Called first by <see cref="FitInto"/> with the widest and highest the window may be: a window may rearrange its
-    /// parts so they fit (A1737: the settings put their description below the rows on a narrow screen).
+    /// Called by <see cref="FitInto"/> with the widest and highest the window may be, once the fields have their width
+    /// for this picture: a window may rearrange its parts so they fit (A1737: the settings put their description below
+    /// the rows on a narrow screen).
     /// </summary>
     /// <param name="limit">The room the window may take, in logical pixels.</param>
     protected virtual void Arrange(Vector2 limit)
     {
     }
 
+    /// <summary>
+    /// Sizes the window to its content within the allowed share of the parent area and centres it;
+    /// content that does not fit scrolls vertically.
+    /// </summary>
     public void FitInto(Vector2 area)
     {
         if (_style is null)
@@ -119,10 +120,10 @@ public partial class GwWindow : PanelContainer
         var safe = area - (Vector2.One * 2 * _style.Tokens.Window.SafeMargin);
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
 
-        // A window may first rearrange its parts for the room it has (A1737: the settings' description below).
-        Arrange(limit);
-        // Fields that follow their hint text take their share of this picture (UiFit).
+        // Fields that follow their hint text take their share of this picture (UiFit), and only then the window
+        // rearranges its parts for the room it has: measured before, the fields still had the last picture's width.
         UiFit.Refit(this, area.X);
+        Arrange(limit);
 
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
