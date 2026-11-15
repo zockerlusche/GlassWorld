@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Schnelldurchlauf (A1743, B2787): `tools/schnelldurchlauf/run.py` and `Schnelldurchlauf.cmd` in the test package - a new world runs without graphics as fast as the computer can (with or without AI), saves every day, writes learning log and run trace, and is then in the game's world list. Measured without AI: 30 game days in 55 s.
 - Contract: job kind `dialogue` (A1735 step 1, B2782, D1119): `DialoguePayload` (two speakers with their state, what each calls the other, last thought; max turns/words, expressions) and `DialogueResult` (turns: speaker, text, act, expression). Additive, 0.2; the service handler and the core come next.
 - Feelings show on the body (A1732, B2716 (2)): `look/expressions.json` maps events (invented, built, a milestone: cheering with arms up; first use, praise: a smile), moods (fear, sadness, much joy: the face) and needs (tired: a yawn now and then) to a face and a gesture over the running action - short for events with a calm pause, while it lasts for moods and needs; never over an action's own gesture, never lying. Placeholder values for the TL.
 - Decider v15 (A1734, B2782, D1112 #3): the thought adds what the action does not show - a feeling, a wish, a wonder; turning to someone it is what one says. With v14 39 % of the thoughts told the chosen action ('Ich gehe zu dir und rede mit dir'). config: decider prompt 15.
