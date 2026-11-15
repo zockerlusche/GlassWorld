@@ -125,3 +125,29 @@ def test_the_mock_says_nothing() -> None:
     """B2644: no fixed sentence - the core shows the talk without text."""
     outcome = asyncio.run(MockDialogues()(JOB))
     assert cast(dict[str, Any], outcome.result["dialogue"]) == {"turns": []}
+
+
+def test_the_bond_shown_is_the_one_to_the_other_speaker() -> None:
+    """Review GW3 #476: relationships hold up to 16 sorted by id - the line must be about B."""
+    data = json.loads(json.dumps(JOB_DATA))
+    a = data["payload"]["dialogue"]["speakers"][0]["inhabitant"]
+    a["relationships"] = [
+        {"other": "inh-000000", "affection": 0.1, "trust": 0.1, "respect": 0.5},
+        {"other": "inh-000002", "affection": 0.9, "trust": 0.9, "respect": 0.5},
+    ]
+    values = build_values(GenerationJob.model_validate(data), TEMPLATE, TEXTS)
+    assert "towards the other: affection high, trust high" in values["speaker_a"]
+    a["relationships"] = [{"other": "inh-000009", "affection": 0.1, "trust": 0.1, "respect": 0.5}]
+    values = build_values(GenerationJob.model_validate(data), TEMPLATE, TEXTS)
+    assert "towards the other" not in values["speaker_a"]  # no bond to B: no line
+
+
+@pytest.mark.parametrize(
+    "text", ["Sie ist verliebte Leute am Ufer.", "Babys sind klein.", "Eine Hochzeit am Strand?"]
+)
+def test_reserved_stems_find_inflections_and_compounds(text: str) -> None:
+    data = json.loads(json.dumps(JOB_DATA))
+    data["payload"]["dialogue"]["speakers"][1]["inhabitant"]["life_stage"] = "child"
+    young = GenerationJob.model_validate(data)
+    result, notes = _parse(_answer(GOOD[0], _turn("b", text)), young)
+    assert len(result["turns"]) == 1 and "reserved topic" in notes[0]

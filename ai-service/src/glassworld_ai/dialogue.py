@@ -46,9 +46,11 @@ from glassworld_ai.safety import TextGuard
 from glassworld_ai.texts import TextCatalog
 from glassworld_ai.words import ContextError, humanize, plain_id, quote
 from glassworld_contracts import GenerationJob
+from glassworld_contracts.models.job_status_schema import Act
 
 ROLE = "dialogue"
-ACTS = ["agree", "answer", "ask", "comfort", "greet", "joke", "tell", "wonder"]
+# The kinds of turn come from the contract (review GW3 #476), sorted for a neutral list (D1025).
+ACTS = sorted(a.value for a in Act)
 SPEAKER_KEYS = ["a", "b"]
 
 
@@ -99,7 +101,12 @@ def known_names(job: GenerationJob) -> set[str]:
 
 
 def _speaker_block(
-    speaker: Any, key: str, job: GenerationJob, settings: dict[str, Any], texts: TextCatalog | None
+    speaker: Any,
+    key: str,
+    other_id: str,
+    job: GenerationJob,
+    settings: dict[str, Any],
+    texts: TextCatalog | None,
 ) -> str:
     locale = plain_id(job.display_locale)
     who = speaker.inhabitant
@@ -128,7 +135,8 @@ def _speaker_block(
     pressing = [humanize(plain_id(n.id)) for n in who.needs if float(n.value) < 0.3]
     if pressing:
         lines.append(f"- needs: {', '.join(pressing[:2])}")
-    bond = next(iter(who.relationships), None)
+    # The bond to the OTHER speaker (review GW3 #476: relationships hold up to 16, sorted by id).
+    bond = next((r for r in who.relationships if plain_id(r.other) == other_id), None)
     if bond is not None:
         lines.append(
             f"- towards the other: affection {_level(float(bond.affection))}, "
@@ -163,9 +171,10 @@ def build_values(
     language = cast(dict[str, str], _table(settings, "language_names")).get(locale)
     if language is None:
         raise ContextError(f"no language name for {locale}")
+    ids = [plain_id(s.inhabitant.id) for s in payload.speakers]
     blocks = [
-        _speaker_block(s, k, job, settings, texts)
-        for s, k in zip(payload.speakers, SPEAKER_KEYS, strict=True)
+        _speaker_block(s, k, ids[1 - n], job, settings, texts)
+        for n, (s, k) in enumerate(zip(payload.speakers, SPEAKER_KEYS, strict=True))
     ]
     minor_rule = str(settings.get("minor_rule", "")) if minors(job, settings) else ""
     return {
@@ -212,6 +221,20 @@ def output_schema(job: GenerationJob) -> dict[str, Any]:
     }
 
 
+def _reserved(text: str, stems: list[str]) -> str | None:
+    """B9 (review GW3 #476): the first reserved stem a word of the text starts with ('verliebt' also
+    finds 'verliebte', 'baby' also 'Babys'); a stem with a space is a phrase ('in love')."""
+    lower = text.lower()
+    words = [w.strip(".,;:!?\"'()") for w in lower.split()]
+    for stem in stems:
+        if " " in stem:
+            if stem in lower:
+                return stem
+        elif any(w.startswith(stem) for w in words):
+            return stem
+    return None
+
+
 class Turns:
     """The checks of one turn's text (the player reads it)."""
 
@@ -227,6 +250,10 @@ class Turns:
         self._max_words = int(dialogue_payload(job).max_words)
         self._names = known_names(job)
         self._minor = minors(job, settings)
+        self._minor_stems = [
+            str(w).lower()
+            for w in cast(list[Any], _table(settings, "minor_words").get(self._locale, []))
+        ]
         self._words: set[str] | None = None
         self._world: set[str] = set()
         if checks_nouns(settings, self._locale):
@@ -249,23 +276,8 @@ class Turns:
             return "too many words"
         if (invented := made_up_name(text, self._names)) is not None:
             return f"made-up name ({invented})"
-        if self._minor:
-            reserved = {
-                str(w).lower()
-                for w in cast(
-                    list[Any], _table(self._settings, "minor_words").get(self._locale, [])
-                )
-            }
-            hit = next(
-                (
-                    w
-                    for w in text.lower().replace("!", " ").replace("?", " ").split()
-                    if w.strip(".,;:") in reserved
-                ),
-                None,
-            )
-            if hit is not None:
-                return f"reserved topic for a minor ({hit.strip('.,;:')})"
+        if self._minor and (hit := _reserved(text, self._minor_stems)) is not None:
+            return f"reserved topic for a minor ({hit})"
         if self._words is not None:
             unknown = unknown_nouns(text, self._words, heads=True, only=self._world)
             if unknown:

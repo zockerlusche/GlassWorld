@@ -61,9 +61,9 @@ high = "warm"
 foreign_words.de = ["i", "my", "me", "the", "and", "is", "you", "to", "of", "with", "this", "that", "look", "let"]
 foreign_words.en = ["ich", "und", "nicht", "ist", "der", "das", "mit", "schau", "mal", "ein", "eine"]
 
-[settings.minor_words]   # B9: whole words a turn of a talk with a minor must not contain (placeholders)
-de = ["heiraten", "verliebt", "liebe", "kuss", "küssen", "partner", "partnerin", "baby", "schwanger"]
-en = ["marry", "love", "kiss", "partner", "baby", "pregnant", "darling"]
+[settings.minor_words]   # B9: word stems (a word starting with one) or phrases a turn of a talk with a minor must not contain (placeholders; review GW3 #476)
+de = ["heirat", "hochzeit", "verliebt", "kuss", "küss", "partner", "baby", "babys", "schwanger"]
+en = ["marr", "wedding", "in love", "kiss", "partner", "baby", "pregnan", "darling"]
 
 [settings.retry]
 feedback = "That talk was refused: $problem. Send the complete talk again with this put right; keep what was right."
