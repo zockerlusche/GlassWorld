@@ -32,15 +32,26 @@ public partial class SettingsWindow : GwWindow
 
     // How each row shows a settings value again without raising a change (after "restore defaults").
     private readonly List<Action<PlayerSettings>> _shows = [];
-    private VBoxContainer _tabs = new();
-    private VBoxContainer _pagesBox = new();
-    private HBoxContainer _body = new();
-    private VBoxContainer _pageColumn = new();
-    private VSeparator _descriptionLine = new();
-    private VSeparator _tabsLine = new();
-    private HFlowContainer _tabsTop = new();
-    private VBoxContainer _page = new();
-    private Label _description = new();
+    // The parts are made once here and placed by Build; a part made and then replaced would stay outside the tree
+    // and never be freed (the layout check builds hundreds of these windows).
+    private readonly VBoxContainer _tabs = new() { Name = "Tabs" };
+    private readonly VBoxContainer _pagesBox = new() { Name = "Pages", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    private readonly HBoxContainer _body = new() { Name = "Body" };
+    private readonly VBoxContainer _pageColumn = new() { Name = "PageColumn", SizeFlagsHorizontal = SizeFlags.ExpandFill };
+    private readonly VSeparator _descriptionLine = new();
+    private readonly VSeparator _tabsLine = new();
+    private readonly HFlowContainer _tabsTop = new() { Name = "TabsTop", Visible = false };
+    private readonly Label _description = new()
+    {
+        Name = "Description",
+        Text = DescriptionHint,
+        ThemeTypeVariation = UiTheme.SmallLabel,
+        AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        SizeFlagsVertical = SizeFlags.ShrinkBegin,
+    };
+
+    // The page the rows added next go to (set by Section).
+    private VBoxContainer _page = null!;
     private Label? _nameProblem;
 
     // Every text the description column can show (the room of the longest stays reserved, B2791).
@@ -64,23 +75,8 @@ public partial class SettingsWindow : GwWindow
         _defaults = PlayerSettings.Parse(null, limits);
 
         // D957 v4 section 10: the tabs stand on the left from top to bottom, the page beside them, the description on the right.
-        _body = new HBoxContainer { Name = "Body" };
-        _tabs = new VBoxContainer { Name = "Tabs" };
-        _pagesBox = new VBoxContainer { Name = "Pages", SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _pageColumn = new VBoxContainer { Name = "PageColumn", SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _descriptionLine = new VSeparator();
-        _tabsLine = new VSeparator();
-        _tabsTop = new HFlowContainer { Name = "TabsTop", Visible = false };
         Content.AddChild(_tabsTop);
-        _description = new Label
-        {
-            Name = "Description",
-            Text = DescriptionHint,
-            ThemeTypeVariation = UiTheme.SmallLabel,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(_labelWidth, 0),
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
-        };
+        _description.CustomMinimumSize = new Vector2(_labelWidth, 0);
         UiFit.LongestWordFits(_description, _labelWidth, _descriptions);
         _body.AddChild(_tabs);
         _body.AddChild(_tabsLine);
