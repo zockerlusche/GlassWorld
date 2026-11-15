@@ -54,6 +54,12 @@ public sealed class DreamImages(NightDreams data)
     /// <summary>The number to ask the service with next (<c>since</c>).</summary>
     public long Since { get; private set; }
 
+    /// <summary>
+    /// The language the screen shows now (A1716, review GW2 #456): a dream written in another one stays out (the
+    /// player switched since the night's jobs went out). Null = every dream shows.
+    /// </summary>
+    public Locale? Language { get; set; }
+
     /// <summary>Images waiting their turn.</summary>
     public int Waiting => _waiting.Count;
 
@@ -103,7 +109,8 @@ public sealed class DreamImages(NightDreams data)
             }
 
             // A1716: the dream of a done look back, as the service let it through (B2776).
-            if (_data.ShowDreams == true && item.State == JobState.Done && item.Dream is { Text.Length: > 0 } dream && _taken.Add(item.JobId + "|dream"))
+            if (_data.ShowDreams == true && item.State == JobState.Done && item.Dream is { Text.Length: > 0 } dream
+                && (Language is null || dream.Locale is null || dream.Locale == Language) && _taken.Add(item.JobId + "|dream"))
             {
                 _waiting.Enqueue((item.JobId + "|dream", item.JobId, null, null, null, new DreamText(item.Inhabitant, dream.Text, dream.Tone)));
             }

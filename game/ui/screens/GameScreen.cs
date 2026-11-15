@@ -2146,6 +2146,8 @@ public partial class GameScreen : CanvasLayer
         // What the night's jobs are about (GW2 #206), page by page while full pages come.
         for (var pages = 0; pages < 8 && IsInstanceValid(this) && _dreams is { } dreams; pages++)
         {
+            // A1716: dreams only in the language the screen shows now (review GW2 #456).
+            dreams.Language = TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? Locale.En : Locale.De;
             var list = await setup.NightItemsAsync(dreams.Since);
             if (list.Items is null || !IsInstanceValid(this) || !dreams.Take(list.Items))
             {

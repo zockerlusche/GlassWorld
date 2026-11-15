@@ -88,6 +88,25 @@ public sealed class DreamImagesTests
     }
 
     [Fact]
+    public void ADreamInAnotherLanguageThanTheScreenStaysOut()
+    {
+        // Review GW2 #456: the player switched to English since the night's jobs went out - the German dream stays out.
+        var dreams = new DreamImages(Data()) { Language = Locale.En };
+        var german = Item(1, "j-1", JobKind.Review, JobState.Done, null);
+        german.Dream = new NightDream { Text = "Ich laufe über den Strand.", Tone = "calm", Locale = Locale.De };
+        var english = Item(2, "j-2", JobKind.Review, JobState.Done, null);
+        english.Dream = new NightDream { Text = "I walk along the beach.", Tone = "calm", Locale = Locale.En };
+        dreams.Take(Items("s", german, english));
+        var texts = new HashSet<string>();
+        for (var t = 0.0; t < 60; t += 0.1)
+        {
+            texts.UnionWith(dreams.Update(0.1, false).Where(i => i.Dream is not null).Select(i => i.Dream!.Text));
+        }
+
+        Assert.Equal(["I walk along the beach."], texts);
+    }
+
+    [Fact]
     public void AJobAboutAThingShowsItsSymbolOnceAndItsPictureWhenDone()
     {
         var dreams = new DreamImages(Data());
