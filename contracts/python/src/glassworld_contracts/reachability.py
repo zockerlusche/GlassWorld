@@ -244,8 +244,10 @@ def _dug_types(digging: dict[str, Any] | None, soils: frozenset[str], tool: bool
         if not tool and not layer.get("by_hand", False):
             continue
         by_soil = cast(dict[str, str], layer.get("by_soil") or {})
-        found |= {by_soil[s] for s in soils if s in by_soil}
-        if layer.get("material") is not None and any(s not in by_soil for s in soils):
+        hard = set() if tool else set(cast(list[str], layer.get("not_by_hand_on") or []))
+        open_soils = {s for s in soils if s not in hard}
+        found |= {by_soil[s] for s in open_soils if s in by_soil}
+        if layer.get("material") is not None and any(s not in by_soil for s in open_soils):
             found.add(str(layer["material"]))
     if tool:
         found.add(str(digging["well_type"]))

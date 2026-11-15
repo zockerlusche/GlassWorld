@@ -333,7 +333,7 @@ public sealed class ContentSet
                 : null,
             Body = LoadBody(contentDirectory, vocabularies),
             Aging = LoadAging(contentDirectory, vocabularies),
-            Digging = LoadDigging(contentDirectory, objects, vocabularies),
+            Digging = LoadDigging(contentDirectory, objects, vocabularies, worldGen.Presets.Values.SelectMany(p => p.Underground.SoilRules.Select(r => r.Soil).Append(p.Underground.FallbackSoil)).ToHashSet(StringComparer.Ordinal)),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
@@ -1065,7 +1065,7 @@ public sealed class ContentSet
             : throw new InvalidDataException($"Vocabulary '{kind}' is missing.");
 
     /// <summary>A1578: the digging data, checked against the catalog and the vocabularies; null without the file.</summary>
-    private static DiggingSettings? LoadDigging(string contentDirectory, ObjectCatalog catalog, Dictionary<VocabularyKind, Vocabulary> vocabularies)
+    private static DiggingSettings? LoadDigging(string contentDirectory, ObjectCatalog catalog, Dictionary<VocabularyKind, Vocabulary> vocabularies, HashSet<string> soils)
     {
         var path = Path.Combine(contentDirectory, "world", "digging.json");
         if (!File.Exists(path))
@@ -1088,6 +1088,13 @@ public sealed class ContentSet
         if (!Ids(vocabularies, VocabularyKind.Action).Contains(data.Action) || !Ids(vocabularies, VocabularyKind.Property).Contains(data.ToolProperty))
         {
             throw new InvalidDataException($"Digging: action '{data.Action}' or tool property '{data.ToolProperty}' is not in the vocabulary.");
+        }
+
+        // Review GW4 #506: a soil the underground never has would fall back to the layer's material in silence.
+        var unknownSoils = data.Layers.SelectMany(l => (l.BySoil?.Keys ?? []).Concat(l.NotByHandOn ?? [])).Where(s => !soils.Contains(s)).Distinct(StringComparer.Ordinal).ToList();
+        if (unknownSoils.Count > 0)
+        {
+            throw new InvalidDataException($"Digging names soils no world preset has [{string.Join(", ", unknownSoils)}].");
         }
 
         if (data.Layers.Zip(data.Layers.Skip(1)).Any(p => p.Second.UntilCm <= p.First.UntilCm))

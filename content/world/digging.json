@@ -15,7 +15,10 @@
         "stone": "fieldstone"
       },
       "material": "earth",
-      "by_hand": true
+      "by_hand": true,
+      "not_by_hand_on": [
+        "stone"
+      ]
     },
     {
       "until_cm": 150,

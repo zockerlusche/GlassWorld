@@ -99,6 +99,36 @@ public sealed class DiggingTests
         }
     }
 
+    [Fact]
+    public void RockIsNotDugByHandAndWetGroundGivesAWaterholeAtOnce()
+    {
+        // Review GW4 #506: stone topsoil needs a tool; where the groundwater lies at the surface the first dig finds water.
+        var (host, who, _) = Digger();
+        var events = Record(host);
+        var map = host.Map!;
+        var underground = map.Map.Underground!;
+        var rock = Cells(map).FirstOrDefault(c => underground.SoilAt(c.X, c.Z) == "stone" && underground.Cell(c.X, c.Z).GroundwaterDepth > 2);
+        if (rock != default)
+        {
+            who.Position = map.CentreOf(rock.X, rock.Z);
+            Dig(host, who);
+            Assert.Equal(DiggingSystem.NoTool, events.Last().Detail);
+        }
+
+        var wet = Cells(map).FirstOrDefault(c => underground.Cell(c.X, c.Z).GroundwaterDepth == 0);
+        Assert.True(wet != default, "the island has a cell with groundwater at the surface");
+        who.Position = map.CentreOf(wet.X, wet.Z);
+        Dig(host, who);
+        Assert.Equal(DiggingSystem.WellDug, events.Last().Kind);
+        Assert.Contains(host.Objects.All, o => o.TypeId == Content.Value.Digging!.WellType && o.Position == map.CentreOf(wet.X, wet.Z));
+    }
+
+    /// <summary>Dry walkable cells of the island.</summary>
+    private static IEnumerable<(int X, int Z)> Cells(WorldMapSystem map) =>
+        Enumerable.Range(0, map.Map.WidthCells * map.Map.DepthCells)
+            .Select(i => (X: i % map.Map.WidthCells, Z: i / map.Map.WidthCells))
+            .Where(c => map.Map.Cell(c.X, c.Z).Water == WaterKind.None && map.Map.Cell(c.X, c.Z).WalkCost != MapCell.Blocked);
+
     /// <summary>An island and an inhabitant standing on a dry cell of loose soil whose groundwater lies deep (a metre or more).</summary>
     private static (SimulationHost Host, Inhabitant Who, (int X, int Z) Cell) Digger()
     {

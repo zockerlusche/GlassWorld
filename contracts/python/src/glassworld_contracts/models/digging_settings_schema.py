@@ -32,6 +32,11 @@ class DigLayer(BaseModel):
     ore_possible: bool | None = Field(
         None, description="Ore can come from this layer (by the cell's ore share)."
     )
+    not_by_hand_on: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Review GW4 #506: soils of this layer bare hands cannot dig even if by_hand (rock is rock); omitted = none.',
+        max_length=16,
+    )
 
 
 class DigOre(BaseModel):

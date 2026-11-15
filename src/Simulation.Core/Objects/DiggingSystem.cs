@@ -136,15 +136,26 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
         var water = ground.GroundwaterDepth * _heightUnitMm / 10;
         var depth = _depth.GetValueOrDefault(cell);
         var pit = PitAt(cell);
+        var at = _map.CentreOf(cell.X, cell.Z);
         if (depth >= water)
         {
-            _report(new WorldEvent(DigFailed, world.Tick, who, _data.Action, pit?.Id) { Detail = WaterReached });
+            if (pit is null)
+            {
+                // Wet ground: the groundwater lies at the surface - the first dig is a waterhole at once (review GW4 #506).
+                _depth[cell] = depth;
+                var wet = _objects.Spawn(_data.WellType, at);
+                _report(new WorldEvent(WellDug, world.Tick, who, _data.Action, wet.Id) { TargetType = wet.TypeId });
+                return;
+            }
+
+            _report(new WorldEvent(DigFailed, world.Tick, who, _data.Action, pit.Id) { Detail = WaterReached });
             return;
         }
 
         var layer = _data.Layers.FirstOrDefault(l => depth < l.UntilCm) ?? _data.Layers.Last();
         var tool = digger.HeldType is { } held && _objects.Catalog.Contains(held) && _objects.Catalog.HasProperty(held, _data.ToolProperty);
-        if (!tool && layer.ByHand != true)
+        var soil = underground.SoilAt(cell.X, cell.Z);
+        if (!tool && (layer.ByHand != true || layer.NotByHandOn?.Contains(soil, StringComparer.Ordinal) == true))
         {
             _report(new WorldEvent(DigFailed, world.Tick, who, _data.Action, pit?.Id) { Detail = NoTool });
             return;
@@ -152,11 +163,10 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
 
         var deeper = Math.Min(depth + _data.StepCm, water);
         _depth[cell] = deeper;
-        var at = _map.CentreOf(cell.X, cell.Z);
         pit ??= _objects.Spawn(_data.PitType, at);
 
         // What comes up lies beside the hole.
-        var material = Material(layer, underground.SoilAt(cell.X, cell.Z), ground.OrePermille, cell, depth);
+        var material = Material(layer, soil, ground.OrePermille, cell, depth);
         if (material is not null)
         {
             _objects.Spawn(material, new Position(at.X + 0.4, at.Z));

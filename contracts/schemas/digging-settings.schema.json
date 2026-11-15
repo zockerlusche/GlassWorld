@@ -93,6 +93,14 @@
         "ore_possible": {
           "description": "Ore can come from this layer (by the cell's ore share).",
           "type": "boolean"
+        },
+        "not_by_hand_on": {
+          "description": "Review GW4 #506: soils of this layer bare hands cannot dig even if by_hand (rock is rock); omitted = none.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     },

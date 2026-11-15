@@ -50,6 +50,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("ore_possible")]
         public bool? OrePossible { get; set; } = default!;
 
+        /// <summary>
+        /// Review GW4 #506: soils of this layer bare hands cannot dig even if by_hand (rock is rock); omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("not_by_hand_on")]
+        public System.Collections.Generic.ICollection<string>? NotByHandOn { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
