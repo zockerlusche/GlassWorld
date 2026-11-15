@@ -88,6 +88,10 @@
     "naming": {
       "description": "A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.",
       "$ref": "#/$defs/NamingEffect"
+    },
+    "dialogue": {
+      "description": "A1735 (B2782, D1119): a talk between two inhabitants. When one starts one of the actions with another inhabitant as target (awake and in reach - the core checked), the core sends a job of kind dialogue; the turns that pass its checks become said events of both, with target, turn and turns. A talk has no effect on the world: needs and relationship work through the action as before. Omitted = no dialogue jobs (talking stays without words).",
+      "$ref": "#/$defs/DialogueSettings"
     }
   },
   "$defs": {
@@ -206,6 +210,60 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "DialogueSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actions",
+        "max_turns",
+        "max_words",
+        "per_pair_hours",
+        "job_priority",
+        "answer_within_hours"
+      ],
+      "properties": {
+        "actions": {
+          "description": "Action ids (vocabulary actions, target inhabitant) whose start sends a dialogue job.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "max_turns": {
+          "description": "Turns asked for at most (B2782: 4).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4
+        },
+        "max_words": {
+          "description": "Words per turn at most (B2782: 14); a longer turn ends the talk there.",
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 20
+        },
+        "per_pair_hours": {
+          "description": "At most one dialogue job per pair within this many game hours (D1119 #6); the other talks stay without words. 0 = no limit.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "job_priority": {
+          "description": "Priority of the job (higher runs first; low, the game waits for nothing).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "answer_within_hours": {
+          "description": "Game hours a dialogue job may take; a later answer is dropped (the two went on without words), so no open job stays for ever.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 48
         }
       }
     }

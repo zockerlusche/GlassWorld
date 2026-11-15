@@ -47,6 +47,8 @@ public partial class WorldPresenter : Node3D
     private int _objectCount = -1;
     private double _accumulator;
     private string? _askedLocale;
+    private int _sentSpeed = 1;
+    private string? _sentFollowed;
 
     /// <summary>Help suggestions from the AI (A1341); null without the live service (the window uses the data).</summary>
     public HttpHelpPort? HelpPort => _helpPort;
@@ -305,6 +307,8 @@ public partial class WorldPresenter : Node3D
         _host = host;
         SavePath = savePath;
         _askedLocale = host.DisplayLocale;
+        _sentSpeed = host.Pace.Speed;
+        _sentFollowed = host.Pace.FollowedId;
 
         // Talking (B6 R13): only the live service answers. Without it (routine mode, or the service
         // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
@@ -423,6 +427,34 @@ public partial class WorldPresenter : Node3D
         _host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = locale });
     }
 
+    /// <summary>
+    /// A1587 (B2804): the core learns the game's speed and whom the camera follows as logged commands, so it can pace
+    /// the AI by them and a replay does the same. Sent when they change; a pause and speeds the data do not offer
+    /// (screenshot runs) are not sent - the core keeps the last speed.
+    /// </summary>
+    private void FollowPace()
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        var speed = (int)Math.Round(Speed);
+        if (speed != _sentSpeed && Math.Abs(Speed - speed) < 1e-9
+            && (speed == 1 || _host.World.Calendar.Settings.FastForwardFactors.Contains(speed)))
+        {
+            _sentSpeed = speed;
+            _host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = speed });
+        }
+
+        var followed = _rig?.FollowedId;
+        if (!string.Equals(followed, _sentFollowed, StringComparison.Ordinal))
+        {
+            _sentFollowed = followed;
+            _host.Decisions.Submit(new PlayerCommand(AiPace.SetFollowed, followed));
+        }
+    }
+
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
@@ -432,6 +464,7 @@ public partial class WorldPresenter : Node3D
         }
 
         FollowUiLanguage();
+        FollowPace();
         var calendar = _host.World.Calendar;
         _accumulator += delta * Speed / calendar.RealSecondsPerTickAtNormalSpeed;
         var ticks = Math.Min((long)_accumulator, calendar.Settings.MaxTicksPerFrame);

@@ -82,6 +82,9 @@ public partial class WorldPresenter
     public (Mesh Mesh, Material Material)? ShapeOfType(string typeId) =>
         _objectsView is { } view ? view.LayerOf(view.Looks.For(typeId).VisualId) : null;
 
+    /// <summary>The inhabitant the player chose (the camera follows it), or null - for the debug view's knowledge (A1402).</summary>
+    public string? ChosenInhabitant => _observer?.Chosen;
+
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
 

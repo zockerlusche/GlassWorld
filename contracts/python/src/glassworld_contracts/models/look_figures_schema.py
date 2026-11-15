@@ -254,6 +254,12 @@ class FigureThinkingDots(BaseModel):
     alpha_max: float = Field(
         ..., description='Greatest opacity of a dot.', ge=0.0, le=1.0
     )
+    question_font_px: int | None = Field(
+        None,
+        description='A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm "?" of this size stands in the dots\' place; once only the effect is open, the dots again. Missing = dots only.',
+        ge=8,
+        le=256,
+    )
 
 
 class FigureBody(BaseModel):

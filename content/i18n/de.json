@@ -727,6 +727,10 @@
       "text": "Vorstellen"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Hinaufklettern"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Nachlegen"
     },
@@ -2183,6 +2187,10 @@
       "text": "Feuer vom Regen gelöscht"
     },
     {
+      "key": "vocab.event.slipped",
+      "text": "Abgerutscht"
+    },
+    {
       "key": "vocab.event.out_of_reach",
       "text": "Nicht erreichbar"
     },
@@ -3061,6 +3069,62 @@
     {
       "key": "ui.debug.biome",
       "text": "Biom unter dem Mauszeiger: {biome}"
+    },
+    {
+      "key": "ui.debug.knowledge",
+      "text": "Wissen von {name}: {count} Einträge (neueste zuerst)"
+    },
+    {
+      "key": "ui.debug.belief",
+      "text": "{thing} · {property}: {value} · {source} · {percent} %"
+    },
+    {
+      "key": "ui.debug.yes",
+      "text": "ja"
+    },
+    {
+      "key": "ui.debug.no",
+      "text": "nein"
+    },
+    {
+      "key": "ui.debug.source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "ui.debug.source.heard.by",
+      "text": "gehört von {name}"
+    },
+    {
+      "key": "ui.debug.source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "ui.debug.source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "ui.debug.source.read.by",
+      "text": "gelesen von {name}"
+    },
+    {
+      "key": "ui.debug.source.seen",
+      "text": "gesehen"
+    },
+    {
+      "key": "ui.debug.source.seen.by",
+      "text": "bei {name} gesehen"
+    },
+    {
+      "key": "ui.debug.source.experienced.by",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.debug.source.guessed.by",
+      "text": "vermutet"
     },
     {
       "key": "ui.debug.jumps",

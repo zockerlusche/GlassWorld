@@ -727,6 +727,10 @@
       "text": "Introduce"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Climb up"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Add fuel"
     },
@@ -2183,6 +2187,10 @@
       "text": "Fire put out by rain"
     },
     {
+      "key": "vocab.event.slipped",
+      "text": "Slipped"
+    },
+    {
       "key": "vocab.event.out_of_reach",
       "text": "Out of reach"
     },
@@ -3061,6 +3069,62 @@
     {
       "key": "ui.debug.biome",
       "text": "Biome under the pointer: {biome}"
+    },
+    {
+      "key": "ui.debug.knowledge",
+      "text": "What {name} knows: {count} entries (newest first)"
+    },
+    {
+      "key": "ui.debug.belief",
+      "text": "{thing} · {property}: {value} · {source} · {percent} %"
+    },
+    {
+      "key": "ui.debug.yes",
+      "text": "yes"
+    },
+    {
+      "key": "ui.debug.no",
+      "text": "no"
+    },
+    {
+      "key": "ui.debug.source.experienced",
+      "text": "experienced"
+    },
+    {
+      "key": "ui.debug.source.heard",
+      "text": "heard"
+    },
+    {
+      "key": "ui.debug.source.heard.by",
+      "text": "heard from {name}"
+    },
+    {
+      "key": "ui.debug.source.guessed",
+      "text": "guessed"
+    },
+    {
+      "key": "ui.debug.source.read",
+      "text": "read"
+    },
+    {
+      "key": "ui.debug.source.read.by",
+      "text": "read from {name}"
+    },
+    {
+      "key": "ui.debug.source.seen",
+      "text": "seen"
+    },
+    {
+      "key": "ui.debug.source.seen.by",
+      "text": "seen with {name}"
+    },
+    {
+      "key": "ui.debug.source.experienced.by",
+      "text": "experienced"
+    },
+    {
+      "key": "ui.debug.source.guessed.by",
+      "text": "guessed"
     },
     {
       "key": "ui.debug.jumps",

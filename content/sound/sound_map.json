@@ -60,6 +60,11 @@
       "group": "joining"
     },
     {
+      "action": "climb",
+      "sound": "action.rustle",
+      "group": "moving"
+    },
+    {
       "action": "add_fuel",
       "sound": "action.combine",
       "group": "joining"

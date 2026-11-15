@@ -28,7 +28,7 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
     private static readonly ContentSet Shipped = ContentSet.Load(ShippedDirectory);
     private static readonly UtilityWeights Weights = Shipped.Brain.Weights;
     private static readonly BuildSettings Build = Shipped.Inventions.Build.Settings;
-    private static readonly Consideration Use = Weights.Considerations.Single(c => c.Action == Build.UseAction && c.RequiresAlso is null); // the kit's rows (B2668) have requires_also
+    private static readonly Consideration Use = Weights.Considerations.Single(c => c.Action == Build.UseAction && c.RequiresAlso is null && c.KnownOnly != true); // the kit's rows (B2668) have requires_also
     private static readonly Curve UseCurve = new(Use.Curve);
     private static readonly string Need = Use.Need!;
     private static readonly string Made = Use.TargetProperty!;

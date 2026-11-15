@@ -189,6 +189,12 @@ public sealed class SimulationHost
             var tides = new Tides(preset.Tides);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
+                // D1105 H3b: the plant a hanging thing grows on (for climbing towards it).
+                GrowsOn = content.WorldGen.Spawns.Spawns
+                    .Where(r => r.GrowsOn?.Hangs is not null)
+                    .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => (g.First().GrowsOn!.ObjectType, g.First().GrowsOn!.WithinCells), StringComparer.Ordinal),
+
                 // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
@@ -491,6 +497,10 @@ public sealed class SimulationHost
         };
 
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests, Truth = types };
+
+        // A1766 (B2789): the night queue of the day mode night_only - holds the data's job kinds by day at the job
+        // router and sends them when the compute night begins.
+        var nightQueue = new Night.NightQueueSystem(content.NightQueue, jobs, world, nightJobs.IsNightNow, nightJobs.NightBegins);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
@@ -587,6 +597,16 @@ public sealed class SimulationHost
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
+        // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
+        // become said events; no effect on the world. Dormant without a job port or without the data's block.
+        var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale)
+        {
+            ValidateRequests = options.ValidateRequests,
+            PerceivedTypes = decisions.PerceivedTypes,
+            // D1119 §5: by day in night_only a talk has no words (it belongs to its moment, it is not queued).
+            Quiet = () => nightQueue.HoldsNow,
+        };
+
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.
         // Exploration right after the inhabitants: who has moved in a tick looks around in the same tick.
@@ -597,7 +617,7 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs);
+        world.Add(player).Add(inventions).Add(nightJobs).Add(nightQueue);
         if (processes is not null)
         {
             // Out of the hash while it holds nothing (worlds that never process keep their hashes).
@@ -621,6 +641,19 @@ public sealed class SimulationHost
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
+            if (bodyData.Climbing is { } climbing)
+            {
+                // D1105 H3b: climbing what gives grip; the decider is offered it only where it can mean something.
+                body.AboveCm = map.AboveCm;
+                body.PlantOf = map.PlantOf;
+                body.ReachCm = content.InhabitantModel.Reach?.HeightCm ?? 0;
+                inhabitants.ClimbRefusal = body.ClimbRefusal;
+                inhabitants.UpCm = body.UpCm;
+                decisions.OffersOn = (action, thing) => !string.Equals(action, climbing.Action, StringComparison.Ordinal) || body.CarrierOf(thing) is not null;
+            }
+
+            inhabitants.ShelteredAt = body.Sheltered;
+            inhabitants.StaySheltered = bodyData.StaySheltered;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
@@ -660,7 +693,7 @@ public sealed class SimulationHost
         world.Add(milestones);
 
         // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
-        world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(dialogue).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -682,9 +715,12 @@ public sealed class SimulationHost
             Animals = animals,
             ChronicleNight = chronicleNight,
             Conversation = conversation,
+            Dialogue = dialogue,
+            NightQueue = nightQueue,
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
+            Pace = new AiPace(world.Calendar.Settings.FastForwardFactors),
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
@@ -692,6 +728,15 @@ public sealed class SimulationHost
 
         // Learning by day as well (B2652, A1568): a logged command, so a replay switches at the same tick.
         decisions.RegisterCommand(DecisionsSystem.SetLearnByDay, CheckLearnByDay, (_, command) => decisions.LearnByDay = command.Text == DecisionsSystem.LearnByDayOn);
+
+        // The game's speed, whom the camera follows and how long an AI job takes (A1587, B2804): logged commands,
+        // so a replay paces the AI the same way at the same ticks.
+        decisions.RegisterCommand(AiPace.SetSpeed, host.Pace.CheckSpeed, (_, command) => host.Pace.Apply(command));
+        decisions.RegisterCommand(AiPace.SetFollowed, command => CheckFollowed(inhabitants, command), (_, command) => host.Pace.Apply(command));
+        decisions.RegisterCommand(AiPace.SetAiRate, AiPace.CheckAiRate, (_, command) => host.Pace.Apply(command));
+
+        // The day mode (A1568, A1766): a logged command, so a replay holds and sends at the same ticks.
+        decisions.RegisterCommand(Night.NightQueueSystem.DayModeCommand, CheckDayMode, (_, command) => nightQueue.NightOnly = command.Text == Night.NightQueueSystem.DayModeNightOnly);
         return host;
     }
 
@@ -732,6 +777,22 @@ public sealed class SimulationHost
         }
 
         Decisions.LearnByDay = learnByDay;
+
+        // Speed, followed inhabitant and AI job time the same way (A1587): the last logged one of each.
+        Pace.FromLog(Decisions.Log);
+
+        // The day mode the same way (A1766): the last logged one counts, ai without any.
+        var nightOnly = false;
+        foreach (var entry in Decisions.Log.Entries)
+        {
+            if (entry.Kind == DecisionLogKind.Command && entry.Json.Contains(Night.NightQueueSystem.DayModeCommand, StringComparison.Ordinal)
+                && System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(entry.Json) is { Kind: Night.NightQueueSystem.DayModeCommand, Text: { } text })
+            {
+                nightOnly = text == Night.NightQueueSystem.DayModeNightOnly;
+            }
+        }
+
+        NightQueue.NightOnly = nightOnly;
     }
 
     /// <summary>
@@ -753,6 +814,17 @@ public sealed class SimulationHost
         }
     }
 
+    /// <summary>A <see cref="AiPace.SetFollowed"/> names nobody or an inhabitant of the world.</summary>
+    private static CommandResult CheckFollowed(InhabitantsSystem inhabitants, PlayerCommand command) =>
+        command.InhabitantId is null || inhabitants.TryGet(command.InhabitantId, out _)
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonNoInhabitant);
+
+    private static CommandResult CheckDayMode(PlayerCommand command) =>
+        command.Text is Night.NightQueueSystem.DayModeAi or Night.NightQueueSystem.DayModeNightOnly
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonUnknownCommand);
+
     private static CommandResult CheckLearnByDay(PlayerCommand command) =>
         command.Text is DecisionsSystem.LearnByDayOn or DecisionsSystem.LearnByDayOff
             ? new CommandResult(true, null)
@@ -770,6 +842,7 @@ public sealed class SimulationHost
         NightJobs.DisplayLocale = locale;
         ChronicleNight.DisplayLocale = locale;
         Conversation.DisplayLocale = locale;
+        Dialogue.DisplayLocale = locale;
     }
 
     /// <summary>
@@ -967,6 +1040,9 @@ public sealed class SimulationHost
     /// <summary>The player's favourites (B6 R19, B2518).</summary>
     public Player.FavouritesSystem Favourites { get; private init; } = null!;
 
+    /// <summary>The game's speed, whom the camera follows and how long an AI job takes, from logged commands (A1587, B2804).</summary>
+    public AiPace Pace { get; private init; } = null!;
+
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;
 
@@ -1027,6 +1103,12 @@ public sealed class SimulationHost
 
     /// <summary>The chronicle's day narratives (B8 R10, A1355).</summary>
     public Night.ChronicleNightSystem ChronicleNight { get; private init; } = null!;
+
+    /// <summary>Talks between two inhabitants (A1735): open dialogue jobs and the last talk per pair.</summary>
+    public DialogueSystem Dialogue { get; private init; } = null!;
+
+    /// <summary>The night queue of the day mode night_only (A1766): jobs held by day, sent at night.</summary>
+    public Night.NightQueueSystem NightQueue { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

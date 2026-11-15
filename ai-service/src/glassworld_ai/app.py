@@ -43,6 +43,7 @@ from glassworld_ai.decider.backends import (
 )
 from glassworld_ai.decider.mock import MockWeights
 from glassworld_ai.diagnostics import report
+from glassworld_ai.dialogue import MockDialogues, OllamaDialogues, ReplayDialogues
 from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.grounding import load_names
@@ -187,6 +188,7 @@ def create_app(
                 app.state.jobs.register("milestone", _ollama_milestones(settings, ollama, app))
                 app.state.jobs.register("chronicle", _ollama_chronicles(settings, ollama, app))
                 app.state.jobs.register("review", _ollama_reviews(settings, ollama, app))
+                app.state.jobs.register("dialogue", _ollama_dialogues(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
                 app.state.jobs.register("build_plan", _ollama_builder(settings, ollama, app))
@@ -1106,6 +1108,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "milestone": MockMilestones(),
             "chronicle": MockChronicles(),
             "review": MockReviews(),
+            "dialogue": MockDialogues(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
             "build_plan": MockBuilder(),
@@ -1145,6 +1148,14 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
                 _texts(settings),
                 load_prompt(
                     settings.prompts_dir, settings.review_prompt, settings.review_prompt_version
+                ).settings,
+            ),
+            "dialogue": ReplayDialogues(
+                _dialogue_log(settings),
+                _text_guard(settings),
+                _texts(settings),
+                load_prompt(
+                    settings.prompts_dir, settings.dialogue_prompt, settings.dialogue_prompt_version
                 ).settings,
             ),
             "process": ReplayProcesses(_process_log(settings), _judge_context(settings)),
@@ -1276,6 +1287,24 @@ def _ollama_milestones(settings: Settings, ollama: OllamaClient, app: FastAPI) -
 
 def _review_log(settings: Settings) -> CallLog:
     return CallLog(settings.log_dir / "review.jsonl")
+
+
+def _dialogue_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "dialogue.jsonl")
+
+
+def _ollama_dialogues(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDialogues:
+    return OllamaDialogues(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.dialogue_prompt, settings.dialogue_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_dialogue_log(settings),
+        guard=_text_guard(settings),
+        texts=_texts(settings),
+    )
 
 
 def _texts(settings: Settings) -> TextCatalog:

@@ -18,6 +18,39 @@
         "block_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000 }
       }
     },
+    "climbing": {
+      "description": "D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/<inhabitant>): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.",
+      "type": "object", "additionalProperties": false,
+      "required": ["action", "min_grip_permille", "height_by_grip", "slip_permille_per_m", "up_minutes", "stay_within_m"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "min_grip_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "height_by_grip": {
+          "type": "array", "minItems": 1, "maxItems": 16,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["grip_permille", "height_cm"],
+            "properties": {
+              "grip_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+              "height_cm": { "type": "integer", "minimum": 0, "maximum": 10000 }
+            }
+          }
+        },
+        "slip_permille_per_m": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "up_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+        "stay_within_m": { "description": "Farther than this from what it climbed, the climber is down again.", "type": "number", "minimum": 0, "maximum": 100 },
+        "fright_mood": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "fright_delta": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "stay_sheltered": {
+      "description": "A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.",
+      "type": "object", "additionalProperties": false, "required": ["leaving_factor_permille"],
+      "properties": {
+        "leaving_factor_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "in_precipitation": { "type": "boolean" },
+        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+      }
+    },
     "others_warmth": {
       "description": "B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.",
       "type": "object", "additionalProperties": false, "required": ["tenth_c", "radius_cm"],
