@@ -1504,8 +1504,10 @@ public partial class GameScreen : CanvasLayer
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+
+                // Quieter by size, not by a dark grey (A1736: on the dark ground the grey could not be read).
+                ThemeTypeVariation = UiTheme.SmallLabel,
             };
-            story.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
             _chronicleList.AddChild(story);
         }
 
@@ -1838,8 +1840,8 @@ public partial class GameScreen : CanvasLayer
             _mailList.AddChild(new Label { Text = "ui.mailbox.history", ThemeTypeVariation = UiTheme.SubheaderLabel });
             foreach (var message in history)
             {
-                var old = new Label { Text = MailText(message), AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-                old.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+                // Older messages: quieter by size, not by a dark grey (A1736: unreadable on the dark ground).
+                var old = new Label { Text = MailText(message), ThemeTypeVariation = UiTheme.SmallLabel, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
                 _mailList.AddChild(old);
             }
         }
