@@ -38,6 +38,9 @@ public partial class WorldPresenter
     private Color _focusColor = Colors.White;
     private MeshInstance3D? _focusRing;
     private GrassView? _grassView;
+    private AmbientFaunaView? _faunaView;
+    private Presentation.Audio.HourTime? _livingAt;
+    private IReadOnlyList<SoundForAnimal>? _living;
     private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
@@ -442,6 +445,16 @@ public partial class WorldPresenter
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
+        // A1383 (B5-6 R16, B2608): ambient animals near the camera - the ones the sound map says live here now.
+        var soundMap = Read<SoundMap>(content, "sound", "sound_map.json");
+        _faunaView = AmbientFaunaView.Create(
+            Read<FaunaAmbient>(content, "fauna", "ambient.json"),
+            host.World.Seed,
+            () => _rig is { } rig ? rig.Model.Target : null,
+            () => _host is { } h ? LivingAnimals(soundMap, h) : [],
+            (x, z) => Presentation.Ui.DebugOverlayModel.BiomeAt(_host?.Map, x, z),
+            SurfaceFor(terrain.UnitM));
+        AddChild(_faunaView);
         AddChild(_nature);
 
         // Cloud cover over what the player has not seen yet (B2-6 R25); the land a new or loaded world
@@ -564,6 +577,7 @@ public partial class WorldPresenter
         _inventionsView = null;
         _focusRing = null;
         _grassView = null;
+        _faunaView = null;
         _cover = null;
         _nature = null;
         _rig = null;
@@ -734,6 +748,11 @@ public partial class WorldPresenter
             foreach (var figure in _islandFigures.Values)
             {
                 figure.SetFrozen(_freeze.Frozen);
+            }
+
+            if (_faunaView is not null)
+            {
+                _faunaView.Frozen = _freeze.Frozen;
             }
         }
 
@@ -1067,4 +1086,35 @@ public partial class WorldPresenter
             _islandFigures[other].Watch(figure.HeadAnchor, join.LookS, join.Expression);
         }
     }
+
+    /// <summary>
+    /// A1383: the sound map's animals that live at this season and time of day (the biome is checked at each home) -
+    /// worked out again only when the hour turns (review GW4 #504: not every frame).
+    /// </summary>
+    private IReadOnlyList<SoundForAnimal> LivingAnimals(SoundMap map, Simulation.SimulationHost host)
+    {
+        var now = Presentation.Audio.HourTime.Of(host.World.Now);
+        if (_livingAt != now || _living is null)
+        {
+            _livingAt = now;
+            _living = [.. map.Animals.Where(a => a.Seasons.Contains(now.Season, StringComparer.Ordinal) && a.TimesOfDay.Contains(now.TimeOfDay, StringComparer.Ordinal))];
+        }
+
+        return _living;
+    }
+
+    /// <summary>
+    /// A1383 (review GW4 #504): the height ambient animals live above - the ground, or the surface of a lake, stream or the sea
+    /// over its bed, so a fish leaps out of the water and a gull flies over the waves.
+    /// </summary>
+    private Func<double, double, double> SurfaceFor(double unitM) => (x, z) =>
+    {
+        var ground = _ground(x, z);
+        if (_host?.Map is { } map && map.CellOf(new Simulation.Objects.Position(x, z)) is { } at && map.Map.Cell(at.X, at.Z) is { Water: not Simulation.Map.WaterKind.None } cell)
+        {
+            return Math.Max(ground, (cell.Height + cell.WaterDepth) * unitM);
+        }
+
+        return Math.Max(ground, _seaLevelM);
+    };
 }
