@@ -12,8 +12,15 @@
     { "kind": "unknown_object", "enabled": true },
     { "kind": "noticed_player", "enabled": true, "interrupts": true },
     { "kind": "unknown_inhabitant", "enabled": true },
-    { "kind": "leisure", "enabled": true }
+    { "kind": "leisure", "enabled": true },
+    { "kind": "action_failed", "enabled": true }
   ],
+  "failures": {
+    "event_kinds": ["action_cancelled", "out_of_reach"],
+    "transient_reasons": ["woken_rested", "woken_by_player", "woken_by_need", "kept_awake_by", "resting", "blocked"],
+    "rest_hours": 6,
+    "ask_again_after_hours": 72
+  },
   "leisure": {
     "needs_at_least": 0.3,
     "every_hours": 6,

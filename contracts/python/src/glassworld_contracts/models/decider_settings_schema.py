@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -54,6 +54,7 @@ class Kind(StrEnum):
     noticed_player = 'noticed_player'
     unknown_inhabitant = 'unknown_inhabitant'
     leisure = 'leisure'
+    action_failed = 'action_failed'
 
 
 class Ask(StrEnum):
@@ -67,7 +68,7 @@ class Trigger(BaseModel):
     )
     kind: Kind = Field(
         ...,
-        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure).',
+        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure). action_failed: an action of the inhabitant failed at the core (A1778, B2814, conditions in failures).',
     )
     enabled: bool
     ask: Ask | None = Field(
@@ -77,6 +78,39 @@ class Trigger(BaseModel):
     interrupts: bool | None = Field(
         None,
         description='Whether a question of this trigger goes to the decider even while its inhabitant is busy with another question or an accepted choice (choice_protection_hours); its answer then replaces that choice, as before. Omitted = false: the question waits.',
+    )
+
+
+type EventKind = Annotated[str, Field(..., min_length=1)]
+
+
+type TransientReason = Annotated[str, Field(..., min_length=1)]
+
+
+class Failures(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    event_kinds: list[EventKind] = Field(
+        ...,
+        description='Event kinds that are a failed action (vocabulary events); their detail is the reason code.',
+        min_length=1,
+    )
+    transient_reasons: list[TransientReason] = Field(
+        ...,
+        description='Reason codes that pass by themselves (woken up, kept awake by a need, a way briefly taken): no question, no rest. Matched on the code before a slash. An event without a reason (the thing is gone) asks nothing either.',
+    )
+    rest_hours: float = Field(
+        ...,
+        description='Game hours the failed action rests on that target (or here, without one).',
+        ge=0.0,
+        le=168.0,
+    )
+    ask_again_after_hours: float = Field(
+        ...,
+        description='Game hours before the same failure (action, kind of target, reason) is asked about again.',
+        ge=0.0,
+        le=8760.0,
     )
 
 
@@ -137,5 +171,9 @@ class DeciderSettings(BaseModel):
         le=1000,
     )
     leisure: LeisureSettings | None = None
+    failures: Failures | None = Field(
+        None,
+        description='A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.',
+    )
     triggers: list[Trigger] = Field(..., max_length=32)
     fallback_environment: FallbackEnvironment

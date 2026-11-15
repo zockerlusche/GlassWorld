@@ -66,7 +66,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure).
+        /// unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure). action_failed: an action of the inhabitant failed at the core (A1778, B2814, conditions in failures).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TriggerKind>))]
@@ -89,6 +89,36 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("interrupts")]
         public bool? Interrupts { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Failures
+    {
+
+        /// <summary>
+        /// Event kinds that are a failed action (vocabulary events); their detail is the reason code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("event_kinds")]
+        public System.Collections.Generic.ICollection<string> EventKinds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Reason codes that pass by themselves (woken up, kept awake by a need, a way briefly taken): no question, no rest. Matched on the code before a slash. An event without a reason (the thing is gone) asks nothing either.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("transient_reasons")]
+        public System.Collections.Generic.ICollection<string> TransientReasons { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Game hours the failed action rests on that target (or here, without one).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_hours")]
+        public double RestHours { get; set; } = default!;
+
+        /// <summary>
+        /// Game hours before the same failure (action, kind of target, reason) is asked about again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ask_again_after_hours")]
+        public double AskAgainAfterHours { get; set; } = default!;
 
     }
 
@@ -158,6 +188,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("leisure")]
         public LeisureSettings? Leisure { get; set; } = default!;
 
+        /// <summary>
+        /// A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("failures")]
+        public Failures? Failures { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("triggers")]
         public System.Collections.Generic.ICollection<Trigger> Triggers { get; set; } = new System.Collections.ObjectModel.Collection<Trigger>();
 
@@ -184,6 +221,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("leisure")]
         Leisure = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("action_failed")]
+        Action_failed = 4,
 
 
     }

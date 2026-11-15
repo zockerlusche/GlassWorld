@@ -65,7 +65,7 @@ public sealed record CommandResult(bool Accepted, string? ReasonKey);
 /// options that were offered, and turn into the inhabitant's next activity; until then the routine layer
 /// keeps the inhabitant living (B2487). Every request and answer is logged for replays.
 /// </summary>
-public sealed class DecisionsSystem : IWorldSystem
+public sealed partial class DecisionsSystem : IWorldSystem
 {
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
@@ -1026,7 +1026,10 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether the inhabitant asked about the subject less than ask_cooldown_hours ago.</summary>
     private bool CoolingDown(World world, Inhabitant inhabitant, string subject)
     {
-        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
+        // A1778: a failure is asked about again only after the data's own hours (once per kind of failure).
+        var cooldown = subject.StartsWith(FailedSubject, StringComparison.Ordinal) && _settings.Failures is { } failures
+            ? (long)Math.Round(failures.AskAgainAfterHours * world.Calendar.Settings.TicksPerHour)
+            : (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
         return _lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown;
     }
 
@@ -1198,6 +1201,13 @@ public sealed class DecisionsSystem : IWorldSystem
         if (kind == BuildStuck)
         {
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
+        }
+
+        // A1778: a failed action says what failed and why (never what would work, PR2).
+        if (kind == ActionFailed)
+        {
+            request.Occasion = ActionFailed;
+            request.Failure = FailureOf(subject);
         }
 
         // Why the core asks (B2663, GW2 #308): a free moment says so, so the prompt can name it (v10 'Right now').
