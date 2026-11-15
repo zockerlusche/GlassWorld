@@ -42,6 +42,23 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void UnderAShelterTheStillAirFeelsWarmer()
+    {
+        // A1793 (B2840): under a shelter the air stands still - it feels the data's degrees warmer than in the open.
+        var (host, inhabitant) = Island();
+        var body = host.Body!;
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        var still = Content.Value.Body!.Wetness.ShelterStillAirTenthC!.Value;
+        Assert.True(still > 0);
+        Assert.Equal(0, body.StillAirTenthC(inhabitant.Position));
+
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        Assert.Equal(still, body.StillAirTenthC(inhabitant.Position));
+        var expected = body.SunTenthC(host.World, inhabitant.Position) - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant) + still;
+        Assert.Equal(expected, body.FeltTenthC(host.World, inhabitant));
+    }
+
+    [Fact]
     public void AShelterKeepsTheRainOff()
     {
         var (host, inhabitant) = Island();

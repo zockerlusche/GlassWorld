@@ -155,6 +155,12 @@ class BodyWetness(BaseModel):
     shelter_radius_cm: int = Field(
         ..., description='How near such a thing must be.', ge=0, le=2000
     )
+    shelter_still_air_tenth_c: int | None = Field(
+        None,
+        description='How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference.',
+        ge=0,
+        le=200,
+    )
 
 
 class FromComfortItem(BaseModel):
