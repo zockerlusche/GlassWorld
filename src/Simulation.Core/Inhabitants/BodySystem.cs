@@ -352,8 +352,8 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         inhabitant.RememberFelt(place, new FeltPlace(felt, world.Tick), places.Max, (long)places.ForgetHours * _ticksPerHour);
     }
 
-    /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
-    private bool Sheltered(Position at) => ShelterOf(at) is not null;
+    /// <summary>Whether a thing with the shelter property is near (it keeps the rain off; B2773: and makes one feel safe).</summary>
+    public bool Sheltered(Position at) => ShelterOf(at) is not null;
 
     /// <summary>The nearest thing with the shelter property within the shelter radius (ties by id), or null.</summary>
     private WorldObject? ShelterOf(Position at)
