@@ -1,5 +1,4 @@
 using GlassWorld.Contracts;
-using GlassWorld.Presentation.Audio;
 
 namespace GlassWorld.Presentation.World;
 
@@ -32,21 +31,34 @@ public static class AmbientFauna
     /// <param name="seconds">Real seconds the world has run (stops while paused).</param>
     /// <param name="seed">World seed.</param>
     /// <param name="biomeAt">Biome id at a ground point, or null off the map.</param>
-    /// <param name="ground">Ground height at a point.</param>
-    public static IReadOnlyList<AmbientCritter> At(FaunaAmbient data, IEnumerable<SoundForAnimal> living, double targetX, double targetZ, double seconds, ulong seed, Func<double, double, string?> biomeAt, Func<double, double, double> ground)
+    /// <param name="ground">Height they live above: the ground, or the water's surface where there is water (review GW4 #504).</param>
+    public static IReadOnlyList<AmbientCritter> At(FaunaAmbient data, IReadOnlyList<SoundForAnimal> living, double targetX, double targetZ, double seconds, ulong seed, Func<double, double, string?> biomeAt, Func<double, double, double> ground)
     {
+        var shown = new List<AmbientCritter>();
+        Fill(shown, data, living, targetX, targetZ, seconds, seed, biomeAt, ground);
+        return shown;
+    }
+
+    /// <summary>
+    /// The same into a list the caller keeps (cleared first): every frame without new objects - no strings, no LINQ
+    /// (review GW4 #504, A1767: the frame budget).
+    /// </summary>
+    public static void Fill(List<AmbientCritter> shown, FaunaAmbient data, IReadOnlyList<SoundForAnimal> living, double targetX, double targetZ, double seconds, ulong seed, Func<double, double, string?> biomeAt, Func<double, double, double> ground)
+    {
+        ArgumentNullException.ThrowIfNull(shown);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(living);
         ArgumentNullException.ThrowIfNull(biomeAt);
         ArgumentNullException.ThrowIfNull(ground);
-        var here = living.ToDictionary(a => a.Animal, StringComparer.Ordinal);
-        var shown = new List<AmbientCritter>();
+        shown.Clear();
         var cell = data.CellM;
         var (cx, cz) = ((long)Math.Floor(targetX / cell), (long)Math.Floor(targetZ / cell));
         var reach = (int)Math.Ceiling(data.RadiusM / cell);
+        var index = -1;
         foreach (var look in data.Animals)
         {
-            if (!here.TryGetValue(look.Animal, out var lives))
+            index++;
+            if (Living(living, look.Animal) is not { } lives)
             {
                 continue;
             }
@@ -57,7 +69,7 @@ public static class AmbientFauna
                 {
                     for (var slot = 0; slot < look.PerCell; slot++)
                     {
-                        if (One(look, lives, ix, iz, slot, cell, seconds, seed, biomeAt, ground) is not { } critter)
+                        if (One(look, index, lives, ix, iz, slot, cell, seconds, seed, biomeAt, ground) is not { } critter)
                         {
                             continue;
                         }
@@ -73,18 +85,29 @@ public static class AmbientFauna
             }
         }
 
-        return shown;
     }
 
-    private static AmbientCritter? One(AmbientAnimal look, SoundForAnimal lives, long ix, long iz, int slot, double cell, double seconds, ulong seed, Func<double, double, string?> biomeAt, Func<double, double, double> ground)
+    private static SoundForAnimal? Living(IReadOnlyList<SoundForAnimal> living, string animal)
     {
-        var key = $"{look.Animal}/{ix}/{iz}/{slot}";
+        for (var i = 0; i < living.Count; i++)
+        {
+            if (string.Equals(living[i].Animal, animal, StringComparison.Ordinal))
+            {
+                return living[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static AmbientCritter? One(AmbientAnimal look, int index, SoundForAnimal lives, long ix, long iz, int slot, double cell, double seconds, ulong seed, Func<double, double, string?> biomeAt, Func<double, double, double> ground)
+    {
         var stay = look.StayS;
-        var shifted = seconds + (Unit(seed, key, 0) * stay);
+        var shifted = seconds + (Unit(seed, index, ix, iz, slot, 0) * stay);
         var round = Math.Floor(shifted / stay);
         var t = shifted - (round * stay);
-        var homeX = (ix + Unit(seed, key, (long)(round * 4) + 1)) * cell;
-        var homeZ = (iz + Unit(seed, key, (long)(round * 4) + 2)) * cell;
+        var homeX = (ix + Unit(seed, index, ix, iz, slot, (long)(round * 4) + 1)) * cell;
+        var homeZ = (iz + Unit(seed, index, ix, iz, slot, (long)(round * 4) + 2)) * cell;
         if (biomeAt(homeX, homeZ) is not { } biome || !lives.Biomes.Contains(biome))
         {
             return null;
@@ -93,7 +116,7 @@ public static class AmbientFauna
         // In and out calmly at both ends of its stay.
         var fade = Math.Min(1, Math.Min(t, stay - t) / (stay * Fade));
         var motion = look.Motion;
-        var phase = Unit(seed, key, (long)(round * 4) + 3) * 2 * Math.PI;
+        var phase = Unit(seed, index, ix, iz, slot, (long)(round * 4) + 3) * 2 * Math.PI;
         var turn = (2 * Math.PI * motion.Speed * t) + phase;
         var wing = motion.FlapHz is > 0 and var hz ? 0.5 + (0.5 * Math.Cos(2 * Math.PI * hz * t)) : 1;
         double x, z, lift, yaw;
@@ -152,6 +175,23 @@ public static class AmbientFauna
         return new AmbientCritter(look.Animal, x, ground(x, z) + lift, z, yaw, wing, fade);
     }
 
-    private static double Unit(ulong seed, string key, long n) =>
-        (SplitMix64.SeedOf($"{seed}/{key}/{n}") >> 11) * (1.0 / (1UL << 53));
+    /// <summary>A number in [0, 1) from the seed and the place of one animal - integers mixed (SplitMix64), no strings.</summary>
+    private static double Unit(ulong seed, int animal, long ix, long iz, int slot, long n)
+    {
+        var x = seed;
+        x = Mix(x ^ (ulong)animal);
+        x = Mix(x ^ (ulong)ix);
+        x = Mix(x ^ (ulong)iz);
+        x = Mix(x ^ (ulong)slot);
+        x = Mix(x ^ (ulong)n);
+        return (x >> 11) * (1.0 / (1UL << 53));
+    }
+
+    private static ulong Mix(ulong z)
+    {
+        z += 0x9E3779B97F4A7C15UL;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+        return z ^ (z >> 31);
+    }
 }

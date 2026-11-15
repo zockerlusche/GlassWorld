@@ -19,6 +19,8 @@ public partial class AmbientFaunaView : Node3D
     private Func<double, double, double> _ground = null!;
     private ulong _seed;
     private double _seconds;
+    private readonly List<AmbientCritter> _shown = [];
+    private readonly Dictionary<string, List<AmbientCritter>> _byAnimal = new(StringComparer.Ordinal);
 
     /// <summary>Whether the world stands still (pause, speed 0): the animals do too (W1688).</summary>
     public bool Frozen { get; set; }
@@ -80,13 +82,28 @@ public partial class AmbientFaunaView : Node3D
             return;
         }
 
-        var critters = AmbientFauna.At(_data, _living(), target.X, target.Z, _seconds, _seed, _biomeAt, _ground);
-        Shown = critters.Count;
-        var byAnimal = critters.ToLookup(c => c.Animal, StringComparer.Ordinal);
+        // Review GW4 #504: no new objects per frame - the lists are kept and refilled.
+        AmbientFauna.Fill(_shown, _data, _living(), target.X, target.Z, _seconds, _seed, _biomeAt, _ground);
+        Shown = _shown.Count;
+        foreach (var bucket in _byAnimal.Values)
+        {
+            bucket.Clear();
+        }
+
+        foreach (var critter in _shown)
+        {
+            if (!_byAnimal.TryGetValue(critter.Animal, out var bucket))
+            {
+                _byAnimal[critter.Animal] = bucket = [];
+            }
+
+            bucket.Add(critter);
+        }
+
         foreach (var (animal, kind) in _kinds)
         {
             // Every kind each frame: one that is not here now shows none.
-            var list = byAnimal[animal].ToList();
+            var list = _byAnimal.TryGetValue(animal, out var found) ? found : [];
             var multimesh = kind.Instance.Multimesh;
             multimesh.InstanceCount = list.Count;
             for (var i = 0; i < list.Count; i++)

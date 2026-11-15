@@ -39,6 +39,8 @@ public partial class WorldPresenter
     private MeshInstance3D? _focusRing;
     private GrassView? _grassView;
     private AmbientFaunaView? _faunaView;
+    private Presentation.Audio.HourTime? _livingAt;
+    private IReadOnlyList<SoundForAnimal>? _living;
     private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
@@ -447,7 +449,7 @@ public partial class WorldPresenter
             () => _rig is { } rig ? rig.Model.Target : null,
             () => _host is { } h ? LivingAnimals(soundMap, h) : [],
             (x, z) => Presentation.Ui.DebugOverlayModel.BiomeAt(_host?.Map, x, z),
-            (x, z) => _ground(x, z));
+            SurfaceFor(terrain.UnitM));
         AddChild(_faunaView);
         AddChild(_nature);
 
@@ -1081,10 +1083,34 @@ public partial class WorldPresenter
         }
     }
 
-    /// <summary>A1383: the sound map's animals that live at this season and time of day (the biome is checked at each home).</summary>
-    private static IReadOnlyList<SoundForAnimal> LivingAnimals(SoundMap map, Simulation.SimulationHost host)
+    /// <summary>
+    /// A1383: the sound map's animals that live at this season and time of day (the biome is checked at each home) -
+    /// worked out again only when the hour turns (review GW4 #504: not every frame).
+    /// </summary>
+    private IReadOnlyList<SoundForAnimal> LivingAnimals(SoundMap map, Simulation.SimulationHost host)
     {
         var now = Presentation.Audio.HourTime.Of(host.World.Now);
-        return [.. map.Animals.Where(a => a.Seasons.Contains(now.Season, StringComparer.Ordinal) && a.TimesOfDay.Contains(now.TimeOfDay, StringComparer.Ordinal))];
+        if (_livingAt != now || _living is null)
+        {
+            _livingAt = now;
+            _living = [.. map.Animals.Where(a => a.Seasons.Contains(now.Season, StringComparer.Ordinal) && a.TimesOfDay.Contains(now.TimeOfDay, StringComparer.Ordinal))];
+        }
+
+        return _living;
     }
+
+    /// <summary>
+    /// A1383 (review GW4 #504): the height ambient animals live above - the ground, or the surface of a lake, stream or the sea
+    /// over its bed, so a fish leaps out of the water and a gull flies over the waves.
+    /// </summary>
+    private Func<double, double, double> SurfaceFor(double unitM) => (x, z) =>
+    {
+        var ground = _ground(x, z);
+        if (_host?.Map is { } map && map.CellOf(new Simulation.Objects.Position(x, z)) is { } at && map.Map.Cell(at.X, at.Z) is { Water: not Simulation.Map.WaterKind.None } cell)
+        {
+            return Math.Max(ground, (cell.Height + cell.WaterDepth) * unitM);
+        }
+
+        return Math.Max(ground, _seaLevelM);
+    };
 }

@@ -42,6 +42,10 @@ public sealed class AmbientFaunaTests
 
         Assert.Contains("firefly", At("meadow", "summer", "night").Select(c => c.Animal));
         Assert.Empty(AmbientFauna.At(Data, Living("spring", "day"), 100, 100, 12.5, 7, (_, _) => null, (_, _) => 0));
+
+        // A fish leaps out of the surface it is given (the water's, review GW4 #504), never below it.
+        var fish = AmbientFauna.At(Data, Living("summer", "day"), 100, 100, 0, 7, (_, _) => "freshwater", (_, _) => 5.0);
+        Assert.All(fish, c => Assert.True(c.Y >= 5.0 - 1e-9, $"{c.Animal} below the surface"));
     }
 
     [Fact]
