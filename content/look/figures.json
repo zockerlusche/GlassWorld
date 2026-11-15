@@ -488,6 +488,30 @@
         0.4,
         -0.25
       ]
+    },
+    {
+      "id": "knock_glass",
+      "actions": [],
+      "arms": [
+        "right"
+      ],
+      "rise_s": 0.5,
+      "hold_s": 1.2,
+      "lower_s": 0.5,
+      "rest_s": 20.0,
+      "influence": 0.85,
+      "to_head": [
+        0.15,
+        0.28,
+        0.25
+      ],
+      "pole": [
+        0.6,
+        1.0,
+        -0.2
+      ],
+      "tap_hz": 2.5,
+      "tap_m": 0.05
     }
   ],
   "comfort": [

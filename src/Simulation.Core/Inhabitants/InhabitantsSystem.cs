@@ -1422,6 +1422,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = refused });
                 Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = refused });
+                CountRepeat(world, inhabitant, activity, changed: false);
                 inhabitant.Activity = null;
                 return;
             }
@@ -1435,6 +1436,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 // counts it), and the reason as its own event for memory and ideas.
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = TooHigh });
                 Report(new WorldEvent(OutOfReach, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = TooHigh });
+
+                // A try out of reach changes nothing, like a use without effect (W1696): tried again and again, the
+                // action rests on that thing for the data's hours - the routine chose the same high apple every minute.
+                CountRepeat(world, inhabitant, activity, changed: false);
                 inhabitant.Activity = null;
                 return;
             }

@@ -37,6 +37,14 @@ public sealed class ReachTests
         Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.TargetId == high!.Id && e.Detail == InhabitantsSystem.TooHigh);
         Assert.True(host.Objects.TryGet(high!.Id, out _), "the high apple still hangs");
 
+        // Tried again and again it rests (W1696): the routine does not choose the same high apple every minute.
+        for (var i = 0; i < 3; i++)
+        {
+            Try(host, inhabitant, high!);
+        }
+
+        Assert.Contains(inhabitant.Resting, r => r.Action == "eat" && r.TargetId == high!.Id);
+
         Try(host, inhabitant, low!);
         Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.OutOfReach && e.TargetId == low!.Id);
     }
