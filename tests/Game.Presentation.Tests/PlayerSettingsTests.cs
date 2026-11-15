@@ -50,6 +50,15 @@ public sealed class PlayerSettingsTests
     }
 
     [Fact]
+    public void AnOlderFileWithTheGoneLayoutSwitchStillLoads()
+    {
+        // S3b (A1684, review GW3 #465): the old layout and its switch are gone; a file from before keeps its other values.
+        var settings = PlayerSettings.Parse("""{ "language": "en", "classic_layout": true, "ui_scale": 1.5 }""", Limits);
+        Assert.Equal("en", settings.Language);
+        Assert.Equal(1.5, settings.UiScale, 6);
+    }
+
+    [Fact]
     public void HandEditedValuesAreClamped()
     {
         var settings = PlayerSettings.Parse("""{ "language": "fr", "ui_scale": 9, "text_scale": 0.1, "hint_duration_factor": 500, "bus_volumes_db": { "music": 40 }, "mix_defaults_version": 1 }""", Limits);
