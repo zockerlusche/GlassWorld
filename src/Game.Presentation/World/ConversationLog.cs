@@ -28,6 +28,15 @@ public enum LogLineKind
 
     /// <summary>An inhabitant finished building a thing (A1715, D1112 #6); the line's text is the thing's object id, to find it.</summary>
     Built,
+
+    /// <summary>
+    /// A hint that became a line (A1684): the text is its kind (question, help, note), the words are
+    /// <see cref="LogLine.Key"/> with <see cref="LogLine.Args"/>; the hint box keeps only knocks and calls for help.
+    /// </summary>
+    Hint,
+
+    /// <summary>An entry of the chronicle (A1684, B2607: discoveries, ideas, births): the text is its kind id.</summary>
+    Chronicle,
 }
 
 /// <summary>A line of the conversation log.</summary>
@@ -37,7 +46,16 @@ public enum LogLineKind
 /// <param name="Text">The words, in the player's language (empty for <see cref="LogLineKind.NotUnderstood"/>).</param>
 /// <param name="Tick">When it was (last) said.</param>
 /// <param name="Count">How often the same was said in a row (Marcel W1696: "sie wiederholen auch immer dasselbe").</param>
-public sealed record LogLine(long Seq, string InhabitantId, LogLineKind Kind, string Text, long Tick, int Count);
+/// <param name="Key">A hint's text key, or a chronicle entry's (A1684); null for the conversation's own lines.</param>
+/// <param name="Args">Its placeholder values (names already filled in).</param>
+/// <param name="LookAt">Inhabitant a click leads to, if not <paramref name="InhabitantId"/> (a hint without one).</param>
+public sealed record LogLine(long Seq, string InhabitantId, LogLineKind Kind, string Text, long Tick, int Count, string? Key = null, IReadOnlyDictionary<string, string>? Args = null, string? LookAt = null)
+{
+    /// <summary>Whether two lines say the same (kind, words, key and values): the second counts up the first.</summary>
+    public bool SaysTheSameAs(LogLine other) =>
+        other is not null && other.Kind == Kind && other.Text == Text && other.Key == Key
+        && (Args ?? new Dictionary<string, string>()).OrderBy(a => a.Key, StringComparer.Ordinal).SequenceEqual((other.Args ?? new Dictionary<string, string>()).OrderBy(a => a.Key, StringComparer.Ordinal));
+}
 
 /// <summary>
 /// The conversation log (Marcel W1696): who said or thought what, newest first, the readable source while
@@ -104,11 +122,52 @@ public sealed class ConversationLog
         }
     }
 
-    private void Add(string inhabitantId, LogLineKind kind, string text, long tick)
+    /// <summary>
+    /// A hint becomes a line (A1684): <paramref name="kindId"/> is its kind for the categories (question, help, note),
+    /// <paramref name="key"/> and <paramref name="args"/> its words; the same hint again counts up.
+    /// </summary>
+    public void AddHint(string? inhabitantId, string kindId, string key, IReadOnlyDictionary<string, string> args, long tick, string? lookAt = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(kindId);
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(args);
+        Add(new LogLine(0, inhabitantId ?? string.Empty, LogLineKind.Hint, kindId, tick, 1, key, args, lookAt));
+    }
+
+    /// <summary>
+    /// The chronicle's new entries become lines (A1684, B2607), oldest first; <paramref name="newest"/> are the book's
+    /// entries newest first, <paramref name="count"/> of them new. The kind "built" is left out: the log has its own
+    /// line for it, which leads the camera to the thing.
+    /// </summary>
+    public void AddChronicle(IReadOnlyList<ChronicleEntry> newest, int count, Func<ChronicleEntry, (string TextKey, IReadOnlyDictionary<string, string> Args)> line)
+    {
+        ArgumentNullException.ThrowIfNull(newest);
+        ArgumentNullException.ThrowIfNull(line);
+        for (var i = Math.Min(count, newest.Count) - 1; i >= 0; i--)
+        {
+            var entry = newest[i];
+            if (entry.Kind.Id == "built")
+            {
+                continue;
+            }
+
+            var (key, args) = line(entry);
+            Add(new LogLine(0, entry.InhabitantId, LogLineKind.Chronicle, entry.Kind.Id, entry.Tick, 1, key, args, entry.TargetId is { } target && entry.Kind.Params.Contains("other") ? target : null));
+        }
+    }
+
+    private void Add(string inhabitantId, LogLineKind kind, string text, long tick) =>
+        Add(new LogLine(0, inhabitantId, kind, text, tick, 1));
+
+    private void Add(LogLine line)
+    {
+        var inhabitantId = line.InhabitantId;
+        var kind = line.Kind;
+        var text = line.Text;
+        var tick = line.Tick;
         Version++;
         var last = _lines.FindLastIndex(l => l.InhabitantId == inhabitantId);
-        if (last >= 0 && _lines[last].Kind == kind && _lines[last].Text == text)
+        if (last >= 0 && _lines[last].SaysTheSameAs(line))
         {
             // Said again: one line with a count, moved to the top.
             var again = _lines[last] with { Seq = ++_seq, Tick = tick, Count = _lines[last].Count + 1 };
@@ -117,7 +176,7 @@ public sealed class ConversationLog
             return;
         }
 
-        _lines.Add(new LogLine(++_seq, inhabitantId, kind, text, tick, 1));
+        _lines.Add(line with { Seq = ++_seq, InhabitantId = inhabitantId, Kind = kind, Text = text, Tick = tick, Count = 1 });
         if (_lines.Count > _capacity)
         {
             _lines.RemoveAt(0);
