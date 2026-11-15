@@ -49,6 +49,23 @@ public sealed class DialogueTests : IDisposable
     }
 
     [Fact]
+    public void ASpeakerCarriesWhatItKnowsAboutWhatItSeesAsTheDeciderSeesIt()
+    {
+        // Review GW2 #483: without its knowledge the two would have nothing they learned to talk about.
+        var (host, port) = World();
+        var joro = host.Inhabitants.Get("inh-000001");
+        host.Objects.Spawn("red_berry", new Position(joro.Position.X + 1, joro.Position.Z));
+        joro.Beliefs.Set("red_berry", "edible", true, 0.8, KnowledgeSources.Experienced, null, host.World.Tick);
+
+        Talk(host, "inh-000001", "inh-000002");
+
+        var job = Assert.Single(port.Dialogue);
+        var joroState = job.Payload.Dialogue!.Speakers.First().Inhabitant;
+        Assert.Contains(joroState.Knowledge, k => k.Subject.Id == "red_berry" && k.Property == "edible");
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[job.RequestId]));
+    }
+
+    [Fact]
     public void OnlyOneTalkWithWordsPerPairWithinTheDataHours()
     {
         var (host, port) = World();

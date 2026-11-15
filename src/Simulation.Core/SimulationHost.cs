@@ -589,7 +589,11 @@ public sealed class SimulationHost
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
         // become said events; no effect on the world. Dormant without a job port or without the data's block.
-        var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale) { ValidateRequests = options.ValidateRequests };
+        var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale)
+        {
+            ValidateRequests = options.ValidateRequests,
+            PerceivedTypes = decisions.PerceivedTypes,
+        };
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.

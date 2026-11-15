@@ -119,6 +119,12 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Open jobs, in id order.</summary>
     public IEnumerable<DialogueJob> Jobs => _jobs.Values;
 
+    /// <summary>
+    /// The types an inhabitant perceives, as the decider sees them (review GW2 #483): its knowledge in the job is
+    /// taken about these, so the two can talk about what they know; null = none (tests).
+    /// </summary>
+    public Func<Inhabitant, IReadOnlyList<string>>? PerceivedTypes { get; set; }
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
@@ -238,10 +244,13 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
         _jobs[requestId] = new DialogueJob(requestId, speaker.Id, listener.Id, action, worldEvent.Tick, _settings.MaxWords, DisplayLocale.ToLowerInvariant());
     }
 
-    /// <summary>One speaker as the service sees it: its state, and the name it learned for the other (else none - then "du").</summary>
+    /// <summary>
+    /// One speaker as the service sees it: its state as the decider builds it - knowledge about what it perceives, its
+    /// own names for things and needs, its doubts - and the name it learned for the other (else none - then "du").
+    /// </summary>
     private DialogueSpeaker Speaker(Inhabitant who, Inhabitant other) => new()
     {
-        Inhabitant = InhabitantStates.Of(who, _knowledge, [], [other.Id]),
+        Inhabitant = InhabitantStates.Of(who, _knowledge, PerceivedTypes?.Invoke(who) ?? [], [other.Id], _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
         CallsOther = who.KnownNames.Contains(other.Id) && !string.IsNullOrWhiteSpace(other.Name) ? new LocalizedName { De = other.Name, En = other.Name } : null,
         LastThought = null,
     };
