@@ -62,6 +62,12 @@
     "max_tenth_c": 260,
     "band_tenth_c": 30, "individual_shift_tenth_c": 20,
     "cold_loss_per_hour_per_degree": 0.0001,
+    "cold_loss_table": [
+      { "degrees": 2, "per_hour": 0.01 },
+      { "degrees": 5, "per_hour": 0.03 },
+      { "degrees": 10, "per_hour": 0.06 },
+      { "degrees": 15, "per_hour": 0.08 }
+    ],
     "heat_loss_per_hour_per_degree": 0.001,
     "recover_per_hour": 0.05,
     "floor": 0.3,

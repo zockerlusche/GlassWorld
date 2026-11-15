@@ -22,6 +22,31 @@ public sealed class ComfortZoneTests
     private static readonly ComfortZone Zone = Content.InhabitantModel.ComfortZone!;
     private static readonly string Need = Zone.Need;
 
+    /// <summary>The cold loss per hour at whole degrees below the zone: from the data's table (B2771), else per degree.</summary>
+    private static double ColdLoss(double degrees)
+    {
+        if (Zone.ColdLossTable is not { Count: > 0 } table)
+        {
+            return Zone.ColdLossPerHourPerDegree * degrees;
+        }
+
+        var points = table.OrderBy(p => p.Degrees).ToList();
+        if (degrees <= points[0].Degrees)
+        {
+            return points[0].PerHour * (points[0].Degrees == 0 ? 1 : degrees / points[0].Degrees);
+        }
+
+        for (var i = 1; i < points.Count; i++)
+        {
+            if (degrees <= points[i].Degrees)
+            {
+                return points[i - 1].PerHour + ((points[i].PerHour - points[i - 1].PerHour) * (degrees - points[i - 1].Degrees) / (points[i].Degrees - points[i - 1].Degrees));
+            }
+        }
+
+        return points[^1].PerHour;
+    }
+
     [Fact]
     public void TheNeedSinksBelowTheZoneByTheDegreesAndRecoversInside()
     {
@@ -36,14 +61,14 @@ public sealed class ComfortZoneTests
         inhabitant.Needs[Need] = 0.8;
         air = new Air(Zone.MinTenthC + shift - 50, false);
         world.Step();
-        var cold = 0.8 - PerTick(world, Decay) - PerTick(world, Zone.ColdLossPerHourPerDegree * 5);
+        var cold = 0.8 - PerTick(world, Decay) - PerTick(world, ColdLoss(5));
         Assert.Equal(cold, inhabitant.Needs[Need], 12);
 
         // Twice as far below costs twice as much.
         inhabitant.Needs[Need] = 0.8;
         air = new Air(Zone.MinTenthC + shift - 100, false);
         world.Step();
-        Assert.Equal(0.8 - PerTick(world, Decay) - PerTick(world, Zone.ColdLossPerHourPerDegree * 10), inhabitant.Needs[Need], 12);
+        Assert.Equal(0.8 - PerTick(world, Decay) - PerTick(world, ColdLoss(10)), inhabitant.Needs[Need], 12);
 
         // The edges belong to the zone: there it recovers, up to full and no further.
         foreach (var inside in new[] { Zone.MinTenthC + shift, Zone.MaxTenthC + shift })
@@ -85,7 +110,7 @@ public sealed class ComfortZoneTests
         var (world, inhabitants) = NewWorld(Content.InhabitantModel, () => air);
         var inhabitant = inhabitants.Get("inh-000001");
         air = new Air(Zone.MinTenthC + inhabitants.ComfortShiftOf(world.Seed, inhabitant.Id) - 100, true);
-        var loss = PerTick(world, Zone.ColdLossPerHourPerDegree * 10);
+        var loss = PerTick(world, ColdLoss(10));
 
         // Wet, but the action does not count: it has no factor in the data.
         inhabitant.Needs[Need] = 0.8;
