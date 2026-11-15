@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class HeadSymbol(BaseModel):
     model_config = ConfigDict(
@@ -446,6 +448,33 @@ class UiBarMood(BaseModel):
     kind: Kind = Field(..., description='uplift: much is good; burden: much is bad.')
 
 
+class UiLogCategory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    kinds: list[common_schema.VocabId] = Field(..., min_length=1)
+    highlight: bool
+
+
+class Log(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    corner_lines: int = Field(
+        ...,
+        description='Lines the closed log shows (newest first); more on a click.',
+        ge=1,
+        le=20,
+    )
+    categories: list[UiLogCategory] = Field(..., min_length=1)
+
+
 class Zones(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -620,6 +649,10 @@ class UiTokens(BaseModel):
     window: UiWindowTokens
     button: UiButtonTokens
     table: UiTableTokens
+    log: Log = Field(
+        ...,
+        description="The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.",
+    )
     toast: UiToastTokens
     durations_ms: list[UiDuration] = Field(
         ...,

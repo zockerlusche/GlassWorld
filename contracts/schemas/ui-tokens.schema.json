@@ -18,6 +18,7 @@
     "window",
     "button",
     "table",
+    "log",
     "toast",
     "durations_ms",
     "palettes",
@@ -79,6 +80,30 @@
     },
     "table": {
       "$ref": "#/$defs/UiTableTokens"
+    },
+    "log": {
+      "description": "The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corner_lines",
+        "categories"
+      ],
+      "properties": {
+        "corner_lines": {
+          "description": "Lines the closed log shows (newest first); more on a click.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/UiLogCategory"
+          }
+        }
+      }
     },
     "toast": {
       "$ref": "#/$defs/UiToastTokens"
@@ -935,6 +960,32 @@
             "uplift",
             "burden"
           ]
+        }
+      }
+    },
+    "UiLogCategory": {
+      "description": "A category of log lines (B2607): its id (text key ui.log.category.<id>), the line kinds in it, and whether its lines stand out.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kinds",
+        "highlight"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "highlight": {
+          "type": "boolean"
         }
       }
     }

@@ -483,6 +483,24 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A category of log lines (B2607): its id (text key ui.log.category.&lt;id&gt;), the line kinds in it, and whether its lines stand out.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiLogCategory
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kinds")]
+        public System.Collections.Generic.ICollection<string> Kinds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("highlight")]
+        public bool Highlight { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -542,6 +560,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("table")]
         public UiTableTokens Table { get; set; } = new UiTableTokens();
+
+        /// <summary>
+        /// The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log")]
+        public Log Log { get; set; } = new Log();
 
         [System.Text.Json.Serialization.JsonPropertyName("toast")]
         public UiToastTokens Toast { get; set; } = new UiToastTokens();
@@ -790,6 +814,21 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("burden")]
         Burden = 1,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Log
+    {
+
+        /// <summary>
+        /// Lines the closed log shows (newest first); more on a click.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("corner_lines")]
+        public int CornerLines { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("categories")]
+        public System.Collections.Generic.ICollection<UiLogCategory> Categories { get; set; } = new System.Collections.ObjectModel.Collection<UiLogCategory>();
 
     }
 

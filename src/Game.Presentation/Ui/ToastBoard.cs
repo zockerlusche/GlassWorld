@@ -64,8 +64,10 @@ public sealed class ToastBoard
     public void Push(ToastMessage message, bool fastForward)
     {
         ArgumentNullException.ThrowIfNull(message);
-        // A hint with a text for "several" is one hint per group at any speed (one per inhabitant, D705 A4).
-        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting || message.ManyKey is not null;
+        // A hint with a text for "several" is one hint per group at any speed (one per inhabitant, D705 A4); the very
+        // same hint again (Dara knocks twice) counts up at any speed too (TL #25508).
+        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting || message.ManyKey is not null
+            || _visible.Concat(_waiting).Any(e => Same(e.Message, message));
         if (bundle)
         {
             var same = _visible.Concat(_waiting).FirstOrDefault(e => GroupOf(e.Message) == GroupOf(message));
@@ -81,6 +83,11 @@ public sealed class ToastBoard
         _waiting.Enqueue(new Entry(_next++, message));
         Fill();
     }
+
+    /// <summary>Whether two hints say the very same: text, values and group.</summary>
+    private static bool Same(ToastMessage a, ToastMessage b) =>
+        a.TextKey == b.TextKey && a.Group == b.Group && a.LookAt == b.LookAt
+        && a.Args.OrderBy(x => x.Key, StringComparer.Ordinal).SequenceEqual(b.Args.OrderBy(x => x.Key, StringComparer.Ordinal));
 
     /// <summary>Advances real time by <paramref name="seconds"/>; the hovered hint does not age.</summary>
     public void Advance(double seconds, long? hoveredId)
