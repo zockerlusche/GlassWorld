@@ -70,7 +70,7 @@ internal sealed record EventFilter(bool All, IReadOnlySet<string> Kinds)
 internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDirectory, string? SavePath, bool Quiet, string? Trace, long TraceDays, string? Preset)
 {
     /// <summary>Usage line for errors.</summary>
-    public const string Usage = "Use --seed N --days N --content DIR --save FILE --preset P --climate C --quiet --trace ID --trace-days N --ai live|mock --tick-ms N --until KIND[:COUNT] --events KIND,...|all --log-json FILE --learning-log DIR.";
+    public const string Usage = "Use --seed N --days N --content DIR --save FILE --preset P --climate C --quiet --trace ID --trace-days N --ai live|mock --tick-ms N --until KIND[:COUNT] --events KIND,...|all --log-json FILE --learning-log DIR --run-trace DIR.";
 
     /// <summary>Decider: mock (default) or the live AI service.</summary>
     public AiMode Ai { get; init; } = AiMode.Mock;
@@ -93,6 +93,9 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
     /// <summary>A1620: folder for the learning log's day files (Markdown), or null for none.</summary>
     public string? LearningLogFolder { get; init; }
 
+    /// <summary>A1719 (B2767): world folder for the run trace (JSON lines per day under its trace folder), or null for none.</summary>
+    public string? RunTraceFolder { get; init; }
+
     /// <summary>Parses the arguments; throws <see cref="ArgumentException"/> on unknown or bad arguments.</summary>
     /// <param name="args">Command line arguments.</param>
     /// <param name="findContent">Finds the content folder when <c>--content</c> is missing.</param>
@@ -105,6 +108,7 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
         string? save = null;
         string? climate = null;
         string? learningLog = null;
+        string? runTrace = null;
         var quiet = false;
         string? trace = null;
         long traceDays = 1;
@@ -144,6 +148,9 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
                     break;
                 case "--learning-log":
                     learningLog = Value(args, ref i);
+                    break;
+                case "--run-trace":
+                    runTrace = Value(args, ref i);
                     break;
                 case "--trace-days":
                     traceDays = long.Parse(Value(args, ref i), CultureInfo.InvariantCulture);
@@ -187,6 +194,7 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
             LogJsonPath = logJson,
             Climate = climate,
             LearningLogFolder = learningLog,
+            RunTraceFolder = runTrace,
         };
     }
 

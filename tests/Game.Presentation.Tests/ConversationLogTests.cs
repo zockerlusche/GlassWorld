@@ -42,6 +42,20 @@ public sealed class ConversationLogTests
     }
 
     [Fact]
+    public void ABuiltThingIsALineThatKnowsTheThing()
+    {
+        // A1715 (D1112 #6): "Elin built a basket" in the log, with the thing's object id to take the camera there.
+        var log = new ConversationLog(10);
+        log.Add([
+            new WorldEvent(Simulation.Inventions.InventionSystem.Built, 9, "i-1", null, "obj-001348"),
+            new WorldEvent(Simulation.Inventions.InventionSystem.Built, 9, "i-2", null, null),
+        ]);
+
+        var line = Assert.Single(log.Newest());
+        Assert.Equal(("i-1", LogLineKind.Built, "obj-001348"), (line.InhabitantId, line.Kind, line.Text));
+    }
+
+    [Fact]
     public void KeepsOnlyTheNewestLines()
     {
         var log = new ConversationLog(2);

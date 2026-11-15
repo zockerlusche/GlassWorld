@@ -25,6 +25,9 @@ public enum LogLineKind
 
     /// <summary>An inhabitant knocked at the glass (B8 R17, B2608): it found nothing for a need and calls the player.</summary>
     Knock,
+
+    /// <summary>An inhabitant finished building a thing (A1715, D1112 #6); the line's text is the thing's object id, to find it.</summary>
+    Built,
 }
 
 /// <summary>A line of the conversation log.</summary>
@@ -82,13 +85,21 @@ public sealed class ConversationLog
                 "not_understood" => LogLineKind.NotUnderstood,
                 "no_answer" => LogLineKind.NoAnswer,
                 Simulation.Player.MailboxSystem.MailArrived when e.Detail == Simulation.Player.MailboxSystem.KnockKind => LogLineKind.Knock,
+                Simulation.Inventions.InventionSystem.Built when e.TargetId is { Length: > 0 } => LogLineKind.Built,
                 _ => null,
             };
             if (kind is { } k)
             {
                 // The text of "no answer" is a key for the bubble, not words, and a knock has none: the log has
                 // its own sentence for both.
-                Add(e.InhabitantId, k, k is LogLineKind.NoAnswer or LogLineKind.Knock or LogLineKind.Declined ? string.Empty : e.Text ?? string.Empty, e.Tick);
+                // A built thing keeps its object id, so the line can lead the camera to it (A1715).
+                var text = k switch
+                {
+                    LogLineKind.Built => e.TargetId!,
+                    LogLineKind.NoAnswer or LogLineKind.Knock or LogLineKind.Declined => string.Empty,
+                    _ => e.Text ?? string.Empty,
+                };
+                Add(e.InhabitantId, k, text, e.Tick);
             }
         }
     }

@@ -1515,6 +1515,10 @@
       "text": "Wild grain"
     },
     {
+      "key": "msg.hint.knock",
+      "text": "{name} knocks at the glass."
+    },
+    {
       "key": "msg.hint.help_needed",
       "text": "{name} finds nothing for {need}."
     },
@@ -2853,6 +2857,10 @@
     {
       "key": "msg.hint.selfcheck",
       "text": "An AI needs you. The settings say under \"AI\" what to do."
+    },
+    {
+      "key": "ui.log.built",
+      "text": "{name} built {thing}."
     },
     {
       "key": "ui.log.knock",

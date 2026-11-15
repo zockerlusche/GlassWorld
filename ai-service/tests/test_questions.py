@@ -516,3 +516,25 @@ def test_an_empty_unnamed_subject_setting_is_an_error_not_a_silent_name(
     )
     with pytest.raises(ContextError, match="unnamed_subject"):
         build_values(JOB, broken, _vocab(settings))
+
+
+def test_an_action_word_without_timing_is_no_idea(tmp_path: Path) -> None:
+    """R26 (B9-1b, GW1 #439): a word in the action vocabulary that the core cannot carry out yet
+    (no timing in content/effects) is not offered to the asker or the inventor."""
+    (tmp_path / "vocabulary").mkdir()
+    (tmp_path / "effects").mkdir()
+    actions = json.loads((REPO / "content/vocabulary/actions.json").read_text(encoding="utf-8"))
+    actions["entries"].append(
+        {"id": "hum_test_word", "description": "Hum quietly.", "target": "none"}
+    )
+    (tmp_path / "vocabulary" / "actions.json").write_text(json.dumps(actions), encoding="utf-8")
+    (tmp_path / "effects" / "a.json").write_text(
+        json.dumps({"actions": [{"action": "eat"}, {"action": "inspect"}]}), encoding="utf-8"
+    )
+    vocab = Vocabulary.load(tmp_path / "vocabulary")
+    assert vocab.general_ids("action") == ["eat", "inspect"]
+    assert "hum_test_word" in vocab.ids("action")  # still a known word, only not offered
+
+    real = Vocabulary.load(REPO / "content/vocabulary")
+    assert real.timed_actions is not None
+    assert set(real.general_ids("action")) <= real.timed_actions

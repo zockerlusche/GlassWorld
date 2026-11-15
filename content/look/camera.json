@@ -21,6 +21,7 @@
   "key_ease_in_s": 0.22,
   "key_ease_out_s": 0.18,
   "smoothing": 0.18,
+  "thing_focus_distance_m": 10.0,
   "follow_distance_m": 28.0,
   "bounds_margin_m": 40.0,
   "pick_radius_m": 1.5,

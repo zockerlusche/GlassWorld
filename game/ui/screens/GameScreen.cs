@@ -1940,10 +1940,16 @@ public partial class GameScreen : CanvasLayer
                 LogLineKind.NoAnswer => "ui.log.no_answer",
                 LogLineKind.Declined => "ui.log.declined",
                 LogLineKind.Knock => "ui.log.knock",
+                LogLineKind.Built => "ui.log.built",
                 _ when line.Text.Length > 0 => "ui.log.not_understood_text",
                 _ => "ui.log.not_understood",
             };
-            var text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text });
+            var thing = line.Kind == LogLineKind.Built
+                ? _feed?.InventionNameOf(line.Text) is { } built
+                    ? TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? built.En : built.De
+                    : Tr("ui.chronicle.something")
+                : string.Empty;
+            var text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text, ["thing"] = thing });
             if (line.Count > 1)
             {
                 text = TextFill.Fill(Tr("ui.log.again"), new Dictionary<string, string> { ["line"] = text, ["count"] = Number(line.Count) });
@@ -1959,7 +1965,17 @@ public partial class GameScreen : CanvasLayer
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             };
             var id = row.Id;
-            button.Pressed += () => ShowInhabitant(id);
+            var builtId = line.Kind == LogLineKind.Built ? line.Text : null;
+            // A1715: a built thing's line takes the camera to the thing (if it is still there), else to the inhabitant.
+            button.Pressed += () =>
+            {
+                if (builtId is not null && _presenter?.FocusThing(builtId) == true)
+                {
+                    return;
+                }
+
+                ShowInhabitant(id);
+            };
             _logList.AddChild(button);
         }
     }
