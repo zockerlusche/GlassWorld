@@ -450,6 +450,7 @@ public sealed class SimulationHost
 
             // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
             durability.QualityOf = inventions.QualityOfBuilt;
+            durability.MakerOf = typeId => inventions.Builds.FirstOrDefault(b => string.Equals(b.TypeId, typeId, StringComparison.Ordinal))?.InhabitantId ?? inventions.Invention(typeId)?.InhabitantId;
             durability.Report = inhabitants.Report;
             inhabitants.Reported += durability.Observe;
         }

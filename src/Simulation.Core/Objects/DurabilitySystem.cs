@@ -81,6 +81,9 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
     /// <summary>A1576 (H2): the quality tier of a made thing's type (build quality), or null.</summary>
     public Func<string, string?>? QualityOf { get; set; }
 
+    /// <summary>A1576 (review GW1 #497): who made a thing of this type (its builder, else its inventor), or null.</summary>
+    public Func<string, string?>? MakerOf { get; set; }
+
     /// <summary>A1576 (H2): where the end of a made or carried thing is told (spoiled, broke); null = nowhere.</summary>
     public Action<Inhabitants.WorldEvent>? Report { get; set; }
 
@@ -327,9 +330,11 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
         var made = _data.EndEventIf is { } madeProperty && _truth.Contains(thing.TypeId) && _truth.TrueProperties(thing.TypeId).Contains(madeProperty);
         var endEvent = ClassOf(thing.TypeId)?.EndEvent;
         _objects.Remove(thing.Id);
-        if (endEvent is not null && (made || holder is not null))
+        // Told to whoever holds or wears it, else to its maker; with neither it ends in silence (review GW1 #497).
+        var told = holder ?? (made ? MakerOf?.Invoke(thing.TypeId) : null);
+        if (endEvent is not null && told is not null)
         {
-            Report?.Invoke(new Inhabitants.WorldEvent(endEvent, world.Tick, holder ?? string.Empty, null, thing.Id) { TargetType = thing.TypeId });
+            Report?.Invoke(new Inhabitants.WorldEvent(endEvent, world.Tick, told, null, thing.Id) { TargetType = thing.TypeId });
         }
     }
 
