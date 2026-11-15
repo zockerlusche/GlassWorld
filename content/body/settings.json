@@ -568,6 +568,7 @@
     "cool_tenth_c": 40,
     "block_radius_cm": 300
   },
+  "stay_sheltered": { "leaving_factor_permille": 300, "in_precipitation": true, "at_levels": ["cold"] },
   "others_warmth": {
     "tenth_c": 15,
     "radius_cm": 150

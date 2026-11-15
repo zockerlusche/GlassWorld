@@ -258,6 +258,13 @@ namespace GlassWorld.Contracts
         public Wind? Wind { get; set; } = default!;
 
         /// <summary>
+        /// A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stay_sheltered")]
+        public StaySheltered? StaySheltered { get; set; } = default!;
+
+        /// <summary>
         /// B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -351,6 +358,21 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("block_radius_cm")]
         public int BlockRadiusCm { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StaySheltered
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("leaving_factor_permille")]
+        public int LeavingFactorPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("in_precipitation")]
+        public bool? InPrecipitation { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("at_levels")]
+        public System.Collections.Generic.ICollection<string>? AtLevels { get; set; } = default!;
 
     }
 
