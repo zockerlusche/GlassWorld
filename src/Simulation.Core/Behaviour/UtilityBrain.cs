@@ -169,6 +169,13 @@ public sealed class UtilityBrain
                 continue;
             }
 
+            // A1726: a known_only consideration suggests its action only on what the inhabitant believes has the property.
+            if (targetTypeId is not null && c.KnownOnly == true && c.TargetProperty is { } known && BelievedFactor(inhabitant, targetTypeId, known) <= 0)
+            {
+                needBased = true;
+                continue;
+            }
+
             // A consideration that yields to the needs (yields_to_needs, B2-6 R14) counts like a need-based
             // one: it suggests its action only while the needs leave room for it.
             var yields = c.YieldsToNeeds ?? false;
@@ -205,14 +212,16 @@ public sealed class UtilityBrain
             || (inhabitant.Beliefs.TryGet(typeId, p, out var belief) && belief.Value));
 
     /// <summary>
-    /// Whether an action is about made things (D999): it has considerations and every one asks for a made property
-    /// (target_property or requires_also among <see cref="MadeProperties"/>) - 'use' in the shipped data.
+    /// Whether an action is about made things (D999): one of its considerations asks for a made property
+    /// (target_property or requires_also among <see cref="MadeProperties"/>) - 'use' in the shipped data. Since A1726
+    /// 'use' is also about what shelters by nature (a rock niche); which things a free moment offers is still
+    /// <see cref="BelievesMadeFor"/>, so only made things.
     /// </summary>
     public bool IsAboutMadeThings(string action)
     {
         var of = _considerations.Where(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal)).ToList();
         return MadeProperties.Count > 0 && of.Count > 0
-            && of.All(c => (c.Data.TargetProperty is { } p && MadeProperties.Contains(p)) || (c.Data.RequiresAlso is { } q && MadeProperties.Contains(q)));
+            && of.Any(c => (c.Data.TargetProperty is { } p && MadeProperties.Contains(p)) || (c.Data.RequiresAlso is { } q && MadeProperties.Contains(q)));
     }
 
     /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
@@ -410,7 +419,7 @@ public sealed class UtilityBrain
 
             for (var type = 0; type < typeIds.Count; type++)
             {
-                perType[type] = BeliefFactor(inhabitant, typeIds[type], c.TargetProperty) * AvoidFactor(inhabitant, typeIds[type], c.AvoidProperties) * AlsoFactor(inhabitant, typeIds[type], c.RequiresAlso);
+                perType[type] = (c.KnownOnly == true ? BelievedFactor(inhabitant, typeIds[type], c.TargetProperty) : BeliefFactor(inhabitant, typeIds[type], c.TargetProperty)) * AvoidFactor(inhabitant, typeIds[type], c.AvoidProperties) * AlsoFactor(inhabitant, typeIds[type], c.RequiresAlso);
             }
 
             var bestInSight = 0.0;
@@ -533,10 +542,17 @@ public sealed class UtilityBrain
         }
     }
 
+    /// <summary>A1726 (known_only): the confidence that a type has a property, 0 when the inhabitant believes nothing about it.</summary>
+    public static double BelievedFactor(Inhabitant inhabitant, string typeId, string property)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return inhabitant.Beliefs.TryGet(typeId, property, out var belief) && belief.Value ? belief.Confidence : 0.0;
+    }
+
     /// <summary>
     /// Belief that an object of <paramref name="typeId"/> has <paramref name="property"/>: the confidence
     /// of a positive belief, 0 for a negative belief, and the data value for "not known yet" (trying
-    /// unknown things is how inhabitants learn without prior knowledge).
+    /// unknown things is how inhabitants learn without prior knowledge); a made property not known yet is 0.
     /// </summary>
     public double BeliefFactor(Inhabitant inhabitant, string typeId, string property)
     {

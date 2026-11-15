@@ -119,6 +119,10 @@ class Consideration(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     target_property: common_schema.VocabId | None
+    known_only: bool | None = Field(
+        None,
+        description='A1726: only things the inhabitant believes have the target property count - an unknown one gets no unknown-target belief and does not suggest the action (e.g. the cold draws only to what one knows shelters). Omitted = false.',
+    )
     requires_also: common_schema.VocabId | None = Field(
         None,
         description='B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.',

@@ -77,6 +77,7 @@ public sealed partial class RequestValidationTests
         ("Night/ChronicleNightSystem.cs", 1, "ChronicleNightTests (generation-job: chronicle day narrative)"),
         ("Inventions/InventionSystem.cs", 1, "InventionTests.ALastingLackBecomesAnInventionJobWithTheInhabitantsViewOfTheMaterials (generation-job: invention)"),
         ("Objects/ProcessSystem.cs", 1, "ProcessTests.AnUnknownTryIsJudgedOnceAndTheAnswerBecomesWorldTruth (generation-job: process, combine trial B2687 K2)"),
+        ("Inhabitants/DialogueSystem.cs", 1, "DialogueTests.StartingToTalkSendsOneDialogueJobWithBothSpeakersTheOneWhoBeganFirst (generation-job: dialogue, A1735)"),
         ("Inventions/InventionSystem.Building.cs", 3, "BuildingTests: AnApprovedInventionAsksForAPlanWithTheConstructionKit (build plan), AFinishedInventionThatNeedsASoundGetsASoundJobAndKeepsTheFile (sound), ANewInventionAsksForItsIconAndKeepsThePicture (image, A1564)"),
     ];
 
