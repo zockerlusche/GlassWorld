@@ -236,6 +236,14 @@ public static class UiLayoutCheck
         var ask = TextFill.Fill(host.Tr(QuestionKeys.CardAsk("unknown_object")), new Dictionary<string, string> { ["thing"] = host.Tr("vocab.object.dry_wood") });
         var talkLine = TextFill.Fill(host.Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = longName, ["text"] = host.Tr("ui.question.reason.unknown_inhabitant.female") });
         var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, new[] { host.Tr("ui.card.talk_hint"), host.Tr("ui.card.whisper_hint") }.MaxBy(h => h.Length)!, [.. CardBarKeys]);
+
+        // A1736 (TL #26282): the window and the card on the right stand on the world's dark ground as in the game.
+        var windowTheme = UiTheme.BuildWindowOnWorld(style);
+        foreach (var onWorld in new[] { window, card })
+        {
+            onWorld.ThemeTypeVariation = UiTheme.WorldPanel;
+            onWorld.Theme = windowTheme;
+        }
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
@@ -299,6 +307,8 @@ public static class UiLayoutCheck
             }
 
             problems.AddRange(WorldTextProblems(style, "log", log));
+            problems.AddRange(WorldTextProblems(style, rightName, right));
+            problems.AddRange(FramedLabelProblems(rightName, right));
             problems.AddRange(WorldTextProblems(style, "time block", corner));
 
             // The talk field shows its whole hint (D1060 find 7: 'Was mö…' in a card too narrow).
@@ -325,6 +335,32 @@ public static class UiLayoutCheck
 
         stage.QueueFree();
         return problems;
+    }
+
+    /// <summary>
+    /// A1736 (review GW3 #470): the window theme makes every label light. A label that stands inside a light framed part
+    /// (a panel with its own opaque fill) would be light on light - each visible label is measured against the fill of
+    /// the nearest framed parent it really stands on, not against the window's dark ground.
+    /// </summary>
+    private static IEnumerable<string> FramedLabelProblems(string name, Control window)
+    {
+        static RgbaColor Rgba(Color c) => new(c.R, c.G, c.B, c.A);
+        foreach (var label in window.FindChildren("*", nameof(Label), true, false).OfType<Label>().Where(l => l.IsVisibleInTree() && l.Text.Length > 0))
+        {
+            for (var parent = label.GetParent() as Control; parent is not null && parent != window; parent = parent.GetParent() as Control)
+            {
+                if (parent is PanelContainer panel && panel.GetThemeStylebox("panel") is StyleBoxFlat { BgColor.A: > 0.5f } fill)
+                {
+                    var ratio = RgbaColor.Contrast(Rgba(label.GetThemeColor("font_color")), Rgba(fill.BgColor with { A = 1 }));
+                    if (ratio < UiStandardRules.TextContrast)
+                    {
+                        yield return $"{name}: label '{label.Text}' on the fill of {parent.Name} has contrast {ratio:0.00}, needs {UiStandardRules.TextContrast:0.0}";
+                    }
+
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
