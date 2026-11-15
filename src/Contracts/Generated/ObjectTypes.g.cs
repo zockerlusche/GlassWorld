@@ -142,6 +142,48 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tool_value_permille")]
         public int? ToolValuePermille { get; set; } = default!;
 
+        /// <summary>
+        /// How well one holds on to it, in permille (D1105: climbing, standing on it); a smooth trunk is low.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("grip_permille")]
+        public int? GripPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Whether birds may nest in it (D1105 H4: nests only from the animal stock, never placed for a purpose).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("nest_possible")]
+        public bool? NestPossible { get; set; } = default!;
+
+        /// <summary>
+        /// How long a thing is, in centimetres (D1105: leaning it against something, reach).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("length_cm")]
+        public int? LengthCm { get; set; } = default!;
+
+        /// <summary>
+        /// Density against water, in permille (D1105 W1: below 1000 it floats).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("density_permille")]
+        public int? DensityPermille { get; set; } = default!;
+
+        /// <summary>
+        /// What it carries before it gives way, in kilograms (D1105 S1: stacking, stepping on it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("load_kg")]
+        public int? LoadKg { get; set; } = default!;
+
+        /// <summary>
+        /// How heavy it is, in kilograms (D1105: carrying, stacking).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("weight_kg")]
+        public double? WeightKg { get; set; } = default!;
+
     }
 
     /// <summary>

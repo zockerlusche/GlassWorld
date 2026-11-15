@@ -1499,6 +1499,14 @@
       "text": "Ash"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birch"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Young tree"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Fieldstone"
     },

@@ -1499,6 +1499,14 @@
       "text": "Asche"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birke"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Junger Baum"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
