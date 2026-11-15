@@ -125,7 +125,7 @@ public sealed partial class InhabitantsSystem
     }
 
     /// <summary>B5 R5: the loss per hour from a table over whole degrees outside the zone (linear between points).</summary>
-    private static double FromTable(ICollection<ComfortLossPoint> table, double degrees)
+    internal static double FromTable(ICollection<ComfortLossPoint> table, double degrees)
     {
         var points = table.OrderBy(p => p.Degrees).ToList();
         if (degrees <= points[0].Degrees)

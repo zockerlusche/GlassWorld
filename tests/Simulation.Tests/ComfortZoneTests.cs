@@ -48,6 +48,19 @@ public sealed class ComfortZoneTests
     }
 
     [Fact]
+    public void TheColdLossFollowsTheTablePoints()
+    {
+        // Fixed expectations (review GW3 #453) for the core's table and this test's helper alike: the table's
+        // points, linear between them, the last value beyond, and from nothing to the first point.
+        var table = Zone.ColdLossTable!;
+        foreach (var (degrees, perHour) in new[] { (2.0, 0.01), (5.0, 0.03), (10.0, 0.06), (15.0, 0.08), (25.0, 0.08), (7.5, 0.045), (1.0, 0.005) })
+        {
+            Assert.Equal(perHour, InhabitantsSystem.FromTable(table, degrees), 9);
+            Assert.Equal(perHour, ColdLoss(degrees), 9);
+        }
+    }
+
+    [Fact]
     public void TheNeedSinksBelowTheZoneByTheDegreesAndRecoversInside()
     {
         var air = new Air(0, false);
@@ -64,7 +77,7 @@ public sealed class ComfortZoneTests
         var cold = 0.8 - PerTick(world, Decay) - PerTick(world, ColdLoss(5));
         Assert.Equal(cold, inhabitant.Needs[Need], 12);
 
-        // Twice as far below costs twice as much.
+        // Ten degrees below costs what the table gives for ten (B2771), not simply twice the five.
         inhabitant.Needs[Need] = 0.8;
         air = new Air(Zone.MinTenthC + shift - 100, false);
         world.Step();
