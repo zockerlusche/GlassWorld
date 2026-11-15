@@ -93,7 +93,7 @@ public sealed class DecisionLog
         }
     }
 
-    /// <summary>The fingerprint of a JSON text (sha256 and length, itself JSON); a fingerprint stays as it is.</summary>
+    /// <summary>The fingerprint of a JSON text (sha256 of its UTF-8 bytes and its length in UTF-16 chars, itself JSON); a fingerprint stays as it is.</summary>
     public static string Compacted(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
