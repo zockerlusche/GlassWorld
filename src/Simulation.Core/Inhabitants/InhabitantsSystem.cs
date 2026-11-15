@@ -36,6 +36,18 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
     /// (W1696); null for every other event.
     /// </summary>
     public string? Outcome { get; init; }
+
+    /// <summary>
+    /// A1735: the talk between two inhabitants a said event belongs to (the id of its dialogue job), so the
+    /// game groups its turns and the listener looks at the speaker; null for every other event.
+    /// </summary>
+    public string? Conversation { get; init; }
+
+    /// <summary>A1735: the number of this turn in its talk (1 = the first), with <see cref="Turns"/>; null outside a talk.</summary>
+    public int? Turn { get; init; }
+
+    /// <summary>A1735: how many turns the talk has (all that passed the core's checks); null outside a talk.</summary>
+    public int? Turns { get; init; }
 }
 
 /// <summary>
