@@ -84,6 +84,10 @@ public partial class InventionsView : Node3D
         return true;
     }
 
+    /// <summary>A1684: the largest extent of a drawn thing as shown (with its scale), or 0 when it is not drawn here.</summary>
+    public double ShownExtent(string objectId) =>
+        _drawn.TryGetValue(objectId, out var drawn) ? LargestExtent(drawn.Node) * drawn.Node.Scale.X : 0;
+
     /// <summary>The largest extent of all parts of a drawing in its own space (not its scale), in metres.</summary>
     private static double LargestExtent(BuildPlanNode node)
     {
