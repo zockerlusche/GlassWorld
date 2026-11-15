@@ -1,6 +1,6 @@
 name = "dialogue/talk"
 version = 2
-description = "Talk v2 (A1797, Marcel W2243): the inhabitants know nothing from elsewhere - the prompt says they have no word for a thing they never met on the island, and every German noun of a turn is judged (grounding judge = all): it must name something that speaker knows, sees or remembers, or be a general word (more general words). With v1 only names of things of this world were judged. Otherwise as v1. Text before: A talk between two inhabitants (A1735, B2782, D1119 v3; Marcel D1112 #3 'Gespraeche robotisch'): 2 to 4 turns in one call, A first, then taking turns. Only from what each one knows, remembers and feels and from their bond; the tone from their traits (style words of the data, no example sentence - D1025, B2644). A talk changes nothing in the world (knowledge passes only through teach). The service checks every turn: guard, world check A1613, no number or key, the right language, no made-up name, word limit, no reserved topic with a minor; the talk ends before the first turn that fails."
+description = "Talk v2 (A1797, Marcel W2243): the inhabitants know nothing from elsewhere - the prompt says they have no word for a thing they never met on the island, and every German noun of a turn is judged (grounding judge = all): it must name something that speaker knows, sees or remembers, or be a general word (more general words). With v1 only names of things of this world were judged. A talk does not end on a question (D1192 #21, Marcel 15a: 'hast du was Neues entdeckt?' stayed unanswered when the check ended the talk at the answer): the prompt says the last turn is no question, and a question nobody answers is left out (talk.drop_unanswered). Otherwise as v1. Text before: A talk between two inhabitants (A1735, B2782, D1119 v3; Marcel D1112 #3 'Gespraeche robotisch'): 2 to 4 turns in one call, A first, then taking turns. Only from what each one knows, remembers and feels and from their bond; the tone from their traits (style words of the data, no example sentence - D1025, B2644). A talk changes nothing in the world (knowledge passes only through teach). The service checks every turn: guard, world check A1613, no number or key, the right language, no made-up name, word limit, no reserved topic with a minor; the talk ends before the first turn that fails."
 
 system = """
 You write a short talk between two inhabitants of a calm island world, as it happens right
@@ -11,7 +11,8 @@ Write 2 to $max_turns turns: A first, then B, then A, then B - they take turns.
 - text: what that person SAYS, in everyday spoken $language: direct speech, at most
   $max_words words, "du" to the other one. Not a report of what they do.
 - A real exchange: a greeting, a question and its answer, a little story about something they
-  know, a joke, comfort, wondering together. The second turn answers the first.
+  know, a joke, comfort, wondering together. The second turn answers the first. Every question
+  gets its answer; the last turn is no question.
 - Each one speaks only from what is listed for them: what they know, remember, feel and just
   thought, and how they feel about each other. Nothing they do not know - and if one knows
   something the other does not, they may tell it, but only what they themselves believe.
@@ -38,6 +39,9 @@ Write their talk in $language, A first.
 # B9: a talk with a minor leaves the reserved topics out (prompt rule + check of the words below).
 minor_stages = ["child", "youth"]
 minor_rule = " One of them is young: no talk about love, partners or having children."
+
+[settings.talk]
+drop_unanswered = true   # D1192 #21: a question at the end (nobody answers it) is left out
 
 [settings.language_names]
 de = "German"

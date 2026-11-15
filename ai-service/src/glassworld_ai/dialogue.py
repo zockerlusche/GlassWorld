@@ -346,6 +346,12 @@ def parse_dialogue(
                 "expression": turn["expression"],
             }
         )
+    # D1192 #21 (Marcel 15a, talk v2): a question nobody answers is left out - it happened when the
+    # check ended the talk at the answer, or when the model ended on a question.
+    if _table(settings or {}, "talk").get("drop_unanswered") is True:
+        while out and out[-1]["act"] == "ask":
+            dropped = out.pop()
+            notes.append(f"unanswered question left out: {dropped['text']['text']}")
     return {"turns": out}, notes
 
 
