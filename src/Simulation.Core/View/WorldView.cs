@@ -153,8 +153,8 @@ public static class WorldView
                 LifeStage = i.LifeStage,
                 AgeYears = i.AgeYears,
                 Worn = i.Worn,
-                // A1730 (review GW4): computed fresh, not from the felt cache of the inhabitant loop (#435).
-                ComfortLevel = inhabitants.ComfortLevelOf(world, i),
+                // A1730 (review GW4): fresh per tick, not from the felt cache of the inhabitant loop (#435), and once per tick (#467).
+                ComfortLevel = inhabitants.ComfortLevelForView(world, i),
             })],
             [.. objects.All],
             [.. inhabitants.Events]);
