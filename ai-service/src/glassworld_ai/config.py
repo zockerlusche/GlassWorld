@@ -152,6 +152,12 @@ class Settings(BaseSettings):
     content_dir: Path
     schemas_dir: Path
     log_dir: Path
+    sampling_seed_offset: int = Field(
+        default=0,
+        ge=0,
+        le=2_147_483_647,
+        description="Added to every model seed (R27: N runs of one world with other sampling).",
+    )
     lock_dir: Path
     sound_output_dir: Path = Field(description="Made sounds; the game copies them into the world.")
     model3d_image_dir: Path = Field(description="Pictures of image jobs (input of 3D jobs).")
