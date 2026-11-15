@@ -70,13 +70,20 @@ internal sealed record EventFilter(bool All, IReadOnlySet<string> Kinds)
 internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDirectory, string? SavePath, bool Quiet, string? Trace, long TraceDays, string? Preset)
 {
     /// <summary>Usage line for errors.</summary>
-    public const string Usage = "Use --seed N --days N --content DIR --save FILE --preset P --climate C --quiet --trace ID --trace-days N --ai live|mock --tick-ms N --until KIND[:COUNT] --events KIND,...|all --log-json FILE --learning-log DIR --run-trace DIR.";
+    public const string Usage = "Use --seed N --days N --content DIR --save FILE --preset P --climate C --quiet --trace ID --trace-days N --ai live|mock --tick-ms N --speed N --until KIND[:COUNT] --events KIND,...|all --log-json FILE --learning-log DIR --run-trace DIR.";
 
     /// <summary>Decider: mock (default) or the live AI service.</summary>
     public AiMode Ai { get; init; } = AiMode.Mock;
 
     /// <summary>Fixed real milliseconds per tick; 0 = as fast as possible (see the README of the runner for live pacing).</summary>
     public int TickMs { get; init; }
+
+    /// <summary>
+    /// A1587 (B2804): the game speed the run plays (1 or a fast-forward factor of time.json), told to the core as
+    /// the logged command set_speed; while an AI call is out ticks pass at that speed. Null = as before (the core
+    /// at normal speed, ticks during AI calls at the fastest speed).
+    /// </summary>
+    public int? Speed { get; init; }
 
     /// <summary>Stop condition, or null to run all days.</summary>
     public UntilCondition? Until { get; init; }
@@ -115,6 +122,7 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
         string? preset = null;
         var ai = AiMode.Mock;
         var tickMs = 0;
+        int? speed = null;
         UntilCondition? until = null;
         EventFilter? events = null;
         string? logJson = null;
@@ -166,6 +174,9 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
                 case "--tick-ms":
                     tickMs = int.Parse(Value(args, ref i), NumberStyles.None, CultureInfo.InvariantCulture);
                     break;
+                case "--speed":
+                    speed = int.Parse(Value(args, ref i), NumberStyles.None, CultureInfo.InvariantCulture);
+                    break;
                 case "--until":
                     until = UntilCondition.Parse(Value(args, ref i));
                     break;
@@ -189,6 +200,7 @@ internal sealed record HeadlessOptions(ulong Seed, long Days, string ContentDire
         {
             Ai = ai,
             TickMs = tickMs,
+            Speed = speed,
             Until = until,
             Events = events,
             LogJsonPath = logJson,

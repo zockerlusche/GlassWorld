@@ -158,9 +158,17 @@ internal sealed class RunCommand
 
         var calendar = host.World.Calendar;
         var fastest = calendar.Settings.FastForwardFactors.DefaultIfEmpty(1).Max();
+
+        // A1587 (B2804): the speed the run plays reaches the core as the game's logged command, and AI calls take
+        // the real time they would take at that speed.
+        if (options.Speed is { } speed && !host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = speed }).Accepted)
+        {
+            throw new ArgumentException($"--speed must be 1 or a fast-forward factor of time.json ({string.Join(", ", calendar.Settings.FastForwardFactors)}), not {speed}.");
+        }
+
         var pacer = new Pacer(
             TimeSpan.FromMilliseconds(options.TickMs),
-            BusyTickInterval ?? TimeSpan.FromSeconds(calendar.RealSecondsPerTickAtNormalSpeed / Math.Max(1, fastest)),
+            BusyTickInterval ?? TimeSpan.FromSeconds(calendar.RealSecondsPerTickAtNormalSpeed / Math.Max(1, options.Speed ?? fastest)),
             Clock,
             Sleep);
 
