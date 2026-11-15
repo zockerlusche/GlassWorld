@@ -61,6 +61,12 @@ public static class QuestionKeys
     /// <summary>What brings the inhabitant to it.</summary>
     public static string Reason(string kind) => "ui.question.reason." + kind;
 
+    /// <summary>The question as one short line on the card, without the name the card already shows (D1060 find 14, A1683).</summary>
+    public static string CardAsk(string kind) => "ui.card.ask." + kind;
+
+    /// <summary>The short card line for a kind without own text.</summary>
+    public const string CardAskOther = "ui.card.ask.other";
+
     /// <summary>The general question for a kind without own text.</summary>
     public const string AskOther = "ui.question.ask.other";
 

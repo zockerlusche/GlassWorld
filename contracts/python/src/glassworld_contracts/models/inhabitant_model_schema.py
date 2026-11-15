@@ -216,6 +216,17 @@ class Togetherness(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    silent_while_asleep: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.",
+        max_length=16,
+    )
+    thoughts_on_waking: int | None = Field(
+        None,
+        description="A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.",
+        ge=0,
+        le=5,
+    )
     bedtime_after_nightfall_hours: float | None = Field(
         None,
         description='B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.',

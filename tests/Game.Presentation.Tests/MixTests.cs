@@ -88,6 +88,11 @@ public sealed class MixTests
         var request = Assert.Single(plan);
         Assert.Equal("action.eat", request.SoundId);
         Assert.Equal(new Position(1, 0), request.Position);
+
+        // A1719 (D1112 #7): the run trace line says who made it, which sound, what made it and when.
+        Assert.Equal(("inh-1", "eat", 10L), (request.Source, request.Cause, request.Tick));
+        var fields = SoundDirector.TraceFields(request);
+        Assert.Equal(("inh-1", "action.eat", "eat", "effects"), (fields["source"], fields["sound"], fields["cause"], fields["bus"]));
     }
 
     [Fact]
@@ -155,6 +160,7 @@ public sealed class MixTests
 
         Assert.Equal("signal.knock_glass", signal.SoundId);
         Assert.Equal(Library.ForSignal(SoundForSignalSignal.Knock), signal.SoundId);
+        Assert.Equal(("inh-1", Simulation.Player.MailboxSystem.KnockKind, 7L), (signal.Source, signal.Cause, signal.Tick)); // A1719: who knocked
         Assert.InRange(signal.Variant, 0, Library.Recipe(signal.SoundId).Variants - 1);
         Assert.Equal(signal.Variant, Assert.Single(director.Signals([knock])).Variant);
         Assert.Empty(director.Plan([knock], new Dictionary<string, Position>(StringComparer.Ordinal) { ["inh-1"] = new(1, 0) }, new Position(0, 0), 0.5, new Dictionary<MixBusId, int>()));

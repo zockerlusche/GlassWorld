@@ -66,6 +66,16 @@ class NightDreams(BaseModel):
         ge=1.0,
         le=10.0,
     )
+    show_dreams: bool | None = Field(
+        None,
+        description="A1716 (B2683, B2776): the dream of a done look back (night items 'dream', checked by the service) appears as a calm text 'Elin dreams: ...' among the images, with the same limit. Absent or false = no dreams.",
+    )
+    dream_hold_s: float | None = Field(
+        None,
+        description='How long a dream text stands (real seconds) - a sentence needs longer than an image. Absent = hold_s.',
+        gt=0.0,
+        le=60.0,
+    )
     show_learned: bool | None = Field(
         None,
         description="A1618 (B2683): what an inhabitant learned in the night (night items 'learned') appears as a short text among the images, with the same timing and limit. Absent or false = no texts.",
