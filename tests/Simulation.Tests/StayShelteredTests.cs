@@ -55,6 +55,14 @@ public sealed class StayShelteredTests
         // Under the shelter in the rain: the thing inside, the idle here keep their weight; out costs.
         Assert.Equal([1.0, factor, factor, factor, 1.0], Weighed(one).Select(o => o.Score));
 
+        // What serves a neglected need keeps its weight (review GW1 #480): food outside for the starving.
+        var hunger = Content.InhabitantModel.Needs.First(n => n.Id == "hunger");
+        one.Needs["hunger"] = hunger.NeglectBelow / 2;
+        var eat = new List<Candidate> { new("eat", away.Id, 1.0), new("inspect", away.Id, 1.0) };
+        inhabitants.WeighLeavingShelter(world, one, eat);
+        Assert.Equal([1.0, factor], eat.Select(o => o.Score));
+        one.Needs["hunger"] = 1.0;
+
         // Outside the shelter nothing changes; nor under it when it is dry and not cold.
         Assert.All(Weighed(outside), o => Assert.Equal(1.0, o.Score));
         air = new Air(200, false);

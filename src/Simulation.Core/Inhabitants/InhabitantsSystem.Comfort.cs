@@ -60,15 +60,20 @@ public sealed partial class InhabitantsSystem
             return;
         }
 
+        // What serves a need below its neglect threshold keeps its weight (review GW1 #480, like B2681): a hungry
+        // inhabitant still goes out for food in the rain.
         var factor = stay.LeavingFactorPermille / 1000.0;
         for (var i = 0; i < options.Count; i++)
         {
-            if (LeavesShelter(options[i]))
+            if (LeavesShelter(options[i]) && !ServesNeglected(inhabitant, options[i].Action))
             {
                 options[i] = options[i] with { Score = options[i].Score * factor };
             }
         }
     }
+
+    private bool ServesNeglected(Inhabitant inhabitant, string action) =>
+        _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow && _brain.Serves(action, n.Id));
 
     private bool LeavesShelter(in Candidate option)
     {
