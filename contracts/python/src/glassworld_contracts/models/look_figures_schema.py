@@ -134,6 +134,18 @@ class FigureGesture(BaseModel):
         max_length=3,
         min_length=3,
     )
+    tap_hz: float | None = Field(
+        None,
+        description='A1542: while it holds, the hand taps (knocking at the glass) about this often per second - rounded to whole taps over hold_s, so it ends where it began; missing = it holds still.',
+        gt=0.0,
+        le=8.0,
+    )
+    tap_m: float | None = Field(
+        None,
+        description='How far the hand draws back for a tap (metres for a figure of size 1, along the facing).',
+        ge=0.0,
+        le=0.1,
+    )
 
 
 type Clip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]

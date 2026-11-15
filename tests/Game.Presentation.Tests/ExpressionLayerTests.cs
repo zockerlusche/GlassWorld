@@ -70,7 +70,23 @@ public sealed class ExpressionLayerTests
         Assert.All(data.Moods!, m => Assert.True(model.Moods.Any(x => x.Id == m.Mood) && ids.Contains(m.Expression), m.Mood));
         Assert.All(data.Needs!, n => Assert.True(model.Needs.Any(x => x.Id == n.Need) && ids.Contains(n.Expression), n.Need));
         Assert.All(data.JoinIn!.Notice, id => Assert.Contains(id, ids));
+        var kinds = Read<MessageKinds>("player", "message_kinds.json").Kinds.Select(k => k.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.All(data.Events!, e => Assert.True(e.Detail is null || kinds.Contains(e.Detail), e.Detail));
         Assert.True(data.JoinIn.Expression is null || ids.Contains(data.JoinIn.Expression), data.JoinIn.Expression);
+    }
+
+    [Fact]
+    public void AKnockTurnsToThePlayerAndKnocksEvenWithinTheCalmPause()
+    {
+        // A1542 (B8 R17, B2792): a knock is a call to the player - the figure looks to the camera and knocks at the glass.
+        var layer = Layer();
+        Assert.Equal("cheer", layer.Event("invented")?.Id); // a moment just showed: the calm pause runs
+        Assert.Null(layer.Event("mail_arrived", "thanks")); // other mail shows nothing
+        var knock = layer.Event("mail_arrived", "knock");
+        Assert.Equal(("knock", "knock_glass"), (knock?.Id, knock?.Gesture?.Id));
+        Assert.True(knock!.LookS > 0);
+        Assert.Equal("knock", layer.Update(0.1, Calm, Rested)?.Id);
+        Assert.Equal("knock", Layer().Event("mail_repeated", "knock")?.Id);
     }
 
     [Fact]

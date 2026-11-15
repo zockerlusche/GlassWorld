@@ -338,6 +338,42 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FailedAction
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// Object type of the target, or absent (an action without a thing, or aimed at another inhabitant).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("target_type")]
+        public string? TargetType { get; set; } = default!;
+
+        /// <summary>
+        /// The core's reason code (without the part after a '/').
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public string Reason { get; set; } = default!;
+
+        /// <summary>
+        /// Where it failed (m), rounded to 0.1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("x")]
+        public double? X { get; set; } = default!;
+
+        /// <summary>
+        /// Where it failed (m), rounded to 0.1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("z")]
+        public double? Z { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Core -&gt; AI service: one inhabitant asks the decider which of the offered options to take.
     /// </summary>
@@ -405,6 +441,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("intention")]
         public MorningIntention? Intention { get; set; } = default!;
+
+        /// <summary>
+        /// Only with occasion 'action_failed' (A1778, B2814): what failed - the action, the kind of thing it was aimed at, the core's reason code (vocabulary-like id, e.g. too_high, too_smooth, no_walkable_step) and where. The options are the core's as always; nothing says what would work (PR2). Absent otherwise, and from an older core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("failure")]
+        public FailedAction? Failure { get; set; } = default!;
 
     }
 }
