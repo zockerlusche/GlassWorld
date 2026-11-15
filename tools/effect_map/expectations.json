@@ -1,0 +1,42 @@
+{
+  "description": "A1720 part 2 (B2769, B2772): what a plausible run looks like, checked against the run trace (A1719) and the data. Thresholds are the TL's (B2649); each expectation names its source.",
+  "trace": [
+    {
+      "id": "no_long_neglect",
+      "source": "will to live (model.json neglect_below), D1112",
+      "kind": "max_hours_below_neglect",
+      "hours": 24
+    },
+    {
+      "id": "warmth_felt_in_winter",
+      "source": "D1112 #5, B2771",
+      "kind": "need_range_in_season",
+      "need": "warmth",
+      "season": "winter",
+      "min_range": 0.2
+    },
+    {
+      "id": "little_sleep_rested",
+      "source": "D1112 #4, A1711 (GW1 #457)",
+      "kind": "max_share_doing_while_need_above",
+      "action": "sleep",
+      "need": "sleep",
+      "above": 0.95,
+      "max_share": 0.2
+    },
+    {
+      "id": "decaying_needs_move",
+      "source": "D1118 (a need with decay that never changes points to a stuck value)",
+      "kind": "decaying_needs_change",
+      "min_range": 0.05
+    }
+  ],
+  "data": [
+    {
+      "id": "mood_drivers_move_their_mood",
+      "source": "B2772",
+      "kind": "mood_driver_lift_per_day",
+      "min_lift": 0.3
+    }
+  ]
+}

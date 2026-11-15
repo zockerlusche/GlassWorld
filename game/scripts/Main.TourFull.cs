@@ -109,6 +109,23 @@ public partial class Main
 
         screen.ShowCardForShots(null, expand: false);
 
+        // A1684 (B2607): the log in its corner - a few lines; opened with categories and a search.
+        var (closedShown, held) = screen.LogForShots(open: false, category: null, search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log closed shows {closedShown} of {held}");
+        var (openShown, _) = screen.LogForShots(open: true, category: null, search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log open shows {openShown}");
+        await take("29_verlauf_offen");
+        var (thoughts, _) = screen.LogForShots(open: true, category: "thought", search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log thoughts {thoughts}");
+        await take("29_verlauf_gedanken");
+        var (important, _) = screen.LogForShots(open: true, category: "important", search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log important {important}");
+        await take("29_verlauf_wichtiges");
+        var (found, _) = screen.LogForShots(open: true, category: null, search: "Wasser");
+        GD.Print($"UI_TOUR_FULL log search 'Wasser' {found}");
+        await take("29_verlauf_suche");
+        screen.LogForShots(open: false, category: null, search: string.Empty);
+
         // B2749 (TL #25515): with many inhabitants (--inhabitants=50) the corner shows only the important ones and
         // '+N'; '+N' opens the window with all of them, which searches, filters and pins.
         var portraits = screen.PortraitsForShots;
