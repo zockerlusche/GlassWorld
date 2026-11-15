@@ -157,6 +157,7 @@ public sealed class SimulationHost
         var actions = content.Actions.WithTruth(types);
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
+        var heightUnitMm = 100;
         Weather.WeatherSystem? weather = null;
         string? climate = null;
         var seaLevel = 0;
@@ -187,6 +188,7 @@ public sealed class SimulationHost
             // Tides (B2-5 R15): the level follows from the tick; with amplitude 0 no layer exists and walking
             // reads the base grid as before.
             var tides = new Tides(preset.Tides);
+            heightUnitMm = preset.Grid.HeightUnitMm;
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
                 // D1105 H3b: the plant a hanging thing grows on (for climbing towards it).
@@ -639,6 +641,17 @@ public sealed class SimulationHost
         // Out of the hash while nothing burns.
         world.Add(fire);
 
+        // A1578 (B4b K5): digging into the island's underground; after the inhabitants, so a dig ends and applies in one tick.
+        DiggingSystem? digging = null;
+        if (content.Digging is { } diggingData && map is not null)
+        {
+            digging = new DiggingSystem(diggingData, objects, map, heightUnitMm, world.Seed,
+                id => inhabitants.TryGet(id, out var who) ? (who.Position, who.Held is { } held && objects.TryGet(held, out var thing) ? thing.TypeId : null) : null,
+                inhabitants.Report);
+            inhabitants.Reported += digging.Observe;
+            world.Add(digging);
+        }
+
         // B5-11 (R29/R30): rain wets, wet cools, the sun warms where no shade falls - islands only (weather and map).
         BodySystem? body = null;
         if (content.Body is { } bodyData && map is not null && weather is not null)
@@ -722,6 +735,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Digging = digging,
             Aging = agingSystem,
             FamilyView = new Family.FirstGenerationView(inhabitants, world.Calendar.TicksPerDay),
             Forgetting = forgetting,
@@ -1068,6 +1082,9 @@ public sealed class SimulationHost
 
     /// <summary>Processing of things put together (B2687 K2); null without processing rules.</summary>
     public ProcessSystem? Processes { get; private init; }
+
+    /// <summary>Digging into the underground (A1578, B4b K5); null without the data or on a world without a map.</summary>
+    public DiggingSystem? Digging { get; private init; }
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
