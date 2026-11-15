@@ -206,7 +206,12 @@
       "regrow_hours": 72,
       "grows_on": {
         "object_type": "fruit_tree",
-        "within_cells": 2
+        "within_cells": 2,
+        "hangs": {
+          "min_permille": 300,
+          "max_permille": 800,
+          "falls_per_day_permille": 150
+        }
       }
     },
     {

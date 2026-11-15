@@ -73,6 +73,42 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// <summary>Whether an object stands at a regrowth place of the island now (a berry on its bush: it does not spoil there).</summary>
     public bool GrowsInPlace(string objectId) => _growing.Contains(objectId);
 
+    /// <summary>
+    /// D1105 H2: what hangs in a plant's crown, by type - height between min and max permille of the plant's height
+    /// (centimetres), and the chance per day that it falls. Set by the host from the spawn data; empty = nothing hangs.
+    /// </summary>
+    public IReadOnlyDictionary<string, (int MinPermille, int MaxPermille, int FallsPerDayPermille, int PlantHeightCm)> Hangs { get; init; } =
+        new Dictionary<string, (int, int, int, int)>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// D1105 H2: how high a thing hangs above the ground, in centimetres - only while it grows in a plant's crown;
+    /// each at its own height, a pure function of its id (no state). 0 = on the ground.
+    /// </summary>
+    public int AboveCm(string objectId)
+    {
+        ArgumentNullException.ThrowIfNull(objectId);
+        if (!_growing.Contains(objectId) || _objects is null || !_objects.TryGet(objectId, out var thing) || !Hangs.TryGetValue(thing.TypeId, out var hang))
+        {
+            return 0;
+        }
+
+        var span = Math.Max(0, hang.MaxPermille - hang.MinPermille);
+        var share = hang.MinPermille + (span == 0 ? 0 : (int)(StableHash(objectId) % (uint)(span + 1)));
+        return hang.PlantHeightCm * share / 1000;
+    }
+
+    /// <summary>A hash of a text that is the same on every machine and run (FNV-1a).</summary>
+    private static uint StableHash(string text)
+    {
+        var hash = 2166136261u;
+        foreach (var c in text)
+        {
+            hash = (hash ^ c) * 16777619u;
+        }
+
+        return hash;
+    }
+
     /// <summary>A thing that grew in its place was taken from it (picked, AK1a): its id and the tick. It ages from now on.</summary>
     public event Action<string, long>? LeftPlace;
 
@@ -278,6 +314,17 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                     {
                         LeftPlace?.Invoke(place.ObjectId, world.Tick);
                     }
+                }
+
+                // D1105 H2: what hangs in a crown falls with the data's chance per day (checked each hour, stream
+                // nature/fall); it lies on the ground then, ages, and the plant grows a new one.
+                if (Hangs.TryGetValue(place.TypeId, out var hang) && hang.FallsPerDayPermille > 0 && _growing.Contains(place.ObjectId)
+                    && world.Tick % world.Calendar.Settings.TicksPerHour == 0
+                    && world.Random.Get("nature/fall").NextInt(0, 24_000) < hang.FallsPerDayPermille)
+                {
+                    _occurrences[i] = place with { GoneSinceTick = world.Tick };
+                    _growing.Remove(place.ObjectId);
+                    LeftPlace?.Invoke(place.ObjectId, world.Tick);
                 }
 
                 continue;
