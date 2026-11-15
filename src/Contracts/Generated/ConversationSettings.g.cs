@@ -94,6 +94,48 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DialogueSettings
+    {
+
+        /// <summary>
+        /// Action ids (vocabulary actions, target inhabitant) whose start sends a dialogue job.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Turns asked for at most (B2782: 4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_turns")]
+        public int MaxTurns { get; set; } = default!;
+
+        /// <summary>
+        /// Words per turn at most (B2782: 14); a longer turn ends the talk there.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_words")]
+        public int MaxWords { get; set; } = default!;
+
+        /// <summary>
+        /// At most one dialogue job per pair within this many game hours (D1119 #6); the other talks stay without words. 0 = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_pair_hours")]
+        public double PerPairHours { get; set; } = default!;
+
+        /// <summary>
+        /// Priority of the job (higher runs first; low, the game waits for nothing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
+        public int JobPriority { get; set; } = default!;
+
+        /// <summary>
+        /// Game hours a dialogue job may take; a later answer is dropped (the two went on without words), so no open job stays for ever.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("answer_within_hours")]
+        public double AnswerWithinHours { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Talking with an inhabitant (B6 R13, A1342): limits of the exchange and how understanding and the relation to the player change by outcome. The core computes every change from these rules; the AI only proposes the answer (B2462). Values are placeholders until Marcel's word.
     /// </summary>
@@ -175,6 +217,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("naming")]
         public NamingEffect? Naming { get; set; } = default!;
+
+        /// <summary>
+        /// A1735 (B2782, D1119): a talk between two inhabitants. When one starts one of the actions with another inhabitant as target (awake and in reach - the core checked), the core sends a job of kind dialogue; the turns that pass its checks become said events of both, with target, turn and turns. A talk has no effect on the world: needs and relationship work through the action as before. Omitted = no dialogue jobs (talking stays without words).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dialogue")]
+        public DialogueSettings? Dialogue { get; set; } = default!;
 
     }
 
