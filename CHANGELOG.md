@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Sounds in the run trace (A1719 part, D1112 #7): every sound the game plays - an action's, an invention's, the knock at the glass, the murmur - is a `sound` line with its source (the inhabitant), the sound, what made it and the bus.
 - Dreams in the compute night (D1112 #10, A1716, B2683 part 1, B2776): the night scene shows each inhabitant's dream as a calm text "Elin dreams: ..." among the images - the words the service let through (`NightItem.dream`, #452), standing longer than an image (look night `dream_hold_s`, placeholder 6 s; `show_dreams`). Before, Marcel saw only "3 still open".
 - Contract: `NightItem.dream` {text, tone} - the dream of a done look back for the night scene, only when the service's checks let it through (A1716, B2776, D1112 #10). Optional, 0.2.
 - Focus on a thing (A1684, D1114): `WorldPresenter.FocusThing(objectId)` takes the camera to a thing and marks it with a calm ring on the ground that fades (look objects `focus`, placeholder 3 s, dark palette colour cave_inside: 5.8-11:1 against every ground, not hue alone); the built line of the log uses it.
