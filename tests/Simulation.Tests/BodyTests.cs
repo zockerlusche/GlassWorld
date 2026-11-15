@@ -42,6 +42,38 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void WaterWetsWhoStandsInItEvenUnderAClearSkyAndTheWetCools()
+    {
+        // A1793 (Marcel 15a): wading through cold water made nobody colder - only rain wetted.
+        var (host, inhabitant) = Island();
+        var body = host.Body!;
+        var map = host.Map!;
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        Assert.Equal(0, body.WetPermille(inhabitant.Id));
+
+        // The nearest cell with water one can stand in.
+        var at = map.CellOf(inhabitant.Position)!.Value;
+        var water = Enumerable.Range(0, map.Map.WidthCells * map.Map.DepthCells)
+            .Select(i => (X: i % map.Map.WidthCells, Z: i / map.Map.WidthCells))
+            .Where(c => map.Map.Cell(c.X, c.Z) is { Water: not Map.WaterKind.None } cell && cell.WalkCost != Map.MapCell.Blocked)
+            .OrderBy(c => Math.Abs(c.X - at.X) + Math.Abs(c.Z - at.Z)).ThenBy(c => c.Z).ThenBy(c => c.X)
+            .First();
+        var hour = host.World.Calendar.Settings.TicksPerHour;
+        // The body alone, a quarter of an hour of its steps: the inhabitant's own walking cannot carry it out of the water.
+        inhabitant.Position = map.CentreOf(water.X, water.Z);
+        for (var t = 0; t < hour / 4; t++)
+        {
+            body.Advance(host.World);
+        }
+
+        // Soaked through, and the wet cools exactly as after rain.
+        Assert.Equal(1000, body.WetPermille(inhabitant.Id));
+        var cool = Content.Value.Body!.Wetness.CoolTenthC;
+        var expected = body.SunTenthC(host.World, inhabitant.Position) - cool - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant);
+        Assert.Equal(expected, body.FeltTenthC(host.World, inhabitant));
+    }
+
+    [Fact]
     public void AShelterKeepsTheRainOff()
     {
         var (host, inhabitant) = Island();

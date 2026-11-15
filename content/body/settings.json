@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "wetness": {
     "rain_per_hour": 3000,
+    "in_water_per_hour": 12000,
     "drying": [
       {
         "below_tenth_c": 50,

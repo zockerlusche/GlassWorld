@@ -73,6 +73,9 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     /// <summary>Wind 0..1 at a tick (dries faster); null = calm.</summary>
     public Func<long, double>? WindAt { get; init; }
 
+    /// <summary>A1793: whether a position stands in water (a map cell with water); null = nothing wets but rain.</summary>
+    public Func<Position, bool>? InWater { get; init; }
+
     /// <summary>B5 R37: the things that warm a place and by how much (the fire); null = none.</summary>
     public Func<Position, IEnumerable<(WorldObject Thing, int TenthC)>>? HeatFrom { get; init; }
 
@@ -214,7 +217,12 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
             }
 
             var wet = _wet.GetValueOrDefault(inhabitant.Id);
-            if (air.Precipitation && !Sheltered(inhabitant.Position))
+            if (_data.Wetness.InWaterPerHour is > 0 && InWater?.Invoke(inhabitant.Position) == true)
+            {
+                // A1793 (Marcel 15a): wading through a stream or standing in the sea wets - no roof keeps that off.
+                wet = Math.Min(1000, wet + Step(world.Tick, _data.Wetness.InWaterPerHour.Value));
+            }
+            else if (air.Precipitation && !Sheltered(inhabitant.Position))
             {
                 // Under a crown less rain comes through, by how much the tree covers now (GW1 #409, TL #25357).
                 var crown = CrownPermille(inhabitant.Position, world.Now.SeasonId);

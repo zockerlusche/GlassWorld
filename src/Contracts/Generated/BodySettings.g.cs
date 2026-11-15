@@ -48,6 +48,13 @@ namespace GlassWorld.Contracts
         public int RainPerHour { get; set; } = default!;
 
         /// <summary>
+        /// How fast standing or wading in water (a map cell with water: lake, stream, shallow sea) wets an inhabitant, in permille of fully wet per game hour; sheltering does not help (A1793, Marcel 15a). Omitted = water does not wet. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("in_water_per_hour")]
+        public int? InWaterPerHour { get; set; } = default!;
+
+        /// <summary>
         /// How fast a wet inhabitant dries, by the air temperature: the first band whose below_tenth_c is above the temperature; the last (below_tenth_c null) takes the rest.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("drying")]

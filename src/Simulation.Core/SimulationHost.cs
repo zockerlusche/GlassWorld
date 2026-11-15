@@ -644,6 +644,9 @@ public sealed class SimulationHost
                 CloudPermille = w => bodyWeather.Read(w).CloudPermille,
                 WindAt = bodyWeather.WindAt,
                 HeatFrom = fire.HeatFrom,
+
+                // A1793: a cell with water wets who stands in it (the base grid; the tide's dry flats count as sea).
+                InWater = at => map.CellOf(at) is { } cell && map.Map.Cell(cell.X, cell.Z).Water != WaterKind.None,
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);

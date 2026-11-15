@@ -114,6 +114,7 @@
       "required": ["rain_per_hour", "drying", "wind_drying_permille", "cool_tenth_c", "shelter_property", "shelter_radius_cm"],
       "properties": {
         "rain_per_hour": { "type": "integer", "minimum": 0, "maximum": 100000, "description": "How fast rain wets an inhabitant out in the open, in permille of fully wet per game hour." },
+        "in_water_per_hour": { "type": "integer", "minimum": 0, "maximum": 1000000, "description": "How fast standing or wading in water (a map cell with water: lake, stream, shallow sea) wets an inhabitant, in permille of fully wet per game hour; sheltering does not help (A1793, Marcel 15a). Omitted = water does not wet. Placeholder value." },
         "drying": {
           "description": "How fast a wet inhabitant dries, by the air temperature: the first band whose below_tenth_c is above the temperature; the last (below_tenth_c null) takes the rest.",
           "type": "array",
