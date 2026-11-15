@@ -134,6 +134,18 @@ class FigureGesture(BaseModel):
         max_length=3,
         min_length=3,
     )
+    tap_hz: float | None = Field(
+        None,
+        description='A1542: while it holds, the hand taps (knocking at the glass) about this often per second - rounded to whole taps over hold_s, so it ends where it began; missing = it holds still.',
+        gt=0.0,
+        le=8.0,
+    )
+    tap_m: float | None = Field(
+        None,
+        description='How far the hand draws back for a tap (metres for a figure of size 1, along the facing).',
+        ge=0.0,
+        le=0.1,
+    )
 
 
 type Clip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
@@ -241,12 +253,6 @@ class FigureThinkingDots(BaseModel):
     alpha_min: float = Field(..., description='Least opacity of a dot.', ge=0.0, le=1.0)
     alpha_max: float = Field(
         ..., description='Greatest opacity of a dot.', ge=0.0, le=1.0
-    )
-    question_font_px: int | None = Field(
-        None,
-        description='A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm "?" of this size stands in the dots\' place; once only the effect is open, the dots again. Missing = dots only.',
-        ge=8,
-        le=256,
     )
 
 

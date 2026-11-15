@@ -44,6 +44,18 @@ class Spacing(BaseModel):
         ge=0.1,
         le=10.0,
     )
+    stall_minutes: int | None = Field(
+        None,
+        description='A1751 (D1159): a walk that has not come closer to its destination by stall_gain_m for this many game minutes is given up (action_cancelled, detail blocked), so the routine or the decider chooses anew; 0 or absent = never.',
+        ge=0,
+        le=1440,
+    )
+    stall_gain_m: float | None = Field(
+        None,
+        description='A1751: how much closer a walker must come to count as getting on (more than the jostle of keeping apart).',
+        ge=0.0,
+        le=100.0,
+    )
     min_separation_m: float = Field(
         ...,
         description='No inhabitant ends a move closer than this to another: a walker that would is put on the nearest free spot beside the other (deterministic, no random draw). At most conversation_min_m, checked at load.',

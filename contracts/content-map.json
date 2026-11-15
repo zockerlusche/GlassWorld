@@ -71,6 +71,10 @@
       "schema": "ui-tokens"
     },
     {
+      "pattern": "ui/settings.json",
+      "schema": "settings-layout"
+    },
+    {
       "pattern": "ui/frames.json",
       "schema": "ui-frames"
     },

@@ -9,6 +9,20 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+
+class QualityLife(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tier: str = Field(
+        ...,
+        description='Quality tier id (content/build/settings.json quality tiers).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    life_permille: int = Field(..., ge=100, le=10000)
+
+
 type BaseHours = Annotated[
     int,
     Field(
@@ -54,6 +68,18 @@ class MaterialClass(BaseModel):
         ge=0,
         le=100000,
     )
+    use_permille: int | None = Field(
+        None,
+        description='A1576 (H2): wear per use, in permille of its life (100 = ten uses wear it out); a class without base_hours wears by use only (fired clay, glass). Omitted = use does not wear it.',
+        ge=0,
+        le=1000,
+    )
+    end_event: str | None = Field(
+        None,
+        description='A1576 (H2): the event when such a thing ends (vocabulary event: spoiled, broke); see end_event_if. Omitted = it ends in silence.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class DurabilitySettings(BaseModel):
@@ -65,3 +91,19 @@ class DurabilitySettings(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     classes: list[MaterialClass] = Field(..., max_length=32, min_length=1)
+    use_actions: list[common_schema.VocabId] | None = Field(
+        None,
+        description='A1576 (plan D1008 H2): actions whose end counts as one use of their target thing (use_permille of its class). Omitted = nothing wears by use.',
+        max_length=16,
+    )
+    quality: list[QualityLife] | None = Field(
+        None,
+        description="A1576 (H2): how a made thing's quality tier (build quality, A1376) stretches its life - permille of the plain life (1500 = half again as long). A tier without an entry, or a thing without quality: 1000.",
+        max_length=16,
+    )
+    end_event_if: str | None = Field(
+        None,
+        description="A1576 (H2): the end event of a class (spoiled, broke) is reported only for a thing with this TRUE property (made by someone) or one an inhabitant holds; nature's own things end in silence. Omitted = only held things.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )

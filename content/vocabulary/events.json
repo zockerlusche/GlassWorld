@@ -103,6 +103,14 @@
       "description": "A builder tried a thing of another kind for the missing material, but it lacks what was missing; the builder learned that."
     },
     {
+      "id": "build_interrupted",
+      "description": "A builder left a building step it was on for something else (detail: the pressing need, or the action that came first); the building waits for it."
+    },
+    {
+      "id": "build_resumed",
+      "description": "A builder takes up an interrupted building again (detail: the type built)."
+    },
+    {
       "id": "asked_for_help",
       "description": "A stuck builder asked another to help (target: the helper, detail: the missing properties); the helper builds along."
     },
@@ -233,6 +241,14 @@
     {
       "id": "slipped",
       "description": "D1105 H3b: an inhabitant slid gently down while climbing (target = what it climbed, target type = its type). A fright, no harm."
+    },
+    {
+      "id": "spoiled",
+      "description": "A1576 (D1008 H2): a made or carried thing spoiled and is gone (target = the thing, target type = its type; inhabitant = who held it, if anyone)."
+    },
+    {
+      "id": "broke",
+      "description": "A1576 (D1008 H2): a made or carried thing wore out by time or use and broke; it is gone (target = the thing, target type = its type)."
     },
     {
       "id": "out_of_reach",

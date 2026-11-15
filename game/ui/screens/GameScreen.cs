@@ -144,6 +144,9 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
     private Label? _time;
+
+    // A1762 self-check: the clock keeps the test digits while they are measured.
+    private bool _clockHeld;
     private WorldPresenter? _presenter;
     private WorldFeed? _feed;
     private UiStyle? _style;
@@ -613,7 +616,8 @@ public partial class GameScreen : CanvasLayer
         var row = new HFlowContainer();
         var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
         var day = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
-        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        // Right-aligned in its steady width (A1762): the minutes stay where they are while the digits change.
+        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Right };
         row.AddChild(date);
         row.AddChild(day);
         row.AddChild(time);
@@ -675,6 +679,14 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
+
+            // A1752: an inhabitant's own aha (invented, built, a new word) marks its portrait.
+            if (_presenter.Host is { } ahaHost)
+            {
+                _aha ??= new AhaMarks(_style.Tokens.PortraitStates, ahaHost.World.Calendar.Settings.TicksPerHour);
+                _aha.Take(events);
+            }
+
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
@@ -1578,7 +1590,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
@@ -1653,7 +1665,9 @@ public partial class GameScreen : CanvasLayer
             AskForHelp(host, call, locale);
         }
 
-        var shape = locale + ";" + string.Join(";", calls.Select(c => HelpKey(c, locale) + (_aiCards.ContainsKey(HelpKey(c, locale)) ? "+ai" : string.Empty)));
+        var wishes = WeatherWishes.For(host);
+        var shape = locale + ";" + string.Join(";", calls.Select(c => HelpKey(c, locale) + (_aiCards.ContainsKey(HelpKey(c, locale)) ? "+ai" : string.Empty)))
+            + "|" + string.Join(",", wishes.Select(w => w.Weather + ":" + (w.Reason ?? "ok")));
         if (shape == _helpShape)
         {
             return;
@@ -1669,6 +1683,7 @@ public partial class GameScreen : CanvasLayer
         if (calls.Count == 0)
         {
             _helpList.AddChild(new Label { Text = "ui.help.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            AddWeatherWishes(host, wishes);
             return;
         }
 
@@ -1714,6 +1729,48 @@ public partial class GameScreen : CanvasLayer
                 _helpList.AddChild(button);
             }
         }
+
+        AddWeatherWishes(host, wishes);
+    }
+
+    /// <summary>
+    /// A1340 (Bogen 31 "Wetter beeinflussen"): below the calls, the player may wish a weather for favour - calm, never
+    /// asked for; the weather goes its own way afterwards. The core checks the wish again when it is sent.
+    /// </summary>
+    private void AddWeatherWishes(Simulation.SimulationHost host, IReadOnlyList<WeatherWish> wishes)
+    {
+        if (wishes.Count == 0)
+        {
+            return;
+        }
+
+        _helpList.AddChild(new Label
+        {
+            Text = TextFill.Fill(Tr("ui.help.weather"), new Dictionary<string, string> { ["cost"] = Number((long)host.Player.CostOf(WeatherWishes.Intervention)) }),
+            AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        });
+        var row = new HFlowContainer { Name = "WeatherWishes" };
+        foreach (var wish in wishes)
+        {
+            var button = new Button
+            {
+                Text = Tr(VocabKeys.Weather(wish.Weather)),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                Disabled = !wish.Possible,
+                TooltipText = wish.Reason is { } reason ? Tr(reason) : string.Empty,
+            };
+            var weather = wish.Weather;
+            button.Pressed += () =>
+            {
+                var result = host.Decisions.Submit(WeatherWishes.Command(weather));
+                ShowHint(new ToastMessage(result.Accepted ? "msg.hint.weather_wished" : result.ReasonKey ?? "msg.command.unknown_weather", new Dictionary<string, string> { ["weather"] = Tr(VocabKeys.Weather(weather)) }, null));
+                _helpShape = "-";
+            };
+            row.AddChild(button);
+        }
+
+        _helpList.AddChild(row);
     }
 
     private static string HelpLocale() =>
@@ -2084,6 +2141,20 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
     /// <summary>The log again from scratch (a filter, the search or open/closed changed).</summary>
+    /// <summary>
+    /// B2815: the height of <paramref name="lines"/> one-line log lines in the closed log, measured with a line of the
+    /// log's own theme, so the closed log keeps its size from the first line on.
+    /// </summary>
+    private float ClosedLogHeight(int lines)
+    {
+        var probe = new Button { Text = "ui.log.more", Flat = true, AutowrapMode = TextServer.AutowrapMode.Off, ClipText = true };
+        _logList.AddChild(probe);
+        var line = probe.GetCombinedMinimumSize().Y;
+        _logList.RemoveChild(probe);
+        probe.Free();
+        return (lines * line) + (Math.Max(0, lines - 1) * _logList.GetThemeConstant("separation"));
+    }
+
     private void RedrawLog()
     {
         _logShown = -1;
@@ -2113,8 +2184,13 @@ public partial class GameScreen : CanvasLayer
         var open = _logOpen || !_zones;
         _logTools.Visible = open;
         var all = _log.Newest();
-        _logMore.Visible = _zones && (open || all.Count > data.CornerLines);
+        // B2815 (Marcel W2208): the closed log keeps one size - "more" stays in its place (greyed while there is no more)
+        // and the list keeps the room of its lines however many there are and however long they are.
+        var closed = _zones && !open;
+        _logMore.Visible = _zones;
+        _logMore.Disabled = closed && all.Count <= data.CornerLines;
         _logMore.Text = open ? "ui.log.less" : "ui.log.more";
+        _logList.CustomMinimumSize = closed ? new Vector2(0, ClosedLogHeight(data.CornerLines)) : Vector2.Zero;
         if (all.Count == 0)
         {
             _logList.AddChild(new Label { Text = "ui.log.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
@@ -2148,6 +2224,15 @@ public partial class GameScreen : CanvasLayer
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             };
+            if (closed)
+            {
+                // B2815: closed, every line is one line ("..." at the end, the whole line in the tooltip and in the open log).
+                button.AutowrapMode = TextServer.AutowrapMode.Off;
+                button.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+                button.ClipText = true;
+                button.TooltipText = text;
+            }
+
             if (LogModel.CategoryOf(line, data)?.Highlight == true && bold is not null)
             {
                 button.AddThemeFontOverride("font", bold);
@@ -2663,14 +2748,24 @@ public partial class GameScreen : CanvasLayer
             ["game_day"] = Number(clock.GameDay),
             ["year"] = Number(clock.Year),
         };
-        _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
-        _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+        // While the corner self-check shows its test digits, the clock does not write over them (review GW3 #496).
+        if (!_clockHeld)
+        {
+            _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
+            _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+            _time.Text = clock.Time;
+        }
+
         _date.TooltipText = TextFill.Fill(Tr("ui.clock.date_tooltip"), new Dictionary<string, string>(values)
         {
             ["year_days"] = Number(clock.DaysPerYear),
         });
         _day.TooltipText = _date.TooltipText;
-        _time.Text = clock.Time;
+
+        // A1762: the numbers change, the widths do not - nothing beside them moves each minute or day.
+        UiFit.SteadyDigits(_date);
+        UiFit.SteadyDigits(_day);
+        UiFit.SteadyDigits(_time);
         RefreshCorners(rows, clock);
 
         // Each inhabitant's diary (W1726): the core keeps it (TL #20472); take what is new.
@@ -3378,7 +3473,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The head's values: portrait, what it does, a first try.</summary>
     private void RefreshCardHead(InhabitantCard card, string inhabitantId)
     {
-        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row) ? PortraitState.Question : PortraitState.None, selected: false);
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
         if (_cardActionIcon is not null)
@@ -3686,7 +3781,8 @@ public partial class GameScreen : CanvasLayer
         // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
         // has looked at since leaves only the effect open; the questions panel still lists every open question.
         mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
-        mark.Visible = row.PuzzlingQuestions > 0;
+        // Never over a figure lying asleep (review GW5 #510, like the feeling symbols in #499 and the dots, D1112 #8).
+        mark.Visible = row.PuzzlingQuestions > 0 && _presenter?.LiesNow(row.Id) != true;
     }
 
     private string? PickAt(Vector2 screen)

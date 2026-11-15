@@ -167,6 +167,9 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// <summary>The signalled conditions that are on (condition id, tick it began), sorted by id.</summary>
     public IReadOnlyList<KeyValuePair<string, long>> Signals => [.. _signals];
 
+    /// <summary>The weathers of the climate in the data's order (read only; the player's weather wish lists them, A1340).</summary>
+    public IReadOnlyList<string> Weathers => [.. _data.States.Select(s => s.Weather)];
+
     /// <summary>Whether the climate has this weather (a state with values).</summary>
     public bool Has(string weather) => weather is not null && _states.ContainsKey(weather);
 

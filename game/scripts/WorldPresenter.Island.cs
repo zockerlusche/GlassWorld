@@ -331,6 +331,10 @@ public partial class WorldPresenter
         return true;
     }
 
+    /// <summary>Check runs (A1542): hands an event straight to one figure's expression layer (presentation only); the shown expression's id, else null.</summary>
+    public string? ExpressFor(string inhabitantId, string kind, string? detail) =>
+        _islandFigures.TryGetValue(inhabitantId, out var figure) ? figure.Express(kind, detail)?.Id : null;
+
     /// <summary>Screenshot runs: a close view of one inhabitant (island: the rig follows it near). False on the placeholder.</summary>
     public bool CloseLook(string inhabitantId, double distanceM)
     {

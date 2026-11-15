@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/settings-layout.schema.json",
+  "title": "SettingsLayout",
+  "description": "The settings window (D957 v4 section 10, A1737): its tabs from top to bottom on the left and the rows of each, by the setting's id (text key ui.settings.<id>, description ui.settings.<id>.desc). A tab without rows says that its settings come later. Limits and defaults stay with the settings themselves (ui tokens, player settings).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "tabs"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "tabs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SettingsTab"
+      }
+    }
+  },
+  "$defs": {
+    "SettingsTab": {
+      "description": "A tab (text key ui.settings.tab.<id>) and its rows in their order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rows"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "rows": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    }
+  }
+}

@@ -35,10 +35,62 @@ class SoundForAction(BaseModel):
         ...,
         description='Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).',
     )
+    only_on: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1515 (B2608, W1741): the sound plays only where the surface under the feet is one of these (rustling through plants: grass); elsewhere that surface's own sound (surfaces) plays. Omitted = everywhere.",
+        max_length=16,
+        min_length=1,
+    )
     group: str | None = Field(
         None,
         description='Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).',
         pattern='^[a-z][a-z_]{1,31}$',
+    )
+
+
+class Biome(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    biome: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    surface: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class Underfoot(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    biomes: list[Biome] = Field(
+        ...,
+        description='The surface of each biome (world biomes); a biome without an entry has none - its actions keep their own sound.',
+        max_length=64,
+    )
+    snow_from_mm: int | None = Field(
+        None,
+        description="From this snow depth (mm, the core's snow cover at the place) the surface is snow_surface.",
+        ge=1,
+        le=1000,
+    )
+    snow_surface: str | None = Field(
+        None,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    snow_not_on: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Surfaces snow does not lie on (water: a stream stays a stream in winter; review GW4 #484). Omitted = snow lies on every surface.',
+        max_length=16,
     )
 
 
@@ -170,6 +222,10 @@ class SoundMap(BaseModel):
     weather: list[SoundForWeather] = Field(..., min_length=1)
     ambience: list[SoundForBiome] = Field(..., min_length=1)
     animals: list[SoundForAnimal] = Field(..., min_length=1)
+    underfoot: Underfoot | None = Field(
+        None,
+        description="A1515 (B2608): what lies under the feet at a place - the surface of its biome, or snow above a depth - for actions that sound only on some surfaces (only_on). Omitted = the action's sound plays everywhere.",
+    )
     signals: list[SoundForSignal] | None = Field(
         None,
         description="Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.",
