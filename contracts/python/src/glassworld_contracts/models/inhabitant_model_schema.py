@@ -11,22 +11,33 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class NeedModel(BaseModel):
+class NeedDecayWhen(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    per_hour: float = Field(
+        ..., description='Decay per hour while the conditions hold.', ge=0.0, le=1.0
     )
-    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
-    neglect_below: float = Field(
-        ...,
-        description='Below this value the need counts as neglected (will to live).',
+    recover_per_hour: float | None = Field(
+        None,
+        description='While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual.',
         ge=0.0,
         le=1.0,
+    )
+    day_phases: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Day phases (vocabulary time_of_day) in which it holds.',
+        max_length=4,
+    )
+    alone_m: float | None = Field(
+        None,
+        description='No other inhabitant within this many metres.',
+        ge=0.0,
+        le=1000.0,
+    )
+    unsheltered: bool | None = Field(
+        None,
+        description="true: no thing with the body data's shelter property within its shelter reach.",
     )
 
 
@@ -218,6 +229,17 @@ class Togetherness(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    silent_while_asleep: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.",
+        max_length=16,
+    )
+    thoughts_on_waking: int | None = Field(
+        None,
+        description="A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.",
+        ge=0,
+        le=5,
+    )
     bedtime_after_nightfall_hours: float | None = Field(
         None,
         description='B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.',
@@ -345,6 +367,26 @@ class NeedRules(BaseModel):
         le=1.0,
     )
     max_runtime_needs: int = Field(..., ge=0, le=64)
+
+
+class NeedModel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    decay_per_hour: float = Field(..., ge=0.0, le=1.0)
+    neglect_below: float = Field(
+        ...,
+        description='Below this value the need counts as neglected (will to live).',
+        ge=0.0,
+        le=1.0,
+    )
+    decay_when: NeedDecayWhen | None = None
 
 
 class ComfortZone(BaseModel):

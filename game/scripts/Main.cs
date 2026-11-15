@@ -534,6 +534,8 @@ public partial class Main : Node3D
         }
 
         _audio = new WorldAudio { Name = "WorldAudio" };
+        var presenter = _world;
+        _audio.Trace = () => presenter?.Trace;
         AddChild(_audio);
         if (_world.Mode == WorldLookMode.Island)
         {

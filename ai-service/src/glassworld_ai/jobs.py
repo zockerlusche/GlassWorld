@@ -23,6 +23,7 @@ from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
 
 OPEN_STATES = frozenset({"queued", "running", "deferred"})
 NIGHT_FACTS_MAX = 4  # A1618: the contract's limit of learned facts per night item
+DREAM_MAX_CHARS = 280  # A1716: the contract's limit of NightItem.dream.text
 
 
 class JobFailedError(Exception):
@@ -387,7 +388,45 @@ def _night_item(seq: int, record: _Record) -> dict[str, object]:
     learned = _learned(record, object_type)
     if learned:
         item["learned"] = learned
+    dream = _dream(record)
+    if dream is not None:
+        item["dream"] = dream
     return item
+
+
+def _dream(record: _Record) -> dict[str, object] | None:
+    """A1716 (B2776): the dream of a done look back for the night scene - only what the review's
+    checks let through (parse_review leaves a refused dream out, then there is none)."""
+    outcome = record.outcome
+    if record.kind != "review" or record.state != "done" or outcome is None:
+        return None
+    review: object = outcome.result.get("review")
+    dream: object = (
+        cast(dict[str, object], review).get("dream") if isinstance(review, dict) else None
+    )
+    if not isinstance(dream, dict):
+        return None
+    shown: object = cast(dict[str, object], dream).get("text")
+    text: object = cast(dict[str, object], shown).get("text") if isinstance(shown, dict) else None
+    tone: object = cast(dict[str, object], dream).get("tone")
+    if not isinstance(text, str) or not text.strip() or not isinstance(tone, str):
+        return None
+    item: dict[str, object] = {"text": _short(text.strip(), DREAM_MAX_CHARS), "tone": tone}
+    # The dream's language (review GW3 #452): a scene can leave out a dream in another language.
+    locale: object = (
+        cast(dict[str, object], shown).get("locale") if isinstance(shown, dict) else None
+    )
+    if isinstance(locale, str):
+        item["locale"] = locale
+    return item
+
+
+def _short(text: str, limit: int) -> str:
+    """The text, or cut at the last space before the limit with an ellipsis (review GW3 #452)."""
+    if len(text) <= limit:
+        return text
+    cut = text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+    return cut + "…"
 
 
 def _learned(record: _Record, object_type: object) -> list[dict[str, object]]:

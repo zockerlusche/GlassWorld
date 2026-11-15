@@ -42,6 +42,9 @@ public partial class FigureView : Node3D
     private string _shownPose = string.Empty;
     private bool _standsIdle;
     private bool _lying;
+    private ShaderMaterial? _paint;
+    private string _topColor = "#ffffff";
+    private string? _wornShown;
 
     /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
     public bool Lying => _lying;
@@ -152,6 +155,9 @@ public partial class FigureView : Node3D
             // Where the skeleton is in the figure: the watched bones are read in the skeleton's space.
             view._skeletonInBody = node is Node3D spatial ? spatial.Transform * view._skeletonInBody : view._skeletonInBody;
         }
+        // A1577: the shared paint of body and clothing - a worn thing colours the top (region_top) while it is worn.
+        view._paint = figure.Body.MaterialOverride as ShaderMaterial;
+        view._topColor = spec.Top;
         if (figures.Silhouette.Enabled && figure.Body.MaterialOverride is { } material)
         {
             // Behind a tree, rock or object the figure shows as a calm silhouette in its colour (W1689).
@@ -220,6 +226,14 @@ public partial class FigureView : Node3D
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
         // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count, _lying);
+
+        // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
+        var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
+        if (worn != _wornShown && _paint is not null)
+        {
+            _paint.SetShaderParameter("region_top", Color.FromHtml(worn ?? _topColor));
+            _wornShown = worn;
+        }
         if (place)
         {
             // Placed (after a warm-up, a load) it lies or stands at once, without the way there.

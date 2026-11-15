@@ -69,6 +69,23 @@ public static class InventionLooks
     public static double FocusRadiusM(double drawnExtentM, double radiusM, double marginM) =>
         Math.Max(radiusM, (Math.Max(0, drawnExtentM) / 2) + marginM);
 
+    /// <summary>
+    /// A1577 (K4): the colour a worn invention gives the figure - the kit colour (#rrggbb) of its plan's largest part
+    /// (by volume; equal ones by their order), or null when the plan or the colour is unknown.
+    /// </summary>
+    public static string? MainColor(string planJson, GlassWorld.Contracts.BuildKit kit)
+    {
+        ArgumentNullException.ThrowIfNull(planJson);
+        ArgumentNullException.ThrowIfNull(kit);
+        var largest = InventionSystem.PlanOf(planJson).Parts
+            .Select((part, index) => (part, index, volume: part.SizeM.X * part.SizeM.Y * part.SizeM.Z))
+            .OrderByDescending(p => p.volume)
+            .ThenBy(p => p.index)
+            .Select(p => p.part)
+            .FirstOrDefault();
+        return largest is null ? null : kit.Colors.FirstOrDefault(c => c.Id == largest.Color)?.Color;
+    }
+
     /// <summary>A short text that changes whenever what is drawn changes (so the drawing is redone only then).</summary>
     public static string Signature(IReadOnlyList<InventionShown> shown)
     {

@@ -58,6 +58,39 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("learned")]
         public System.Collections.Generic.ICollection<NightFact>? Learned { get; set; } = default!;
 
+        /// <summary>
+        /// A1716 (B2776, D1112 #10): the dream of a done review job, as the night scene shows it ('Elin träumt: ...'). Only for kind review in state done and only when the dream passed the service's checks (content guard, the world check A1613, no number or key - A1721); absent otherwise. In the player's language like the review's dream. The core still applies the review in the morning and checks it there again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dream")]
+        public NightDream? Dream { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NightDream
+    {
+
+        /// <summary>
+        /// The dream, one to three short sentences.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        /// <summary>
+        /// Its tone (as in the review result).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tone")]
+        public string Tone { get; set; } = default!;
+
+        /// <summary>
+        /// The language the dream is written in (the job's display locale), so a scene can leave out a dream in a language the player has switched away from (review GW3 #452). Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("locale")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
+        public Locale? Locale { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -85,7 +118,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// AI service -&gt; game (GET /night/items?since=&lt;seq&gt;, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).
+    /// AI service -&gt; game (GET /night/items?since=&lt;seq&gt;, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions or memories (like the question window, B6 R12); the one exception is the dream of a done look back (NightItem.dream, B2776), which the service's checks have let through. Kept only for the current night and only in memory, like the queue (R4).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class NightItems

@@ -102,6 +102,9 @@ public sealed class RunTraceTests : IDisposable
         Assert.NotNull(reported);
         Assert.Same(reported, trace.Failure);
         Assert.Equal(without.World.StateHash(), host.World.StateHash());
+
+        // A caller's line after that (a sound) is quietly left out, it never throws into the caller.
+        trace.Note(host.World.Tick, "sound", new Dictionary<string, string?> { ["source"] = "inh-000001" });
     }
 
     private static List<JsonElement> ReadDay(string path) =>

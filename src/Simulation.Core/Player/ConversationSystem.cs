@@ -230,6 +230,8 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
 
         var inhabitant = _inhabitants.Get(command.InhabitantId!);
+        // A1710 (GW3/GW2 #455): the player's word wakes a sleeper, so its answer comes awake and is shown.
+        _inhabitants.WakeForPlayer(world, inhabitant);
         var text = command.Text!.Trim();
         _player.Spend(Intervention);
         var memory = MemoryOf(inhabitant.Id);
