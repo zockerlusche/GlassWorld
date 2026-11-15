@@ -47,7 +47,17 @@ public partial class FigureView : Node3D
     private string? _wornShown;
 
     /// <summary>A1732: an event of this inhabitant - the expression layer may show it (cheering at an invention); what shows, else null.</summary>
-    public ExpressionShown? Express(string kind) => _expressions?.Event(kind);
+    public ExpressionShown? Express(string kind, string? detail = null)
+    {
+        var shown = _expressions?.Event(kind, detail);
+        if (shown?.LookS is { } look && look > 0)
+        {
+            // A1542: a knock at the glass - it turns to the player first (as when it hears the voice).
+            React(new Reaction(look, 0, 0));
+        }
+
+        return shown;
+    }
 
     /// <summary>
     /// A1733 (B2716 (3)): another figure nearby shows a moment - this one looks over at it (head and upper body) for
