@@ -72,6 +72,8 @@ public static class UiFit
     /// (B2791: the settings hold the room of their highest tab). Its containers are laid out at once, three times, since
     /// a wrapping label is only as high as the width its container gave it; a label's cached size is renewed by hand,
     /// as Godot renews it only when the label is drawn. A control outside a container keeps its own minimum.
+    /// A hidden control is shown for the measuring and hidden again at once (no frame is drawn between), so its
+    /// visibility_changed handlers run twice (review GW3 #493): such handlers must not start work of their own.
     /// </summary>
     public static float HeightAt(Control control, float width)
     {

@@ -46,6 +46,7 @@ public partial class GwWindow : PanelContainer
         header.GuiInput += OnHeaderInput;
         _close.Pressed += Close;
         _scroll.AddChild(Content);
+        Content.MinimumSizeChanged += OnContentChanged;
         column.AddChild(header);
         column.AddChild(_scroll);
         column.AddChild(_footer);
@@ -177,6 +178,26 @@ public partial class GwWindow : PanelContainer
     }
 
     private bool _settling;
+
+    /// <summary>
+    /// Review GW3 #493: content that grows after the fit (an open card, a late answer, rows added later) must not be cut.
+    /// The fit hides the scroll bar while everything fits; once the content is higher than its area the bar comes back
+    /// at once, and the window fits itself again in the next frame - it grows, or at its limit it scrolls. Content that
+    /// still fits changes nothing (the settings' measuring shows and hides pages without a refit).
+    /// </summary>
+    private void OnContentChanged()
+    {
+        if (Content.GetCombinedMinimumSize().Y <= _scroll.Size.Y + 0.5f)
+        {
+            return;
+        }
+
+        _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
+        if (_area is { } area)
+        {
+            Settle(area);
+        }
+    }
     private Vector2? _area;
     private Vector2 _settleArea;
     private Vector2 _fittedAt;
