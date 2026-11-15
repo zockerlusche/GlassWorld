@@ -1,3 +1,7 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+
 namespace GlassWorld.Simulation.Decisions;
 
 /// <summary>Kind of a decision log entry.</summary>
@@ -42,10 +46,17 @@ public sealed record DecisionLogEntry(DecisionLogKind Kind, string RequestId, lo
 /// <summary>
 /// Everything that went to and came from the decider, with the tick it took effect. With the world seed
 /// this log reproduces a run exactly (<see cref="ReplayDecisionPort"/>), whatever the hardware.
+/// A1750 (B2768): a request older than <see cref="FullRequestTicks"/> keeps only its fingerprint - the replay
+/// needs the answers and commands, and checks a replayed request against the fingerprint (<see cref="Agree"/>).
 /// </summary>
 public sealed class DecisionLog
 {
+    private const string CompactedStart = "{\"compacted\":\"";
     private readonly List<DecisionLogEntry> _entries = [];
+    private int _compacted;
+
+    /// <summary>Ticks a request stays whole (data: decider request_log_full_hours); null = every request stays whole.</summary>
+    public long? FullRequestTicks { get; set; }
 
     /// <summary>All entries in order.</summary>
     public IReadOnlyList<DecisionLogEntry> Entries => _entries;
@@ -62,11 +73,51 @@ public sealed class DecisionLog
         return count;
     }
 
-    /// <summary>Appends an entry.</summary>
+    /// <summary>Appends an entry; requests that are now older than the window keep only their fingerprint.</summary>
     public void Add(DecisionLogEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
         _entries.Add(entry);
+        if (FullRequestTicks is not { } window)
+        {
+            return;
+        }
+
+        for (; _compacted < _entries.Count && _entries[_compacted].Tick < entry.Tick - window; _compacted++)
+        {
+            var old = _entries[_compacted];
+            if (old.Kind is DecisionLogKind.Request or DecisionLogKind.JobRequest && !IsCompacted(old.Json))
+            {
+                _entries[_compacted] = old with { Json = Compacted(old.Json) };
+            }
+        }
+    }
+
+    /// <summary>The fingerprint of a JSON text (sha256 of its UTF-8 bytes and its length in UTF-16 chars, itself JSON); a fingerprint stays as it is.</summary>
+    public static string Compacted(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        return IsCompacted(json)
+            ? json
+            : string.Create(CultureInfo.InvariantCulture, $"{CompactedStart}sha256:{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(json)))}\",\"length\":{json.Length}}}");
+    }
+
+    /// <summary>Whether this JSON text is a fingerprint (<see cref="Compacted"/>).</summary>
+    public static bool IsCompacted(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        return json.StartsWith(CompactedStart, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Whether two entries say the same: equal, or equal but for a request that one of them keeps only as its
+    /// fingerprint and the other whole (the replay check, A1750).
+    /// </summary>
+    public static bool Agree(DecisionLogEntry a, DecisionLogEntry b)
+    {
+        ArgumentNullException.ThrowIfNull(a);
+        ArgumentNullException.ThrowIfNull(b);
+        return a == b || (a with { Json = b.Json } == b && string.Equals(Compacted(a.Json), Compacted(b.Json), StringComparison.Ordinal));
     }
 }
 
