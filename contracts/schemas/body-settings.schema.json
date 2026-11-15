@@ -18,6 +18,15 @@
         "block_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000 }
       }
     },
+    "stay_sheltered": {
+      "description": "A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.",
+      "type": "object", "additionalProperties": false, "required": ["leaving_factor_permille"],
+      "properties": {
+        "leaving_factor_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "in_precipitation": { "type": "boolean" },
+        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+      }
+    },
     "others_warmth": {
       "description": "B5 R4: the body warmth of other inhabitants near, each warming by tenth_c at its place, falling off linearly to nothing at radius_cm. Absent = none.",
       "type": "object", "additionalProperties": false, "required": ["tenth_c", "radius_cm"],

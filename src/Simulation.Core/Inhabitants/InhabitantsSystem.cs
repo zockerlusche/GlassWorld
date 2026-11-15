@@ -1805,6 +1805,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _brain.AddRuntimeNeeds(inhabitant, perceived, runtime.Added, options);
         }
 
+        // A1744: under a shelter in rain or cold, what leads out of it weighs less (body data).
+        WeighLeavingShelter(world, inhabitant, options);
+
 
         // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
         // place that no need asks for (score 0): the inhabitant then just stands there instead of being

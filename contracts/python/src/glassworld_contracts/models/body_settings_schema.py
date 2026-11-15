@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class Wind(BaseModel):
     model_config = ConfigDict(
@@ -41,6 +43,15 @@ class BodyDryingBand(BaseModel):
 class Felt(StrEnum):
     warmth = 'warmth'
     kept_dry = 'kept_dry'
+
+
+class StaySheltered(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    leaving_factor_permille: int = Field(..., ge=0, le=1000)
+    in_precipitation: bool | None = None
+    at_levels: list[common_schema.VocabId] | None = Field(None, max_length=8)
 
 
 class BodyWorn(BaseModel):
@@ -279,6 +290,10 @@ class BodySettings(BaseModel):
     wind: Wind | None = Field(
         None,
         description='B5 R4: wind feels colder (at full wind cool_tenth_c), less where a thing with wind_block_permille stands within block_radius_cm. Absent = wind is not felt.',
+    )
+    stay_sheltered: StaySheltered | None = Field(
+        None,
+        description='A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.',
     )
     others_warmth: OthersWarmth | None = Field(
         None,
