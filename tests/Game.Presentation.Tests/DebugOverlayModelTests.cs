@@ -54,6 +54,29 @@ public sealed class DebugOverlayModelTests
         Assert.Contains("PageDown", lines[10], StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en")]
+    public void TheChosenInhabitantsKnowledgeShowsWhereItCameFrom(string locale)
+    {
+        // A1402 (B4a-S7): the origin of what an inhabitant believes, in the debug view - who told it, how sure it is.
+        var host = Island();
+        var who = host.Inhabitants.All.First();
+        var teller = host.Inhabitants.All.Skip(1).First();
+        who.Beliefs.Set("berry_bush", "edible", true, 0.7, Simulation.Objects.KnowledgeSources.Heard, teller.Id, host.World.Tick + 1);
+        var texts = Texts(locale);
+
+        var none = DebugOverlayModel.Lines(DebugOverlayModel.Read(host, "0", 0, 60, null), texts);
+        var lines = DebugOverlayModel.Lines(DebugOverlayModel.Read(host, "0", 0, 60, null, chosen: who.Id), texts);
+        Assert.Empty(DebugOverlayModel.RawKeys(lines));
+        Assert.Equal(none.Count + 1 + Math.Min(who.Beliefs.Count, DebugOverlayModel.MaxBeliefs), lines.Count);
+        var name = host.Snapshot().Inhabitants.Single(i => i.Id == teller.Id).Name!;
+        var newest = lines[none.Count + 1];
+        Assert.Contains("(berry_bush)", newest, StringComparison.Ordinal);
+        Assert.Contains(name, newest, StringComparison.Ordinal);
+        Assert.EndsWith("70 %", newest, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheJumpsLineNeedsDebugCommands()
     {

@@ -4,6 +4,7 @@ using GlassWorld.Simulation;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Time;
+using GlassWorld.Simulation.View;
 using GlassWorld.Simulation.Weather;
 
 namespace GlassWorld.Presentation.Ui;
@@ -20,6 +21,7 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Figures">Number of figures (inhabitants) in the world.</param>
 /// <param name="Biome">Biome id under the mouse pointer, or null (no map, pointer off the map).</param>
 /// <param name="EpochKeys">Key names for the epoch step back and forward while debug jumps are on, else null.</param>
+/// <param name="Knowledge">A1402: the chosen inhabitant's name and beliefs with their origin, newest first; null without one.</param>
 public sealed record DebugOverlayData(
     ulong Seed,
     string? WorldHash,
@@ -31,7 +33,18 @@ public sealed record DebugOverlayData(
     double Fps,
     int Figures,
     string? Biome,
-    (string Back, string Forward)? EpochKeys = null);
+    (string Back, string Forward)? EpochKeys = null,
+    (string Name, int Count, IReadOnlyList<DebugBelief> Beliefs)? Knowledge = null);
+
+/// <summary>One belief in the debug view (A1402, B4a-S7): what, whether, from where, how sure.</summary>
+/// <param name="TypeId">The thing's type.</param>
+/// <param name="PropertyId">The property.</param>
+/// <param name="Value">Whether it has it, as the inhabitant believes.</param>
+/// <param name="Source">experienced, heard, guessed, read or seen (knowledge sources).</param>
+/// <param name="ToldBy">Name of the one who told it, or null.</param>
+/// <param name="Confidence">How sure, 0..1.</param>
+/// <param name="Tick">When it came.</param>
+public sealed record DebugBelief(string TypeId, string PropertyId, bool Value, string Source, string? ToldBy, double Confidence, long Tick);
 
 /// <summary>
 /// The debug view without Godot (B2-6 R31, ADR-0008): its lines from the world, the biome under a ground
@@ -52,6 +65,9 @@ public static class DebugOverlayModel
     /// <summary>Shown where the world has no value (no map, no weather); language-neutral.</summary>
     public const string None = "–";
 
+    /// <summary>A1402: at most this many beliefs of the chosen inhabitant are listed (newest first); the count says how many it has.</summary>
+    public const int MaxBeliefs = 12;
+
     /// <summary>Number of hash characters shown, as in the log lines of the game.</summary>
     public const int HashLength = 12;
 
@@ -62,7 +78,8 @@ public static class DebugOverlayModel
     /// <param name="fps">Frames per second.</param>
     /// <param name="underMouse">Ground point under the mouse pointer in metres, or null.</param>
     /// <param name="epochKeys">Key names for the epoch steps while debug jumps are on, else null.</param>
-    public static DebugOverlayData Read(SimulationHost host, string stateHash, long stateHashTick, double fps, (double X, double Z)? underMouse, (string Back, string Forward)? epochKeys = null)
+    /// <param name="chosen">A1402: the inhabitant the player chose, whose knowledge and its origin are listed; null for none.</param>
+    public static DebugOverlayData Read(SimulationHost host, string stateHash, long stateHashTick, double fps, (double X, double Z)? underMouse, (string Back, string Forward)? epochKeys = null, string? chosen = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(stateHash);
@@ -78,7 +95,25 @@ public static class DebugOverlayModel
             fps,
             snapshot.Inhabitants.Count,
             underMouse is { } p ? BiomeAt(host.Map, p.X, p.Z) : null,
-            host.Options.DebugCommands ? epochKeys : null);
+            host.Options.DebugCommands ? epochKeys : null,
+            KnowledgeOf(host, snapshot, chosen));
+    }
+
+    /// <summary>A1402 (B4a-S7): the chosen inhabitant's beliefs with their origin, newest first (read only).</summary>
+    private static (string Name, int Count, IReadOnlyList<DebugBelief> Beliefs)? KnowledgeOf(SimulationHost host, WorldSnapshot snapshot, string? chosen)
+    {
+        if (chosen is null || host.Inhabitants.All.FirstOrDefault(i => string.Equals(i.Id, chosen, StringComparison.Ordinal)) is not { } who)
+        {
+            return null;
+        }
+
+        string NameOf(string id) => snapshot.Inhabitants.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.Ordinal))?.Name ?? id;
+        var beliefs = who.Beliefs.All
+            .OrderByDescending(b => b.Belief.Tick).ThenBy(b => b.TypeId, StringComparer.Ordinal).ThenBy(b => b.PropertyId, StringComparer.Ordinal)
+            .Take(MaxBeliefs)
+            .Select(b => new DebugBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Source, b.Belief.ToldBy is { } by ? NameOf(by) : null, b.Belief.Confidence, b.Belief.Tick))
+            .ToList();
+        return (NameOf(who.Id), who.Beliefs.Count, beliefs);
     }
 
     /// <summary>The lines of the view, top to bottom, in the language of <paramref name="translate"/>.</summary>
@@ -117,6 +152,23 @@ public static class DebugOverlayModel
         if (data.EpochKeys is { } keys)
         {
             lines.Add(Line("ui.debug.jumps", ("back", keys.Back), ("forward", keys.Forward)));
+        }
+
+        if (data.Knowledge is { } knowledge)
+        {
+            // A1402 (B4a-S7): what the chosen inhabitant believes, and from where - experienced, heard from someone, seen.
+            lines.Add(Line("ui.debug.knowledge", ("name", knowledge.Name), ("count", knowledge.Count.ToString(CultureInfo.InvariantCulture))));
+            foreach (var belief in knowledge.Beliefs)
+            {
+                var source = belief.ToldBy is { } by ? Line("ui.debug.source." + belief.Source + ".by", ("name", by)) : translate("ui.debug.source." + belief.Source);
+                lines.Add(Line(
+                    "ui.debug.belief",
+                    ("thing", Named("vocab.object.", belief.TypeId)),
+                    ("property", translate("vocab.property." + belief.PropertyId)),
+                    ("value", translate(belief.Value ? "ui.debug.yes" : "ui.debug.no")),
+                    ("source", source),
+                    ("percent", Math.Round(belief.Confidence * 100).ToString("0", CultureInfo.InvariantCulture))));
+            }
         }
 
         return lines;

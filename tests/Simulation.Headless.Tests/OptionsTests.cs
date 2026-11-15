@@ -28,7 +28,7 @@ public sealed class OptionsTests
     {
         var options = Parse(
             "--seed", "42", "--days", "3", "--content", "c", "--save", "s.db", "--preset", "start_island", "--climate", "warm", "--quiet",
-            "--trace", "inh-000001", "--trace-days", "2", "--ai", "live", "--tick-ms", "52", "--until", "thought:5",
+            "--trace", "inh-000001", "--trace-days", "2", "--ai", "live", "--tick-ms", "52", "--speed", "16", "--until", "thought:5",
             "--events", "thought,invented", "--log-json", "log.jsonl");
         Assert.Equal(42UL, options.Seed);
         Assert.Equal(3, options.Days);
@@ -41,6 +41,7 @@ public sealed class OptionsTests
         Assert.Equal(2, options.TraceDays);
         Assert.Equal(AiMode.Live, options.Ai);
         Assert.Equal(52, options.TickMs);
+        Assert.Equal(16, options.Speed);
         Assert.Equal(new UntilCondition("thought", 5), options.Until);
         Assert.False(options.Events!.All);
         Assert.Equal(["invented", "thought"], options.Events.Kinds.Order(StringComparer.Ordinal));
@@ -78,6 +79,7 @@ public sealed class OptionsTests
     [InlineData("--bogus")]
     [InlineData("--ai", "cloud")]
     [InlineData("--tick-ms", "-5")]
+    [InlineData("--speed", "-4")]
     [InlineData("--days")]
     [InlineData("--events", ",")]
     public void BadArgumentsAreRefused(params string[] args) =>

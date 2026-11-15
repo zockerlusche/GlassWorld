@@ -107,6 +107,10 @@ real time per tick is chosen differently:
   `content/world/time.json`, x16 = 52 ms per tick). So a run never races through days while answers are on
   their way, and a live game day takes at most about 75 s of real time. With the mock nothing is
   ever out, so mock runs are exactly as fast and as deterministic as before.
+- `--speed N` (A1587, B2804): the game speed the run plays (1 or a fast-forward factor of `time.json`). The
+  core gets it as the game's logged command `set_speed` (it paces the AI by it), and while a question or job is
+  out ticks pass at that speed (`--speed 1`: 833 ms per tick, `--speed 16`: 52 ms). Without it the core stays at
+  normal speed and busy ticks pass at the fastest speed, as before.
 
 A live run is not reproducible from the seed alone; record it with `--save` and replay it.
 
