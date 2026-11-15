@@ -385,6 +385,10 @@ public sealed class SimulationHost
         var jobs = jobPort is null ? null : new JobRouter(jobPort);
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests, Knowledge = content.Knowledge };
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
+        // A1750 (B2768): an old request keeps only its fingerprint (the save and the memory stay small).
+        var fullRequestTicks = settings.RequestLogFullHours is { } fullHours ? (long)fullHours * world.Calendar.Settings.TicksPerHour : (long?)null;
+        decisions.Log.FullRequestTicks = fullRequestTicks;
+        inventions.Log.FullRequestTicks = fullRequestTicks;
         inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
 
         // Memory (B4a R5): what the inhabitants remember comes from the core's events, by data; the compute

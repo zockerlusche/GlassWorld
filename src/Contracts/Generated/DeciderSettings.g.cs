@@ -121,6 +121,13 @@ namespace GlassWorld.Contracts
         public int RetryAfterMinutes { get; set; } = default!;
 
         /// <summary>
+        /// A1750 (B2768): game hours a request stays whole in the decision and job logs; older ones keep only a fingerprint (sha256 and length) - the replay needs only the answers, commands and that fingerprint. Absent = every request stays whole.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("request_log_full_hours")]
+        public int? RequestLogFullHours { get; set; } = default!;
+
+        /// <summary>
         /// Game hours before the same inhabitant asks about the same subject again.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ask_cooldown_hours")]
