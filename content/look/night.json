@@ -22,6 +22,8 @@
     "size_px": 160,
     "brightness": 0.85,
     "reduce_motion_factor": 2,
+    "show_dreams": true,
+    "dream_hold_s": 6.0,
     "show_learned": true,
     "appearances": [
       {

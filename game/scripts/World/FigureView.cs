@@ -42,6 +42,12 @@ public partial class FigureView : Node3D
     private string _shownPose = string.Empty;
     private bool _standsIdle;
     private bool _lying;
+    private ShaderMaterial? _paint;
+    private string _topColor = "#ffffff";
+    private string? _wornShown;
+
+    /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
+    public bool Lying => _lying;
     private double _lieSeconds;
     private FigureClip _lieClip;
     private LieClip? _lieStage;
@@ -73,6 +79,9 @@ public partial class FigureView : Node3D
     private KneeStraightenModifier _knees = null!;
     private GestureLayer? _gestures;
     private FigureGesture? _gestureWanted;
+    private ComfortLook _comfortLook = ComfortLook.None;
+    private double _shiverSeconds;
+    private bool _shivering;
     private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
     private SeatPose? _seat;
@@ -149,6 +158,9 @@ public partial class FigureView : Node3D
             // Where the skeleton is in the figure: the watched bones are read in the skeleton's space.
             view._skeletonInBody = node is Node3D spatial ? spatial.Transform * view._skeletonInBody : view._skeletonInBody;
         }
+        // A1577: the shared paint of body and clothing - a worn thing colours the top (region_top) while it is worn.
+        view._paint = figure.Body.MaterialOverride as ShaderMaterial;
+        view._topColor = spec.Top;
         if (figures.Silhouette.Enabled && figure.Body.MaterialOverride is { } material)
         {
             // Behind a tree, rock or object the figure shows as a calm silhouette in its colour (W1689).
@@ -211,11 +223,22 @@ public partial class FigureView : Node3D
             : null;
         _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0, reach);
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
-        _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
+        // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
+        _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
+        // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
+        _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count, _lying);
+
+        // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
+        var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
+        if (worn != _wornShown && _paint is not null)
+        {
+            _paint.SetShaderParameter("region_top", Color.FromHtml(worn ?? _topColor));
+            _wornShown = worn;
+        }
         if (place)
         {
             // Placed (after a warm-up, a load) it lies or stands at once, without the way there.
@@ -435,7 +458,20 @@ public partial class FigureView : Node3D
         _knees.HipShare = (float)hips;
 
         HearAndAnswer(delta, figures.Greeting);
-        _gestures?.Update(delta, _actionShown && !_lying && _lieSeconds <= 0 ? _gestureWanted : null);
+        var still = !_lying && _lieSeconds <= 0;
+        var actionGesture = _actionShown && still ? _gestureWanted : null;
+        // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
+        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _comfortLook.Gesture : null));
+
+        // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
+        _shiverSeconds += delta;
+        var shiver = still && !_laid ? GestureCadence.ShiverAt(_comfortLook, _shiverSeconds, _bodyScale.X) : 0;
+        if (shiver != 0 || _shivering)
+        {
+            _body.Position = _bodyPosition + new Vector3((float)shiver, 0, 0);
+            _shivering = shiver != 0;
+        }
+
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {

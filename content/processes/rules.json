@@ -158,6 +158,7 @@
   "rules": [
     {
       "id": "split_hard_stone",
+      "was": ["split_hard_stone_to_edge"],
       "process": "split",
       "inputs": [
         {
@@ -190,6 +191,7 @@
     },
     {
       "id": "strike_hard_stone",
+      "was": ["strike_hard_stone_to_edge"],
       "process": "strike",
       "inputs": [
         {
@@ -223,6 +225,7 @@
     },
     {
       "id": "split_wood",
+      "was": ["split_wood_to_planks"],
       "process": "split",
       "inputs": [
         {
@@ -254,6 +257,7 @@
     },
     {
       "id": "braid_fibres",
+      "was": ["braid_fibres_to_cord"],
       "process": "braid",
       "inputs": [
         {
@@ -279,6 +283,7 @@
     },
     {
       "id": "braid_two_fibres",
+      "was": ["braid_two_fibres_to_cord"],
       "process": "braid",
       "inputs": [
         {
@@ -339,6 +344,7 @@
     },
     {
       "id": "fire_malleable_hard",
+      "was": ["fire_shaped_clay"],
       "process": "fire",
       "inputs": [
         {
@@ -464,6 +470,7 @@
     },
     {
       "id": "melt_at_melting_heat",
+      "was": ["melt_with_furnace"],
       "process": "melt",
       "inputs": [
         {
@@ -613,6 +620,7 @@
     },
     {
       "id": "grind_dry_food",
+      "was": ["grind_grain_to_flour"],
       "process": "grind",
       "inputs": [
         {
@@ -646,6 +654,7 @@
     },
     {
       "id": "mix_fatty_fine_food_with_water",
+      "was": ["grind_nuts_with_water_to_milk"],
       "process": "mix",
       "inputs": [
         {
@@ -685,6 +694,7 @@
     },
     {
       "id": "mix_fine_food_with_water",
+      "was": ["mix_flour_to_dough"],
       "process": "mix",
       "inputs": [
         {
@@ -724,6 +734,7 @@
     },
     {
       "id": "heat_soft_food_firm",
+      "was": ["bake_dough_to_bread"],
       "process": "heat",
       "inputs": [
         {
@@ -754,6 +765,7 @@
     },
     {
       "id": "strike_milky_to_fatty",
+      "was": ["churn_milk_to_butter"],
       "process": "strike",
       "inputs": [
         {
@@ -781,6 +793,7 @@
     },
     {
       "id": "warm_milky_to_firm",
+      "was": ["curdle_milk_to_cheese"],
       "process": "heat",
       "inputs": [
         {

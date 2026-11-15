@@ -213,7 +213,8 @@ public sealed class ContentSet
             inventionSettings,
             objects.PropertyVocabulary,
             // An action that exists only in one situation (only_when, e.g. a stuck building) is no invention's purpose.
-            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.OnlyWhen is null).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
+            // A reserved word (B9 R26) neither.
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.OnlyWhen is null && e.Reserved != true).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
             [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
             TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
@@ -231,6 +232,15 @@ public sealed class ContentSet
         // GW2 D971: what a thing is by being made is not assumed for a found thing.
         brain.MadeProperties = inventions.Settings.ImpliedProperties.ToFrozenSet(StringComparer.Ordinal);
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
+        // B9 R26: a reserved word does not exist in the world yet - no timing may offer it.
+        foreach (var entry in Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.Reserved == true))
+        {
+            if (actions.OfferedActions.Contains(entry.Id, StringComparer.Ordinal))
+            {
+                throw new InvalidDataException($"Action {entry.Id} is reserved (vocabulary) but offered (actions/timing.json).");
+            }
+        }
+
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var events = Ids(vocabularies, VocabularyKind.Event);
         var unknownEvents = chronicle.Kinds.Where(k => !events.Contains(k.Event)).Select(k => $"kind '{k.Id}' names unknown event '{k.Event}'").ToList();
@@ -956,6 +966,9 @@ public sealed class ContentSet
         return catalog;
     }
 
+    /// <summary>The day phases a need's decay_when may name (the calendar's phases, B2773).</summary>
+    private static readonly HashSet<string> DayPhaseIds = [.. Enum.GetNames<DayPhase>().Select(n => n.ToLowerInvariant())];
+
     private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits, HashSet<string> sensations)
     {
         // A mood driver follows exactly one of: a need below a threshold, a sensation (B5 R47).
@@ -973,6 +986,8 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.Select(d => d.Need).OfType<string>().Where(id => !needs.Contains(id)))
             .Concat(model.MoodDrivers.Select(d => d.Sensation).OfType<string>().Where(id => !sensations.Contains(id)))
             .Concat((model.ComfortZone?.Felt ?? []).Select(f => f.Sensation).Where(id => !sensations.Contains(id)))
+            .Concat((model.ComfortZone?.NeedModifiers ?? []).Select(m => m.Need).Where(id => !needs.Contains(id)))
+            .Concat(model.Needs.SelectMany(n => n.DecayWhen?.DayPhases ?? []).Where(id => !DayPhaseIds.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
             .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])

@@ -6,6 +6,8 @@
   "ground_tolerance_m": 0.06,
   "max_lights": 8,
   "turn_tries": 8,
+  "focus": { "seconds": 3.0, "radius_m": 0.6, "margin_m": 0.2, "width_m": 0.08, "color": "cave_inside" },
+  "invention_min_shown_m": 0.4,
   "min_footprint_m": 0.05,
   "fallback": {
     "shape": "marker",
@@ -33,6 +35,44 @@
       "align": "upright",
       "footprint_m": 0.0,
       "sway_m": 0.22
+    },
+    {
+      "id": "birch", "reach": "mid",
+      "types": [
+        "birch_tree"
+      ],
+      "shape": "broadleaf_tree",
+      "colors": [
+        "foliage",
+        "birch_bark",
+        "foliage_dark"
+      ],
+      "size_m": 1.1,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.26
+    },
+    {
+      "id": "young_tree", "reach": "mid",
+      "types": [
+        "young_tree"
+      ],
+      "shape": "broadleaf_tree",
+      "colors": [
+        "foliage",
+        "bark",
+        "foliage_dark"
+      ],
+      "size_m": 0.4,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.3
     },
     {
       "id": "conifer", "reach": "mid",

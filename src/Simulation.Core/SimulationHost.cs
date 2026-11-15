@@ -189,6 +189,19 @@ public sealed class SimulationHost
             var tides = new Tides(preset.Tides);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
+                // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
+                Hangs = content.WorldGen.Spawns.Spawns
+                    .Where(r => r.GrowsOn?.Hangs is not null)
+                    .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
+                    .ToDictionary(
+                        g => g.Key,
+                        g =>
+                        {
+                            var grows = g.First().GrowsOn!;
+                            var height = content.Objects.Contains(grows.ObjectType) ? content.Objects.Params(grows.ObjectType).ShadeHeightCm ?? 0 : 0;
+                            return (grows.Hangs!.MinPermille, grows.Hangs.MaxPermille, grows.Hangs.FallsPerDayPermille, height);
+                        },
+                        StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
                 Tides = tides,
                 TideWalk = tides.Active
@@ -603,10 +616,17 @@ public sealed class SimulationHost
                 HeatFrom = fire.HeatFrom,
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
+            inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
             world.Add(body);
+        }
+
+        if (map is not null)
+        {
+            // D1105 H2: the decider sees how high a thing hangs (a fruit in the crown).
+            decisions.AboveCm = map.AboveCm;
         }
 
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.
@@ -648,6 +668,7 @@ public sealed class SimulationHost
             Processes = processes,
             Fire = fire,
             Aging = agingSystem,
+            FamilyView = new Family.FirstGenerationView(inhabitants, world.Calendar.TicksPerDay),
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
@@ -952,6 +973,9 @@ public sealed class SimulationHost
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;
+
+    /// <summary>The read-only family view (B9 R29): kinship, tree, reputation, settlement, culture.</summary>
+    public Family.IFamilyView FamilyView { get; private init; } = null!;
 
     /// <summary>How inhabitants age (B9 R1), or null without aging data.</summary>
     public AgingSystem? Aging { get; private init; }

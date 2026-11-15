@@ -89,6 +89,20 @@ public sealed class WorldFeedTests
     }
 
     [Fact]
+    public void ClockCountsTheGameDaysOnAndKnowsTheLengths()
+    {
+        // B2759: "Herbst 5/7, Tag 19, Jahr 1" - the running day goes on across seasons; the lengths come from time.json.
+        var host = NewWorld();
+        var calendar = host.World.Calendar;
+        var clock = new WorldFeed(host).Clock();
+        Assert.Equal(calendar.Settings.DaysPerSeason, clock.DaysPerSeason);
+        Assert.Equal(calendar.Settings.DaysPerSeason * calendar.Settings.Seasons.Count, clock.DaysPerYear);
+        Assert.Equal(calendar.At(host.World.Tick).Day, clock.GameDay);
+        Assert.InRange(clock.Day, 1, clock.DaysPerSeason);
+        Assert.True(clock.GameDay >= clock.Day);
+    }
+
+    [Fact]
     public void SnapshotIsReusedWithinOneTick()
     {
         var host = NewWorld();

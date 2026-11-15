@@ -32,7 +32,21 @@
       "properties": {
         "id": { "$ref": "common.schema.json#/$defs/VocabId" },
         "decay_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
-        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 }
+        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 },
+        "decay_when": { "$ref": "#/$defs/NeedDecayWhen" }
+      }
+    },
+    "NeedDecayWhen": {
+      "description": "B2773 (GW1 #26014): while ALL given conditions hold, the need falls by per_hour instead of decay_per_hour (e.g. safety: alone, at night, without shelter). Every condition is optional; an absent one is not required.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["per_hour"],
+      "properties": {
+        "per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "Decay per hour while the conditions hold." },
+        "recover_per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual." },
+        "day_phases": { "type": "array", "maxItems": 4, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }, "description": "Day phases (vocabulary time_of_day) in which it holds." },
+        "alone_m": { "type": "number", "minimum": 0, "maximum": 1000, "description": "No other inhabitant within this many metres." },
+        "unsheltered": { "type": "boolean", "description": "true: no thing with the body data's shelter property within its shelter reach." }
       }
     },
     "MoodModel": {
@@ -43,6 +57,28 @@
         "id": { "$ref": "common.schema.json#/$defs/VocabId" },
         "baseline": { "type": "number", "minimum": 0, "maximum": 1 },
         "return_per_hour": { "description": "How fast the feeling returns to its baseline.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "ComfortNeedModifier": {
+      "type": "object", "additionalProperties": false, "required": ["level", "need", "factor"],
+      "properties": {
+        "level": { "$ref": "common.schema.json#/$defs/VocabId", "description": "Comfort level." },
+        "need": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The need whose decay changes." },
+        "factor": { "type": "number", "minimum": 0, "maximum": 5, "description": "Factor on its decay per hour." }
+      }
+    },
+    "ComfortPaceFactor": {
+      "type": "object", "additionalProperties": false, "required": ["level", "factor"],
+      "properties": {
+        "level": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "factor": { "type": "number", "minimum": 0.1, "maximum": 2, "description": "Factor on the walking pace." }
+      }
+    },
+    "ComfortLossPoint": {
+      "type": "object", "additionalProperties": false, "required": ["degrees", "per_hour"],
+      "properties": {
+        "degrees": { "type": "integer", "minimum": 0, "maximum": 80, "description": "Whole degrees outside the zone." },
+        "per_hour": { "type": "number", "minimum": 0, "maximum": 1, "description": "Loss of the need per hour there." }
       }
     },
     "ComfortFelt": {
@@ -96,6 +132,22 @@
         "recover_per_hour": { "description": "Gain of the need per hour while the air is inside the zone.", "type": "number", "minimum": 0, "maximum": 1 },
         "floor": { "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
         "precipitation_cold_factor": { "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
+        "need_modifiers": {
+          "description": "B5 R5/R6: at a comfort level other needs fall faster or slower (cold: hunger and sleep faster; hot: thirst faster) - factors on their decay. Omitted = none.",
+          "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/ComfortNeedModifier" }
+        },
+        "pace_factors": {
+          "description": "B5 R6: the walking pace at a comfort level (cold: slower). Omitted = unchanged.",
+          "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/ComfortPaceFactor" }
+        },
+        "cold_loss_table": {
+          "description": "B5 R5: the warmth need's loss per hour by whole degrees below the zone, as points (linear between, the last holds beyond); replaces cold_loss_per_hour_per_degree when given.",
+          "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/ComfortLossPoint" }
+        },
+        "heat_loss_table": {
+          "description": "B5 R5: as cold_loss_table, by degrees above the zone; replaces heat_loss_per_hour_per_degree when given.",
+          "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/ComfortLossPoint" }
+        },
         "felt": {
           "description": "B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.",
           "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/ComfortFelt" }
@@ -129,7 +181,12 @@
         "min_trust": { "type": "number", "minimum": 0, "maximum": 1 },
         "min_affection": { "type": "number", "minimum": 0, "maximum": 1 },
         "sleep_action": { "description": "Action during which an inhabitant counts as asleep (once it has started).", "$ref": "common.schema.json#/$defs/VocabId" },
-        "bedtime_after_nightfall_hours": { "description": "B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.", "type": "number", "minimum": 0, "maximum": 12 }
+        "silent_while_asleep": { "description": "A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.", "type": "array", "uniqueItems": true, "maxItems": 16, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "thoughts_on_waking": { "description": "A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.", "type": "integer", "minimum": 0, "maximum": 5 },
+        "bedtime_after_nightfall_hours": { "description": "B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.", "type": "number", "minimum": 0, "maximum": 12 },
+        "bedtime_window_hours": { "description": "A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).", "type": "number", "exclusiveMinimum": 0, "maximum": 12 },
+        "wake_rested": { "description": "B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.", "type": "object", "additionalProperties": false, "required": ["need", "at"], "properties": { "need": { "$ref": "common.schema.json#/$defs/VocabId" }, "at": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 } } },
+        "sleep_through_night": { "description": "B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).", "type": "boolean" }
       }
     },
     "WillToLiveModel": {

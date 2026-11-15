@@ -479,6 +479,48 @@
           "permille": 700
         }
       ]
+    },
+    {
+      "type": "birch_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 500
+        },
+        {
+          "season": "summer",
+          "permille": 800
+        },
+        {
+          "season": "autumn",
+          "permille": 400
+        },
+        {
+          "season": "winter",
+          "permille": 100
+        }
+      ]
+    },
+    {
+      "type": "young_tree",
+      "seasons": [
+        {
+          "season": "spring",
+          "permille": 400
+        },
+        {
+          "season": "summer",
+          "permille": 700
+        },
+        {
+          "season": "autumn",
+          "permille": 300
+        },
+        {
+          "season": "winter",
+          "permille": 100
+        }
+      ]
     }
   ],
   "experiences": [
@@ -521,6 +563,14 @@
     ],
     "wet": "wet",
     "kept_dry": "dry_in_rain"
+  },
+  "wind": {
+    "cool_tenth_c": 40,
+    "block_radius_cm": 300
+  },
+  "others_warmth": {
+    "tenth_c": 15,
+    "radius_cm": 150
   },
   "worn": {
     "property": "insulating",

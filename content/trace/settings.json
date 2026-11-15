@@ -1,0 +1,7 @@
+{
+  "contract_version": "0.2",
+  "enabled": true,
+  "folder": "trace",
+  "snapshot_every_hours": 1,
+  "pack_old_days": true
+}

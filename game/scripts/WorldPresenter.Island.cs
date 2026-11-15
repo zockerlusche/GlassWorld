@@ -33,6 +33,10 @@ public partial class WorldPresenter
 
     // The inventions drawn from their building plans (A1375): built things and building sites.
     private Build.InventionsView? _inventionsView;
+    private double _thingFocusM = 10;
+    private Contracts.LookFocus? _focusLook;
+    private Color _focusColor = Colors.White;
+    private MeshInstance3D? _focusRing;
     private GrassView? _grassView;
     private CloudCover? _cover;
     private NatureLook? _nature;
@@ -230,6 +234,62 @@ public partial class WorldPresenter
     }
 
     /// <summary>
+    /// A1684 (D1114): the camera goes to a thing by its object id and a calm ring on the ground marks it, fading over
+    /// the look's seconds. False when the thing is gone or there is no island camera.
+    /// </summary>
+    public bool FocusThing(string objectId)
+    {
+        if (_host is null || !_host.Objects.TryGet(objectId, out var thing) || !LookAtThing(thing.Position.X, thing.Position.Z))
+        {
+            return false;
+        }
+
+        _focusRing?.QueueFree();
+        _focusRing = null;
+        if (_focusLook is not { } look)
+        {
+            return true;
+        }
+
+        var radius = (float)InventionLooks.FocusRadiusM(_inventionsView?.ShownExtent(objectId) ?? 0, look.RadiusM, look.MarginM);
+        var material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            AlbedoColor = _focusColor,
+        };
+        var (x, z) = (thing.Position.X, thing.Position.Z);
+        _focusRing = new MeshInstance3D
+        {
+            Name = "FocusRing",
+            Mesh = new TorusMesh { InnerRadius = Math.Max(0.01f, radius - (float)look.WidthM), OuterRadius = radius },
+            MaterialOverride = material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Position = new Vector3((float)x, (float)_ground(x, z) + 0.05f, (float)z),
+        };
+        AddChild(_focusRing);
+        var ring = _focusRing;
+        var fade = CreateTween();
+        fade.TweenProperty(material, "albedo_color:a", 0f, look.Seconds);
+        fade.TweenCallback(Callable.From(() =>
+        {
+            if (ring == _focusRing)
+            {
+                _focusRing = null;
+            }
+
+            if (IsInstanceValid(ring))
+            {
+                ring.QueueFree();
+            }
+        }));
+        return true;
+    }
+
+    /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
+    public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
+
+    /// <summary>
     /// Check runs (A1375): the camera looks at a spot of the island from <paramref name="distanceM"/>, as if the
     /// player had taken it (the observer stands back). False on the placeholder.
     /// </summary>
@@ -346,7 +406,14 @@ public partial class WorldPresenter
         _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         _objectsView.Looks.RootOf = typeId => _host?.Processes?.RootOf(typeId);
         AddChild(_objectsView);
-        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground);
+        _focusLook = objectLooks.Focus;
+        if (_focusLook is { } focus && palette.Colors.FirstOrDefault(c => c.Id == focus.Color) is { } ringColor)
+        {
+            _focusColor = Color.FromHtml(ringColor.Color);
+        }
+
+        var kit = Read<BuildKit>(content, "build", "kit.json");
+        _inventionsView = Build.InventionsView.Create(kit, _ground, objectLooks.InventionMinShownM);
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
@@ -367,10 +434,32 @@ public partial class WorldPresenter
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
         var looks = _objectsView.Looks;
+        var wornColors = new Dictionary<string, string?>(StringComparer.Ordinal);
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
+            // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.
+            WornColor = id =>
+            {
+                if (!host.Objects.TryGet(id, out var thing))
+                {
+                    return null;
+                }
+
+                if (!wornColors.TryGetValue(thing.TypeId, out var color))
+                {
+                    color = host.Inventions.Builds.FirstOrDefault(b => b.TypeId == thing.TypeId && b.PlanJson is not null) is { PlanJson: { } plan }
+                        ? InventionLooks.MainColor(plan, kit)
+                        : null;
+                    if (color is not null)
+                    {
+                        wornColors[thing.TypeId] = color;
+                    }
+                }
+
+                return color;
+            },
         };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
@@ -379,6 +468,7 @@ public partial class WorldPresenter
         var depth = map.Map.DepthCells * terrain.CellM;
         var seaLevel = (float)_seaLevelM;
         var camera = Read<LookCamera>(content, "look", "camera.json");
+        _thingFocusM = camera.ThingFocusDistanceM ?? camera.FollowDistanceM;
         AttachRig(
             camera,
             CameraRig.Create(camera, width, depth, () => _islandNodes.Select(f => (f.Key, f.Value.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z))),
@@ -446,6 +536,7 @@ public partial class WorldPresenter
         _islandView = null;
         _objectsView = null;
         _inventionsView = null;
+        _focusRing = null;
         _grassView = null;
         _cover = null;
         _nature = null;

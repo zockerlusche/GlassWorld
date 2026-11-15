@@ -205,6 +205,7 @@ public partial class WorldAudio : Node3D
             {
                 _glass.Stream = Stream(signal.SoundId, signal.Variant);
                 _glass.Play();
+                Traced(signal);
             }
         }
 
@@ -223,8 +224,17 @@ public partial class WorldAudio : Node3D
             player.Position = At(request.Position);
             ApplyVolume(player, request.Bus, listener);
             player.Play();
+            Traced(request);
         }
     }
+
+    /// <summary>
+    /// The run trace of the shown world (A1719), set by the game; every sound played goes into it with its source,
+    /// so a sound without a visible cause can be found afterwards (D1112 #7). Null = no trace.
+    /// </summary>
+    public Func<Simulation.Data.RunTraceWriter?>? Trace { get; set; }
+
+    private void Traced(PlayRequest request) => Trace?.Invoke()?.Note(request.Tick, "sound", SoundDirector.TraceFields(request));
 
     /// <summary>
     /// Stops the music and every sound still playing before the game quits and plays nothing new (see
@@ -500,6 +510,7 @@ public partial class WorldAudio : Node3D
             player.Position = At(speaker.Position);
             ApplyVolume(player, MixBusId.Voices, listener);
             player.Play();
+            Traced(new PlayRequest("murmur", 0, MixBusId.Voices, speaker.Position, 1.0) { Source = speaker.Id, Cause = e.Kind, Tick = e.Tick });
         }
     }
 

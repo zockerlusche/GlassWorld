@@ -74,6 +74,10 @@ class VocabularyEntry(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    reserved: bool | None = Field(
+        None,
+        description="Actions only (B9 R26, GW3 #25889): a word kept for a later step that does not exist in the world yet. The core never offers it (it must have no offered timing), a prompt never lists it and it is never an invention's purpose. The step that makes it executable removes the mark. Absent = false.",
+    )
     spoken: bool | None = Field(
         None,
         description="Actions only (A1510, W1728): the inhabitant's thought with this action is said aloud to the one it turns to (introducing, talking, warning, showing, teaching), so the log shows 'says' instead of 'thinks'. Absent = false (a thought).",

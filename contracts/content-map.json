@@ -135,6 +135,18 @@
       "schema": "durability-settings"
     },
     {
+      "pattern": "family/*.json",
+      "schema": "family-settings"
+    },
+    {
+      "pattern": "culture/*.json",
+      "schema": "culture-settings"
+    },
+    {
+      "pattern": "world/population.json",
+      "schema": "population-settings"
+    },
+    {
       "pattern": "life/*.json",
       "schema": "life-aging"
     },
@@ -313,6 +325,10 @@
     {
       "pattern": "ai/mock-weights.json",
       "schema": "mock-weights"
+    },
+    {
+      "pattern": "trace/settings.json",
+      "schema": "trace-settings"
     },
     {
       "pattern": "learning/log.json",

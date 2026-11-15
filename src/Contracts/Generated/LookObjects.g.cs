@@ -12,6 +12,42 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LookFocus
+    {
+
+        /// <summary>
+        /// How long the ring takes to fade (real seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seconds")]
+        public double Seconds { get; set; } = default!;
+
+        /// <summary>
+        /// Least ring radius; a drawn invention gets half its extent plus the margin if that is more.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Room between a drawn thing and its ring.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("margin_m")]
+        public double MarginM { get; set; } = default!;
+
+        /// <summary>
+        /// Width of the ring.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("width_m")]
+        public double WidthM { get; set; } = default!;
+
+        /// <summary>
+        /// Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        public string Color { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond; rock_niche is a shelter in a rock wall (TL #20750): a dark opening under a lintel between side rocks, its measures in the visual's niche.
     /// </summary>
@@ -531,6 +567,20 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("turn_tries")]
         public int TurnTries { get; set; } = default!;
+
+        /// <summary>
+        /// A1684/D1114: when the player is taken to a thing (log line, hint), a calm ring on the ground marks it and fades. Omitted = no ring.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("focus")]
+        public LookFocus? Focus { get; set; } = default!;
+
+        /// <summary>
+        /// A1715 (D1112 #6): a built invention whose largest extent is below this is drawn uniformly larger up to it, so a cup of 8 cm can be seen at all. Look only - the core keeps its true size. Omitted = true size. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention_min_shown_m")]
+        public double? InventionMinShownM { get; set; } = default!;
 
         /// <summary>
         /// Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.

@@ -4,9 +4,15 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from . import common_schema
+
+type BoxKey = Annotated[
+    str, Field(..., pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$')
+]
 
 
 class HeadSymbol(BaseModel):
@@ -41,6 +47,11 @@ class UiScaleRange(BaseModel):
     max: float = Field(..., ge=0.25, le=4.0)
     step: float = Field(..., ge=0.01, le=1.0)
     default: float = Field(..., ge=0.25, le=4.0)
+
+
+type WorldCheckGround = Annotated[
+    str, Field(..., pattern='^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$')
+]
 
 
 class UiWindowTokens(BaseModel):
@@ -175,6 +186,56 @@ class UiWindowTokens(BaseModel):
         gt=0.0,
         le=1.0,
     )
+    shadow_px: int = Field(
+        ...,
+        description='Soft shadow around windows (S1b, D1076 section 6: lifted from the world instead of a hard box).',
+        ge=0,
+        le=64,
+    )
+    shadow_alpha: float = Field(
+        ..., description='Opacity of that shadow.', ge=0.0, le=1.0
+    )
+    button_radius: int = Field(
+        ...,
+        description='Corner radius of buttons and fields: a shape of their own, apart from the rounder windows.',
+        ge=0,
+        le=64,
+    )
+    world_outline_px: int = Field(
+        ...,
+        description='Outline of text that stands on the world without a box (the corners top left and bottom left, D795).',
+        ge=0,
+        le=32,
+    )
+    scrim_alpha: float = Field(
+        ...,
+        description='Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).',
+        ge=0.0,
+        le=1.0,
+    )
+    scrim_soft_px: int = Field(
+        ...,
+        description='How far that dark ground fades out at its edges (a soft gradient, no box).',
+        ge=0,
+        le=128,
+    )
+    world_check_grounds: list[WorldCheckGround] = Field(
+        ...,
+        description='Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).',
+        min_length=1,
+    )
+    card_diary_lines: int = Field(
+        ...,
+        description='Diary entries the card shows at once (B2603: the last ones on top, more on a click).',
+        ge=1,
+        le=50,
+    )
+    card_talk_lines: int = Field(
+        ...,
+        description='Last sentences of the conversation the card shows above the talk field (B2603: one conversation).',
+        ge=0,
+        le=50,
+    )
 
 
 class UiButtonTokens(BaseModel):
@@ -299,6 +360,11 @@ class Id4(StrEnum):
     attention = 'attention'
     bubble_inhabitant = 'bubble_inhabitant'
     bubble_player = 'bubble_player'
+    field = 'field'
+    world_text = 'world_text'
+    world_outline = 'world_outline'
+    bar_fill = 'bar_fill'
+    bar_bad = 'bar_bad'
 
 
 class UiColor(BaseModel):
@@ -360,6 +426,8 @@ class Icon(StrEnum):
     frost = 'frost'
     heat = 'heat'
     drought = 'drought'
+    thumb_up = 'thumb_up'
+    thumb_down = 'thumb_down'
     unknown = 'unknown'
 
 
@@ -369,6 +437,50 @@ class UiIconChoice(BaseModel):
     )
     id: str = Field(..., description='Season or weather id.', min_length=1)
     icon: Icon = Field(..., description='Drawn symbol.')
+
+
+class Kind(StrEnum):
+    uplift = 'uplift'
+    burden = 'burden'
+
+
+class UiBarMood(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(..., description='Mood id of the vocabulary.', min_length=1)
+    kind: Kind = Field(..., description='uplift: much is good; burden: much is bad.')
+
+
+class UiLogCategory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    kinds: list[common_schema.VocabId] = Field(..., min_length=1)
+    highlight: bool
+
+
+class Log(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    corner_lines: int = Field(
+        ...,
+        description='Lines the closed log shows (newest first); more on a click.',
+        ge=1,
+        le=20,
+    )
+    box_keys: list[BoxKey] = Field(
+        ...,
+        description='Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.',
+    )
+    categories: list[UiLogCategory] = Field(..., min_length=1)
 
 
 class Zones(BaseModel):
@@ -420,6 +532,18 @@ class Zones(BaseModel):
         ge=2,
         le=1000,
     )
+    portraits_important_from: int = Field(
+        ...,
+        description='From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).',
+        ge=2,
+        le=1000,
+    )
+    portraits_important_max: int = Field(
+        ...,
+        description='At most this many important inhabitants in the corner (B2749).',
+        ge=1,
+        le=50,
+    )
     portrait_list_height_share: float = Field(
         ...,
         description='Largest share of the free height the portrait list takes; more scrolls.',
@@ -448,6 +572,40 @@ class Zones(BaseModel):
     weather_icons: list[UiIconChoice] = Field(
         ...,
         description="Symbol of each weather in the time block top right (ids of the weather vocabulary); an unknown weather shows the symbol 'unknown'.",
+    )
+    card_width: int = Field(
+        ...,
+        description='Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.',
+        ge=200,
+        le=1600,
+    )
+
+
+class Bars(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    state_bad_below: int = Field(
+        ...,
+        description='A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.',
+        ge=0,
+        le=100,
+    )
+    state_good_from: int = Field(
+        ...,
+        description='A state value or an uplifting feeling from this on shows a thumb up.',
+        ge=0,
+        le=100,
+    )
+    burden_bad_from: int = Field(
+        ...,
+        description='A burdening feeling (fear, sadness ...) from this on is in the bad range.',
+        ge=0,
+        le=100,
+    )
+    moods: list[UiBarMood] = Field(
+        ...,
+        description='Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.',
     )
 
 
@@ -499,6 +657,10 @@ class UiTokens(BaseModel):
     window: UiWindowTokens
     button: UiButtonTokens
     table: UiTableTokens
+    log: Log = Field(
+        ...,
+        description="The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.",
+    )
     toast: UiToastTokens
     durations_ms: list[UiDuration] = Field(
         ...,
@@ -518,4 +680,8 @@ class UiTokens(BaseModel):
     zones: Zones = Field(
         ...,
         description='Sizes of the corner layout (UI concept Variante A, D957 v4, B2643; grew out of the zones preview W1717/D642): compact corners so the middle of the picture stays free.',
+    )
+    bars: Bars = Field(
+        ...,
+        description='One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).',
     )

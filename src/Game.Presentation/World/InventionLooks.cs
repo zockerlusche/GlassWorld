@@ -55,6 +55,37 @@ public static class InventionLooks
         return builds.Where(b => b.PlanJson is not null && b.BuiltObjectId is not null).Select(b => b.TypeId).ToHashSet(StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// A1715 (D1112 #6, D1114): the uniform scale a built thing is drawn with - 1, or larger so its largest extent
+    /// reaches <paramref name="minShownM"/> (look data); never smaller. The core keeps the true size.
+    /// </summary>
+    public static double ShownScale(double largestExtentM, double? minShownM) =>
+        minShownM is { } least && largestExtentM > 0 && largestExtentM < least ? least / largestExtentM : 1.0;
+
+    /// <summary>
+    /// A1684: the radius of the focus ring around a thing - the data's least radius, or half the drawn extent plus the
+    /// margin when that is more (a drawn invention; 0 = not drawn from a plan).
+    /// </summary>
+    public static double FocusRadiusM(double drawnExtentM, double radiusM, double marginM) =>
+        Math.Max(radiusM, (Math.Max(0, drawnExtentM) / 2) + marginM);
+
+    /// <summary>
+    /// A1577 (K4): the colour a worn invention gives the figure - the kit colour (#rrggbb) of its plan's largest part
+    /// (by volume; equal ones by their order), or null when the plan or the colour is unknown.
+    /// </summary>
+    public static string? MainColor(string planJson, GlassWorld.Contracts.BuildKit kit)
+    {
+        ArgumentNullException.ThrowIfNull(planJson);
+        ArgumentNullException.ThrowIfNull(kit);
+        var largest = InventionSystem.PlanOf(planJson).Parts
+            .Select((part, index) => (part, index, volume: part.SizeM.X * part.SizeM.Y * part.SizeM.Z))
+            .OrderByDescending(p => p.volume)
+            .ThenBy(p => p.index)
+            .Select(p => p.part)
+            .FirstOrDefault();
+        return largest is null ? null : kit.Colors.FirstOrDefault(c => c.Id == largest.Color)?.Color;
+    }
+
     /// <summary>A short text that changes whenever what is drawn changes (so the drawing is redone only then).</summary>
     public static string Signature(IReadOnlyList<InventionShown> shown)
     {

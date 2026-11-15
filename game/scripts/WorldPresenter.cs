@@ -29,6 +29,12 @@ public partial class WorldPresenter : Node3D
     private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
+
+    // A1719 (B2767): the technical run trace next to the save, or null (data switched off, no save path).
+    private RunTraceWriter? _trace;
+
+    /// <summary>A1719: the run trace of the shown world, or null (e.g. for the sound director's sound lines, Note).</summary>
+    public RunTraceWriter? Trace => _trace;
     private HttpConversationPort? _conversationPort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
@@ -97,6 +103,30 @@ public partial class WorldPresenter : Node3D
     /// <summary>State hash right after restoring, before open questions are sent again (save/load check).</summary>
     public string? HashAtLoad { get; private set; }
 
+    /// <summary>
+    /// The start population for tours and measurements (<c>--inhabitants=N</c> after <c>--</c>; B2749: the click tour
+    /// with 50 inhabitants; debug builds only, like <c>--load-save</c>, review GW3 #454); null = the data's start
+    /// inhabitants, as every game starts.
+    /// </summary>
+    private static int? StartInhabitants()
+    {
+        const string prefix = "--inhabitants=";
+        if (!OS.IsDebugBuild())
+        {
+            return null;
+        }
+
+        foreach (var arg in OS.GetCmdlineUserArgs())
+        {
+            if (arg.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(arg[prefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var count) && count > 0)
+            {
+                return count;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
     public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null, null);
 
@@ -125,7 +155,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate })
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate }, StartInhabitants())
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {
@@ -280,6 +310,23 @@ public partial class WorldPresenter : Node3D
         // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
         // (R16, review GW1 #131) - never made-up mock words in front of the player.
         host.Conversation.Port = _conversationPort;
+        // A1719 (B2767): the run trace reads along; one that cannot start is no reason to stop the game.
+        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 } traceFolder)
+        {
+            try
+            {
+                _trace = RunTraceWriter.Start(host, traceFolder, _contentDirectory);
+                if (_trace is not null)
+                {
+                    _trace.Failed += e => GD.PushWarning($"RUN_TRACE_OFF {e.GetType().Name}: {e.Message}");
+                }
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                GD.PushWarning($"RUN_TRACE_FAILED {e.GetType().Name}: {e.Message}");
+            }
+        }
+
         if (savePath is not null)
         {
             // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
@@ -421,6 +468,8 @@ public partial class WorldPresenter : Node3D
     public override void _ExitTree()
     {
         RestoreScene();
+        _trace?.Dispose();
+        _trace = null;
         _livePort?.Dispose();
         _conversationPort?.Dispose();
         _jobPort?.Dispose();
@@ -517,6 +566,10 @@ public partial class WorldPresenter : Node3D
         });
     }
 
+    /// <summary>Whether an inhabitant's figure lies now (island figures; the placeholder world has none lying).</summary>
+    private bool LiesNow(string inhabitantId) =>
+        _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView { Lying: true };
+
     private void ShowThoughts()
     {
         if (_host is null)
@@ -528,6 +581,12 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            if (LiesNow(e.InhabitantId))
+            {
+                // D1112 #8: a figure lying asleep neither speaks nor thinks on screen (the core keeps sleepers quiet too, A1710).
+                continue;
+            }
+
             if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
             {
                 // Talking (B6 R13): "..." while it thinks, then the answer or a question mark; the figures

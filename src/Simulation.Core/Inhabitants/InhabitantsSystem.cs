@@ -4,6 +4,7 @@ using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
+using GlassWorld.Simulation.Time;
 
 namespace GlassWorld.Simulation.Inhabitants;
 
@@ -115,6 +116,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     // The inhabitants by id for the look-up and in id order for every pass of a tick, hash and save.
     private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<Inhabitant> _ordered = [];
+
+    // A1710: thoughts that came while their inhabitant slept, shown when it wakes (presentation, not state).
+    private readonly Dictionary<string, List<WorldEvent>> _heldThoughts = new(StringComparer.Ordinal);
+
+    private const string ThoughtKind = "thought";
 
     // Where everybody stood when the tick began, side by side in id order (not state): the passes over all
     // pairs at the start of a tick (being together, meeting, bonding) read these instead of every object.
@@ -229,6 +235,25 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         if (EventKinds.Count > 0 && !EventKinds.Contains(worldEvent.Kind))
         {
             throw new InvalidDataException($"Event kind '{worldEvent.Kind}' is not in the event vocabulary (content/vocabulary/events.json).");
+        }
+
+        // A1710 (D1112 #8): a sleeper neither speaks nor thinks aloud - the one gate for every source (a late
+        // answer, the night look-back, a conversation). What it decided stands; only the words are left out.
+        if (_model.Togetherness?.SilentWhileAsleep is { Count: > 0 } silent && silent.Contains(worldEvent.Kind)
+            && TryGet(worldEvent.InhabitantId, out var speaker) && IsAsleep(speaker))
+        {
+            // GW2 #455: the night look-back's thoughts are morning thoughts - the latest few wait for the waking.
+            if (worldEvent.Kind == ThoughtKind && _model.Togetherness.ThoughtsOnWaking is > 0 and var keep)
+            {
+                var held = _heldThoughts.TryGetValue(speaker.Id, out var list) ? list : _heldThoughts[speaker.Id] = [];
+                held.Add(worldEvent);
+                if (held.Count > keep)
+                {
+                    held.RemoveRange(0, held.Count - keep);
+                }
+            }
+
+            return;
         }
 
         if (worldEvent.Tick != _eventsTick)
@@ -642,6 +667,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _zs[i] = at.Z;
         }
 
+        ReleaseHeldThoughts(world);
         var together = Together();
         Meet(world);
         Bond();
@@ -650,8 +676,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
-            DecayNeeds(inhabitant);
+
+            // B5 R5/R6: how warm it feels now, for this tick's need rates and pace (derived from the state, no lag);
+            // the felt temperature is computed once for the level and the warmth need (review GW3 #435).
+            _keepFelt = true;
+            _feltOnce = null;
+            _levelNow = (inhabitant.Id, ComfortLevelOf(world, inhabitant));
+            DecayNeeds(world, inhabitant);
             FeelTheAir(world, inhabitant);
+            _keepFelt = false;
+            _feltOnce = null;
             if (together.Contains(inhabitant.Id))
             {
                 FillTogether(inhabitant, _model.Togetherness!);
@@ -917,7 +951,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(world);
         // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        // A1711 (D1112 #4): only within the data's window from bedtime - after a whole night one wakes rested and
+        // is not sent back to bed; then only tiredness lies it down.
         return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && (_model.Togetherness.BedtimeWindowHours is not { } window || since < (hours + window) * 60)
             && world.Calendar.NightBeganInWorld(world.Tick);
     }
 
@@ -959,6 +996,52 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private static bool Asleep(Inhabitant inhabitant, Togetherness data) =>
         inhabitant.Activity is { RemainingTicks: not null } activity && string.Equals(activity.Action, data.SleepAction, StringComparison.Ordinal);
 
+    /// <summary>
+    /// A1710 (GW3 #455): the player's word wakes a sleeper - it answers awake. What it slept stays; the sleep ends
+    /// as when a need wakes it (action_cancelled, detail woken_by_player).
+    /// </summary>
+    public void WakeForPlayer(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (!IsAsleep(inhabitant))
+        {
+            return;
+        }
+
+        Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, inhabitant.Activity!.Action, null) { Detail = WokenByPlayer });
+        inhabitant.Activity = null;
+    }
+
+    /// <summary>Detail of the action_cancelled event when the player's word wakes a sleeper (A1710).</summary>
+    public const string WokenByPlayer = "woken_by_player";
+
+    // In inhabitant order: the thoughts held for one that is awake now come, oldest first, at this tick.
+    private void ReleaseHeldThoughts(World world)
+    {
+        if (_heldThoughts.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var inhabitant in _ordered)
+        {
+            if (_heldThoughts.TryGetValue(inhabitant.Id, out var held) && !IsAsleep(inhabitant))
+            {
+                _heldThoughts.Remove(inhabitant.Id);
+                foreach (var thought in held)
+                {
+                    Report(thought with { Tick = world.Tick });
+                }
+            }
+        }
+
+        foreach (var gone in _heldThoughts.Keys.Where(id => !TryGet(id, out _)).ToList())
+        {
+            _heldThoughts.Remove(gone);
+        }
+    }
+
     /// <summary>Togetherness fills its need by the data's rate per hour, never above the cap (TL #20190).</summary>
     private void FillTogether(Inhabitant inhabitant, Togetherness data)
     {
@@ -968,13 +1051,66 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
     }
 
-    private void DecayNeeds(Inhabitant inhabitant)
+    /// <summary>
+    /// B2773 (GW1 #26014): whether all conditions of a need's decay_when hold for an inhabitant now - the day phase,
+    /// nobody else within alone_m (inhabitants in their fixed order), no shelter near (<see cref="Sheltered"/>).
+    /// </summary>
+    // The day phases of each decay_when, read once (review GW5 #451: no text compare per inhabitant and tick).
+    private readonly Dictionary<NeedDecayWhen, HashSet<DayPhase>> _phasesOf = [];
+
+    private HashSet<DayPhase> PhasesOf(NeedDecayWhen when)
+    {
+        if (!_phasesOf.TryGetValue(when, out var phases))
+        {
+            phases = [.. Enum.GetValues<DayPhase>().Where(p => when.DayPhases!.Contains(p.ToString().ToLowerInvariant(), StringComparer.Ordinal))];
+            _phasesOf[when] = phases;
+        }
+
+        return phases;
+    }
+
+    private bool Holds(World world, Inhabitant inhabitant, NeedDecayWhen when)
+    {
+        ArgumentNullException.ThrowIfNull(when);
+        if (when.DayPhases is { Count: > 0 } && !PhasesOf(when).Contains(world.Now.Phase))
+        {
+            return false;
+        }
+
+        if (when.AloneM is { } alone)
+        {
+            foreach (var other in _ordered)
+            {
+                if (!ReferenceEquals(other, inhabitant) && DistanceSquared(other.Position, inhabitant.Position) <= alone * alone)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return when.Unsheltered != true || Sheltered?.Invoke(inhabitant) != true;
+    }
+
+    private void DecayNeeds(World world, Inhabitant inhabitant)
     {
         foreach (var need in _needs)
         {
             if (inhabitant.Needs.TryGetValue(need.Id, out var value))
             {
-                inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour), 0.0, 1.0);
+                // B2773: under the data's conditions the need falls by its own rate instead (safety alone at night);
+                // where they do not hold it may recover (by day, in company, under shelter).
+                if (need.DecayWhen is { } when)
+                {
+                    var holds = Holds(world, inhabitant, when);
+                    inhabitant.Needs[need.Id] = holds
+                        ? Math.Clamp(value - PerTick(when.PerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0)
+                        : when.RecoverPerHour is { } recover
+                            ? Math.Clamp(value + PerTick(recover), 0.0, 1.0)
+                            : Math.Clamp(value - PerTick(need.DecayPerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0);
+                    continue;
+                }
+
+                inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0);
             }
         }
 
@@ -1087,6 +1223,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     /// <summary>Reason of a sleep cut short because a pressing need fell below its neglect threshold (B2681, W1938).</summary>
     public const string WokenByNeed = "woken_by_need";
+
+    /// <summary>Reason of a sleep ended by day because the sleeper is rested (B2778, A1711).</summary>
+    public const string WokenRested = "woken_rested";
 
     /// <summary>
     /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
@@ -1288,9 +1427,26 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 inhabitant.Activity = null;
                 return;
             }
+
+            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep.
+            if (IsAsleep(inhabitant) && timingNow.DurationTicks - activity.RemainingTicks.Value >= timingNow.WakeAfterTicks
+                && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
+                && inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
+                inhabitant.Activity = null;
+                return;
+            }
         }
 
         var remaining = activity.RemainingTicks.Value - 1;
+        if (remaining <= 0 && _model.Togetherness is { SleepThroughNight: true } && IsAsleep(inhabitant)
+            && world.Calendar.MinutesSinceNightfall(world.Tick) is not null)
+        {
+            // B2778 (A1711): the night's sleep lasts until morning - the day wakes it (or a pressing need).
+            remaining = 1;
+        }
+
         if (remaining > 0)
         {
             inhabitant.Activity = activity with { RemainingTicks = remaining };
@@ -1964,7 +2120,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>Metres the inhabitant walks this tick on flat ground, by its gait (data, F5264).</summary>
-    private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait);
+    // B5 R6: the comfort pace applies to the inhabitant being updated in this tick (Act runs in that loop); asked for
+    // anyone else (planning a route budget outside the loop) the pace factor is 1 (review GW3 #435).
+    private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait) * PaceFactor(inhabitant);
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 

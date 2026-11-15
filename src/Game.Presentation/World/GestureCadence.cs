@@ -7,6 +7,16 @@ namespace GlassWorld.Presentation.World;
 /// <param name="ToHead">0 = at the start point (<c>from_body</c>), 1 = at the head (<c>to_head</c>).</param>
 public readonly record struct GestureState(double Weight, double ToHead);
 
+/// <summary>How a comfort level shows on a figure (A1729): a gesture (or none) and a shiver.</summary>
+/// <param name="Gesture">The gesture, or null.</param>
+/// <param name="ShiverM">Amplitude of the shiver for a figure of size 1, metres; 0 = none.</param>
+/// <param name="ShiverHz">Its frequency.</param>
+public sealed record ComfortLook(FigureGesture? Gesture, double ShiverM, double ShiverHz)
+{
+    /// <summary>Nothing to show.</summary>
+    public static ComfortLook None { get; } = new(null, 0, 0);
+}
+
 /// <summary>
 /// Arm gestures over the running pose (D958 D2, look data <c>gestures</c>), without Godot: which gesture shows an
 /// action, and its calm cycle - reach out (rise), stay at the start point (dip), move to the head (lift), hold,
@@ -31,6 +41,28 @@ public static class GestureCadence
         };
         return gestures.FirstOrDefault(g => g.Actions.Contains(action, StringComparer.Ordinal)
             && (g.Reach is null || (height is not null && g.Reach.Contains(height, StringComparer.Ordinal))));
+    }
+
+    /// <summary>
+    /// A1729 (A1379 rest): how a comfort level shows - the gesture of its comfort entry (looked up among the gestures)
+    /// and the shiver (amplitude in metres for size 1, frequency). Nothing for a level without an entry or no level.
+    /// </summary>
+    public static ComfortLook ForComfort(IEnumerable<FigureComfort>? comfort, IEnumerable<FigureGesture>? gestures, string? level)
+    {
+        if (comfort is null || level is null || comfort.FirstOrDefault(c => string.Equals(c.Level, level, StringComparison.Ordinal)) is not { } entry)
+        {
+            return ComfortLook.None;
+        }
+
+        var gesture = entry.Gesture is { } id ? gestures?.FirstOrDefault(g => string.Equals(g.Id, id, StringComparison.Ordinal)) : null;
+        return new ComfortLook(gesture, entry.ShiverM ?? 0, entry.ShiverHz ?? 0);
+    }
+
+    /// <summary>The shiver's offset now (metres, sideways): a sine at the data's frequency, scaled by the figure; 0 without one.</summary>
+    public static double ShiverAt(ComfortLook look, double seconds, double scale)
+    {
+        ArgumentNullException.ThrowIfNull(look);
+        return look.ShiverM > 0 && look.ShiverHz > 0 ? look.ShiverM * scale * Math.Sin(2 * Math.PI * look.ShiverHz * seconds) : 0;
     }
 
     /// <summary>Real seconds of one full cycle.</summary>

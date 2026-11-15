@@ -1493,6 +1493,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
 
+    /// <summary>D1105 H2: how high a thing hangs above the ground in centimetres (0 = on it); null = all on the ground.</summary>
+    public Func<string, int>? AboveCm { get; set; }
+
     /// <summary>B5 R30: whether an inhabitant is wet (environment.wet); null = not stated. Set by the host.</summary>
     public Func<Inhabitant, bool>? IsWet { get; set; }
 
@@ -1602,6 +1605,7 @@ public sealed class DecisionsSystem : IWorldSystem
                 DistanceM = Distance(inhabitant.Position, thing.Position),
                 KnownProperties = type.Known,
                 Label = type.Label,
+                AboveM = AboveCm?.Invoke(thing.Id) is > 0 and var above ? Math.Round(above / 100.0, 1) : null,
             });
         }
 

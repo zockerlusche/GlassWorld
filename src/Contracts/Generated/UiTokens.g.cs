@@ -188,6 +188,60 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("field_max_share")]
         public double FieldMaxShare { get; set; } = default!;
 
+        /// <summary>
+        /// Soft shadow around windows (S1b, D1076 section 6: lifted from the world instead of a hard box).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_px")]
+        public int ShadowPx { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of that shadow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_alpha")]
+        public double ShadowAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// Corner radius of buttons and fields: a shape of their own, apart from the rounder windows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("button_radius")]
+        public int ButtonRadius { get; set; } = default!;
+
+        /// <summary>
+        /// Outline of text that stands on the world without a box (the corners top left and bottom left, D795).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("world_outline_px")]
+        public int WorldOutlinePx { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_alpha")]
+        public double ScrimAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// How far that dark ground fades out at its edges (a soft gradient, no box).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrim_soft_px")]
+        public int ScrimSoftPx { get; set; } = default!;
+
+        /// <summary>
+        /// Light grounds of the world (snow, sand, light grass, sky) the text on the world is checked against: its colour against its outline over each must reach the text contrast (UI standard, layout check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("world_check_grounds")]
+        public System.Collections.Generic.ICollection<string> WorldCheckGrounds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Diary entries the card shows at once (B2603: the last ones on top, more on a click).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_diary_lines")]
+        public int CardDiaryLines { get; set; } = default!;
+
+        /// <summary>
+        /// Last sentences of the conversation the card shows above the talk field (B2603: one conversation).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_talk_lines")]
+        public int CardTalkLines { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -407,6 +461,46 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Whether a feeling uplifts or burdens (for the bar rule B2642).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiBarMood
+    {
+
+        /// <summary>
+        /// Mood id of the vocabulary.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// uplift: much is good; burden: much is bad.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UiBarMoodKind>))]
+        public UiBarMoodKind Kind { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A category of log lines (B2607): its id (text key ui.log.category.&lt;id&gt;), the line kinds in it, and whether its lines stand out.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiLogCategory
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kinds")]
+        public System.Collections.Generic.ICollection<string> Kinds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("highlight")]
+        public bool Highlight { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -467,6 +561,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("table")]
         public UiTableTokens Table { get; set; } = new UiTableTokens();
 
+        /// <summary>
+        /// The log in the corner bottom left (A1684, B2607): its newest lines, and the categories its lines belong to, by kind - the conversation's kinds (said, thought, ...), the hints that became lines (question, help, note) and the chronicle's kinds. A category marked highlight stands out (bold) and is easy to find again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log")]
+        public Log Log { get; set; } = new Log();
+
         [System.Text.Json.Serialization.JsonPropertyName("toast")]
         public UiToastTokens Toast { get; set; } = new UiToastTokens();
 
@@ -496,6 +596,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("zones")]
         public Zones Zones { get; set; } = new Zones();
+
+        /// <summary>
+        /// One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bars")]
+        public Bars Bars { get; set; } = new Bars();
 
     }
 
@@ -575,6 +681,26 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("bubble_player")]
         Bubble_player = 11,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("field")]
+        Field = 12,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("world_text")]
+        World_text = 13,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("world_outline")]
+        World_outline = 14,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bar_fill")]
+        Bar_fill = 15,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bar_bad")]
+        Bar_bad = 16,
 
 
     }
@@ -663,9 +789,52 @@ namespace GlassWorld.Contracts
         Drought = 19,
 
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
-        Unknown = 20,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("thumb_up")]
+        Thumb_up = 20,
 
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("thumb_down")]
+        Thumb_down = 21,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
+        Unknown = 22,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum UiBarMoodKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("uplift")]
+        Uplift = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("burden")]
+        Burden = 1,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Log
+    {
+
+        /// <summary>
+        /// Lines the closed log shows (newest first); more on a click.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("corner_lines")]
+        public int CornerLines { get; set; } = default!;
+
+        /// <summary>
+        /// Hints that stay in the hint box and never become log lines (B2712, review GW3 #463): failures the player must notice (saving, a faulted world, sharing, an export) and the AI self-check. Knocks and calls for help stay there as well.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("box_keys")]
+        public System.Collections.Generic.ICollection<string> BoxKeys { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("categories")]
+        public System.Collections.Generic.ICollection<UiLogCategory> Categories { get; set; } = new System.Collections.ObjectModel.Collection<UiLogCategory>();
 
     }
 
@@ -746,6 +915,18 @@ namespace GlassWorld.Contracts
         public int PortraitsCompactFrom { get; set; } = default!;
 
         /// <summary>
+        /// From this number of inhabitants on, the corner shows only the important ones (pinned, knocking or asking, the one followed) and +N; all of them are in the inhabitants window (B2749).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portraits_important_from")]
+        public int PortraitsImportantFrom { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many important inhabitants in the corner (B2749).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("portraits_important_max")]
+        public int PortraitsImportantMax { get; set; } = default!;
+
+        /// <summary>
         /// Largest share of the free height the portrait list takes; more scrolls.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("portrait_list_height_share")]
@@ -780,6 +961,42 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("weather_icons")]
         public System.Collections.Generic.ICollection<UiIconChoice> WeatherIcons { get; set; } = new System.Collections.ObjectModel.Collection<UiIconChoice>();
+
+        /// <summary>
+        /// Width of the inhabitant card on the right (D957 section 2, D1060 find 7: fields and questions need room); narrowed when the middle needs it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_width")]
+        public int CardWidth { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Bars
+    {
+
+        /// <summary>
+        /// A state value (needs, will to live, favour) below this is in the bad range: warning colour and thumb down.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state_bad_below")]
+        public int StateBadBelow { get; set; } = default!;
+
+        /// <summary>
+        /// A state value or an uplifting feeling from this on shows a thumb up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state_good_from")]
+        public int StateGoodFrom { get; set; } = default!;
+
+        /// <summary>
+        /// A burdening feeling (fear, sadness ...) from this on is in the bad range.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("burden_bad_from")]
+        public int BurdenBadFrom { get; set; } = default!;
+
+        /// <summary>
+        /// Which feelings uplift and which burden (mood ids of the vocabulary); a feeling not listed is shown neutral.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moods")]
+        public System.Collections.Generic.ICollection<UiBarMood> Moods { get; set; } = new System.Collections.ObjectModel.Collection<UiBarMood>();
 
     }
 }

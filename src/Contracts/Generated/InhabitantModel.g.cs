@@ -31,6 +31,53 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("neglect_below")]
         public double NeglectBelow { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("decay_when")]
+        public NeedDecayWhen? DecayWhen { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B2773 (GW1 #26014): while ALL given conditions hold, the need falls by per_hour instead of decay_per_hour (e.g. safety: alone, at night, without shelter). Every condition is optional; an absent one is not required.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NeedDecayWhen
+    {
+
+        /// <summary>
+        /// Decay per hour while the conditions hold.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
+        public double PerHour { get; set; } = default!;
+
+        /// <summary>
+        /// While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour (no comfort need_modifiers apply to it: they change how fast needs fall); omitted = decay_per_hour as usual.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("recover_per_hour")]
+        public double? RecoverPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Day phases (vocabulary time_of_day) in which it holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("day_phases")]
+        public System.Collections.Generic.ICollection<string>? DayPhases { get; set; } = default!;
+
+        /// <summary>
+        /// No other inhabitant within this many metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("alone_m")]
+        public double? AloneM { get; set; } = default!;
+
+        /// <summary>
+        /// true: no thing with the body data's shelter property within its shelter reach.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unsheltered")]
+        public bool? Unsheltered { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -48,6 +95,63 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("return_per_hour")]
         public double ReturnPerHour { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortNeedModifier
+    {
+
+        /// <summary>
+        /// Comfort level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        /// <summary>
+        /// The need whose decay changes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on its decay per hour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("factor")]
+        public double Factor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortPaceFactor
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("level")]
+        public string Level { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the walking pace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("factor")]
+        public double Factor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortLossPoint
+    {
+
+        /// <summary>
+        /// Whole degrees outside the zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("degrees")]
+        public int Degrees { get; set; } = default!;
+
+        /// <summary>
+        /// Loss of the need per hour there.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
+        public double PerHour { get; set; } = default!;
 
     }
 
@@ -190,6 +294,34 @@ namespace GlassWorld.Contracts
         public double? PrecipitationColdFactor { get; set; } = default!;
 
         /// <summary>
+        /// B5 R5/R6: at a comfort level other needs fall faster or slower (cold: hunger and sleep faster; hot: thirst faster) - factors on their decay. Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("need_modifiers")]
+        public System.Collections.Generic.ICollection<ComfortNeedModifier>? NeedModifiers { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R6: the walking pace at a comfort level (cold: slower). Omitted = unchanged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("pace_factors")]
+        public System.Collections.Generic.ICollection<ComfortPaceFactor>? PaceFactors { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R5: the warmth need's loss per hour by whole degrees below the zone, as points (linear between, the last holds beyond); replaces cold_loss_per_hour_per_degree when given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cold_loss_table")]
+        public System.Collections.Generic.ICollection<ComfortLossPoint>? ColdLossTable { get; set; } = default!;
+
+        /// <summary>
+        /// B5 R5: as cold_loss_table, by degrees above the zone; replaces heat_loss_per_hour_per_degree when given.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_loss_table")]
+        public System.Collections.Generic.ICollection<ComfortLossPoint>? HeatLossTable { get; set; } = default!;
+
+        /// <summary>
         /// B5 R31: sensations of the vocabulary felt at comfort levels (e.g. too_cold at cold); mood drivers follow them. Omitted = none.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -267,11 +399,46 @@ namespace GlassWorld.Contracts
         public string SleepAction { get; set; } = default!;
 
         /// <summary>
+        /// A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a conversation) is left out; what it decided stands. A thought is held for the morning instead, see thoughts_on_waking. Absent = every kind is reported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("silent_while_asleep")]
+        public System.Collections.Generic.ICollection<string>? SilentWhileAsleep { get; set; } = default!;
+
+        /// <summary>
+        /// A1710 (GW2 #455): how many of the latest thoughts that came while it slept (the night look-back's ideas and intentions are morning thoughts) an inhabitant shows when it wakes; older ones are dropped. Omitted or 0 = none, they are left out. Presentation only: not world state, not saved.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("thoughts_on_waking")]
+        public int? ThoughtsOnWaking { get; set; } = default!;
+
+        /// <summary>
         /// B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("bedtime_after_nightfall_hours")]
         public double? BedtimeAfterNightfallHours { get; set; } = default!;
+
+        /// <summary>
+        /// A1711 (D1112 #4, Marcel's test 14.11.): game hours from bedtime during which an awake inhabitant is sent to bed. After it, sleep comes only from tiredness (the sleep need), so one who woke rested at 3 a.m. after a whole night is not sent back to bed until 11. Omitted = bedtime lasts until morning (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("bedtime_window_hours")]
+        public double? BedtimeWindowHours { get; set; } = default!;
+
+        /// <summary>
+        /// B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wake_rested")]
+        public WakeRested? WakeRested { get; set; } = default!;
+
+        /// <summary>
+        /// B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sleep_through_night")]
+        public bool? SleepThroughNight { get; set; } = default!;
 
     }
 
@@ -469,6 +636,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("comfort_zone")]
         public ComfortZone? ComfortZone { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WakeRested
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        public double At { get; set; } = default!;
 
     }
 

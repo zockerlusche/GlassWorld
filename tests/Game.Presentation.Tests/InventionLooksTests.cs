@@ -82,6 +82,38 @@ public sealed class InventionLooksTests
         Assert.Throws<ArgumentException>(() => InventionSystem.PlanOf(string.Empty));
     }
 
+    [Theory]
+    [InlineData(0.14, 0.4, 0.4 / 0.14)]
+    [InlineData(0.68, 0.4, 1.0)]
+    [InlineData(0.4, 0.4, 1.0)]
+    [InlineData(0.14, null, 1.0)]
+    [InlineData(0.0, 0.4, 1.0)]
+    public void ATinyBuiltThingIsDrawnLargerNeverSmaller(double largestM, double? minShownM, double expected)
+    {
+        // A1715 (D1114): the 8x11x14 cm cup was invisible; the look draws it up to the data's least size, the core keeps the true one.
+        Assert.Equal(expected, InventionLooks.ShownScale(largestM, minShownM), 9);
+    }
+
+    [Theory]
+    [InlineData(0.0, 0.6, 0.2, 0.6)]
+    [InlineData(0.4, 0.6, 0.2, 0.6)]
+    [InlineData(2.0, 0.6, 0.2, 1.2)]
+    public void TheFocusRingFitsAroundTheDrawnThing(double extentM, double radiusM, double marginM, double expected)
+    {
+        // A1684: at least the data's radius; a large drawn thing gets half its extent plus the margin.
+        Assert.Equal(expected, InventionLooks.FocusRadiusM(extentM, radiusM, marginM), 9);
+    }
+
+    [Fact]
+    public void AWornThingGivesTheColourOfItsLargestPart()
+    {
+        // A1577 (K4): the figure's top takes the kit colour of the plan's largest part.
+        var kit = ContractSerializer.Deserialize<BuildKit>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "build", "kit.json")));
+        var plan = InventionSystem.PlanOf(Plan.Value);
+        var largest = plan.Parts.OrderByDescending(p => p.SizeM.X * p.SizeM.Y * p.SizeM.Z).First();
+        Assert.Equal(kit.Colors.Single(c => c.Id == largest.Color).Color, InventionLooks.MainColor(Plan.Value, kit));
+    }
+
     private static BuildTask Task(int steps = 0, string? planJson = "plan") =>
         new(Type, "inh-000001", 1, null, null, planJson == "plan" ? Plan.Value : planJson, 10, 20, steps, [], null, null, null, false);
 }

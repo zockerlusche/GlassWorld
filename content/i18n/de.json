@@ -252,7 +252,15 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season}, Tag {day}, Jahr {year}"
+      "text": "{season} {day}/{days}"
+    },
+    {
+      "key": "ui.clock.date_tooltip",
+      "text": "{season}: Tag {day} von {days}. Eine Jahreszeit hat {days} Tage, ein Jahr {year_days}.\nTag {game_day} seit der Gründung, im Jahr {year}."
+    },
+    {
+      "key": "ui.clock.day_year",
+      "text": "Tag {game_day} · Jahr {year}"
     },
     {
       "key": "ui.common.cancel",
@@ -285,6 +293,38 @@
     {
       "key": "ui.inhabitants.empty",
       "text": "Hier lebt noch niemand."
+    },
+    {
+      "key": "ui.inhabitants.column.pinned",
+      "text": "Liebling"
+    },
+    {
+      "key": "ui.inhabitants.search",
+      "text": "Name suchen …"
+    },
+    {
+      "key": "ui.inhabitants.filter_tooltip",
+      "text": "Welche Bewohner die Liste zeigt"
+    },
+    {
+      "key": "ui.inhabitants.filter.all",
+      "text": "Alle"
+    },
+    {
+      "key": "ui.inhabitants.filter.pinned",
+      "text": "Lieblinge"
+    },
+    {
+      "key": "ui.inhabitants.filter.asking",
+      "text": "Mit Frage"
+    },
+    {
+      "key": "ui.inhabitants.filter.knocking",
+      "text": "Klopft an"
+    },
+    {
+      "key": "ui.inhabitants.filter.weak",
+      "text": "Schwach"
     },
     {
       "key": "ui.inhabitants.title",
@@ -1459,6 +1499,14 @@
       "text": "Asche"
     },
     {
+      "key": "vocab.object.birch_tree",
+      "text": "Birke"
+    },
+    {
+      "key": "vocab.object.young_tree",
+      "text": "Junger Baum"
+    },
+    {
       "key": "vocab.object.fieldstone",
       "text": "Feldstein"
     },
@@ -1505,6 +1553,10 @@
     {
       "key": "vocab.object.wild_grain",
       "text": "Wildgetreide"
+    },
+    {
+      "key": "msg.hint.knock",
+      "text": "{name} klopft an die Scheibe."
     },
     {
       "key": "msg.hint.help_needed",
@@ -2004,7 +2056,11 @@
     },
     {
       "key": "ui.card.talk_hint",
-      "text": "Was möchtest du sagen?"
+      "text": "Etwas sagen …"
+    },
+    {
+      "key": "ui.card.whisper_hint",
+      "text": "Zuflüstern …"
     },
     {
       "key": "ui.card.talk_send",
@@ -2511,6 +2567,58 @@
       "text": "Verlauf"
     },
     {
+      "key": "ui.log.more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.log.less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.log.search",
+      "text": "Suchen …"
+    },
+    {
+      "key": "ui.log.filter_tooltip",
+      "text": "Welche Einträge der Verlauf zeigt"
+    },
+    {
+      "key": "ui.log.empty_filter",
+      "text": "Nichts in dieser Auswahl."
+    },
+    {
+      "key": "ui.log.category.all",
+      "text": "Alles"
+    },
+    {
+      "key": "ui.log.category.talk",
+      "text": "Gespräche"
+    },
+    {
+      "key": "ui.log.category.thought",
+      "text": "Gedanken"
+    },
+    {
+      "key": "ui.log.category.discovery",
+      "text": "Entdeckungen"
+    },
+    {
+      "key": "ui.log.category.idea",
+      "text": "Ideen"
+    },
+    {
+      "key": "ui.log.category.built",
+      "text": "Gebautes"
+    },
+    {
+      "key": "ui.log.category.important",
+      "text": "Wichtiges"
+    },
+    {
+      "key": "ui.log.category.note",
+      "text": "Hinweise"
+    },
+    {
       "key": "ui.log.empty",
       "text": "Noch hat niemand etwas gesagt oder gedacht. Hier steht später, wer was gesagt hat – ein Klick führt zum Bewohner."
     },
@@ -2847,6 +2955,10 @@
       "text": "Eine KI braucht dich. In den Einstellungen unter „KI“ steht, was zu tun ist."
     },
     {
+      "key": "ui.log.built",
+      "text": "{name} hat {thing} gebaut."
+    },
+    {
       "key": "ui.log.knock",
       "text": "{name} klopft an die Scheibe."
     },
@@ -2857,10 +2969,6 @@
     {
       "key": "ui.log.no_answer",
       "text": "{name} hat nicht geantwortet."
-    },
-    {
-      "key": "ui.settings.classic_layout",
-      "text": "Alter Bildschirmaufbau (Rückfall)"
     },
     {
       "key": "ui.zone.people",
@@ -2889,6 +2997,14 @@
     {
       "key": "ui.corner.portrait_tip",
       "text": "{name}: {activity}"
+    },
+    {
+      "key": "ui.corner.more",
+      "text": "+{count}"
+    },
+    {
+      "key": "ui.corner.more_tooltip",
+      "text": "Alle {count} Bewohner zeigen"
     },
     {
       "key": "ui.corner.weather",
@@ -2967,12 +3083,64 @@
       "text": "Tag {day}, {time} – {text}"
     },
     {
+      "key": "ui.card.trying",
+      "text": "Probiert es zum ersten Mal aus."
+    },
+    {
+      "key": "ui.card.ask.unknown_object",
+      "text": "Grübelt: Was ist das? ({thing})"
+    },
+    {
+      "key": "ui.card.ask.unknown_inhabitant",
+      "text": "Grübelt: Wer ist das?"
+    },
+    {
+      "key": "ui.card.ask.noticed_player",
+      "text": "Grübelt: Wer ist da?"
+    },
+    {
+      "key": "ui.card.ask.other",
+      "text": "Grübelt über etwas."
+    },
+    {
+      "key": "ui.card.more_questions",
+      "text": "Weitere Fragen ({count})"
+    },
+    {
+      "key": "ui.card.talk_you",
+      "text": "Du: {text}"
+    },
+    {
+      "key": "ui.card.talk_them",
+      "text": "{name}: {text}"
+    },
+    {
+      "key": "ui.card.diary_more",
+      "text": "Mehr anzeigen"
+    },
+    {
+      "key": "ui.card.diary_less",
+      "text": "Weniger anzeigen"
+    },
+    {
+      "key": "ui.favor.name",
+      "text": "Gunst"
+    },
+    {
+      "key": "ui.favor.bar_tooltip",
+      "text": "Gunst {value} von {max}. Sie wächst langsam nach; Gaben kosten Gunst."
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Zeitleiste"
     },
     {
       "key": "ui.timeline.empty",
       "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
+    },
+    {
+      "key": "ui.night.dream",
+      "text": "{name} träumt: {text}"
     },
     {
       "key": "ui.night.learned.true",
@@ -3297,6 +3465,226 @@
     {
       "key": "vocab.event.stage_changed",
       "text": "Neue Lebensphase"
+    },
+    {
+      "key": "vocab.action.court",
+      "text": "Umwerben"
+    },
+    {
+      "key": "ui.activity.court",
+      "text": "wirbt um jemanden"
+    },
+    {
+      "key": "vocab.action.propose_partnership",
+      "text": "Partnerschaft vorschlagen"
+    },
+    {
+      "key": "ui.activity.propose_partnership",
+      "text": "fragt, ob sie zusammenbleiben"
+    },
+    {
+      "key": "vocab.action.end_partnership",
+      "text": "Partnerschaft beenden"
+    },
+    {
+      "key": "ui.activity.end_partnership",
+      "text": "trennt sich"
+    },
+    {
+      "key": "vocab.action.wish_child",
+      "text": "Kinderwunsch äußern"
+    },
+    {
+      "key": "ui.activity.wish_child",
+      "text": "wünscht sich ein Kind"
+    },
+    {
+      "key": "vocab.action.care",
+      "text": "Umsorgen"
+    },
+    {
+      "key": "ui.activity.care",
+      "text": "kümmert sich um jemanden"
+    },
+    {
+      "key": "vocab.action.play",
+      "text": "Spielen"
+    },
+    {
+      "key": "ui.activity.play",
+      "text": "spielt"
+    },
+    {
+      "key": "vocab.action.carve",
+      "text": "Schnitzen"
+    },
+    {
+      "key": "ui.activity.carve",
+      "text": "schnitzt"
+    },
+    {
+      "key": "vocab.action.sing",
+      "text": "Singen"
+    },
+    {
+      "key": "ui.activity.sing",
+      "text": "singt"
+    },
+    {
+      "key": "vocab.action.paint",
+      "text": "Malen"
+    },
+    {
+      "key": "ui.activity.paint",
+      "text": "malt"
+    },
+    {
+      "key": "vocab.action.dance",
+      "text": "Tanzen"
+    },
+    {
+      "key": "ui.activity.dance",
+      "text": "tanzt"
+    },
+    {
+      "key": "vocab.action.quarrel",
+      "text": "Streiten"
+    },
+    {
+      "key": "ui.activity.quarrel",
+      "text": "streitet"
+    },
+    {
+      "key": "vocab.action.apologize",
+      "text": "Sich entschuldigen"
+    },
+    {
+      "key": "ui.activity.apologize",
+      "text": "entschuldigt sich"
+    },
+    {
+      "key": "vocab.action.reconcile",
+      "text": "Sich versöhnen"
+    },
+    {
+      "key": "ui.activity.reconcile",
+      "text": "versöhnt sich"
+    },
+    {
+      "key": "vocab.action.gossip",
+      "text": "Tratschen"
+    },
+    {
+      "key": "ui.activity.gossip",
+      "text": "erzählt über jemanden"
+    },
+    {
+      "key": "vocab.action.wake",
+      "text": "Wache halten"
+    },
+    {
+      "key": "ui.activity.wake",
+      "text": "hält Wache"
+    },
+    {
+      "key": "vocab.action.cover",
+      "text": "Zudecken"
+    },
+    {
+      "key": "ui.activity.cover",
+      "text": "deckt zu"
+    },
+    {
+      "key": "vocab.action.bury",
+      "text": "Bestatten"
+    },
+    {
+      "key": "ui.activity.bury",
+      "text": "bestattet"
+    },
+    {
+      "key": "vocab.action.set_stone",
+      "text": "Stein setzen"
+    },
+    {
+      "key": "ui.activity.set_stone",
+      "text": "setzt einen Stein"
+    },
+    {
+      "key": "vocab.action.visit_grave",
+      "text": "Grab besuchen"
+    },
+    {
+      "key": "ui.activity.visit_grave",
+      "text": "besucht ein Grab"
+    },
+    {
+      "key": "vocab.action.name_person",
+      "text": "Namen geben"
+    },
+    {
+      "key": "ui.activity.name_person",
+      "text": "gibt einen Namen"
+    },
+    {
+      "key": "vocab.action.perform_custom",
+      "text": "Brauch ausüben"
+    },
+    {
+      "key": "ui.activity.perform_custom",
+      "text": "übt einen Brauch aus"
+    },
+    {
+      "key": "vocab.action.found_settlement",
+      "text": "Siedlung gründen"
+    },
+    {
+      "key": "ui.activity.found_settlement",
+      "text": "gründet eine Siedlung"
+    },
+    {
+      "key": "vocab.action.sail",
+      "text": "Übersetzen"
+    },
+    {
+      "key": "ui.activity.sail",
+      "text": "fährt übers Wasser"
+    },
+    {
+      "key": "vocab.event.partnership_ended",
+      "text": "Getrennt"
+    },
+    {
+      "key": "vocab.event.child_expected",
+      "text": "Ein Kind wird erwartet"
+    },
+    {
+      "key": "vocab.event.named",
+      "text": "Benannt"
+    },
+    {
+      "key": "vocab.event.burial",
+      "text": "Bestattet"
+    },
+    {
+      "key": "vocab.event.custom_created",
+      "text": "Ein Brauch entstand"
+    },
+    {
+      "key": "vocab.event.settlement_founded",
+      "text": "Siedlung gegründet"
+    },
+    {
+      "key": "vocab.event.land_revealed",
+      "text": "Neues Land"
+    },
+    {
+      "key": "vocab.event.voyage",
+      "text": "Aufbruch übers Wasser"
+    },
+    {
+      "key": "vocab.event.arrival",
+      "text": "Angekommen"
     }
   ]
 }

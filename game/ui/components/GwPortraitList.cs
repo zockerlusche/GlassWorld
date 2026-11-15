@@ -121,18 +121,42 @@ public partial class GwPortraitList : PanelContainer
     private UiStyle? _style;
     private bool _compact;
 
+    // B2749: with many inhabitants the corner shows only the important ones; '+N' opens the window with all of them.
+    private readonly Button _more = new() { Name = "More", Flat = true, Visible = false, AutoTranslateMode = AutoTranslateModeEnum.Disabled, FocusMode = FocusModeEnum.All };
+    private int _moreCount;
+
     /// <summary>Creates the list.</summary>
     public GwPortraitList()
     {
         Name = "Portraits";
-        ThemeTypeVariation = UiTheme.CompactPanel;
+        // S1b (D795): on the world without a box; the screen gives it the world theme (light text, dark outline).
+        ThemeTypeVariation = UiTheme.WorldPanel;
         _scroll.AddChild(_rows);
+        _rows.AddChild(_more);
+        _more.Pressed += () => MoreChosen?.Invoke();
         AddChild(_scroll);
         _scroll.GetVScrollBar().ValueChanged += _ => AskForPictures();
+        ShowScrollBar();
     }
+
+    /// <summary>
+    /// A scroll bar only for the compact list of many (S1b tour: with four rows a bar stood on the world beside the
+    /// names); the wheel scrolls either way.
+    /// </summary>
+    private void ShowScrollBar() =>
+        _scroll.VerticalScrollMode = _compact ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.ShowNever;
 
     /// <summary>A click on a row: the inhabitant is chosen.</summary>
     public event Action<string>? Chosen;
+
+    /// <summary>A click on '+N': the player wants all inhabitants (the inhabitants window).</summary>
+    public event Action? MoreChosen;
+
+    /// <summary>How many inhabitants the corner leaves out ('+N'; 0 shows all).</summary>
+    public int More => _moreCount;
+
+    /// <summary>The '+N' button (for checks and the tour).</summary>
+    public Button MoreButton => _more;
 
     /// <summary>A row in view has no still picture yet: the screen renders one.</summary>
     public event Action<string>? PictureWanted;
@@ -188,16 +212,21 @@ public partial class GwPortraitList : PanelContainer
         Fill();
     }
 
-    /// <summary>Shows the rows; nodes are kept and refilled, so a refresh every quarter second costs little.</summary>
-    public void SetRows(IReadOnlyList<PortraitEntry> entries)
+    /// <summary>
+    /// Shows the rows; nodes are kept and refilled, so a refresh every quarter second costs little. <paramref name="more"/>
+    /// inhabitants are left out (B2749): the list shows '+N' for them and stays compact as for all of them.
+    /// </summary>
+    public void SetRows(IReadOnlyList<PortraitEntry> entries, int more = 0)
     {
         _entries = entries ?? throw new ArgumentNullException(nameof(entries));
+        _moreCount = Math.Max(0, more);
         if (_style is not null)
         {
-            var compact = CornerModel.Compact(entries.Count, _style.Tokens.Zones);
+            var compact = CornerModel.Compact(entries.Count + _moreCount, _style.Tokens.Zones);
             if (compact != _compact)
             {
                 _compact = compact;
+                ShowScrollBar();
                 foreach (var row in _shown)
                 {
                     row.Resize(_style, _compact);
@@ -240,6 +269,17 @@ public partial class GwPortraitList : PanelContainer
             }
         }
 
+        _more.Visible = _moreCount > 0;
+        if (_more.Visible)
+        {
+            var count = _moreCount.ToString(System.Globalization.CultureInfo.CurrentCulture);
+            _more.Text = TextFill.Fill(Tr("ui.corner.more"), new Dictionary<string, string> { ["count"] = count });
+            _more.TooltipText = TextFill.Fill(Tr("ui.corner.more_tooltip"), new Dictionary<string, string> { ["count"] = (_entries.Count + _moreCount).ToString(System.Globalization.CultureInfo.CurrentCulture) });
+            var px = _compact ? _style.Tokens.Zones.CompactPortraitPx : _style.Tokens.Zones.PortraitPx;
+            _more.CustomMinimumSize = new Vector2(px, px);
+        }
+
+        _rows.MoveChild(_more, -1);
         AskForPictures();
     }
 

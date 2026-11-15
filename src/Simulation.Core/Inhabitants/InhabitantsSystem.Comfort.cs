@@ -1,3 +1,4 @@
+using GlassWorld.Contracts;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 
@@ -30,6 +31,9 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public Func<Inhabitant, string, bool>? Feels { get; set; }
 
+    /// <summary>B2773: whether a thing near keeps the weather off an inhabitant (the body's shelter lookup); null = never.</summary>
+    public Func<Inhabitant, bool>? Sheltered { get; set; }
+
     /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
     /// the air the inhabitant feels; null = none. Set by the host.
@@ -61,12 +65,110 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(world, inhabitant, air);
+        var felt = FeltOnce(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         return below > 0 ? levels[below <= band ? 1 : 0]
             : above > 0 ? levels[above <= band ? 3 : 4]
             : levels[2];
+    }
+
+    // B5 R5/R6: the comfort level of the inhabitant being updated in this tick (derived, set before its needs fall).
+    private (string Id, string? Level) _levelNow;
+
+    // Review GW3 #435: while one inhabitant's state is updated (its comfort level, then its warmth need, nothing in
+    // between changes the world), its felt temperature is computed once; any other question computes it afresh.
+    private (string Id, int Felt)? _feltOnce;
+    private bool _keepFelt;
+
+    /// <summary>The felt temperature (<see cref="Felt"/>), kept for the inhabitant being updated while <see cref="_keepFelt"/>.</summary>
+    private int FeltOnce(World world, Inhabitant inhabitant, Air air)
+    {
+        if (_keepFelt && _feltOnce is { } known && string.Equals(known.Id, inhabitant.Id, StringComparison.Ordinal))
+        {
+            return known.Felt;
+        }
+
+        var felt = Felt(world, inhabitant, air);
+        _feltOnce = _keepFelt ? (inhabitant.Id, felt) : null;
+        return felt;
+    }
+
+    /// <summary>B5 R5/R6: the factor on a need's decay at the inhabitant's comfort level now (data need_modifiers).</summary>
+    private double NeedFactor(Inhabitant inhabitant, string need)
+    {
+        if (_model.ComfortZone?.NeedModifiers is not { Count: > 0 } modifiers || !string.Equals(_levelNow.Id, inhabitant.Id, StringComparison.Ordinal)
+            || _levelNow.Level is not { } level)
+        {
+            return 1.0;
+        }
+
+        var factor = 1.0;
+        foreach (var modifier in modifiers)
+        {
+            if (string.Equals(modifier.Level, level, StringComparison.Ordinal) && string.Equals(modifier.Need, need, StringComparison.Ordinal))
+            {
+                factor *= modifier.Factor;
+            }
+        }
+
+        return factor;
+    }
+
+    /// <summary>B5 R6: the factor on the walking pace at the inhabitant's comfort level in this tick (data pace_factors).</summary>
+    private double PaceFactor(Inhabitant inhabitant)
+    {
+        if (_model.ComfortZone?.PaceFactors is not { Count: > 0 } factors || !string.Equals(_levelNow.Id, inhabitant.Id, StringComparison.Ordinal)
+            || _levelNow.Level is not { } level)
+        {
+            return 1.0;
+        }
+
+        return factors.FirstOrDefault(f => string.Equals(f.Level, level, StringComparison.Ordinal))?.Factor ?? 1.0;
+    }
+
+    /// <summary>B5 R5: the loss per hour from a table over whole degrees outside the zone (linear between points).</summary>
+    private static double FromTable(ICollection<ComfortLossPoint> table, double degrees)
+    {
+        var points = table.OrderBy(p => p.Degrees).ToList();
+        if (degrees <= points[0].Degrees)
+        {
+            return points[0].PerHour * (points[0].Degrees == 0 ? 1 : degrees / points[0].Degrees);
+        }
+
+        for (var i = 1; i < points.Count; i++)
+        {
+            if (degrees <= points[i].Degrees)
+            {
+                var a = points[i - 1];
+                var b = points[i];
+                return a.PerHour + ((b.PerHour - a.PerHour) * (degrees - a.Degrees) / (b.Degrees - a.Degrees));
+            }
+        }
+
+        return points[^1].PerHour;
+    }
+
+    // A1729/A1730 (review GW4 #467): the snapshot's comfort level, worked out once per inhabitant and world tick -
+    // the look asks every frame, the full felt air (sun and shade, wind shelter, fire, others) is not cheap. Not state.
+    private readonly Dictionary<string, (long Tick, string? Level)> _comfortForView = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The comfort level for the look (A1730): <see cref="ComfortLevelOf"/>, kept for the rest of the tick. Asked between
+    /// ticks (snapshots), so it never sees a half-done tick (the felt cache of #435 is the core's, inside its loop).
+    /// </summary>
+    public string? ComfortLevelForView(World world, Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_comfortForView.TryGetValue(inhabitant.Id, out var known) && known.Tick == world.Tick)
+        {
+            return known.Level;
+        }
+
+        var level = ComfortLevelOf(world, inhabitant);
+        _comfortForView[inhabitant.Id] = (world.Tick, level);
+        return level;
     }
 
     /// <summary>
@@ -130,7 +232,7 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var felt = Felt(world, inhabitant, air);
+        var felt = FeltOnce(world, inhabitant, air);
         var below = comfort.MinTenthC + shift - felt;
         var above = felt - (comfort.MaxTenthC + shift);
         if (below <= 0 && above <= 0)
@@ -142,9 +244,12 @@ public sealed partial class InhabitantsSystem
         var running = inhabitant.Activity is { RemainingTicks: not null } activity
             ? comfort.ActionFactors?.FirstOrDefault(f => string.Equals(f.Action, activity.Action, StringComparison.Ordinal))
             : null;
+        // B5 R5: from the data's table over the degrees outside, where given; else per degree as before.
+        var coldBase = comfort.ColdLossTable is { Count: > 0 } coldTable ? FromTable(coldTable, below / 10.0) : comfort.ColdLossPerHourPerDegree * (below / 10.0);
+        var heatBase = comfort.HeatLossTable is { Count: > 0 } heatTable ? FromTable(heatTable, above / 10.0) : comfort.HeatLossPerHourPerDegree * (above / 10.0);
         var perHour = below > 0
-            ? comfort.ColdLossPerHourPerDegree * (below / 10.0) * (running?.ColdFactor ?? 1.0) * (air.Precipitation ? comfort.PrecipitationColdFactor ?? 1.0 : 1.0)
-            : comfort.HeatLossPerHourPerDegree * (above / 10.0) * (running?.HeatFactor ?? 1.0);
+            ? coldBase * (running?.ColdFactor ?? 1.0) * (air.Precipitation ? comfort.PrecipitationColdFactor ?? 1.0 : 1.0)
+            : heatBase * (running?.HeatFactor ?? 1.0);
         var floor = comfort.Floor ?? 0.0;
         if (value > floor)
         {

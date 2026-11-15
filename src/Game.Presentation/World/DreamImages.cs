@@ -14,7 +14,16 @@ public sealed record DreamImage(string Key, string JobId, string? ObjectType, st
 {
     /// <summary>A1618 (B2683): a learned fact shown as text instead of a picture; null for an image.</summary>
     public DreamFact? Learned { get; init; }
+
+    /// <summary>A1716 (B2683, B2776): a dream shown as text; null otherwise.</summary>
+    public DreamText? Dream { get; init; }
 }
+
+/// <summary>A dream of the night (A1716): the words the service let through for the scene, and their tone.</summary>
+/// <param name="InhabitantId">Who dreamed it, or null.</param>
+/// <param name="Text">The dream in the language it was dreamed in.</param>
+/// <param name="Tone">Its tone.</param>
+public sealed record DreamText(string? InhabitantId, string Text, string Tone);
 
 /// <summary>What an inhabitant took from a night job (A1618): ids only, the game words it (a guess, the core checks it later).</summary>
 /// <param name="InhabitantId">Who learned it, or null.</param>
@@ -35,8 +44,8 @@ public sealed record DreamFact(string? InhabitantId, string Subject, string Prop
 public sealed class DreamImages(NightDreams data)
 {
     private readonly NightDreams _data = data ?? throw new ArgumentNullException(nameof(data));
-    private readonly Queue<(string Key, string JobId, string? Type, string? File, DreamFact? Fact)> _waiting = new();
-    private readonly List<(string Key, string JobId, string? Type, string? File, DreamFact? Fact, double X, double Y, double Age)> _active = [];
+    private readonly Queue<(string Key, string JobId, string? Type, string? File, DreamFact? Fact, DreamText? Dream)> _waiting = new();
+    private readonly List<(string Key, string JobId, string? Type, string? File, DreamFact? Fact, DreamText? Dream, double X, double Y, double Age)> _active = [];
     private readonly HashSet<string> _taken = new(StringComparer.Ordinal);
     private readonly List<string> _shown = [];
     private string? _session;
@@ -44,6 +53,12 @@ public sealed class DreamImages(NightDreams data)
 
     /// <summary>The number to ask the service with next (<c>since</c>).</summary>
     public long Since { get; private set; }
+
+    /// <summary>
+    /// The language the screen shows now (A1716, review GW2 #456): a dream written in another one stays out (the
+    /// player switched since the night's jobs went out). Null = every dream shows.
+    /// </summary>
+    public Locale? Language { get; set; }
 
     /// <summary>Images waiting their turn.</summary>
     public int Waiting => _waiting.Count;
@@ -88,9 +103,16 @@ public sealed class DreamImages(NightDreams data)
                     var key = $"{item.JobId}|learned|{n++}";
                     if (_taken.Add(key))
                     {
-                        _waiting.Enqueue((key, item.JobId, null, null, new DreamFact(item.Inhabitant, fact.Subject, fact.Property, fact.Value)));
+                        _waiting.Enqueue((key, item.JobId, null, null, new DreamFact(item.Inhabitant, fact.Subject, fact.Property, fact.Value), null));
                     }
                 }
+            }
+
+            // A1716: the dream of a done look back, as the service let it through (B2776).
+            if (_data.ShowDreams == true && item.State == JobState.Done && item.Dream is { Text.Length: > 0 } dream
+                && (Language is null || dream.Locale is null || dream.Locale == Language) && _taken.Add(item.JobId + "|dream"))
+            {
+                _waiting.Enqueue((item.JobId + "|dream", item.JobId, null, null, null, new DreamText(item.Inhabitant, dream.Text, dream.Tone)));
             }
 
             var show = _data.Appearances.FirstOrDefault(a => a.Kind == item.Kind)?.Show ?? NightAppearanceShow.None;
@@ -101,17 +123,20 @@ public sealed class DreamImages(NightDreams data)
 
             if (item.ObjectType is { } type && _taken.Add(item.JobId + "|symbol"))
             {
-                _waiting.Enqueue((item.JobId + "|symbol", item.JobId, type, null, null));
+                _waiting.Enqueue((item.JobId + "|symbol", item.JobId, type, null, null, null));
             }
 
             if (show == NightAppearanceShow.Image && item.State == JobState.Done && item.Image is { } file && _taken.Add(item.JobId + "|image"))
             {
-                _waiting.Enqueue((item.JobId + "|image", item.JobId, item.ObjectType, file, null));
+                _waiting.Enqueue((item.JobId + "|image", item.JobId, item.ObjectType, file, null, null));
             }
         }
 
         return items.Items.Count >= pageSize;
     }
+
+    /// <summary>A dream text stands longer than an image (a sentence to read, A1716); everything else holds as before.</summary>
+    private double HoldOf(DreamText? dream, double hold) => dream is null ? hold : _data.DreamHoldS ?? hold;
 
     /// <summary>The night is over (or no scene shows): nothing waits, nothing stands.</summary>
     public void Clear()
@@ -136,7 +161,7 @@ public sealed class DreamImages(NightDreams data)
         {
             var a = _active[i];
             a.Age += dt;
-            if (a.Age >= fadeIn + hold + fadeOut)
+            if (a.Age >= fadeIn + HoldOf(a.Dream, hold) + fadeOut)
             {
                 _active.RemoveAt(i);
             }
@@ -150,12 +175,12 @@ public sealed class DreamImages(NightDreams data)
         {
             var next = _waiting.Dequeue();
             var (x, y) = Place(next.Key);
-            _active.Add((next.Key, next.JobId, next.Type, next.File, next.Fact, x, y, 0));
+            _active.Add((next.Key, next.JobId, next.Type, next.File, next.Fact, next.Dream, x, y, 0));
             _shown.Add(next.JobId);
             _sinceStart = 0;
         }
 
-        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.Type, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, hold, fadeOut)) { Learned = a.Fact })];
+        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.Type, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, HoldOf(a.Dream, hold), fadeOut)) { Learned = a.Fact, Dream = a.Dream })];
     }
 
     /// <summary>Opacity share 0..1 of an image of the given age: a soft rise, a stand, a soft fall.</summary>

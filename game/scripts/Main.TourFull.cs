@@ -109,8 +109,47 @@ public partial class Main
 
         screen.ShowCardForShots(null, expand: false);
 
+        // A1684 (B2607): the log in its corner - a few lines; opened with categories and a search.
+        var (closedShown, held) = screen.LogForShots(open: false, category: null, search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log closed shows {closedShown} of {held}");
+        var (openShown, _) = screen.LogForShots(open: true, category: null, search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log open shows {openShown}");
+        await take("29_verlauf_offen");
+        var (thoughts, _) = screen.LogForShots(open: true, category: "thought", search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log thoughts {thoughts}");
+        await take("29_verlauf_gedanken");
+        var (important, _) = screen.LogForShots(open: true, category: "important", search: string.Empty);
+        GD.Print($"UI_TOUR_FULL log important {important}");
+        await take("29_verlauf_wichtiges");
+        var (found, _) = screen.LogForShots(open: true, category: null, search: "Wasser");
+        GD.Print($"UI_TOUR_FULL log search 'Wasser' {found}");
+        await take("29_verlauf_suche");
+        screen.LogForShots(open: false, category: null, search: string.Empty);
+
+        // B2749 (TL #25515): with many inhabitants (--inhabitants=50) the corner shows only the important ones and
+        // '+N'; '+N' opens the window with all of them, which searches, filters and pins.
+        var portraits = screen.PortraitsForShots;
+        GD.Print($"UI_TOUR_FULL corner shows {portraits.Count} of {ids.Count}, +{portraits.More}");
+        if (portraits.More > 0)
+        {
+            await take("29_ecken_viele");
+            portraits.MoreButton.EmitSignal(BaseButton.SignalName.Pressed);
+            await take("29_ecken_plus_alle_bewohner");
+            GD.Print($"UI_TOUR_FULL inhabitants window {screen.InhabitantRowsForShots} rows");
+            var name = _world!.Host!.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).Select(i => i.Name).OfType<string>().FirstOrDefault() ?? "1";
+            screen.FindInhabitantsForShots(name[..Math.Min(3, name.Length)], InhabitantFilter.All);
+            GD.Print($"UI_TOUR_FULL inhabitants search '{name[..Math.Min(3, name.Length)]}' {screen.InhabitantRowsForShots} rows");
+            await take("29_ecken_bewohner_suche");
+            screen.FindInhabitantsForShots(string.Empty, InhabitantFilter.Asking);
+            GD.Print($"UI_TOUR_FULL inhabitants filter asking {screen.InhabitantRowsForShots} rows");
+            await take("29_ecken_bewohner_filter");
+            screen.FindInhabitantsForShots(string.Empty, InhabitantFilter.All);
+            screen.OpenPanelForShots(null);
+        }
+
         // 30. Every inhabitant's card, the last one unfolded; the conversation and the pointing mode.
-        for (var i = 0; i < ids.Count; i++)
+        // Four cards are enough to see them (a tour with 50 inhabitants would take 50 pictures).
+        for (var i = 0; i < Math.Min(ids.Count, 4); i++)
         {
             screen.ShowCardForShots(ids[i], expand: false);
             await take($"30_karte_{i + 1}_{ids[i]}");
@@ -118,6 +157,24 @@ public partial class Main
 
         screen.ShowCardForShots(ids[^1], expand: true);
         await take("30_karte_letzte_aufgeklappt");
+
+        // D957 v4 (table 1): a button's window takes the card's place; its '×' leads back to the card.
+        screen.OpenPanelForShots("mailbox");
+        await take("30_postfach_statt_karte");
+        GD.Print($"UI_TOUR_FULL close leads to {screen.PressCloseForShots() ?? "nothing"}");
+        await take("30_kreuz_zurueck_zur_karte");
+
+        // S2 (A1683): 'whisper' at the question on top turns the one talk field to it.
+        foreach (var id in ids)
+        {
+            screen.ShowCardForShots(id, expand: false);
+            if (ButtonWithKey(screen, "ui.question.answer") is { Disabled: false } && Press(screen, "ui.question.answer"))
+            {
+                await take("30_karte_zufluestern");
+                break;
+            }
+        }
+
         screen.ShowCardForShots(first, expand: false);
         screen.ShowTalkForShots("Hallo, was machst du gerade?");
         await take("31_gespraech_gesendet");
@@ -126,6 +183,15 @@ public partial class Main
             await take("31_zeigen_modus");
             Press(screen, "ui.card.point");
         }
+
+        // The sentence goes out; the conversation's last lines stand above the field (B2603: one conversation).
+        screen.SubmitTalkForShots();
+        for (var i = 0; i < 240 && !screen.CardShowsTalkForShots; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        await take("31_gespraech_verlauf");
 
         screen.ShowCardForShots(null, expand: false);
 
@@ -226,10 +292,5 @@ public partial class Main
         ApplySettings(normal with { Language = "de" });
         TextCatalogs.SetLanguage("de");
         await Frames(2);
-
-        // 36. The old layout as the fallback until step 3 (TL #23224), once.
-        screen.ShowZonesForShots(false);
-        await take("36_alter_aufbau");
-        screen.ShowZonesForShots(true);
     }
 }

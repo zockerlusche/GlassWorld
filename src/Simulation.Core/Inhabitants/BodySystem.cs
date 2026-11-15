@@ -92,13 +92,74 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(inhabitant);
+        // B5 R4: sun, wetness, wind (with shelter) and the warmth of others near.
         var cool = (int)((long)_data.Wetness.CoolTenthC * WetPermille(inhabitant.Id) / 1000);
-        var bare = SunTenthC(world, inhabitant.Position) - cool;
+        var bare = SunTenthC(world, inhabitant.Position) - cool - WindTenthC(world, inhabitant.Position) + OthersWarmthTenthC(inhabitant);
         var worn = _data.Worn is { } keeps && inhabitant.Worn is { } id && _objects.TryGet(id, out var thing) && _objects.Catalog.HasProperty(thing.TypeId, keeps.Property)
             && (keeps.UpToTenthC is not { } upTo || (AirAt?.Invoke(world, inhabitant.Position)?.TemperatureTenthC ?? 0) + bare < upTo)
             ? keeps.WarmTenthC
             : 0;
         return bare + worn;
+    }
+
+    /// <summary>
+    /// B5 R4: how much colder the wind makes it at a place, in tenths of a degree - its strength times the data's
+    /// cooling, less by the best wind shelter near (things with wind_block_permille).
+    /// </summary>
+    public int WindTenthC(World world, Position at)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (_data.Wind is not { } wind || WindAt is null)
+        {
+            return 0;
+        }
+
+        var strength = (long)Math.Round(Math.Clamp(WindAt(world.Tick), 0, 1) * 1000);
+        var block = 0;
+        if (strength > 0 && wind.BlockRadiusCm > 0)
+        {
+            _near.Clear();
+            _objects.Within(at, wind.BlockRadiusCm / 100.0, _near);
+            foreach (var thing in _near)
+            {
+                if (_content.Contains(thing.TypeId) && _content.Params(thing.TypeId).WindBlockPermille is { } blocks)
+                {
+                    block = Math.Max(block, blocks);
+                }
+            }
+        }
+
+        return (int)((long)wind.CoolTenthC * strength / 1000 * (1000 - block) / 1000);
+    }
+
+    /// <summary>B5 R4: the body warmth of the other inhabitants near, in tenths of a degree (linear to nothing at the radius).</summary>
+    public int OthersWarmthTenthC(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (_data.OthersWarmth is not { RadiusCm: > 0 } others)
+        {
+            return 0;
+        }
+
+        var radius = others.RadiusCm / 100.0;
+        var total = 0.0;
+        foreach (var other in _inhabitants.All)
+        {
+            if (ReferenceEquals(other, inhabitant))
+            {
+                continue;
+            }
+
+            var dx = other.Position.X - inhabitant.Position.X;
+            var dz = other.Position.Z - inhabitant.Position.Z;
+            var distance = Math.Sqrt((dx * dx) + (dz * dz));
+            if (distance < radius)
+            {
+                total += others.TenthC * (1.0 - (distance / radius));
+            }
+        }
+
+        return (int)Math.Round(total, MidpointRounding.AwayFromZero);
     }
 
     /// <summary>
@@ -291,8 +352,8 @@ public sealed class BodySystem : IWorldSystem, IOptionalWorldState
         inhabitant.RememberFelt(place, new FeltPlace(felt, world.Tick), places.Max, (long)places.ForgetHours * _ticksPerHour);
     }
 
-    /// <summary>Whether a thing with the shelter property is near (it keeps the rain off).</summary>
-    private bool Sheltered(Position at) => ShelterOf(at) is not null;
+    /// <summary>Whether a thing with the shelter property is near (it keeps the rain off; B2773: and makes one feel safe).</summary>
+    public bool Sheltered(Position at) => ShelterOf(at) is not null;
 
     /// <summary>The nearest thing with the shelter property within the shelter radius (ties by id), or null.</summary>
     private WorldObject? ShelterOf(Position at)

@@ -61,6 +61,12 @@ public static class QuestionKeys
     /// <summary>What brings the inhabitant to it.</summary>
     public static string Reason(string kind) => "ui.question.reason." + kind;
 
+    /// <summary>The question as one short line on the card, without the name the card already shows (D1060 find 14, A1683).</summary>
+    public static string CardAsk(string kind) => "ui.card.ask." + kind;
+
+    /// <summary>The short card line for a kind without own text.</summary>
+    public const string CardAskOther = "ui.card.ask.other";
+
     /// <summary>The general question for a kind without own text.</summary>
     public const string AskOther = "ui.question.ask.other";
 
@@ -102,7 +108,10 @@ public sealed record InhabitantCard(InhabitantRow Row, IReadOnlyList<CardValue> 
 /// <param name="Year">Year since founding, from 1.</param>
 /// <param name="Day">Day of the season, from 1.</param>
 /// <param name="Time">hh:mm.</param>
-public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time);
+/// <param name="GameDay">Running game day since the founding, from 1 (B2759).</param>
+/// <param name="DaysPerSeason">Days of a season (<c>time.json</c>).</param>
+/// <param name="DaysPerYear">Days of a year: days of a season times the seasons.</param>
+public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time, long GameDay, int DaysPerSeason, int DaysPerYear);
 
 /// <summary>A mailbox message as the screen shows it.</summary>
 /// <param name="Id">Message id.</param>
@@ -254,6 +263,14 @@ public sealed class WorldFeed
     public IReadOnlyList<HelpRow> HelpCalls() =>
         [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need, c.Tick))];
 
+    /// <summary>The name (DE, EN) of an invented thing by its object id, or null (A1715: the log names what was built).</summary>
+    public (string De, string En)? InventionNameOf(string objectId) =>
+        _host.Objects.TryGet(objectId, out var thing) && _host.Inventions.Invention(thing.TypeId) is { } invention ? (invention.Name.De, invention.Name.En) : null;
+
+    /// <summary>Where a thing stands now (x, z in metres), or null when it is gone (A1715: the camera goes there).</summary>
+    public (double X, double Z)? PlaceOf(string objectId) =>
+        _host.Objects.TryGet(objectId, out var thing) ? (thing.Position.X, thing.Position.Z) : null;
+
     /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
     public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)
     {
@@ -271,12 +288,16 @@ public sealed class WorldFeed
     public ClockView Clock()
     {
         var time = Snapshot.Time;
+        var settings = _host.World.Calendar.Settings;
         return new ClockView(
             $"time.season.{time.SeasonId}",
             $"time.phase.{Phase(time.Phase)}",
             time.Year,
             time.DayOfSeason,
-            string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"));
+            string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"),
+            time.Day,
+            settings.DaysPerSeason,
+            settings.DaysPerSeason * settings.Seasons.Count);
     }
 
     /// <summary>Neutral number from an id such as <c>inh-000004</c> (the UI shows "Inhabitant 4").</summary>
