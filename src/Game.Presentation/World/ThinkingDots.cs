@@ -23,6 +23,19 @@ public static class ThinkingDots
     /// asleep (D1112 #8: Marcel saw "thinks" over sleepers).</summary>
     public static bool Shown(int openQuestions, bool lying = false) => openQuestions > 0 && !lying;
 
+    /// <summary>
+    /// A1402 (B4a-S7, TL #19921): what stands over the head - a "?" while a question still puzzles the inhabitant (and
+    /// the data gives the mark a size), the dots while it only waits for the effect, nothing without a question or while
+    /// its figure lies asleep.
+    /// </summary>
+    public static HeadMark Mark(FigureThinkingDots look, int openQuestions, int puzzlingQuestions, bool lying = false)
+    {
+        ArgumentNullException.ThrowIfNull(look);
+        return lying || (openQuestions <= 0 && puzzlingQuestions <= 0) ? HeadMark.None
+            : puzzlingQuestions > 0 && look.QuestionFontPx is > 0 ? HeadMark.Question
+            : HeadMark.Dots;
+    }
+
     /// <summary>The inhabitant's phase of the wave in [0, 1), from its id.</summary>
     public static double Phase(string inhabitantId) => AnimationChooser.Unit(inhabitantId, 0, SaltPhase);
 
@@ -46,4 +59,17 @@ public static class ThinkingDots
         ArgumentNullException.ThrowIfNull(look);
         return (dot - ((Count - 1) / 2.0)) * look.SpacingPx;
     }
+}
+
+/// <summary>What stands over an inhabitant's head about its questions (A1402).</summary>
+public enum HeadMark
+{
+    /// <summary>Nothing: no question, or it lies asleep.</summary>
+    None,
+
+    /// <summary>The calm dots: a question waits only for the effect.</summary>
+    Dots,
+
+    /// <summary>A "?": a question still puzzles it.</summary>
+    Question,
 }
