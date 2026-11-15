@@ -358,6 +358,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("bedtime_after_nightfall_hours")]
         public double? BedtimeAfterNightfallHours { get; set; } = default!;
 
+        /// <summary>
+        /// A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a night look-back) is left out; what it decided still stands. Absent = every kind is reported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("silent_while_asleep")]
+        public System.Collections.Generic.ICollection<string>? SilentWhileAsleep { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

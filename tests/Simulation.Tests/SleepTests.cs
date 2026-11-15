@@ -35,6 +35,28 @@ public sealed class SleepTests
     }
 
     [Fact]
+    public void ASleeperNeitherSpeaksNorThinksAloudButAWakeOneDoes()
+    {
+        // A1710 (D1112 #8): a late answer or the night look-back must not put words over a sleeping figure.
+        var (host, sleeper) = Alone();
+        sleeper.Needs["sleep"] = 0.4;
+        Start(host, sleeper);
+        host.World.Run(2);
+        Assert.True(host.Inhabitants.IsAsleep(sleeper));
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        var tick = host.World.Tick;
+        host.Inhabitants.Report(new WorldEvent("thought", tick, sleeper.Id, null, null) { Text = "Morgen ist viel zu tun." });
+        host.Inhabitants.Report(new WorldEvent("said", tick, sleeper.Id, null, null) { Text = "Hallo." });
+        host.Inhabitants.Report(new WorldEvent("action_finished", tick, sleeper.Id, "idle", null));
+        Assert.Equal(["action_finished"], events.Select(e => e.Kind));
+
+        sleeper.Activity = null;
+        host.Inhabitants.Report(new WorldEvent("thought", tick, sleeper.Id, null, null) { Text = "Guten Morgen." });
+        Assert.Equal("thought", events[^1].Kind);
+    }
+
+    [Fact]
     public void ThirstBelowItsThresholdWakesTheSleeperAndWhatItSleptStays()
     {
         var (host, sleeper) = Alone();

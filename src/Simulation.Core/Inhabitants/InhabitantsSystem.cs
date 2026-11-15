@@ -231,6 +231,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             throw new InvalidDataException($"Event kind '{worldEvent.Kind}' is not in the event vocabulary (content/vocabulary/events.json).");
         }
 
+        // A1710 (D1112 #8): a sleeper neither speaks nor thinks aloud - the one gate for every source (a late
+        // answer, the night look-back, a conversation). What it decided stands; only the words are left out.
+        if (_model.Togetherness?.SilentWhileAsleep is { Count: > 0 } silent && silent.Contains(worldEvent.Kind)
+            && TryGet(worldEvent.InhabitantId, out var speaker) && IsAsleep(speaker))
+        {
+            return;
+        }
+
         if (worldEvent.Tick != _eventsTick)
         {
             _events.Clear();

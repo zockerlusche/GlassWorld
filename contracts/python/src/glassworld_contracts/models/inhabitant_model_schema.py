@@ -211,6 +211,11 @@ class Togetherness(BaseModel):
         ge=0.0,
         le=12.0,
     )
+    silent_while_asleep: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1710 (D1112 #8, Marcel's test 14.11.): event kinds a sleeper does not report - it neither speaks nor thinks aloud. A thought or a word that would come while it sleeps (an answer arriving late, a night look-back) is left out; what it decided still stands. Absent = every kind is reported.",
+        max_length=16,
+    )
 
 
 class WillToLiveModel(BaseModel):
