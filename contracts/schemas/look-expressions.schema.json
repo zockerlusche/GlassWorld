@@ -51,9 +51,51 @@
       "items": {
         "$ref": "#/$defs/NeedExpression"
       }
+    },
+    "join_in": {
+      "description": "A1733 (B2716 (3)): others nearby and awake notice one of these expressions - they look over for a while and may show an expression of their own (joining in the joy). Presentation only; absent = nobody looks over.",
+      "$ref": "#/$defs/ExpressionJoinIn"
     }
   },
   "$defs": {
+    "ExpressionJoinIn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "notice",
+        "radius_m",
+        "look_s"
+      ],
+      "properties": {
+        "notice": {
+          "description": "Expressions (ids) the others notice.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "radius_m": {
+          "description": "How near (metres, on the ground) another figure must be to notice it.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 50
+        },
+        "look_s": {
+          "description": "Real seconds the others look over (head and upper body).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30
+        },
+        "expression": {
+          "description": "The expression they show themselves (subject to their own calm pause); missing = they only look.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        }
+      }
+    },
     "Expression": {
       "type": "object",
       "additionalProperties": false,

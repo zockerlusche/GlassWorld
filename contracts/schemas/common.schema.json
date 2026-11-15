@@ -630,7 +630,8 @@
         "sound",
         "model3d",
         "review",
-        "milestone"
+        "milestone",
+        "dialogue"
       ]
     },
     "JobState": {

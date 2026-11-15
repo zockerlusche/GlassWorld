@@ -113,6 +113,9 @@
         },
         "chronicle": {
           "$ref": "#/$defs/ChroniclePayload"
+        },
+        "dialogue": {
+          "$ref": "#/$defs/DialoguePayload"
         }
       },
       "minProperties": 1,
@@ -994,6 +997,77 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 64
+        }
+      }
+    },
+    "DialoguePayload": {
+      "description": "B2782 (D1119 v3, A1735): a talk between two inhabitants - 2 to max_turns turns, all in one job. Content only from what each one knows, remembers and feels and from their bond; the tone from their traits. A talk changes nothing in the world: knowledge passes only through teach; the core shows the turns, logs them (said) and remembers them. The first speaker began the talk (talk_to).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speakers",
+        "max_turns",
+        "max_words",
+        "expressions"
+      ],
+      "properties": {
+        "speakers": {
+          "description": "The two speakers, the one who began first.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/DialogueSpeaker"
+          }
+        },
+        "max_turns": {
+          "description": "Most turns (data; B2782: 4).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4
+        },
+        "max_words": {
+          "description": "Most words per turn (data; B2782: 14).",
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 20
+        },
+        "expressions": {
+          "description": "Body expressions a turn may show (vocabulary expression, D958), sorted by the core.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "DialogueSpeaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inhabitant",
+        "calls_other"
+      ],
+      "properties": {
+        "inhabitant": {
+          "description": "As in a question: needs, mood, traits, memory, knowledge, relationships; name and life_stage when known (a minor never gets the reserved topics, B9).",
+          "$ref": "common.schema.json#/$defs/InhabitantState"
+        },
+        "calls_other": {
+          "description": "What THIS speaker calls the other one - the name it learned, by its own knowledge only; null while it knows none (then 'du', never a made-up name).",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/LocalizedName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_thought": {
+          "description": "Its latest shown thought, so the talk can start from what is on its mind. Optional.",
+          "$ref": "common.schema.json#/$defs/GeneratedText"
         }
       }
     }

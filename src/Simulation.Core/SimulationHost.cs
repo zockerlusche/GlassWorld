@@ -629,8 +629,9 @@ public sealed class SimulationHost
 
         if (map is not null)
         {
-            // D1105 H2: the decider sees how high a thing hangs (a fruit in the crown).
+            // D1105 H2: the decider sees how high a thing hangs (a fruit in the crown); H3: the core checks the reach.
             decisions.AboveCm = map.AboveCm;
+            inhabitants.AboveCm = map.AboveCm;
         }
 
         // D1017 G1: knowledge fades when it is not used (data: knowledge forgetting); out of the hash while nothing faded.

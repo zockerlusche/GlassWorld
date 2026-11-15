@@ -1026,4 +1026,20 @@ public partial class WorldPresenter
 
         return (x / members.Count, z / members.Count);
     }
+
+    /// <summary>A1733 (B2716 (3)): the awake figures near one that shows a moment look over and may join in (look expressions join_in).</summary>
+    private void JoinInAround(string id, FigureView figure, string expressionId)
+    {
+        if (_figureShared?.Expressions?.JoinIn is not { } join)
+        {
+            return;
+        }
+
+        var at = figure.GlobalPosition;
+        var onlookers = _islandFigures.Select(f => new Onlooker(f.Key, f.Value.GlobalPosition.X, f.Value.GlobalPosition.Z, !f.Value.Lying));
+        foreach (var other in JoinIn.Who(join, expressionId, id, at.X, at.Z, onlookers))
+        {
+            _islandFigures[other].Watch(figure.HeadAnchor, join.LookS, join.Expression);
+        }
+    }
 }
