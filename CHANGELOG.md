@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A worn thing shows on the figure (A1577, K4 part 2): the top takes the kit colour of the worn invention's largest part while it is worn. Putting on is only the decider's choice (TL B2779): the routine entry is gone; the decider is offered put_on/take_off when they fit.
 - Sounds in the run trace (A1719 part, D1112 #7): every sound the game plays - an action's, an invention's, the knock at the glass, the murmur - is a `sound` line with its source (the inhabitant), the sound, what made it and the bus.
 - Dreams in the compute night (D1112 #10, A1716, B2683 part 1, B2776): the night scene shows each inhabitant's dream as a calm text "Elin dreams: ..." among the images - the words the service let through (`NightItem.dream`, #452), standing longer than an image (look night `dream_hold_s`, placeholder 6 s; `show_dreams`). Before, Marcel saw only "3 still open".
 - Contract: `NightItem.dream` {text, tone} - the dream of a done look back for the night scene, only when the service's checks let it through (A1716, B2776, D1112 #10). Optional, 0.2.
