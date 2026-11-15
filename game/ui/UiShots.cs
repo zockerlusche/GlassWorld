@@ -69,7 +69,6 @@ public static class UiShots
             files.Add(path);
         }
 
-        screen.ShowZonesForShots(false);
         return files;
     }
 }
