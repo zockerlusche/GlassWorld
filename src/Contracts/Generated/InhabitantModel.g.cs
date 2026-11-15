@@ -31,6 +31,53 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("neglect_below")]
         public double NeglectBelow { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("decay_when")]
+        public NeedDecayWhen? DecayWhen { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B2773 (GW1 #26014): while ALL given conditions hold, the need falls by per_hour instead of decay_per_hour (e.g. safety: alone, at night, without shelter). Every condition is optional; an absent one is not required.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NeedDecayWhen
+    {
+
+        /// <summary>
+        /// Decay per hour while the conditions hold.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
+        public double PerHour { get; set; } = default!;
+
+        /// <summary>
+        /// While the conditions do NOT hold (by day, in company, under shelter) the need rises by this per hour instead of falling by decay_per_hour; omitted = decay_per_hour as usual.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("recover_per_hour")]
+        public double? RecoverPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Day phases (vocabulary time_of_day) in which it holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("day_phases")]
+        public System.Collections.Generic.ICollection<string>? DayPhases { get; set; } = default!;
+
+        /// <summary>
+        /// No other inhabitant within this many metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("alone_m")]
+        public double? AloneM { get; set; } = default!;
+
+        /// <summary>
+        /// true: no thing with the body data's shelter property within its shelter reach.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unsheltered")]
+        public bool? Unsheltered { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

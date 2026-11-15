@@ -31,6 +31,9 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public Func<Inhabitant, string, bool>? Feels { get; set; }
 
+    /// <summary>B2773: whether a thing near keeps the weather off an inhabitant (the body's shelter lookup); null = never.</summary>
+    public Func<Inhabitant, bool>? Sheltered { get; set; }
+
     /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
     /// the air the inhabitant feels; null = none. Set by the host.

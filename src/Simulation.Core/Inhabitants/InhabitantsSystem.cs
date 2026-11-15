@@ -656,7 +656,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _keepFelt = true;
             _feltOnce = null;
             _levelNow = (inhabitant.Id, ComfortLevelOf(world, inhabitant));
-            DecayNeeds(inhabitant);
+            DecayNeeds(world, inhabitant);
             FeelTheAir(world, inhabitant);
             _keepFelt = false;
             _feltOnce = null;
@@ -976,12 +976,50 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
     }
 
-    private void DecayNeeds(Inhabitant inhabitant)
+    /// <summary>
+    /// B2773 (GW1 #26014): whether all conditions of a need's decay_when hold for an inhabitant now - the day phase,
+    /// nobody else within alone_m (inhabitants in their fixed order), no shelter near (<see cref="Sheltered"/>).
+    /// </summary>
+    private bool Holds(World world, Inhabitant inhabitant, NeedDecayWhen when)
+    {
+        if (when.DayPhases is { Count: > 0 } phases && !phases.Contains(world.Now.Phase.ToString().ToLowerInvariant(), StringComparer.Ordinal))
+        {
+            return false;
+        }
+
+        if (when.AloneM is { } alone)
+        {
+            foreach (var other in _ordered)
+            {
+                if (!ReferenceEquals(other, inhabitant) && DistanceSquared(other.Position, inhabitant.Position) <= alone * alone)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return when.Unsheltered != true || Sheltered?.Invoke(inhabitant) != true;
+    }
+
+    private void DecayNeeds(World world, Inhabitant inhabitant)
     {
         foreach (var need in _needs)
         {
             if (inhabitant.Needs.TryGetValue(need.Id, out var value))
             {
+                // B2773: under the data's conditions the need falls by its own rate instead (safety alone at night);
+                // where they do not hold it may recover (by day, in company, under shelter).
+                if (need.DecayWhen is { } when)
+                {
+                    var holds = Holds(world, inhabitant, when);
+                    inhabitant.Needs[need.Id] = holds
+                        ? Math.Clamp(value - PerTick(when.PerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0)
+                        : when.RecoverPerHour is { } recover
+                            ? Math.Clamp(value + PerTick(recover), 0.0, 1.0)
+                            : Math.Clamp(value - PerTick(need.DecayPerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0);
+                    continue;
+                }
+
                 inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour * NeedFactor(inhabitant, need.Id)), 0.0, 1.0);
             }
         }
