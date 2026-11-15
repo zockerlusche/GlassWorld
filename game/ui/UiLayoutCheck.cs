@@ -236,6 +236,14 @@ public static class UiLayoutCheck
         var ask = TextFill.Fill(host.Tr(QuestionKeys.CardAsk("unknown_object")), new Dictionary<string, string> { ["thing"] = host.Tr("vocab.object.dry_wood") });
         var talkLine = TextFill.Fill(host.Tr("ui.card.talk_them"), new Dictionary<string, string> { ["name"] = longName, ["text"] = host.Tr("ui.question.reason.unknown_inhabitant.female") });
         var (card, talkField) = GameScreen.CardSample(style, longName, host.Tr("ui.activity.show.inhabitant_topic"), ask, talkLine, new[] { host.Tr("ui.card.talk_hint"), host.Tr("ui.card.whisper_hint") }.MaxBy(h => h.Length)!, [.. CardBarKeys]);
+
+        // A1736 (TL #26282): the window and the card on the right stand on the world's dark ground as in the game.
+        var windowTheme = UiTheme.BuildWindowOnWorld(style);
+        foreach (var onWorld in new[] { window, card })
+        {
+            onWorld.ThemeTypeVariation = UiTheme.WorldPanel;
+            onWorld.Theme = windowTheme;
+        }
         stage.AddChild(corner);
         stage.AddChild(portraits);
         stage.AddChild(log);
@@ -299,6 +307,7 @@ public static class UiLayoutCheck
             }
 
             problems.AddRange(WorldTextProblems(style, "log", log));
+            problems.AddRange(WorldTextProblems(style, rightName, right));
             problems.AddRange(WorldTextProblems(style, "time block", corner));
 
             // The talk field shows its whole hint (D1060 find 7: 'Was mö…' in a card too narrow).
