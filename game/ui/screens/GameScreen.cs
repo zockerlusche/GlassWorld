@@ -1582,7 +1582,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);

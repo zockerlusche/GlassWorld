@@ -100,7 +100,8 @@ if ! BENCH_HEADLESS=1 BENCH_PASS_LIMIT=1 BENCH_TIMEOUT_S=180 bash "$ROOT/tools/b
 fi
 grep -E '^BENCH_ENV' "$BENCH_DIR/out.log" || true
 # Start script with the local AI service (test package): the service runs from this repository.
-# A1787 (B2824): the game keeps its data in daten/ next to itself; Godot's own log goes there too.
+# A1787 (B2824): the game keeps its data in daten/ next to itself; Godot's own log goes there too - also when the
+# game falls back to Documents/GlassWorld because the folder is protected (then Godot cannot write this log; review GW5 #503).
 LOG_ARG='--log-file "%%~dp0daten\logs\godot.log"'
 WORLD_LINE=""
 if [[ -n "$WORLD" ]]; then
