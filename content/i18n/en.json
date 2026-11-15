@@ -1815,6 +1815,14 @@
       "text": "Building plan refused"
     },
     {
+      "key": "vocab.event.build_interrupted",
+      "text": "Building interrupted"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Building taken up again"
+    },
+    {
       "key": "vocab.event.build_step",
       "text": "Building step done"
     },

@@ -1815,6 +1815,14 @@
       "text": "Bauplan abgelehnt"
     },
     {
+      "key": "vocab.event.build_interrupted",
+      "text": "Bau unterbrochen"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Bau wieder aufgenommen"
+    },
+    {
       "key": "vocab.event.build_step",
       "text": "Bauschritt fertig"
     },
