@@ -187,6 +187,9 @@ public sealed record SaveState(
     /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
 
+    /// <summary>Who is up in a crown (D1105 H3b); null = nobody.</summary>
+    public IReadOnlyList<Inhabitants.UpInhabitant>? Climbed { get; init; }
+
     /// <summary>The reached milestones (B2598, A1583); null = none.</summary>
     public IReadOnlyList<Inventions.ReachedMilestone>? Milestones { get; init; }
 
@@ -272,6 +275,7 @@ public static class StateCodec
             Animals = host.Animals is { HasState: true } animals ? animals.Capture() : null,
             Placed = host.Durability is { HasState: true } durability ? durability.Capture() : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
+            Climbed = host.Body is { HasState: true } up ? up.CaptureUp() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
             ChronicleNight = host.ChronicleNight.HasState ? host.ChronicleNight.Capture() : null,
         };
@@ -451,6 +455,7 @@ public static class StateCodec
         host.Animals?.Restore(state.Animals);
         host.Durability?.Restore(state.Placed, state.Tick);
         host.Body?.Restore(state.Wet);
+        host.Body?.RestoreUp(state.Climbed);
         host.Milestones.Restore(state.Milestones);
         host.ChronicleNight.Restore(state.ChronicleNight);
         host.UseLoggedPlayerSettings();

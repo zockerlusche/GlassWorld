@@ -231,6 +231,10 @@
       "description": "Rain put out a fire the inhabitant could see (A1379): target type = the fire's type, the thing is gone."
     },
     {
+      "id": "slipped",
+      "description": "D1105 H3b: an inhabitant slid gently down while climbing (target = what it climbed, target type = its type). A fright, no harm."
+    },
+    {
       "id": "out_of_reach",
       "description": "D1105 H3: an inhabitant could not get its hands on a thing (target = the thing, target type = its type, detail = why: too_high). Only the reason, never a way."
     },

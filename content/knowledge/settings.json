@@ -128,7 +128,8 @@
       { "event": "built", "formative": "always" },
       { "event": "first_use", "formative": "always" },
       { "event": "help_needed", "formative": "first" },
-      { "event": "out_of_reach", "formative": "first" }
+      { "event": "out_of_reach", "formative": "first" },
+      { "event": "slipped", "formative": "first" }
     ]
   },
   "night_questions": {

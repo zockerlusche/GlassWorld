@@ -117,6 +117,22 @@ public sealed class RunTests : IDisposable
     }
 
     [Fact]
+    public void AReplayOfASaveWithOldRequestsAsFingerprintsGivesTheSameHash()
+    {
+        // A1750 (B2768): after the data's window a request keeps only its fingerprint; the save is smaller, the replay still agrees.
+        var save = Path.Combine(_folder, "two-days.db");
+        var (code, lines) = Run("--days", "2", "--quiet", "--save", save);
+        Assert.Equal(ExitCodes.Ok, code);
+        var requests = SaveGameStore.Load(save).DecisionLog.Where(e => e.Kind == DecisionLogKind.Request).ToList();
+        Assert.Contains(requests, e => DecisionLog.IsCompacted(e.Json));
+        Assert.Contains(requests, e => !DecisionLog.IsCompacted(e.Json));
+
+        var output = new StringWriter();
+        Assert.Equal(ExitCodes.Ok, ReplayCommand.Run(["--save", save, "--content", Content], output));
+        Assert.StartsWith($"REPLAY_OK {lines[^1].Split(' ')[1]} ", output.ToString().Trim(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AReplayOfASaveGivesTheSameHash()
     {
         var save = Path.Combine(_folder, "run.db");

@@ -21,6 +21,7 @@
     { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "introduce", "destination": "here", "duration_minutes": 2, "reach_m": 2 },
     { "action": "approach", "destination": "here", "duration_minutes": 1, "reach_m": 2 },
+    { "action": "climb", "destination": "here", "duration_minutes": 3, "reach_m": 1.5 },
     { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 },
     { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "known_only": true } },
     { "action": "add_fuel", "destination": "here", "duration_minutes": 2, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4, "feeds": true } },

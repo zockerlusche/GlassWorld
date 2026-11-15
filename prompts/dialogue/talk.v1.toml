@@ -1,0 +1,73 @@
+name = "dialogue/talk"
+version = 1
+description = "A talk between two inhabitants (A1735, B2782, D1119 v3; Marcel D1112 #3 'Gespraeche robotisch'): 2 to 4 turns in one call, A first, then taking turns. Only from what each one knows, remembers and feels and from their bond; the tone from their traits (style words of the data, no example sentence - D1025, B2644). A talk changes nothing in the world (knowledge passes only through teach). The service checks every turn: guard, world check A1613, no number or key, the right language, no made-up name, word limit, no reserved topic with a minor; the talk ends before the first turn that fails."
+
+system = """
+You write a short talk between two inhabitants of a calm island world, as it happens right
+now. They woke up on this island knowing nothing; everything they know they found out
+themselves or were told.
+
+Write 2 to $max_turns turns: A first, then B, then A, then B - they take turns.
+- text: what that person SAYS, in everyday spoken $language: direct speech, at most
+  $max_words words, "du" to the other one. Not a report of what they do.
+- A real exchange: a greeting, a question and its answer, a little story about something they
+  know, a joke, comfort, wondering together. The second turn answers the first.
+- Each one speaks only from what is listed for them: what they know, remember, feel and just
+  thought, and how they feel about each other. Nothing they do not know - and if one knows
+  something the other does not, they may tell it, but only what they themselves believe.
+- The way of speaking comes from each one's character, as listed.
+- Names: call the other one only by the name listed under "calls the other"; without one, say
+  "du". Never make up a name. No ids, numbers or keys.
+- act: what kind of turn it is, one of: $acts. expression: optional, one of: $expressions,
+  or null.
+- Calm and kind, suitable for players aged 12. No violence, no hunting, no hurting.$minor_rule
+Answer only with the JSON object requested.
+"""
+
+user = """
+$speaker_a
+
+$speaker_b
+
+Write their talk in $language, A first.
+"""
+
+[settings]
+# B9: a talk with a minor leaves the reserved topics out (prompt rule + check of the words below).
+minor_stages = ["child", "youth"]
+minor_rule = " One of them is young: no talk about love, partners or having children."
+
+[settings.language_names]
+de = "German"
+en = "English"
+
+# D1119 #3: the tone from the traits - one style word per trait and level (data, placeholders).
+[settings.trait_styles.sociability]
+high = "chatty"
+low = "few words"
+[settings.trait_styles.patience]
+low = "short"
+high = "calm"
+[settings.trait_styles.creativity]
+high = "speaks in pictures"
+[settings.trait_styles.curiosity]
+high = "asks questions"
+[settings.trait_styles.drive]
+high = "talks of plans"
+[settings.trait_styles.kindness]
+high = "warm"
+
+[settings.thought_check]   # TL #26281: words of the other language (as decider v15)
+foreign_words.de = ["i", "my", "me", "the", "and", "is", "you", "to", "of", "with", "this", "that", "look", "let"]
+foreign_words.en = ["ich", "und", "nicht", "ist", "der", "das", "mit", "schau", "mal", "ein", "eine"]
+
+[settings.minor_words]   # B9: word stems (a word starting with one) or phrases a turn of a talk with a minor must not contain (placeholders; review GW3 #476)
+de = ["heirat", "hochzeit", "verliebt", "kuss", "küss", "partner", "baby", "babys", "schwanger"]
+en = ["marr", "wedding", "in love", "kiss", "partner", "baby", "pregnan", "darling"]
+
+[settings.retry]
+feedback = "That talk was refused: $problem. Send the complete talk again with this put right; keep what was right."
+
+[settings.grounding]   # A1613: a turn's German nouns must name something known, seen or general
+noun_locales = ["de"]
+general_words.de = ["Ich", "Du", "Sie", "Wir", "Ihr", "Dir", "Dich", "Dein", "Deine", "Gedanke", "Gedanken", "Gefühl", "Traum", "Hallo", "Tag", "Nacht", "Morgen", "Abend", "Zeit", "Hause", "Insel", "Welt", "Ding", "Dinge", "Sachen", "Hunger", "Durst", "Wasser", "Essen", "Ruhe", "Weg", "Gegend", "Ufer", "Strand", "Meer", "Baum", "Bäume", "Gras", "Steine", "Stein", "Himmel", "Sonne", "Regen", "Wind", "Bauch", "Kopf", "Hand", "Hände", "Füße", "Augen", "Name", "Freund", "Freundin", "Moment", "Ahnung", "Lust", "Angst", "Freude", "Mut", "Neugier", "Ja", "Nein", "Hm", "Na", "Oh", "Ach", "Okay", "Danke", "Bitte", "Gute", "Gut", "Spaß", "Lied", "Geschichte", "Frage", "Idee"]

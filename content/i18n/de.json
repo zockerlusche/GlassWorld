@@ -727,6 +727,10 @@
       "text": "Vorstellen"
     },
     {
+      "key": "vocab.action.climb",
+      "text": "Hinaufklettern"
+    },
+    {
       "key": "vocab.action.add_fuel",
       "text": "Nachlegen"
     },
@@ -2181,6 +2185,10 @@
     {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
+    },
+    {
+      "key": "vocab.event.slipped",
+      "text": "Abgerutscht"
     },
     {
       "key": "vocab.event.out_of_reach",

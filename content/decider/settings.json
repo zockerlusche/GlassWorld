@@ -7,6 +7,7 @@
   "max_requests_per_step": 4,
   "unknown_inhabitant_max_asks": 4,
   "retry_after_minutes": 30,
+  "request_log_full_hours": 24,
   "triggers": [
     { "kind": "unknown_object", "enabled": true },
     { "kind": "noticed_player", "enabled": true, "interrupts": true },

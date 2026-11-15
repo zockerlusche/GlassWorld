@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 
@@ -33,6 +34,62 @@ public sealed partial class InhabitantsSystem
 
     /// <summary>B2773: whether a thing near keeps the weather off an inhabitant (the body's shelter lookup); null = never.</summary>
     public Func<Inhabitant, bool>? Sheltered { get; set; }
+
+    /// <summary>A1744: whether a place lies under a shelter (the body's lookup); null = none.</summary>
+    public Func<Position, bool>? ShelteredAt { get; set; }
+
+    /// <summary>A1744 (B2790 b): the body data's weight for leaving a shelter in rain or cold; null = no difference.</summary>
+    public GlassWorld.Contracts.StaySheltered? StaySheltered { get; set; }
+
+    /// <summary>
+    /// A1744 (B2790 b): weighs the options that lead out of a shelter while the inhabitant is under one and it rains
+    /// there or it feels one of the data's levels - a thing or someone not under a shelter, or a walk away (destination
+    /// not here). What stays inside keeps its weight; nothing is forbidden.
+    /// </summary>
+    internal void WeighLeavingShelter(World world, Inhabitant inhabitant, List<Candidate> options)
+    {
+        if (StaySheltered is not { } stay || ShelteredAt is null || Sheltered?.Invoke(inhabitant) != true || options.Count == 0)
+        {
+            return;
+        }
+
+        var rains = stay.InPrecipitation == true && AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true };
+        var feels = !rains && stay.AtLevels is { Count: > 0 } levels && ComfortLevelOf(world, inhabitant) is { } level && levels.Contains(level);
+        if (!rains && !feels)
+        {
+            return;
+        }
+
+        // What serves a need below its neglect threshold keeps its weight (review GW1 #480, like B2681): a hungry
+        // inhabitant still goes out for food in the rain.
+        var factor = stay.LeavingFactorPermille / 1000.0;
+        for (var i = 0; i < options.Count; i++)
+        {
+            if (LeavesShelter(options[i]) && !ServesNeglected(inhabitant, options[i].Action))
+            {
+                options[i] = options[i] with { Score = options[i].Score * factor };
+            }
+        }
+    }
+
+    private bool ServesNeglected(Inhabitant inhabitant, string action) =>
+        _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow && _brain.Serves(action, n.Id));
+
+    private bool LeavesShelter(in Candidate option)
+    {
+        if (option.TargetId is { } id)
+        {
+            if (_objects.TryGet(id, out var thing))
+            {
+                return _objects.HeldBy(id) is null && ShelteredAt!(thing.Position) is false;
+            }
+
+            return _inhabitants.TryGetValue(id, out var other) && ShelteredAt!(other.Position) is false;
+        }
+
+        // Without a target: an action that walks somewhere (wander, explore) leads out; one done here does not.
+        return _actions.HasTiming(option.Action) && (_actions.Timing(option.Action).RandomNearby || _actions.Timing(option.Action).Frontier);
+    }
 
     /// <summary>
     /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
