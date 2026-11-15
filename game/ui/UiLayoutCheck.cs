@@ -308,6 +308,7 @@ public static class UiLayoutCheck
 
             problems.AddRange(WorldTextProblems(style, "log", log));
             problems.AddRange(WorldTextProblems(style, rightName, right));
+            problems.AddRange(FramedLabelProblems(rightName, right));
             problems.AddRange(WorldTextProblems(style, "time block", corner));
 
             // The talk field shows its whole hint (D1060 find 7: 'Was mö…' in a card too narrow).
@@ -334,6 +335,32 @@ public static class UiLayoutCheck
 
         stage.QueueFree();
         return problems;
+    }
+
+    /// <summary>
+    /// A1736 (review GW3 #470): the window theme makes every label light. A label that stands inside a light framed part
+    /// (a panel with its own opaque fill) would be light on light - each visible label is measured against the fill of
+    /// the nearest framed parent it really stands on, not against the window's dark ground.
+    /// </summary>
+    private static IEnumerable<string> FramedLabelProblems(string name, Control window)
+    {
+        static RgbaColor Rgba(Color c) => new(c.R, c.G, c.B, c.A);
+        foreach (var label in window.FindChildren("*", nameof(Label), true, false).OfType<Label>().Where(l => l.IsVisibleInTree() && l.Text.Length > 0))
+        {
+            for (var parent = label.GetParent() as Control; parent is not null && parent != window; parent = parent.GetParent() as Control)
+            {
+                if (parent is PanelContainer panel && panel.GetThemeStylebox("panel") is StyleBoxFlat { BgColor.A: > 0.5f } fill)
+                {
+                    var ratio = RgbaColor.Contrast(Rgba(label.GetThemeColor("font_color")), Rgba(fill.BgColor with { A = 1 }));
+                    if (ratio < UiStandardRules.TextContrast)
+                    {
+                        yield return $"{name}: label '{label.Text}' on the fill of {parent.Name} has contrast {ratio:0.00}, needs {UiStandardRules.TextContrast:0.0}";
+                    }
+
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
