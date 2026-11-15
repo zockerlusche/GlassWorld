@@ -2713,7 +2713,9 @@ public partial class GameScreen : CanvasLayer
 
         _presenter.Speed = speed;
         Refresh();
-        if (_cardId != id || _card is null || !_card.IsInsideTree())
+        // S3b: the card is the inspector's tab on the right (the old card window is gone with the old layout).
+        var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
+        if (_cardId != id || _sideBar.OpenKey != ScreenZones.Card || !cardPanel.IsVisibleInTree())
         {
             return "card did not open";
         }
@@ -2785,14 +2787,14 @@ public partial class GameScreen : CanvasLayer
 
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
-        if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
+        if (UiSetup.CurrentTheme is { } theme && cardPanel.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
         {
             return "the UI theme does not reach the game screen";
         }
 
         // Text size too, not only the frames (GW1 review #65 T3).
         var label = new Label();
-        _card.Content.AddChild(label);
+        cardPanel.Content.AddChild(label);
         var size = label.GetThemeFontSize("font_size");
         label.Free();
         if (_style is not null && size != _style.FontPx(UiFontSizeId.Body))
@@ -2853,20 +2855,17 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
-    /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
-    /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
+    /// The card stays inside the safe area and out of the free middle at the smallest and largest UI size (found in
+    /// the 3840x1600 screenshots: the card kept its old place after a size change; S3b: the card in its corner).
     /// </summary>
     private async Task<string> CheckCardPlacementAsync()
     {
-        if (_style is null || _card is null)
+        if (_style is null || _cardId is null)
         {
             return "card missing";
         }
 
-        if (_sideBar.OpenKey != "inhabitants")
-        {
-            _sideBar.Toggle("inhabitants");
-        }
+        var card = _sideBar.PanelOf(ScreenZones.Card);
 
         var original = _style;
         var problem = string.Empty;
@@ -2879,13 +2878,13 @@ public partial class GameScreen : CanvasLayer
             }
 
             var area = GetViewport().GetVisibleRect().Size;
-            var cardRect = new Rect2(_card.Position, _card.Size);
-            var foreground = CardArea(area).X >= area.X;
-            var overlap = (!foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect)))
-                || (_topBar is not null && new Rect2(_topBar.Position, _topBar.Size).Intersects(cardRect));
-            if (!_card.IsInsideSafeArea(area) || overlap)
+            var cardRect = new Rect2(card.Position, card.Size);
+            var margin = _style.Tokens.Window.SafeMargin;
+            var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin)).Grow(0.5f);
+            var (mx, my, mw, mh) = CornerModel.Middle(area.X, area.Y, _style.Tokens.Zones.MiddleShare);
+            if (!safe.Encloses(cardRect) || cardRect.Intersects(new Rect2((float)mx, (float)my, (float)mw, (float)mh)))
             {
-                problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
+                problem = $"card at UI {scale:0.##}: outside the safe area or in the free middle ({cardRect} in {area})";
                 break;
             }
         }
