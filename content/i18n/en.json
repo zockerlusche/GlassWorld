@@ -3787,8 +3787,8 @@
       "text": "pit"
     },
     {
-      "key": "vocab.object.well",
-      "text": "well"
+      "key": "vocab.object.waterhole",
+      "text": "waterhole"
     },
     {
       "key": "vocab.object.earth",
@@ -3800,7 +3800,7 @@
     },
     {
       "key": "vocab.object.ore_chunk",
-      "text": "lump of ore"
+      "text": "ore lump"
     }
   ]
 }

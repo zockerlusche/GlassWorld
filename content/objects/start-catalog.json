@@ -6,7 +6,7 @@
     { "id": "blue_berry", "description": "Small dark blue berries on a bush.", "properties": ["fruit", "edible", "portable"] },
     { "id": "spring_water", "description": "Clear fresh water from a spring.", "properties": ["water", "drinkable", "cooling"] },
     { "id": "pit", "description": "A hole dug into the ground.", "properties": ["dug"] },
-    { "id": "well", "description": "A dug hole with clear water standing in it.", "properties": ["dug", "water", "drinkable", "cooling"] },
+    { "id": "waterhole", "description": "A dug hole with clear water standing in it.", "properties": ["dug", "water", "drinkable", "cooling"] },
     { "id": "earth", "description": "A heap of loose brown earth.", "properties": ["fine_grained", "portable"], "params": { "weight_kg": 3 } },
     { "id": "sand", "description": "A handful of pale, gritty sand.", "properties": ["fine_grained", "hard", "portable"], "params": { "weight_kg": 2 } },
     { "id": "ore_chunk", "description": "A heavy lump of stone with glinting veins.", "properties": ["stone", "hard", "ore_bearing", "portable"], "params": { "weight_kg": 3 } },

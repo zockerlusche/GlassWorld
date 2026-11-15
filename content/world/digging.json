@@ -3,7 +3,7 @@
   "action": "dig",
   "step_cm": 25,
   "pit_type": "pit",
-  "well_type": "well",
+  "well_type": "waterhole",
   "tool_property": "digs",
   "layers": [
     {

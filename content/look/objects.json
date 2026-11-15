@@ -329,9 +329,9 @@
       "footprint_m": 0.75
     },
     {
-      "id": "well", "reach": "low",
+      "id": "waterhole", "reach": "low",
       "types": [
-        "well"
+        "waterhole"
       ],
       "shape": "pool",
       "colors": [
