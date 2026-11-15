@@ -164,6 +164,7 @@ public partial class GameScreen
         var labels = new[] { _time, _date, _day };
         var shown = labels.Select(l => l.Text).ToArray();
         float? width = null;
+        _clockHeld = true;
         try
         {
             foreach (var digit in "0123456789")
@@ -191,11 +192,52 @@ public partial class GameScreen
         }
         finally
         {
+            _clockHeld = false;
             for (var i = 0; i < labels.Length; i++)
             {
                 labels[i].Text = shown[i];
                 UiFit.SteadyDigits(labels[i]);
             }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Self-check (TL #26917, Marcel's photo of a window about 1900 px wide): the corners laid out for windows from 1280 to
+    /// 1920 pixels wide (the picture's logical size for each, as the game scales it); the time block must end at the safe
+    /// margin, stay steady and stay inside each time. Empty if it does; the corners are laid out for the real picture again.
+    /// </summary>
+    private async Task<string> WindowSizesProblem()
+    {
+        if (_style is null)
+        {
+            return "screen not set up";
+        }
+
+        var margin = _style.Tokens.Window.SafeMargin;
+        try
+        {
+            foreach (var (width, height) in new[] { (1280, 720), (1366, 768), (1600, 900), (1900, 1000), (1920, 1080) })
+            {
+                var (w, h) = UiScaling.LogicalSize(width, height, _style.Tokens, _style.ContentScaleFactor);
+                var area = new Vector2((float)w, (float)h);
+                LayoutCorners(area, margin, _style.Tokens.Window.Gap);
+                if (_corner.Position.X < margin - 0.5f)
+                {
+                    return $"window {width}x{height}: the time block {_corner.Position}+{_corner.Size} does not fit in {area}";
+                }
+
+                var steady = await SteadyCornerProblem(area);
+                if (steady.Length > 0)
+                {
+                    return $"window {width}x{height}: {steady}";
+                }
+            }
+        }
+        finally
+        {
+            Layout();
         }
 
         return string.Empty;
@@ -693,6 +735,26 @@ public partial class GameScreen
             if (steady.Length > 0)
             {
                 return steady;
+            }
+
+            // TL #26917: the same in a window, not only full screen - laid out for window sizes 1280 to 1920 wide.
+            var windows = await WindowSizesProblem();
+            if (windows.Length > 0)
+            {
+                return windows;
+            }
+
+            // B2815 (Marcel W2208): the closed log keeps its size whatever lines arrive, a short one or a very long one.
+            var logBefore = log.Size;
+            var tick = _presenter?.Host?.World.Tick ?? 0;
+            _log?.AddHint(null, LogModel.NoteHint, "ui.log.empty", new Dictionary<string, string>(), tick);
+            _log?.AddHint(null, LogModel.NoteHint, "msg.share.refused", new Dictionary<string, string> { ["reason"] = string.Join(' ', Enumerable.Repeat("eine sehr lange Begruendung", 12)) }, tick);
+            RedrawLog();
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            if ((log.Size - logBefore).Abs().Length() > 0.5f)
+            {
+                return $"the closed log changed its size from {logBefore} to {log.Size} when a long line came";
             }
 
             if (_timeButtons.Any(b => !_cornerSpeed.IsAncestorOf(b.Button)) || !_cornerDate.IsAncestorOf(_date) || _cornerButtons.GetChildCount() != 1 + ScreenZones.Themes.Count)

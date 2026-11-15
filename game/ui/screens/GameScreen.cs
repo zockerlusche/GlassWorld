@@ -144,6 +144,9 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
     private Label? _time;
+
+    // A1762 self-check: the clock keeps the test digits while they are measured.
+    private bool _clockHeld;
     private WorldPresenter? _presenter;
     private WorldFeed? _feed;
     private UiStyle? _style;
@@ -613,7 +616,8 @@ public partial class GameScreen : CanvasLayer
         var row = new HFlowContainer();
         var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
         var day = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
-        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        // Right-aligned in its steady width (A1762): the minutes stay where they are while the digits change.
+        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Right };
         row.AddChild(date);
         row.AddChild(day);
         row.AddChild(time);
@@ -2129,6 +2133,20 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
     /// <summary>The log again from scratch (a filter, the search or open/closed changed).</summary>
+    /// <summary>
+    /// B2815: the height of <paramref name="lines"/> one-line log lines in the closed log, measured with a line of the
+    /// log's own theme, so the closed log keeps its size from the first line on.
+    /// </summary>
+    private float ClosedLogHeight(int lines)
+    {
+        var probe = new Button { Text = "Ag", Flat = true, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        _logList.AddChild(probe);
+        var line = probe.GetCombinedMinimumSize().Y;
+        _logList.RemoveChild(probe);
+        probe.Free();
+        return (lines * line) + (Math.Max(0, lines - 1) * _logList.GetThemeConstant("separation"));
+    }
+
     private void RedrawLog()
     {
         _logShown = -1;
@@ -2158,8 +2176,13 @@ public partial class GameScreen : CanvasLayer
         var open = _logOpen || !_zones;
         _logTools.Visible = open;
         var all = _log.Newest();
-        _logMore.Visible = _zones && (open || all.Count > data.CornerLines);
+        // B2815 (Marcel W2208): the closed log keeps one size - "more" stays in its place (greyed while there is no more)
+        // and the list keeps the room of its lines however many there are and however long they are.
+        var closed = _zones && !open;
+        _logMore.Visible = _zones;
+        _logMore.Disabled = closed && all.Count <= data.CornerLines;
         _logMore.Text = open ? "ui.log.less" : "ui.log.more";
+        _logList.CustomMinimumSize = closed ? new Vector2(0, ClosedLogHeight(data.CornerLines)) : Vector2.Zero;
         if (all.Count == 0)
         {
             _logList.AddChild(new Label { Text = "ui.log.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
@@ -2193,6 +2216,15 @@ public partial class GameScreen : CanvasLayer
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             };
+            if (closed)
+            {
+                // B2815: closed, every line is one line ("..." at the end, the whole line in the tooltip and in the open log).
+                button.AutowrapMode = TextServer.AutowrapMode.Off;
+                button.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+                button.ClipText = true;
+                button.TooltipText = text;
+            }
+
             if (LogModel.CategoryOf(line, data)?.Highlight == true && bold is not null)
             {
                 button.AddThemeFontOverride("font", bold);
@@ -2708,14 +2740,19 @@ public partial class GameScreen : CanvasLayer
             ["game_day"] = Number(clock.GameDay),
             ["year"] = Number(clock.Year),
         };
-        _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
-        _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+        // While the corner self-check shows its test digits, the clock does not write over them (review GW3 #496).
+        if (!_clockHeld)
+        {
+            _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
+            _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+            _time.Text = clock.Time;
+        }
+
         _date.TooltipText = TextFill.Fill(Tr("ui.clock.date_tooltip"), new Dictionary<string, string>(values)
         {
             ["year_days"] = Number(clock.DaysPerYear),
         });
         _day.TooltipText = _date.TooltipText;
-        _time.Text = clock.Time;
 
         // A1762: the numbers change, the widths do not - nothing beside them moves each minute or day.
         UiFit.SteadyDigits(_date);

@@ -148,7 +148,7 @@ public static class UiFit
     public static void SteadyDigits(Label label)
     {
         ArgumentNullException.ThrowIfNull(label);
-        var widest = "0123456789".MaxBy(d => Width(label, d.ToString()));
+        var widest = WidestDigit(label);
         var steady = new string([.. label.Text.Select(c => char.IsAsciiDigit(c) ? widest : c)]);
         label.CustomMinimumSize = new Vector2(Width(label, steady), label.CustomMinimumSize.Y);
     }
@@ -197,6 +197,21 @@ public static class UiFit
     private static float LongestWord(Label label) => LongestWord(label, label.Text);
 
     private static float LongestWord(Label label, string text) => (float)TextFit.LongestWord(label.Tr(text), word => Width(label, word));
+
+    // The widest digit per font and size (review GW3 #496: the clock asks four times a second; a new text size is a new key).
+    private static readonly Dictionary<(Rid Font, int Size), char> WidestDigits = [];
+
+    private static char WidestDigit(Label label)
+    {
+        var key = (label.GetThemeFont("font").GetRid(), label.GetThemeFontSize("font_size"));
+        if (!WidestDigits.TryGetValue(key, out var widest))
+        {
+            widest = "0123456789".MaxBy(d => Width(label, d.ToString()));
+            WidestDigits[key] = widest;
+        }
+
+        return widest;
+    }
 
     private static float Width(Control control, string text) =>
         (float)Math.Ceiling(control.GetThemeFont("font").GetStringSize(text, HorizontalAlignment.Left, -1, control.GetThemeFontSize("font_size")).X);
