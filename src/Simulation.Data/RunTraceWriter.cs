@@ -208,6 +208,13 @@ public sealed class RunTraceWriter : IDisposable
             WriteOptional(json, "detail", e.Detail);
             WriteOptional(json, "outcome", e.Outcome);
             WriteOptional(json, "text", e.Text);
+            WriteOptional(json, "conversation", e.Conversation);
+            if (e.Turn is { } turn && e.Turns is { } turns)
+            {
+                json.WriteNumber("turn", turn);
+                json.WriteNumber("turns", turns);
+            }
+
             if (_host.Inhabitants.TryGet(e.InhabitantId, out var who))
             {
                 WritePosition(json, "at", who.Position);

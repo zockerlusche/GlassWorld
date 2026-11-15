@@ -1303,7 +1303,11 @@ public sealed class DecisionsSystem : IWorldSystem
                 continue;
             }
 
-            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
+            // A meeting option without a need of its own (approach a stranger) is offered whatever the needs say, as
+            // before A1726 gave approach a consideration (cold); options with a need (talk_to) still yield to the
+            // considerations as before (review GW2 #479).
+            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId)
+                && (Knowledge is not { } meets || InhabitantsSystem.MeetingOptionsOf(meets, action)?.Any(o => o.Need is null) != true))
             {
                 continue;
             }
@@ -1355,7 +1359,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                     // What kind of action it is, is looked up once for all the others; what a passing action
                     // would carry to each of them is kept for the request, which names it (TopicOf).
-                    var meetingOption = InhabitantsSystem.MeetingOptionOf(knowledge, action);
+                    var meetingOption = InhabitantsSystem.MeetingOptionsOf(knowledge, action);
                     foreach (var other in awake)
                     {
                         var purpose = InhabitantsSystem.HasPurpose(knowledge, asker, other, action, meetingOption, out var passable);

@@ -12,6 +12,30 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NightQueue
+    {
+
+        /// <summary>
+        /// Job kinds (generation-job kind) held by day in night_only; the night kinds (question, memory, review, dream, chronicle) go at night anyway, a talk (dialogue) belongs to its moment and is not sent by day at all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("held_kinds")]
+        public System.Collections.Generic.ICollection<string> HeldKinds { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Jobs sent from the queue per compute night at most (placeholder 24 for 4 inhabitants).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cap_per_night")]
+        public int CapPerNight { get; set; } = default!;
+
+        /// <summary>
+        /// Priority added per night a job waited, so what is left over moves up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("age_bonus_per_night")]
+        public int AgeBonusPerNight { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/jobs/phases.json: which phases of the game day are the compute night of the AI service (B7 S4, D471 D4). The core signals the change from the world calendar, so it is the same in every run.
     /// </summary>
@@ -34,6 +58,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("wait_for_sleepers_hours")]
         public double? WaitForSleepersHours { get; set; } = default!;
+
+        /// <summary>
+        /// A1766 (A1568 step 2b, B2789, D1113 v3 4b): with the player's day mode 'night_only' the jobs of these kinds are not sent by day but held in the save game's night queue, and sent when the compute night begins - most important first (the job's own priority plus a bonus per night it waited), the oldest and each inhabitant in turn, at most cap_per_night; the rest waits for the next night, never dropped. Switching back to 'ai' sends what waits at once. Omitted = nothing is held.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("night_queue")]
+        public NightQueue? NightQueue { get; set; } = default!;
 
     }
 }
