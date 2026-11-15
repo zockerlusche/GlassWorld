@@ -2146,6 +2146,8 @@ public partial class GameScreen : CanvasLayer
         // What the night's jobs are about (GW2 #206), page by page while full pages come.
         for (var pages = 0; pages < 8 && IsInstanceValid(this) && _dreams is { } dreams; pages++)
         {
+            // A1716: dreams only in the language the screen shows now (review GW2 #456).
+            dreams.Language = TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? Locale.En : Locale.De;
             var list = await setup.NightItemsAsync(dreams.Since);
             if (list.Items is null || !IsInstanceValid(this) || !dreams.Take(list.Items))
             {
@@ -2189,7 +2191,8 @@ public partial class GameScreen : CanvasLayer
             }
 
             seen.Add(image.Key);
-            node.Position = new Vector2(((float)image.X * view.X) - (size / 2), ((float)image.Y * view.Y) - (size / 2)).Floor();
+            // Centred on its place by its own width (a dream text is wider than an image, A1716).
+            node.Position = new Vector2(((float)image.X * view.X) - (Math.Max(size, node.Size.X) / 2), ((float)image.Y * view.Y) - (size / 2)).Floor();
             node.Modulate = new Color(1, 1, 1, (float)image.Alpha * scene);
         }
 
@@ -2203,6 +2206,20 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The control of one dream image: the made picture if it can be read, else the object type's shape; null if neither exists.</summary>
     private Control? DreamNode(DreamImage image, float size)
     {
+        // A1716 (B2683, B2776): a dream as the service let it through - calm words on the dark, as wide as three images.
+        if (image.Dream is { } dream)
+        {
+            return new Label
+            {
+                Text = TextFill.Fill(Tr("ui.night.dream"), new Dictionary<string, string> { ["name"] = dream.InhabitantId is { } dreamer ? NameOfId(dreamer) : string.Empty, ["text"] = dream.Text }),
+                ThemeTypeVariation = UiTheme.OnDarkLabel,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                CustomMinimumSize = new Vector2(size * 3, 0),
+            };
+        }
+
         // A1618 (B2683): a learned fact as a short guess in words of the vocabulary - no sentence of the AI.
         if (image.Learned is { } fact)
         {
