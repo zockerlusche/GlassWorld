@@ -142,6 +142,10 @@ public partial class GwWindow : PanelContainer
         // Fields that follow their hint text take their share of this picture (UiFit), and only then the window
         // rearranges its parts for the room it has: measured before, the fields still had the last picture's width.
         UiFit.Refit(this, area.X);
+
+        // Measured without a scroll bar: one that shows only because the window is not yet as high as its content
+        // added its width, and the window shrank by it a frame later (A1737a: the x 6 px outside on the dark ground).
+        _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.ShowNever;
         Arrange(limit);
 
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
@@ -155,6 +159,15 @@ public partial class GwWindow : PanelContainer
             _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             _title.CustomMinimumSize = new Vector2(Math.Max(1, limit.X - others), 0);
             wanted = Wanted();
+        }
+
+        // Only content higher than the allowed room scrolls, and then the bar's width counts from the start.
+        // Godot counts the bar into the scroll area's minimum only while the content is higher than the area is now;
+        // added here once, measured without it, the width is the same in every frame.
+        if (wanted.Y > limit.Y)
+        {
+            wanted.X += _scroll.GetVScrollBar().GetCombinedMinimumSize().X + _scroll.GetThemeConstant("scrollbar_h_separation");
+            _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
         }
 
         Size = new Vector2(Math.Min(wanted.X, limit.X), Math.Min(wanted.Y, limit.Y));
