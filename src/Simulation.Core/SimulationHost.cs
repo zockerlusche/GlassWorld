@@ -1017,7 +1017,7 @@ public sealed class SimulationHost
             .OrderBy(r => r.Tick)];
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions, Body) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };
 
     /// <summary>
     /// Cloud cover and exploring (B2-6 R14): the cells every inhabitant has seen and the player's view, the

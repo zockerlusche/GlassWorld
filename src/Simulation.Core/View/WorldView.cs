@@ -75,6 +75,12 @@ public sealed record InhabitantSnapshot(
 
     /// <summary>How warm it feels now (A1730, vocabulary comfort_level: cold .. hot), or null without comfort data - for the look (A1729).</summary>
     public string? ComfortLevel { get; init; }
+
+    /// <summary>How wet it is (B5-11, 0..1000), or null without a body system (no weather or map) - for the look (A1385).</summary>
+    public int? WetPermille { get; init; }
+
+    /// <summary>How high it is up in what it climbed (D1105 H3b, centimetres; 0 = on the ground), or null without a body system - for the look (A1385).</summary>
+    public int? ClimbedCm { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -122,7 +128,7 @@ public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnaps
 public static class WorldView
 {
     /// <summary>Takes a snapshot.</summary>
-    public static WorldSnapshot Snapshot(World world, InhabitantsSystem inhabitants, WorldObjects objects, DecisionsSystem decisions)
+    public static WorldSnapshot Snapshot(World world, InhabitantsSystem inhabitants, WorldObjects objects, DecisionsSystem decisions, BodySystem? body = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(inhabitants);
@@ -155,6 +161,9 @@ public static class WorldView
                 Worn = i.Worn,
                 // A1730 (review GW4): fresh per tick, not from the felt cache of the inhabitant loop (#435), and once per tick (#467).
                 ComfortLevel = inhabitants.ComfortLevelForView(world, i),
+                // A1385 (GW3): wet look and the height when up in a tree, from the body (islands only).
+                WetPermille = body?.WetPermille(i.Id),
+                ClimbedCm = body?.ClimbedCm(i.Id),
             })],
             [.. objects.All],
             [.. inhabitants.Events]);
