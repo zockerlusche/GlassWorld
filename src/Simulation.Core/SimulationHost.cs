@@ -497,6 +497,10 @@ public sealed class SimulationHost
         };
 
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests, Truth = types };
+
+        // A1766 (B2789): the night queue of the day mode night_only - holds the data's job kinds by day at the job
+        // router and sends them when the compute night begins.
+        var nightQueue = new Night.NightQueueSystem(content.NightQueue, jobs, world, nightJobs.IsNightNow, nightJobs.NightBegins);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
@@ -599,6 +603,8 @@ public sealed class SimulationHost
         {
             ValidateRequests = options.ValidateRequests,
             PerceivedTypes = decisions.PerceivedTypes,
+            // D1119 §5: by day in night_only a talk has no words (it belongs to its moment, it is not queued).
+            Quiet = () => nightQueue.HoldsNow,
         };
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
@@ -611,7 +617,7 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs);
+        world.Add(player).Add(inventions).Add(nightJobs).Add(nightQueue);
         if (processes is not null)
         {
             // Out of the hash while it holds nothing (worlds that never process keep their hashes).
@@ -710,6 +716,7 @@ public sealed class SimulationHost
             ChronicleNight = chronicleNight,
             Conversation = conversation,
             Dialogue = dialogue,
+            NightQueue = nightQueue,
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
@@ -720,6 +727,9 @@ public sealed class SimulationHost
 
         // Learning by day as well (B2652, A1568): a logged command, so a replay switches at the same tick.
         decisions.RegisterCommand(DecisionsSystem.SetLearnByDay, CheckLearnByDay, (_, command) => decisions.LearnByDay = command.Text == DecisionsSystem.LearnByDayOn);
+
+        // The day mode (A1568, A1766): a logged command, so a replay holds and sends at the same ticks.
+        decisions.RegisterCommand(Night.NightQueueSystem.DayModeCommand, CheckDayMode, (_, command) => nightQueue.NightOnly = command.Text == Night.NightQueueSystem.DayModeNightOnly);
         return host;
     }
 
@@ -760,6 +770,19 @@ public sealed class SimulationHost
         }
 
         Decisions.LearnByDay = learnByDay;
+
+        // The day mode the same way (A1766): the last logged one counts, ai without any.
+        var nightOnly = false;
+        foreach (var entry in Decisions.Log.Entries)
+        {
+            if (entry.Kind == DecisionLogKind.Command && entry.Json.Contains(Night.NightQueueSystem.DayModeCommand, StringComparison.Ordinal)
+                && System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(entry.Json) is { Kind: Night.NightQueueSystem.DayModeCommand, Text: { } text })
+            {
+                nightOnly = text == Night.NightQueueSystem.DayModeNightOnly;
+            }
+        }
+
+        NightQueue.NightOnly = nightOnly;
     }
 
     /// <summary>
@@ -780,6 +803,11 @@ public sealed class SimulationHost
             }
         }
     }
+
+    private static CommandResult CheckDayMode(PlayerCommand command) =>
+        command.Text is Night.NightQueueSystem.DayModeAi or Night.NightQueueSystem.DayModeNightOnly
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonUnknownCommand);
 
     private static CommandResult CheckLearnByDay(PlayerCommand command) =>
         command.Text is DecisionsSystem.LearnByDayOn or DecisionsSystem.LearnByDayOff
@@ -1059,6 +1087,9 @@ public sealed class SimulationHost
 
     /// <summary>Talks between two inhabitants (A1735): open dialogue jobs and the last talk per pair.</summary>
     public DialogueSystem Dialogue { get; private init; } = null!;
+
+    /// <summary>The night queue of the day mode night_only (A1766): jobs held by day, sent at night.</summary>
+    public Night.NightQueueSystem NightQueue { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

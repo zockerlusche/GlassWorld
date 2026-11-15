@@ -184,6 +184,13 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         return world.Tick > 0 && IsNight(world, world.Tick) && !IsNight(world, world.Tick - 1);
     }
 
+    /// <summary>Whether the world is in the compute night now (its day phase is a night phase).</summary>
+    public bool IsNightNow(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        return IsNight(world, world.Tick);
+    }
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
