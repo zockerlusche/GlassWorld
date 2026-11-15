@@ -681,8 +681,8 @@ public partial class Main
                 await Frames(2);
             }
 
-            // 2. The game screen in both layouts: every side window, the card, the pause menu.
-            foreach (var (zones, tag) in new[] { (false, "alt"), (true, "neu") })
+            // 2. The game screen (the corners, the only layout since S3b): every side window, the card, the pause menu.
+            foreach (var (zones, tag) in new[] { (true, "neu") })
             {
                 _screen!.ShowZonesForShots(zones);
                 await Take($"10_{tag}_spiel");
@@ -716,12 +716,11 @@ public partial class Main
             }
 
             // 3. The settings, every tab (opened from the game, as the pause menu does).
-            _screen!.ShowZonesForShots(false);
             SettingsWindow? settings = null;
             OpenSettings(window =>
             {
                 settings = window as SettingsWindow;
-                _screen.ShowWindow(window, modal: true);
+                _screen!.ShowWindow(window, modal: true);
             });
             if (settings is not null)
             {

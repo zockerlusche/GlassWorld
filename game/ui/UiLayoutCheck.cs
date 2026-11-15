@@ -122,7 +122,6 @@ public static class UiLayoutCheck
         }
 
         problems.AddRange(await CheckComponents(host, stage, style, area));
-        problems.AddRange(await CheckTopBar(host, stage, style, area, timeChoices));
         stage.QueueFree();
         return problems;
     }
@@ -370,44 +369,6 @@ public static class UiLayoutCheck
     /// <summary>Season and game day as the time block shows them side by side.</summary>
     private static string DateSample(Node host) =>
         TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host)) + "  " + TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
-
-    /// <summary>The top bar (clock and time control) fits next to the side bar buttons.</summary>
-    private static async Task<IReadOnlyList<string>> CheckTopBar(Node host, Control stage, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> choices)
-    {
-        var (bar, date, day, time) = GameScreen.CreateTopBar(style, choices, _ => { });
-        date.Text = TextFill.Fill(host.Tr("ui.clock.date"), DateValues(host));
-        day.Text = TextFill.Fill(host.Tr("ui.clock.day_year"), DateValues(host));
-        time.Text = "23:59";
-        var side = new GwSideBar();
-        side.Add("inhabitants", "ui.inhabitants.title");
-        side.Add("questions", "ui.questions.title");
-        stage.AddChild(bar);
-        stage.AddChild(side);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var margin = style.Tokens.Window.SafeMargin;
-        var room = area.X - (2 * margin) - side.GetCombinedMinimumSize().X - style.Tokens.Window.Gap;
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        bar.Size = new Vector2(room, 0);
-        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        var problems = new List<string>();
-        // The bar flows into more lines at large UI and text sizes (up to 4x on 1080p); it must keep its
-        // room next to the side bar and leave at least half of the height to the world (D366 section 2).
-        if (bar.GetCombinedMinimumSize().X > room + 0.5f || bar.Size.Y > area.Y / 2)
-        {
-            problems.Add($"top bar {bar.Size} (minimum {bar.GetCombinedMinimumSize()}) does not fit room {room:0} px or takes more than half the height");
-        }
-
-        bar.QueueFree();
-        foreach (var panel in side.Panels)
-        {
-            // The side bar creates its panels; here they never joined the tree, so free them directly.
-            panel.Free();
-        }
-
-        side.QueueFree();
-        return problems;
-    }
 
     /// <summary>Side panel with table, hint stack and a long speech bubble in the same case.</summary>
     private static async Task<IReadOnlyList<string>> CheckComponents(Node host, Control stage, UiStyle style, Vector2 area)

@@ -583,7 +583,7 @@ public partial class GameScreen
         static Rect2 Box(Control c) => new(c.Position, c.Size);
 
         _card?.Close();
-        ApplySettings(settings with { ClassicLayout = false }, _style);
+        ApplySettings(settings, _style);
         await Frames();
         try
         {
