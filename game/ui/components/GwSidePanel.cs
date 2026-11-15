@@ -12,9 +12,17 @@ public partial class GwSidePanel : PanelContainer
 {
     private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel };
 
+    // Docks again in one frame at most this often: a layout that does not settle stops instead of filling the call
+    // queue (S2 tour: millions of deferred calls, then a crash).
+    private const int MaxRedocksPerFrame = 4;
+
+    private readonly ScrollContainer _scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
+
     // The last dock that fits the content (S1b): done again once the content's height settles at the new width.
     private Action? _redock;
     private bool _redockQueued;
+    private ulong _redockFrame;
+    private int _redocksThisFrame;
 
     /// <summary>Tabs of the panel's theme in the zones layout (W1717); hidden while empty.</summary>
     public HFlowContainer Tabs { get; } = new() { Visible = false };
@@ -27,7 +35,7 @@ public partial class GwSidePanel : PanelContainer
     {
         ThemeTypeVariation = UiTheme.WindowPanel;
         var column = new VBoxContainer();
-        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
+        var scroll = _scroll;
         scroll.AddChild(Content);
         column.AddChild(Tabs);
         column.AddChild(_title);
@@ -44,7 +52,13 @@ public partial class GwSidePanel : PanelContainer
                 Callable.From(() =>
                 {
                     _redockQueued = false;
-                    _redock?.Invoke();
+                    var frame = Engine.GetProcessFrames();
+                    _redocksThisFrame = frame == _redockFrame ? _redocksThisFrame + 1 : 1;
+                    _redockFrame = frame;
+                    if (_redocksThisFrame <= MaxRedocksPerFrame)
+                    {
+                        _redock?.Invoke();
+                    }
                 }).CallDeferred();
             }
         };
@@ -121,7 +135,15 @@ public partial class GwSidePanel : PanelContainer
         if (fitContent)
         {
             // Frame, tabs and title (the panel's own minimum, the scroll area asks for nothing) plus what the content needs.
-            height = Math.Min(height, GetCombinedMinimumSize().Y + Content.GetCombinedMinimumSize().Y);
+            // When all of it fits there is no scroll bar: one that came and went by a pixel narrowed the text, which then
+            // wrapped taller, docked taller, lost the bar, widened, wrapped shorter - and so on without end.
+            var need = GetCombinedMinimumSize().Y + Content.GetCombinedMinimumSize().Y;
+            _scroll.VerticalScrollMode = need <= height ? ScrollContainer.ScrollMode.ShowNever : ScrollContainer.ScrollMode.Auto;
+            height = Math.Min(height, need);
+        }
+        else
+        {
+            _scroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
         }
 
         Size = new Vector2(width, height);
