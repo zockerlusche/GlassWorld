@@ -7,6 +7,10 @@
       "schema": "vocabulary"
     },
     {
+      "pattern": "fauna/ambient.json",
+      "schema": "fauna-ambient"
+    },
+    {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
     },

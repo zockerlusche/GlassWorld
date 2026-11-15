@@ -420,12 +420,6 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
-        },
-        "question_font_px": {
-          "description": "A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm \"?\" of this size stands in the dots' place; once only the effect is open, the dots again. Missing = dots only.",
-          "type": "integer",
-          "minimum": 8,
-          "maximum": 256
         }
       }
     },
