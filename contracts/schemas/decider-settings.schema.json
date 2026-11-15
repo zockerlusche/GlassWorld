@@ -17,6 +17,10 @@
     "max_requests_per_step": { "description": "At most this many requests go to the decider in one step (tick), whatever raised them: new questions, questions that waited (held back) and questions sent again after an error or after loading a save. What is over waits with its question mark and goes out in the next steps, in the order it would have gone. The places of a step are taken in this order: questions due to be sent again (after an error or a load), then questions that waited, then new ones - so while the AI service keeps failing, retries can fill a step and the others wait longer. Bounds the one step in which many questions fall due together - all held-back questions at the end of choice_protection_hours, every open question after loading a save. Omitted = no limit (as before).", "type": "integer", "minimum": 1, "maximum": 1000 },
     "unknown_inhabitant_max_asks": { "description": "How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.", "type": "integer", "minimum": 0, "maximum": 1000 },
     "leisure": { "$ref": "#/$defs/LeisureSettings" },
+    "failures": {
+      "description": "A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.",
+      "$ref": "#/$defs/Failures"
+    },
     "triggers": {
       "type": "array",
       "maxItems": 32,
@@ -53,10 +57,22 @@
       "additionalProperties": false,
       "required": ["kind", "enabled"],
       "properties": {
-        "kind": { "description": "unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure).", "type": "string", "enum": ["unknown_object", "noticed_player", "unknown_inhabitant", "leisure"] },
+        "kind": { "description": "unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure). action_failed: an action of the inhabitant failed at the core (A1778, B2814, conditions in failures).", "type": "string", "enum": ["unknown_object", "noticed_player", "unknown_inhabitant", "leisure", "action_failed"] },
         "enabled": { "type": "boolean" },
         "ask": { "description": "When the question goes to the AI (A1487): immediate = to the decider the moment it opens (as before); night = it opens with its question mark, is not sent to the decider by day and is answered by the compute night's question job (knowledge settings: night_questions must list the trigger; only for questions about an object type). Omitted = immediate. A later value will follow the day's contingent (D713).", "type": "string", "enum": ["immediate", "night"] },
         "interrupts": { "description": "Whether a question of this trigger goes to the decider even while its inhabitant is busy with another question or an accepted choice (choice_protection_hours); its answer then replaces that choice, as before. Omitted = false: the question waits.", "type": "boolean" }
+      }
+    },
+    "Failures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_kinds", "transient_reasons", "rest_hours", "ask_again_after_hours"],
+      "properties": {
+        "event_kinds": { "description": "Event kinds that are a failed action (vocabulary events); their detail is the reason code.", "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "transient_reasons": { "description": "Reason codes that pass by themselves (woken up, kept awake by a need, a way briefly taken): no question, no rest. Matched on the code before a slash. An event without a reason (the thing is gone) asks nothing either.", "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "rest_only_reasons": { "description": "Reason codes that rest the action on its target but ask nothing (TL B2821: blocked - a jammed way; the rest turns them to another target, a question per jam would be noise). Omitted = none.", "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "rest_hours": { "description": "Game hours the failed action rests on that target (or here, without one).", "type": "number", "minimum": 0, "maximum": 168 },
+        "ask_again_after_hours": { "description": "Game hours before the same failure (action, kind of target, reason) is asked about again.", "type": "number", "minimum": 0, "maximum": 8760 }
       }
     }
   }

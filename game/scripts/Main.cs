@@ -152,7 +152,7 @@ public partial class Main : Node3D
 
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = _nightShots ? NightShotsAsync() : _actionShots ? ActionShotsAsync() : _coverShots ? CoverShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
+                _ = _nightShots ? NightShotsAsync() : _actionShots ? ActionShotsAsync() : _coverShots ? CoverShotsAsync() : _expressShots ? ExpressShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
             else if (_tour || _nightShots)
             {
@@ -219,6 +219,12 @@ public partial class Main : Node3D
 
             // Pictures at look/pick moments (W1936), check runs only.
             if (OS.IsDebugBuild() && ReadActionShotsArgument(arg))
+            {
+                continue;
+            }
+
+            // Pictures of a figure showing an expression (A1542 knock, A1732 cheer), check runs only.
+            if (OS.IsDebugBuild() && ReadExpressShotsArgument(arg))
             {
                 continue;
             }

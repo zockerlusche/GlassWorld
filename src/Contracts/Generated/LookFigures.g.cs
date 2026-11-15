@@ -140,6 +140,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("pole")]
         public System.Collections.Generic.ICollection<double> Pole { get; set; } = new System.Collections.ObjectModel.Collection<double>();
 
+        /// <summary>
+        /// A1542: while it holds, the hand taps (knocking at the glass) about this often per second - rounded to whole taps over hold_s, so it ends where it began; missing = it holds still.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tap_hz")]
+        public double? TapHz { get; set; } = default!;
+
+        /// <summary>
+        /// How far the hand draws back for a tap (metres for a figure of size 1, along the facing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tap_m")]
+        public double? TapM { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -72,6 +72,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("seconds")]
         public double? Seconds { get; set; } = default!;
 
+        /// <summary>
+        /// A1542: as the expression starts, the figure looks to the player (the camera) for these real seconds - standing it turns to it (a knock at the glass); missing = it does not.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("look_s")]
+        public double? LookS { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -83,6 +90,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("expression")]
         public string Expression { get; set; } = default!;
+
+        /// <summary>
+        /// Only events with this detail (e.g. the message kind of mail_arrived: knock); missing = any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        public string? Detail { get; set; } = default!;
+
+        /// <summary>
+        /// A1542: shows even within the calm pause (a knock is a call to the player, not a mood); missing = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("skips_pause")]
+        public bool? SkipsPause { get; set; } = default!;
 
     }
 
