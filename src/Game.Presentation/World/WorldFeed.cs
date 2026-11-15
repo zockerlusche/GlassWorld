@@ -15,7 +15,8 @@ namespace GlassWorld.Presentation.World;
 /// <param name="PuzzlingQuestions">Open questions that still puzzle the inhabitant, for the mark over its head (TL #19921: not those about a thing it has looked at since, where only the effect is open).</param>
 /// <param name="Name">The inhabitant's own name (W1698), or null while it has none.</param>
 /// <param name="Favourite">Whether the player marked it as a favourite (B6 R19); the player's own mark.</param>
-public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0, string? Name = null, bool Favourite = false);
+/// <param name="NeglectHours">How long a need has been below its neglect line, in game hours (A1752: the worry mark).</param>
+public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0, string? Name = null, bool Favourite = false, double NeglectHours = 0);
 
 /// <summary>An open question of an inhabitant, as the questions window shows it (Marcel W1696: which question, and why).</summary>
 /// <param name="Id">Question id.</param>
@@ -309,7 +310,7 @@ public sealed class WorldFeed
     }
 
     private InhabitantRow Row(InhabitantSnapshot i) =>
-        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name, _host.Favourites.IsFavourite(i.Id));
+        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name, _host.Favourites.IsFavourite(i.Id), i.NeglectHours);
 
     /// <summary>
     /// The card's needs (A1595): needs an invention brought carry their names from the need register (they have no

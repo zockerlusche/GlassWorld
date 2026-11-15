@@ -130,6 +130,11 @@ public partial class Main
         // '+N'; '+N' opens the window with all of them, which searches, filters and pins.
         var portraits = screen.PortraitsForShots;
         GD.Print($"UI_TOUR_FULL corner shows {portraits.Count} of {ids.Count}, +{portraits.More}");
+        // A1752 (B2792): each portrait state once - knock (ring pulses), worry, aha (star), question, none.
+        screen.PortraitStatesForShots(true);
+        await take("29_ecken_zustaende");
+        GD.Print($"UI_TOUR_FULL portrait states {string.Join(',', portraits.RowButtons.OfType<GlassWorld.Game.Ui.Components.GwPortraitRow>().Select(r => r.Portrait.State))}");
+        screen.PortraitStatesForShots(false);
         if (portraits.More > 0)
         {
             await take("29_ecken_viele");
