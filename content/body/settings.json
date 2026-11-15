@@ -570,7 +570,7 @@
   },
   "others_warmth": {
     "tenth_c": 15,
-    "radius_cm": 150
+    "radius_cm": 250
   },
   "worn": {
     "property": "insulating",

@@ -1303,7 +1303,10 @@ public sealed class DecisionsSystem : IWorldSystem
                 continue;
             }
 
-            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
+            // A meeting action carries its own conditions (need, need_below - A1726: approach someone also when cold,
+            // a stranger whatever the needs), so the needs' say is that of its data, not the considerations'.
+            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId)
+                && (Knowledge is not { } meets || InhabitantsSystem.MeetingOptionsOf(meets, action) is null))
             {
                 continue;
             }
@@ -1355,7 +1358,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                     // What kind of action it is, is looked up once for all the others; what a passing action
                     // would carry to each of them is kept for the request, which names it (TopicOf).
-                    var meetingOption = InhabitantsSystem.MeetingOptionOf(knowledge, action);
+                    var meetingOption = InhabitantsSystem.MeetingOptionsOf(knowledge, action);
                     foreach (var other in awake)
                     {
                         var purpose = InhabitantsSystem.HasPurpose(knowledge, asker, other, action, meetingOption, out var passable);

@@ -2459,20 +2459,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
-        return HasPurpose(knowledge, asker, other, action, MeetingOptionOf(knowledge, action), out _);
+        return HasPurpose(knowledge, asker, other, action, MeetingOptionsOf(knowledge, action), out _);
     }
 
-    /// <summary>The meeting option of the knowledge data for an action, or null when it is none.</summary>
-    internal static KnowledgeMeetingOption? MeetingOptionOf(KnowledgeSettings knowledge, string action) =>
-        knowledge.Meeting?.Options.FirstOrDefault(o => string.Equals(o.Action, action, StringComparison.Ordinal));
+    /// <summary>
+    /// The meeting options of the knowledge data for an action, or null when it has none. An action may have several
+    /// (A1726: approach a stranger, or someone when cold); it is offered while any of them holds.
+    /// </summary>
+    internal static IReadOnlyList<KnowledgeMeetingOption>? MeetingOptionsOf(KnowledgeSettings knowledge, string action) =>
+        knowledge.Meeting?.Options.Where(o => string.Equals(o.Action, action, StringComparison.Ordinal)).ToList() is { Count: > 0 } of ? of : null;
 
     /// <summary>
     /// <see cref="HasPurpose(KnowledgeSettings, Inhabitant, Inhabitant, string)"/> for whoever asks about one
     /// action towards several others (the options of a request): the action's meeting option is looked up
-    /// once by the caller (<see cref="MeetingOptionOf"/>), and the belief a passing action would carry is
+    /// once by the caller (<see cref="MeetingOptionsOf"/>), and the belief a passing action would carry is
     /// handed back, so it need not be looked for a second time.
     /// </summary>
-    internal static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action, KnowledgeMeetingOption? meeting, out (string TypeId, string PropertyId, Belief Belief)? passable)
+    internal static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action, IReadOnlyList<KnowledgeMeetingOption>? meeting, out (string TypeId, string PropertyId, Belief Belief)? passable)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentNullException.ThrowIfNull(asker);
@@ -2480,7 +2483,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         passable = null;
         if (meeting is not null)
         {
-            return Offered(knowledge, meeting, asker, other);
+            return meeting.Any(option => Offered(knowledge, option, asker, other));
         }
 
         if (knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal))
