@@ -3,48 +3,84 @@ using Godot;
 
 namespace GlassWorld.Game.Ui.Components;
 
-/// <summary>One row of the portrait list: who, the name shown, what it does now (finished text) and whether a question puzzles it.</summary>
+/// <summary>One row of the portrait list: who, the name shown, what it does now (finished text) and the state its portrait shows.</summary>
 /// <param name="Id">Inhabitant id.</param>
 /// <param name="Name">Name as the screen shows it.</param>
 /// <param name="Activity">What it does now, in the player's language.</param>
-/// <param name="Brooding">A question still puzzles it (B2596): the portrait shows a "?".</param>
-public sealed record PortraitEntry(string Id, string Name, string Activity, bool Brooding);
+/// <param name="State">What the portrait shows (A1752, B2792): knock, worry, aha, a question (B2596) or nothing.</param>
+public sealed record PortraitEntry(string Id, string Name, string Activity, PortraitState State);
 
 /// <summary>
 /// A round portrait (A1682): the still picture of the figure inside a circle, or the name's first letter while
-/// there is none (headless, placeholder world); a ring, thicker for the inhabitant whose card is open, and a "?"
-/// on the edge while a question puzzles it. Drawn, so the circle needs no mask picture.
+/// there is none (headless, placeholder world); a ring, thicker for the inhabitant whose card is open, and the one state
+/// it shows (A1752, B2792) as a badge on its edge - sound arcs for a knock (and a ring pulsing twice short, then a
+/// pause), "!" for worry, a star for an aha (the ring lights up once, then stays calmly light), "?" for a question.
+/// Told apart by shape and motion, never by colour alone (Marcel is colour-blind); with reduced motion nothing moves.
+/// Drawn, so the circle needs no mask picture.
 /// </summary>
 public partial class GwPortrait : Control
 {
     private Texture2D? _picture;
     private string _initial = "?";
-    private bool _brooding;
+    private PortraitState _state;
     private bool _selected;
+    private double _stateSeconds;
 
     /// <summary>Creates the portrait.</summary>
     public GwPortrait()
     {
         MouseFilter = MouseFilterEnum.Ignore;
+        SetProcess(false);
     }
 
-    /// <summary>Colour of the "?" (the theme's attention colour, set by the list).</summary>
+    /// <summary>Colour of the badges and state rings (the theme's attention colour, set by the list).</summary>
     public Color Attention { get; set; } = new(1, 0.75f, 0.2f);
 
-    /// <summary>Sets what the portrait shows; redraws only on a change.</summary>
-    public void Show(Texture2D? picture, string initial, bool brooding, bool selected)
+    /// <summary>The states' rhythm, sizes and durations (tokens portrait_states); null = badges only, nothing moves.</summary>
+    public GlassWorld.Contracts.UiPortraitStates? States { get; set; }
+
+    /// <summary>Reduced motion (player setting): the knock ring stands still, the aha does not flash.</summary>
+    public bool ReduceMotion { get; set; }
+
+    /// <summary>The state shown now (for checks and the tour).</summary>
+    public PortraitState State => _state;
+
+    /// <summary>Sets what the portrait shows; redraws only on a change. A new state starts its motion from the beginning.</summary>
+    public void Show(Texture2D? picture, string initial, PortraitState state, bool selected)
     {
-        if (picture == _picture && initial == _initial && brooding == _brooding && selected == _selected)
+        if (picture == _picture && initial == _initial && state == _state && selected == _selected)
         {
             return;
         }
 
-        (_picture, _initial, _brooding, _selected) = (picture, initial, brooding, selected);
+        if (state != _state)
+        {
+            _stateSeconds = 0;
+        }
+
+        (_picture, _initial, _state, _selected) = (picture, initial, state, selected);
+        SetProcess(Moves);
         QueueRedraw();
     }
 
     /// <summary>Whether the still picture is there (for checks and the tour).</summary>
     public bool HasPicture => _picture is not null;
+
+    // Only a pulsing knock and an aha's one flash move; everything else is drawn once.
+    private bool Moves =>
+        !ReduceMotion && States is { } data
+        && (_state == PortraitState.Knock || (_state == PortraitState.Aha && _stateSeconds < data.AhaFlashS));
+
+    /// <inheritdoc/>
+    public override void _Process(double delta)
+    {
+        _stateSeconds += delta;
+        QueueRedraw();
+        if (!Moves)
+        {
+            SetProcess(false);
+        }
+    }
 
     /// <inheritdoc/>
     public override void _Notification(int what)
@@ -93,15 +129,68 @@ public partial class GwPortrait : Control
         }
 
         DrawArc(c, r - 1, 0, Mathf.Tau, Steps, _selected ? Attention : text with { A = 0.6f }, _selected ? Mathf.Max(2, d * 0.07f) : Mathf.Max(1, d * 0.03f), true);
-        if (_brooding)
+        DrawStateRing(c, r, d, Steps);
+        if (_state != PortraitState.None)
         {
-            var mark = c + new Vector2(r * 0.72f, -r * 0.72f);
-            var mr = Mathf.Max(7, d * 0.2f);
-            DrawCircle(mark, mr, Attention);
-            var font = GetThemeFont("bold_font", "RichTextLabel") ?? GetThemeFont("font", "Label");
-            var size = Math.Max(8, (int)(mr * 1.5f));
-            var width = font.GetStringSize("?", HorizontalAlignment.Left, -1, size).X;
-            DrawString(font, new Vector2(mark.X - (width / 2), mark.Y + (font.GetAscent(size) / 2) - (size * 0.1f)), "?", HorizontalAlignment.Left, -1, size, back);
+            DrawBadge(c, r, d, back);
+        }
+    }
+
+    // The knock ring pulses (thicker and stronger at each tap); the aha ring flashes once wide, then stays calmly light;
+    // worry and question have no ring of their own.
+    private void DrawStateRing(Vector2 c, float r, float d, int steps)
+    {
+        var data = States;
+        var t = Mathf.Max(2, d * (float)(data?.RingShare ?? 0.09));
+        if (_state == PortraitState.Knock)
+        {
+            var p = data is null ? 1 : (float)CornerModel.KnockPulse(data, _stateSeconds, ReduceMotion);
+            DrawArc(c, r + (t * 0.3f * p), 0, Mathf.Tau, steps, Attention with { A = 0.45f + (0.55f * p) }, t * (0.5f + (0.5f * p)), true);
+        }
+        else if (_state == PortraitState.Aha)
+        {
+            var flash = data is null || ReduceMotion || data.AhaFlashS <= 0 ? 0 : Mathf.Max(0, 1 - (float)(_stateSeconds / data.AhaFlashS));
+            DrawArc(c, r + (t * 0.3f * flash), 0, Mathf.Tau, steps, Colors.White with { A = 0.75f + (0.25f * flash) }, t * (1 + flash), true);
+        }
+    }
+
+    // The badge on the upper right edge: a filled circle in the attention colour, the state's shape in the ground colour.
+    private void DrawBadge(Vector2 c, float r, float d, Color ink)
+    {
+        var mr = Mathf.Max(7, d * (float)(States?.BadgeShare ?? 0.4) / 2);
+        var mark = c + new Vector2(r * 0.72f, -r * 0.72f);
+        DrawCircle(mark, mr, Attention);
+        switch (_state)
+        {
+            case PortraitState.Knock:
+                // Sound arcs: a dot where the knock is and two arcs opening to the right.
+                var source = mark - new Vector2(mr * 0.35f, 0);
+                DrawCircle(source, mr * 0.16f, ink);
+                for (var i = 1; i <= 2; i++)
+                {
+                    DrawArc(source, mr * 0.3f * i, -0.9f, 0.9f, 8, ink, Mathf.Max(1.5f, mr * 0.13f), true);
+                }
+
+                break;
+            case PortraitState.Aha:
+                // A five-pointed star.
+                var star = new Vector2[10];
+                for (var i = 0; i < 10; i++)
+                {
+                    var a = (-Mathf.Pi / 2) + (i * Mathf.Pi / 5);
+                    star[i] = mark + (new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (i % 2 == 0 ? mr * 0.78f : mr * 0.33f));
+                }
+
+                DrawColoredPolygon(star, ink);
+                break;
+            default:
+                // "!" for worry, "?" for a question.
+                var glyph = _state == PortraitState.Worry ? "!" : "?";
+                var font = GetThemeFont("bold_font", "RichTextLabel") ?? GetThemeFont("font", "Label");
+                var size = Math.Max(8, (int)(mr * 1.5f));
+                var width = font.GetStringSize(glyph, HorizontalAlignment.Left, -1, size).X;
+                DrawString(font, new Vector2(mark.X - (width / 2), mark.Y + (font.GetAscent(size) / 2) - (size * 0.1f)), glyph, HorizontalAlignment.Left, -1, size, ink);
+                break;
         }
     }
 }
@@ -265,7 +354,7 @@ public partial class GwPortraitList : PanelContainer
             if (i < _entries.Count)
             {
                 var entry = _entries[i];
-                row.Fill(entry, PictureOf(entry.Id), entry.Id == Selected, _compact, attention);
+                row.Fill(entry, PictureOf(entry.Id), entry.Id == Selected, _compact, attention, _style);
             }
         }
 
@@ -350,15 +439,31 @@ public partial class GwPortraitRow : Button
         CustomMinimumSize = new Vector2(px, Math.Max(px, lines) + 4);
     }
 
+    /// <summary>The portrait (for checks and the tour).</summary>
+    public GwPortrait Portrait => _portrait;
+
     /// <summary>Shows an inhabitant.</summary>
-    public void Fill(PortraitEntry entry, Texture2D? picture, bool selected, bool compact, Color attention)
+    public void Fill(PortraitEntry entry, Texture2D? picture, bool selected, bool compact, Color attention, UiStyle style)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        ArgumentNullException.ThrowIfNull(style);
         _name.Text = entry.Name;
         _activity.Text = entry.Activity;
         _portrait.Attention = attention;
-        _portrait.Show(picture, CornerModel.Initial(entry.Name), entry.Brooding, selected);
+        _portrait.States = style.Tokens.PortraitStates;
+        _portrait.ReduceMotion = style.Settings.ReduceMotion;
+        _portrait.Show(picture, CornerModel.Initial(entry.Name), entry.State, selected);
+
+        // The state in words too (DE/EN): the badge shows what, the tooltip says it (details stay in the chronicle).
         var tip = TextFill.Fill(Tr("ui.corner.portrait_tip"), new Dictionary<string, string> { ["name"] = entry.Name, ["activity"] = entry.Activity });
-        TooltipText = entry.Brooding ? tip + "\n" + Tr("ui.corner.brooding") : compact ? tip : string.Empty;
+        var state = entry.State switch
+        {
+            PortraitState.Knock => "ui.corner.knocking",
+            PortraitState.Worry => "ui.corner.worry",
+            PortraitState.Aha => "ui.corner.aha",
+            PortraitState.Question => "ui.corner.brooding",
+            _ => null,
+        };
+        TooltipText = state is not null ? tip + "\n" + Tr(state) : compact ? tip : string.Empty;
     }
 }
