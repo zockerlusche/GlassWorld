@@ -97,3 +97,15 @@ def test_the_mood_driver_rule_holds_on_the_data() -> None:
         )
     }
     assert results["mood_drivers_move_their_mood"]
+
+
+def test_a_missing_day_ends_a_neglect_streak(tmp_path: Path) -> None:
+    """Review GW3 #461: a gap in the trace is no streak - two neglected halves around a missing day file."""
+    module = _module()
+    folder = _trace(tmp_path, 3, lambda d, h: {"hunger": 0.05}, lambda d, h: "wander")
+    (folder / "trace" / "day-0002.jsonl").unlink()
+    run = module.Run(folder)
+    expectation = {"kind": "max_hours_below_neglect", "hours": 30}
+    model = json.loads((module.CONTENT / "inhabitants" / "model.json").read_text(encoding="utf-8"))
+    ok, text = module.check_trace(run, expectation, model)
+    assert ok, text

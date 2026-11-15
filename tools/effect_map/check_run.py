@@ -53,16 +53,23 @@ class Run:
 
     def __init__(self, folder: Path) -> None:
         self.rows: list[tuple[int, str, str | None, dict[str, float]]] = []
+        # Per row the game hours since the same inhabitant's last snapshot (review GW3 #461: from the ticks, so a
+        # changing population, a partial first or last day or a missing day file do not distort it); 0 = first.
+        self.hours: list[float] = []
+        ticks_per_hour = float(load("world/time.json")["ticks_per_hour"])
+        last: dict[str, int] = {}
         for line in snapshots(folder):
             day = int(str(line["clock"]).partition("/")[0])
+            tick = int(line.get("tick", 0))
             for who in cast(list[Json], line.get("inhabitants", [])):
                 needs = {k: float(v) for k, v in cast(Json, who.get("needs", {})).items()}
-                self.rows.append((day, str(who["id"]), cast(str | None, who.get("action")), needs))
-        days = sorted({r[0] for r in self.rows})
-        self.hours_per_snapshot = 1.0
-        if len(days) > 1:
-            per_day = len(self.rows) / max(1, len({r[1] for r in self.rows})) / len(days)
-            self.hours_per_snapshot = 24.0 / per_day if per_day > 0 else 1.0
+                ident = str(who["id"])
+                self.rows.append((day, ident, cast(str | None, who.get("action")), needs))
+                self.hours.append((tick - last[ident]) / ticks_per_hour if ident in last else 0.0)
+                last[ident] = tick
+        steps = sorted(h for h in self.hours if h > 0)
+        # The usual time between two snapshots; a longer step is a gap in the trace.
+        self.interval = steps[len(steps) // 2] if steps else 1.0
 
 
 def season_of(day: int) -> str:
@@ -81,11 +88,16 @@ def check_trace(run: Run, expectation: Json, model: Json) -> tuple[bool, str]:
         limit = float(expectation["hours"])
         longest: dict[tuple[str, str], float] = defaultdict(float)
         current: dict[tuple[str, str], float] = defaultdict(float)
-        for _, who, _, values in run.rows:
+        for (_, who, _, values), step in zip(run.rows, run.hours, strict=True):
+            # A gap (a missing day file, a cut) ends the streak: what happened in it is unknown (review GW3 #461).
+            gap = step > 1.5 * run.interval
             for need, value in values.items():
                 below = float(needs.get(need, {}).get("neglect_below", 0))
                 key = (who, need)
-                current[key] = current[key] + run.hours_per_snapshot if value < below else 0.0
+                if value >= below or gap:
+                    current[key] = 0.0
+                else:
+                    current[key] += step
                 longest[key] = max(longest[key], current[key])
         worst = max(longest.items(), key=lambda kv: kv[1], default=(("-", "-"), 0.0))
         (who, need), hours = worst
