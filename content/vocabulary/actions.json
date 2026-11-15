@@ -15,7 +15,7 @@
     { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
     { "id": "talk_to", "spoken": true, "description": "Start a conversation with another inhabitant.", "target": "inhabitant" },
     { "id": "combine", "description": "Use two or more objects together.", "target": "object" },
-    { "id": "climb", "description": "Climb up a thing that gives grip (a tree), or towards a thing up high from below it.", "target": "object" },
+    { "id": "climb", "description": "Climb up a thing that gives grip, or towards a thing up high from below it.", "target": "object" },
     { "id": "add_fuel", "description": "Put this thing into a fire.", "target": "object" },
     { "id": "warn", "spoken": true, "description": "Warn another inhabitant about something believed dangerous (passes on knowledge).", "target": "inhabitant" },
     { "id": "show", "spoken": true, "description": "Show another inhabitant an object or how something works (passes on knowledge).", "target": "inhabitant" },
