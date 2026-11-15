@@ -53,14 +53,18 @@ public sealed class EmotionSymbolTests
     }
 
     [Fact]
-    public void LastingAngerAndConditionsCircleWhileTheyLast()
+    public void AngerRisesOnceAndConditionsCircleWhileTheyLast()
     {
+        // Marcel 15a: three grey clouds circling a head for hours were too restless - anger and frustration now show once
+        // as they rise (and again only after the data's pause), like a heart or a tear.
         var planner = New();
         var anger = Data.Triggers.First(t => t.Mood == "anger");
+        Assert.Equal(EmotionTriggerMode.Rises, anger.Mode);
+        Assert.Empty(planner.Update(0, [], [Calm("inh-000003")]));
         var angry = Subject("inh-000003", ("anger", anger.Threshold + 0.1));
-        var first = Assert.Single(planner.Update(0, [], [angry]));
-        Assert.Equal(("storm_cloud", SymbolMotion.Orbit), (first.Symbol, first.Motion));
-        Assert.Equal(0, Assert.Single(planner.Update(30, [], [angry])).StartedAt);
+        var first = Assert.Single(planner.Update(1, [], [angry]));
+        Assert.Equal(("storm_cloud", SymbolMotion.Rise), (first.Symbol, first.Motion));
+        Assert.Empty(planner.Update(30, [], [angry])); // it does not stay
         Assert.Empty(planner.Update(31, [], [Calm("inh-000003")]));
 
         var hurt = new SymbolSubject("inh-000003", new Dictionary<string, double>(), ["cut"]);
