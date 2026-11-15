@@ -17,7 +17,7 @@ public sealed record WorldMeta(string Id, string Name, ulong Seed, string Size, 
 
 /// <summary>
 /// The player's worlds (B6 R3): one folder per world below a root (the game passes
-/// <c>user://worlds</c>), with <c>world.sqlite</c> (the save game) and <c>meta.json</c> (what the
+/// <c>worlds/</c> in the game's data folder, GameData A1787), with <c>world.sqlite</c> (the save game) and <c>meta.json</c> (what the
 /// world list shows). Several worlds side by side; ids are safe folder names derived from the name.
 /// </summary>
 public sealed class WorldLibrary(string root)
