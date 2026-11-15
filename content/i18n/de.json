@@ -2199,6 +2199,14 @@
       "text": "Feuer heruntergebrannt"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Etwas ist verdorben"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Etwas ist zerbrochen"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
     },

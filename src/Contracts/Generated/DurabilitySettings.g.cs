@@ -13,6 +13,21 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class QualityLife
+    {
+
+        /// <summary>
+        /// Quality tier id (content/build/settings.json quality tiers).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tier")]
+        public string Tier { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("life_permille")]
+        public int LifePermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class MaterialClass
     {
 
@@ -59,6 +74,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("wet_frost_permille")]
         public int? WetFrostPermille { get; set; } = default!;
 
+        /// <summary>
+        /// A1576 (H2): wear per use, in permille of its life (100 = ten uses wear it out); a class without base_hours wears by use only (fired clay, glass). Omitted = use does not wear it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("use_permille")]
+        public int? UsePermille { get; set; } = default!;
+
+        /// <summary>
+        /// A1576 (H2): the event when such a thing ends (vocabulary event: spoiled, broke); see end_event_if. Omitted = it ends in silence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("end_event")]
+        public string? EndEvent { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -73,6 +102,27 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("classes")]
         public System.Collections.Generic.ICollection<MaterialClass> Classes { get; set; } = new System.Collections.ObjectModel.Collection<MaterialClass>();
+
+        /// <summary>
+        /// A1576 (plan D1008 H2): actions whose end counts as one use of their target thing (use_permille of its class). Omitted = nothing wears by use.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("use_actions")]
+        public System.Collections.Generic.ICollection<string>? UseActions { get; set; } = default!;
+
+        /// <summary>
+        /// A1576 (H2): how a made thing's quality tier (build quality, A1376) stretches its life - permille of the plain life (1500 = half again as long). A tier without an entry, or a thing without quality: 1000.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("quality")]
+        public System.Collections.Generic.ICollection<QualityLife>? Quality { get; set; } = default!;
+
+        /// <summary>
+        /// A1576 (H2): the end event of a class (spoiled, broke) is reported only for a thing with this TRUE property (made by someone) or one an inhabitant holds; nature's own things end in silence. Omitted = only held things.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("end_event_if")]
+        public string? EndEventIf { get; set; } = default!;
 
     }
 }
