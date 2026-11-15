@@ -46,8 +46,22 @@ public partial class FigureView : Node3D
     private string _topColor = "#ffffff";
     private string? _wornShown;
 
-    /// <summary>A1732: an event of this inhabitant - the expression layer may show it (cheering at an invention).</summary>
-    public void Express(string kind) => _expressions?.Event(kind);
+    /// <summary>A1732: an event of this inhabitant - the expression layer may show it (cheering at an invention); what shows, else null.</summary>
+    public ExpressionShown? Express(string kind) => _expressions?.Event(kind);
+
+    /// <summary>
+    /// A1733 (B2716 (3)): another figure nearby shows a moment - this one looks over at it (head and upper body) for
+    /// its seconds and may show an expression of its own (joining in), subject to its own calm pause.
+    /// </summary>
+    public void Watch(Node3D at, double seconds, string? joinIn)
+    {
+        _watched = at;
+        _watchLeft = Math.Max(_watchLeft, seconds);
+        if (joinIn is not null)
+        {
+            _expressions?.Show(joinIn);
+        }
+    }
 
     /// <summary>Whether the figure lies now (asleep): it shows no speech, thought or thinking (D1112 #8).</summary>
     public bool Lying => _lying;
@@ -102,6 +116,8 @@ public partial class FigureView : Node3D
     private double _expressLeft;
     private double _waveLeft;
     private double _talkLeft;
+    private Node3D? _watched;
+    private double _watchLeft;
 
     /// <summary>Inhabitant id.</summary>
     public string InhabitantId { get; private set; } = string.Empty;
@@ -556,6 +572,7 @@ public partial class FigureView : Node3D
         _expressLeft = Math.Max(0, _expressLeft - delta);
         _waveLeft = Math.Max(0, _waveLeft - delta);
         _talkLeft = Math.Max(0, _talkLeft - delta);
+        _watchLeft = Math.Max(0, _watchLeft - delta);
         var ease = greeting.EasePerS;
         var looking = _lookLeft > 0 && GetViewport()?.GetCamera3D() is not null;
         if (looking)
@@ -570,8 +587,15 @@ public partial class FigureView : Node3D
             }
         }
 
+        // A1733: the voice first; otherwise it looks over at another's moment while awake (head and upper body only).
+        var watching = !looking && _watchLeft > 0 && !_lying && _lieSeconds <= 0 && _watched is not null && IsInstanceValid(_watched);
+        if (watching)
+        {
+            _lookAt.Target = _watched!.GlobalPosition;
+        }
+
         // Lying it keeps its arms down: no wave from the ground.
-        _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking ? 1 : 0, ease, delta);
+        _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking || watching ? 1 : 0, ease, delta);
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
         _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
     }

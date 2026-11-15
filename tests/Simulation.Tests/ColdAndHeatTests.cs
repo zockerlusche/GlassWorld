@@ -70,8 +70,8 @@ public sealed class ColdAndHeatTests : IDisposable
     [Fact]
     public void OnAWinterNightWithoutFireTheWarmthNeedFallsAndAFireOrAShelterSlowsIt()
     {
-        // TL #25829/#25856 (D1112 #5): a winter night without fire - the warmth need falls; with a fire next to the
-        // inhabitant, or a rock niche keeping the wind off, it falls more slowly (or recovers).
+        // TL #25829/#25856, B2771 (D1112 #5): a winter night without fire costs at least 0.3 of the warmth need; with
+        // a fire kept burning next to the inhabitant much less, with a rock niche keeping the wind off no more.
         var content = WinterFirstContent();
         var need = Content.Value.InhabitantModel.ComfortZone!.Need;
 
@@ -81,37 +81,52 @@ public sealed class ColdAndHeatTests : IDisposable
         var openDrop = Drop(open, openInhabitant, need, _ => { });
 
         var (fire, fireInhabitant) = WinterNight(content);
-        var fireDrop = Drop(fire, fireInhabitant, need, h => h.Objects.Spawn("fire", new Position(fireInhabitant.Position.X + 0.5, fireInhabitant.Position.Z)));
+        var fireDrop = Drop(fire, fireInhabitant, need, h =>
+        {
+            // A fire kept burning next to the inhabitant (as someone tending it would): embers get a fresh fire.
+            if (!h.Objects.All.Any(o => o.TypeId == "fire" && !h.Fire.IsEmbers(o.Id)))
+            {
+                h.Objects.Spawn("fire", new Position(fireInhabitant.Position.X + 0.5, fireInhabitant.Position.Z));
+            }
+        });
 
         var (niche, nicheInhabitant) = WinterNight(content);
         var nicheDrop = Drop(niche, nicheInhabitant, need, h => h.Objects.Spawn("rock_niche", new Position(nicheInhabitant.Position.X + 1, nicheInhabitant.Position.Z)));
 
-        Assert.True(openDrop > 0, $"{need} did not fall on a winter night ({openDrop})");
-        Assert.True(fireDrop < openDrop, $"with a fire {fireDrop} >= {openDrop}");
+        Assert.True(openDrop >= 0.3, $"{need} fell only {openDrop} on a winter night (B2771: at least 0.3)");
+        Assert.True(fireDrop <= openDrop / 2, $"with a fire {fireDrop} > half of {openDrop}");
         Assert.True(nicheDrop <= openDrop, $"in a niche {nicheDrop} > {openDrop}");
     }
 
-    /// <summary>How much a need falls over two hours of the night after <paramref name="setup"/>.</summary>
-    private static double Drop(SimulationHost host, Inhabitant inhabitant, string need, Action<SimulationHost> setup)
+    /// <summary>How much a full need falls over eight hours of the night, <paramref name="everyHour"/> done each hour.</summary>
+    private static double Drop(SimulationHost host, Inhabitant inhabitant, string need, Action<SimulationHost> everyHour)
     {
-        setup(host);
-        var before = inhabitant.Needs[need];
-        host.World.Run(2 * host.World.Calendar.Settings.TicksPerHour);
-        return before - inhabitant.Needs[need];
+        // Full at nightfall: the cold day before has already lowered it (the measure is the night).
+        inhabitant.Needs[need] = 1.0;
+        for (var hour = 0; hour < 8; hour++)
+        {
+            everyHour(host);
+            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+        }
+
+        return 1.0 - inhabitant.Needs[need];
     }
 
-    /// <summary>The second winter night at 1 o'clock (past the climate's one-day season transition), nobody lighting a fire.</summary>
+    /// <summary>The second winter night at 22 o'clock (past the climate's one-day season transition), nobody lighting a fire.</summary>
     private static (SimulationHost Host, Inhabitant Inhabitant) WinterNight(string content)
     {
         var host = Island(content);
         Assert.Equal("winter", host.World.Now.SeasonId);
         host.World.Run(host.World.Calendar.TicksPerDay);
-        while (host.World.Now.Hour != 1)
+        while (host.World.Now.Hour != 22)
         {
             host.World.Run(1);
         }
 
         Assert.DoesNotContain(host.Objects.All, o => o.TypeId == "fire");
+
+        // A dry night (rain would put the fire out and wet the inhabitant: another proof).
+        host.WeatherSystem!.Force("clear", host.World.Tick);
         return (host, host.Inhabitants.All.First());
     }
 
