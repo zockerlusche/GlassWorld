@@ -195,11 +195,14 @@ def max_hours_mood_above(trace: Trace, invariant: Json) -> tuple[bool | None, st
     if not rows:
         return None, "no moods in the snapshots (trace from before GW4 #554)"
     above, limit = float(invariant["above"]), float(invariant["hours"])
+    exempt = {str(m) for m in cast(list[str], invariant.get("exempt_moods", []))}
     worst = (0, "-", "-")
     for ident, seq in rows.items():
         streak: dict[str, int] = defaultdict(int)
         for _, who in seq:
             for mood, value in cast(Json, who["moods"]).items():
+                if mood in exempt:
+                    continue
                 streak[mood] = streak[mood] + 1 if float(value) > above else 0
                 if streak[mood] > worst[0]:
                     worst = (streak[mood], ident, mood)
@@ -221,6 +224,7 @@ def cold_frustration_needs_a_second_need(trace: Trace, invariant: Json) -> tuple
         float(invariant["rise"]),
     )
     seconds = [str(n) for n in cast(list[str], invariant["second_needs"])]
+    max_rise = float(invariant.get("max_rise", 1.0))
     cases = alone = 0
     example = ""
     for ident, seq in rows.items():
@@ -229,7 +233,9 @@ def cold_frustration_needs_a_second_need(trace: Trace, invariant: Json) -> tuple
             grew = float(cast(Json, now["moods"]).get(mood, 0)) - float(
                 cast(Json, before["moods"]).get(mood, 0)
             )
-            if grew > rise and float(needs.get(cold, 1)) < cold_below:
+            # Review GW4 #555: cold at or below the mark (the comfort floor is exactly 0.3); a jump above max_rise per
+            # hour comes from an event (a building given up ...), not from the cold.
+            if rise < grew <= max_rise and float(needs.get(cold, 1)) <= cold_below:
                 cases += 1
                 if not any(float(needs.get(n, 1)) < second_below for n in seconds):
                     alone += 1

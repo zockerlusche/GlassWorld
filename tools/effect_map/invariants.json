@@ -26,10 +26,13 @@
     },
     {
       "id": "inv05",
-      "text": "No feeling above 0.6 for more than 3 h once its trigger is gone (triggers are not in the trace: every stretch counts)",
+      "text": "No feeling above 0.6 for more than 3 h once its trigger is gone (triggers are not in the trace: every stretch counts; love returns slowly on purpose and is exempt)",
       "kind": "max_hours_mood_above",
       "above": 0.6,
-      "hours": 3
+      "hours": 3,
+      "exempt_moods": [
+        "love"
+      ]
     },
     {
       "id": "inv06",
@@ -76,7 +79,7 @@
     },
     {
       "id": "inv13",
-      "text": "Cold raises frustration only with a second need below its threshold",
+      "text": "Cold raises frustration only with a second need below its threshold (cold = warmth at or below 0.3; jumps from events above 0.1 per hour are not the cold)",
       "kind": "cold_frustration_needs_a_second_need",
       "mood": "frustration",
       "cold_need": "warmth",
@@ -87,7 +90,8 @@
         "sleep"
       ],
       "second_below": 0.3,
-      "rise": 0.01
+      "rise": 0.01,
+      "max_rise": 0.1
     },
     {
       "id": "inv14",
@@ -124,7 +128,7 @@
     },
     {
       "id": "inv19",
-      "text": "Will to live changes only at night and never sinks when all body needs were met",
+      "text": "Will to live changes only at night and never sinks when all body needs were met (today's core changes it every hour: a finding, D1203)",
       "kind": "will_changes_only_at_night",
       "body_needs": [
         "hunger",
