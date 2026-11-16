@@ -210,6 +210,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("signals")]
         public System.Collections.Generic.ICollection<SoundForSignal>? Signals { get; set; } = default!;
 
+        /// <summary>
+        /// A1543 (D1237): the sound of a burning thing - a spatial loop at each of the nearest burning things, as loud as the core says it burns (strength), embers quieter. Omitted = burning things are silent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("burning")]
+        public Burning? Burning { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -231,6 +238,30 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("knock")]
         Knock = 0,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Burning
+    {
+
+        /// <summary>
+        /// Sound id of the loop (library).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public string Sound { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many burning things sound at once (the nearest).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("most")]
+        public int Most { get; set; } = default!;
+
+        /// <summary>
+        /// Gain of embers against a full fire (0..1). Placeholder (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("embers_gain")]
+        public double EmbersGain { get; set; } = default!;
 
     }
 }
