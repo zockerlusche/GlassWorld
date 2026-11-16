@@ -117,6 +117,9 @@ public static class IslandPreview
 /// <summary>
 /// A1769 (B2805): runs work (the generator for the preview) off the main thread and tells whether a result is still the
 /// latest asked for - a slider moved again in the meantime makes an older island stale, it is then dropped, not shown.
+/// The work runs in parallel to the game: WorldGenerator has no static mutable state (Sized/Paired/Rich copy the
+/// content) - keep it so, no static cache there (review GW2 #584). A stale run still computes to its end; a cancellation
+/// token in the generator is a possible follow-up.
 /// </summary>
 /// <typeparam name="T">The result of the work.</typeparam>
 public sealed class LatestOnly<T>
