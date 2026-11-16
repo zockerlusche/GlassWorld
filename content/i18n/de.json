@@ -3551,6 +3551,10 @@
       "text": "  · {kind} – {name} – wartet seit {minutes} Spielminuten"
     },
     {
+      "key": "ui.debug.job_kind.decide",
+      "text": "Entscheidung"
+    },
+    {
       "key": "ui.debug.job_kind.question",
       "text": "Frage"
     },

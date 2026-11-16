@@ -34,6 +34,21 @@ public sealed class AiJobsTests
         Assert.True(Assert.Single(open).Waiting);
     }
 
+    [Fact]
+    public void ADeciderRequestWithoutAnAnswerIsAIJobToo()
+    {
+        // Review GW2 #567: the decisions are AI work as well - a request without a response is listed with its inhabitant.
+        var decisions = new List<DecisionLogEntry>
+        {
+            new(DecisionLogKind.Request, "d1", 50, "{\"inhabitant\":{\"id\":\"inh-000003\"}}", null),
+            new(DecisionLogKind.Request, "d2", 51, "{\"inhabitant\":{\"id\":\"inh-000004\"}}", null),
+            new(DecisionLogKind.Response, "d2", 60, "{}", null),
+        };
+        var open = AiJobs.Open([], [], decisions);
+        var job = Assert.Single(open);
+        Assert.Equal((AiJobs.Decide, "inh-000003", false), (job.Kind, job.InhabitantId, job.Waiting));
+    }
+
     [Theory]
     [InlineData("de")]
     [InlineData("en")]
@@ -45,5 +60,6 @@ public sealed class AiJobsTests
             .RootElement.GetProperty("$defs").GetProperty("JobKind").GetProperty("enum").EnumerateArray().Select(e => e.GetString()!);
         Assert.All(kinds, kind => Assert.Contains("ui.debug.job_kind." + kind, texts));
         Assert.Contains("ui.debug.jobs", texts);
+        Assert.Contains("ui.debug.job_kind." + AiJobs.Decide, texts);
     }
 }

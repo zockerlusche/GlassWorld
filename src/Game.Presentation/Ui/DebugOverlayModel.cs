@@ -107,7 +107,16 @@ public static class DebugOverlayModel
     {
         string? NameOf(string? id) => id is null ? null : snapshot.Inhabitants.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.Ordinal))?.Name ?? id;
         var perMinute = Math.Max(1.0, host.World.Calendar.Settings.TicksPerHour / 60.0);
-        return [.. AiJobs.Open(host.Inventions.Log.Entries, host.NightQueue?.Held ?? [])
+        // Review GW2 #567: read anew only when the logs or the night queue changed (counts), not on every refresh.
+        var key = (host.Inventions.Log.Entries.Count, host.Decisions.Log.Entries.Count, host.NightQueue?.Held.Count ?? 0);
+        if (_jobsKey != key || _jobs is null || !JobsHost.TryGetTarget(out var seen) || !ReferenceEquals(seen, host))
+        {
+            _jobsKey = key;
+            JobsHost.SetTarget(host);
+            _jobs = AiJobs.Open(host.Inventions.Log.Entries, host.NightQueue?.Held ?? [], host.Decisions.Log.Entries);
+        }
+
+        return [.. _jobs
             .Select(j => (j.Kind, NameOf(j.InhabitantId), (long)Math.Max(0, (host.World.Tick - j.Tick) / perMinute), j.Waiting))];
     }
 
@@ -199,6 +208,11 @@ public static class DebugOverlayModel
 
         return lines;
     }
+
+    // A1801: the open jobs last read, the world they were read from and its log sizes then (another world reads anew).
+    private static readonly WeakReference<SimulationHost> JobsHost = new(null!);
+    private static (int, int, int) _jobsKey;
+    private static IReadOnlyList<AiJob>? _jobs;
 
     /// <summary>A1801: at most this many job lines (the rest is in the count).</summary>
     public const int MaxJobs = 8;

@@ -18,8 +18,14 @@ public sealed record AiJob(string RequestId, string Kind, string? InhabitantId, 
 /// </summary>
 public static class AiJobs
 {
-    /// <summary>The open jobs: running ones (newest first), then the waiting ones (in the order they came).</summary>
-    public static IReadOnlyList<AiJob> Open(IReadOnlyList<DecisionLogEntry> log, IEnumerable<HeldJob> held)
+    /// <summary>The kind the developer view gives a decider request (review GW2 #567: the decisions are AI work too).</summary>
+    public const string Decide = "decide";
+
+    /// <summary>
+    /// The open jobs: running ones (newest first; also the decider's requests without an answer), then the waiting ones
+    /// (in the order they came).
+    /// </summary>
+    public static IReadOnlyList<AiJob> Open(IReadOnlyList<DecisionLogEntry> log, IEnumerable<HeldJob> held, IReadOnlyList<DecisionLogEntry>? decisions = null)
     {
         ArgumentNullException.ThrowIfNull(log);
         ArgumentNullException.ThrowIfNull(held);
@@ -46,6 +52,30 @@ public static class AiJobs
             }
         }
 
+        // The decider's requests: one without a response, error or discard is still being worked on.
+        if (decisions is not null)
+        {
+            var answered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in decisions)
+            {
+                if (entry.Kind is DecisionLogKind.Response or DecisionLogKind.Error or DecisionLogKind.Discarded)
+                {
+                    answered.Add(entry.RequestId);
+                }
+            }
+
+            for (var i = decisions.Count - 1; i >= 0; i--)
+            {
+                var entry = decisions[i];
+                if (entry.Kind == DecisionLogKind.Request && !answered.Contains(entry.RequestId) && running.All(r => r.RequestId != entry.RequestId))
+                {
+                    running.Add(new AiJob(entry.RequestId, Decide, KindAndInhabitant(entry.Json).InhabitantId, entry.Tick, false));
+                }
+            }
+
+            running.Sort((a, b) => b.Tick.CompareTo(a.Tick));
+        }
+
         return [.. running, .. waiting];
     }
 
@@ -57,7 +87,11 @@ public static class AiJobs
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             var kind = root.TryGetProperty("kind", out var k) && k.ValueKind == JsonValueKind.String ? k.GetString() ?? "?" : "?";
-            var who = root.TryGetProperty("inhabitant", out var w) && w.ValueKind == JsonValueKind.String ? w.GetString() : null;
+            // A job names its inhabitant by id; a decider request carries the inhabitant's state with its id.
+            var who = !root.TryGetProperty("inhabitant", out var w) ? null
+                : w.ValueKind == JsonValueKind.String ? w.GetString()
+                : w.ValueKind == JsonValueKind.Object && w.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String ? id.GetString()
+                : null;
             return (kind, who);
         }
         catch (JsonException)
