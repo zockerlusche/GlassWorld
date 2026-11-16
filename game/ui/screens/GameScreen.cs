@@ -92,6 +92,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, GwValueBar> _cardBars = new(StringComparer.Ordinal);
     private GwPortrait? _cardPortrait;
     private Label? _cardTrying;
+    private Label? _cardGround;
     private string? _cardTopQuestionId;
     private Label? _cardTopQuestion;
     private Label? _cardTopReason;
@@ -868,6 +869,12 @@ public partial class GameScreen : CanvasLayer
         else
         {
             _presenter?.ClickedGround();
+
+            // A1791 (Marcel W2242): a thing near the click says what it is, who made it and who knows what about it.
+            if (WorldPoint(position) is { } ground && ThingAt(ground) is { } thing)
+            {
+                OpenThing(thing);
+            }
         }
     }
 
@@ -3308,6 +3315,8 @@ public partial class GameScreen : CanvasLayer
         about.AddChild(doing);
         _cardTrying = new Label { Name = "CardTrying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, Visible = false };
         about.AddChild(_cardTrying);
+        _cardGround = new Label { Name = "CardGround", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        about.AddChild(_cardGround);
 
         // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
         var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
@@ -3505,6 +3514,16 @@ public partial class GameScreen : CanvasLayer
             if (trying)
             {
                 _cardTrying.Text = TrFor("ui.card.trying", _feed?.SexOf(inhabitantId));
+            }
+        }
+
+        if (_cardGround is not null)
+        {
+            var ground = CardGroundLine(inhabitantId);
+            _cardGround.Visible = ground.Length > 0;
+            if (_cardGround.Text != ground)
+            {
+                _cardGround.Text = ground;
             }
         }
     }

@@ -48,6 +48,18 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         IslandHash = island.Hash();
         _objects = objects;
         _regrowTicks = regrowTicks;
+        if (objects is not null)
+        {
+            objects.Spawned += ObstacleTouched;
+            objects.Removed += ObstacleTouched;
+
+            // Review GW1 #515: a change between two obstacle types with other radii keeps the count.
+            objects.TypeChanged += (before, after) =>
+            {
+                ObstacleTouched(before);
+                ObstacleTouched(after);
+            };
+        }
     }
 
     /// <summary>
@@ -179,6 +191,19 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     public int NodeBudget { get; init; } = 20000;
 
     /// <summary>
+    /// A1790: the radius (centimetres) of the solid part on the ground of each type nobody walks through - a trunk,
+    /// a rock - from the catalogue (obstacle_radius_cm). The path search goes around every cell such a circle
+    /// covers; empty = nothing blocks, routes as before.
+    /// </summary>
+    public IReadOnlyDictionary<string, int> ObstacleRadiusCm { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A1790: how far (metres) a walker's middle keeps from the edge of an obstacle where a walk to it ends - half
+    /// the smallest distance between two inhabitants (gaits spacing), set by the host.
+    /// </summary>
+    public double BodyRadiusM { get; init; }
+
+    /// <summary>
     /// The tides of the island (B2-5 R15), or null on islands built without them (tests). The level follows
     /// from the tick alone, so nothing of it is saved or hashed.
     /// </summary>
@@ -214,7 +239,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     // changes by a whole unit (TideWalkLayer), so until then the same two cells give the same path - found,
     // unreachable or over budget - and it is taken from here instead of being searched again. Derived only:
     // never saved, never hashed, and a world that forgets it searches the same paths anew.
-    private readonly Dictionary<(int From, int Goal), PathResult> _paths = [];
+    private readonly Dictionary<(int From, int Goal, int Slack), PathResult> _paths = [];
     private int _pathsLevel;
 
     /// <summary>Path searches really run so far (not taken from the kept ones); for tests and measurements.</summary>
@@ -222,6 +247,177 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 
     /// <summary>Forgets the kept searches (tests: a world that keeps none walks the same ways).</summary>
     internal void ForgetPaths() => _paths.Clear();
+
+    // A1790: the cells the obstacles cover and the circles by the cell of their centre - derived from the objects
+    // alone (never saved, never hashed), built again when an obstacle comes or goes; then the kept searches go too.
+    private bool[]? _obstacles;
+    private readonly Dictionary<int, List<(Position Centre, double RadiusM)>> _circles = [];
+    private bool _obstaclesDirty = true;
+    private int _obstacleCount = -1;
+    private long _obstacleSignature;
+    private double _widestObstacleM;
+
+    // A destination this close to an obstacle's centre is the obstacle itself (positions are the same doubles).
+    private const double CentreToleranceM = 0.01;
+
+    private static double Distance(Position a, Position b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Z - b.Z) * (a.Z - b.Z)));
+
+    private void ObstacleTouched(WorldObject thing)
+    {
+        if (ObstacleRadiusCm.ContainsKey(thing.TypeId))
+        {
+            _obstaclesDirty = true;
+        }
+    }
+
+    /// <summary>A1790: the cells nobody walks through because an obstacle stands in them (index z × width + x); null = none.</summary>
+    internal bool[]? Obstacles()
+    {
+        if (_objects is null || ObstacleRadiusCm.Count == 0)
+        {
+            return null;
+        }
+
+        // A signature over every obstacle as well - where it stands and whether someone holds it: a move fires no
+        // event (a young tree picked up goes with its holder), so the cells must never lag behind the objects, or a
+        // loaded world (which builds them fresh) would walk other ways than the one that ran on.
+        var count = 0;
+        var signature = 17L;
+        foreach (var ofType in _objects.ByType)
+        {
+            if (!ObstacleRadiusCm.TryGetValue(ofType.TypeId, out var radius) || radius <= 0)
+            {
+                continue;
+            }
+
+            foreach (var thing in ofType.Objects)
+            {
+                count++;
+                var held = _objects.HeldBy(thing.Id) is null ? 0L : 1L;
+                signature = unchecked((signature * 1_000_003) + (BitConverter.DoubleToInt64Bits(thing.Position.X) * 31)
+                    + BitConverter.DoubleToInt64Bits(thing.Position.Z) + held);
+            }
+        }
+
+        if (!_obstaclesDirty && count == _obstacleCount && signature == _obstacleSignature)
+        {
+            return _obstacles;
+        }
+
+        _obstaclesDirty = false;
+        _obstacleCount = count;
+        _obstacleSignature = signature;
+        _circles.Clear();
+        _widestObstacleM = 0;
+        _paths.Clear();
+        var w = Map.WidthCells;
+        var cells = new bool[w * Map.DepthCells];
+        var cellM = CellSizeCm / 100.0;
+        var any = false;
+        foreach (var ofType in _objects.ByType)
+        {
+            if (!ObstacleRadiusCm.TryGetValue(ofType.TypeId, out var radiusCm) || radiusCm <= 0)
+            {
+                continue;
+            }
+
+            var r = radiusCm / 100.0;
+            foreach (var thing in ofType.Objects)
+            {
+                // What someone holds blocks nothing (it goes where its holder goes).
+                if (_objects.HeldBy(thing.Id) is not null || CellOf(thing.Position) is not { } at)
+                {
+                    continue;
+                }
+
+                any = true;
+                var key = (at.Z * w) + at.X;
+                if (!_circles.TryGetValue(key, out var here))
+                {
+                    _circles[key] = here = [];
+                }
+
+                here.Add((thing.Position, r));
+                _widestObstacleM = Math.Max(_widestObstacleM, r);
+                var reach = (int)Math.Ceiling(r / cellM);
+                for (var z = at.Z - reach; z <= at.Z + reach; z++)
+                {
+                    for (var x = at.X - reach; x <= at.X + reach; x++)
+                    {
+                        // A cell is taken when the circle reaches into it: the point of the cell nearest the centre lies inside.
+                        var nearX = Math.Clamp(thing.Position.X, x * cellM, (x + 1) * cellM) - thing.Position.X;
+                        var nearZ = Math.Clamp(thing.Position.Z, z * cellM, (z + 1) * cellM) - thing.Position.Z;
+                        if (Map.Contains(x, z) && (nearX * nearX) + (nearZ * nearZ) < r * r)
+                        {
+                            cells[(z * w) + x] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        _obstacles = any ? cells : null;
+        return _obstacles;
+    }
+
+    /// <summary>
+    /// A1790: the obstacle a position lies within, counting the walker's body (its centre and that clearance), or null.
+    /// Of several, the one whose centre lies nearest (then the first placed).
+    /// </summary>
+    private (Position Centre, double Clear)? ObstacleAt(Position destination)
+    {
+        if (_circles.Count == 0 || CellOf(destination) is not { } cell)
+        {
+            return null;
+        }
+
+        (Position Centre, double Clear)? best = null;
+        var bestDistance = double.MaxValue;
+        var w = Map.WidthCells;
+        var cellM = CellSizeCm / 100.0;
+        var reach = 1 + (int)Math.Ceiling((_widestObstacleM + BodyRadiusM) / cellM);
+        for (var z = cell.Z - reach; z <= cell.Z + reach; z++)
+        {
+            for (var x = cell.X - reach; x <= cell.X + reach; x++)
+            {
+                if (!Map.Contains(x, z) || !_circles.TryGetValue((z * w) + x, out var here))
+                {
+                    continue;
+                }
+
+                foreach (var (centre, radius) in here)
+                {
+                    var clear = radius + BodyRadiusM;
+                    var d = Distance(destination, centre);
+                    if (d < clear && (d < bestDistance || (d == bestDistance && best is { } kept && (centre.Z, centre.X).CompareTo((kept.Centre.Z, kept.Centre.X)) < 0)))
+                    {
+                        best = (centre, clear);
+                        bestDistance = d;
+                    }
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>A1790: the point in front of an obstacle towards <paramref name="from"/> (on the centre: towards the destination, else east).</summary>
+    private static Position InFront((Position Centre, double Clear) obstacle, Position from, Position destination)
+    {
+        var (dx, dz) = (from.X - obstacle.Centre.X, from.Z - obstacle.Centre.Z);
+        var length = Math.Sqrt((dx * dx) + (dz * dz));
+        if (length < 1e-6)
+        {
+            (dx, dz) = (destination.X - obstacle.Centre.X, destination.Z - obstacle.Centre.Z);
+            length = Math.Sqrt((dx * dx) + (dz * dz));
+            if (length < 1e-6)
+            {
+                (dx, dz, length) = (1, 0, 1);
+            }
+        }
+
+        return new Position(obstacle.Centre.X + (dx / length * obstacle.Clear), obstacle.Centre.Z + (dz / length * obstacle.Clear));
+    }
 
     /// <summary>The cell that contains a world position, or null outside the map.</summary>
     public (int X, int Z)? CellOf(Position position)
@@ -245,6 +441,12 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             .DefaultIfEmpty(1000)
             .Min();
         _scratch ??= new PathFinder.Scratch(Map.WidthCells * Map.DepthCells);
+        var obstacles = Obstacles();
+
+        // A1790: going to a trunk or a rock or to something right by it, its own cells are open near the goal (it may
+        // cover the cells around).
+        var target = ObstacleAt(destination);
+        var slack = target is { } around ? (int)Math.Ceiling(around.Clear * 100 / CellSizeCm) : 0;
 
         // With tides the shallow sea costs what the water level makes of it (never blocked, see TideWalkLayer).
         int[]? costs = null;
@@ -263,11 +465,11 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         }
 
         var w = Map.WidthCells;
-        var key = ((from.Z * w) + from.X, (goal.Z * w) + goal.X);
+        var key = ((from.Z * w) + from.X, (goal.Z * w) + goal.X, slack);
         if (!_paths.TryGetValue(key, out var path))
         {
             Searches++;
-            path = PathFinder.Find(Map, from, goal, NodeBudget, costs is null ? _minWalkCost.Value : Math.Min(_minWalkCost.Value, TideWalk!.MinCost), _scratch, costs);
+            path = PathFinder.Find(Map, from, goal, NodeBudget, costs is null ? _minWalkCost.Value : Math.Min(_minWalkCost.Value, TideWalk!.MinCost), _scratch, costs, obstacles, slack);
             _paths.Add(key, path);
         }
 
@@ -282,6 +484,20 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         for (var i = 0; i < cells.Count - 1; i++)
         {
             points.Add(CentreOf(cells[i].X, cells[i].Z));
+        }
+
+        // A1790: a walk to the trunk or the rock itself (its centre) ends in front of it, not inside: the cell centres
+        // within its clearance go, and the walk ends that far from its centre on the side it comes from (a straight
+        // line towards it). A walk to something lying by it goes to that thing, so it stays within the action's reach.
+        if (target is { } obstacle && Distance(destination, obstacle.Centre) < CentreToleranceM)
+        {
+            while (points.Count > 0 && Distance(points[^1], obstacle.Centre) < obstacle.Clear)
+            {
+                points.RemoveAt(points.Count - 1);
+            }
+
+            points.Add(InFront(obstacle, points.Count > 0 ? points[^1] : start, destination));
+            return new Route(PathStatus.Found, points);
         }
 
         points.Add(destination);

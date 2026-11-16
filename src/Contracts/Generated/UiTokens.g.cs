@@ -80,6 +80,12 @@ namespace GlassWorld.Contracts
         public int PickRadiusPx { get; set; } = default!;
 
         /// <summary>
+        /// A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thing_pick_m")]
+        public double ThingPickM { get; set; } = default!;
+
+        /// <summary>
         /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]

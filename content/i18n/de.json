@@ -159,6 +159,66 @@
       "text": "{name} – Liebling"
     },
     {
+      "key": "ui.thing.title",
+      "text": "Ding"
+    },
+    {
+      "key": "ui.thing.built_by",
+      "text": "Gebaut von {name}"
+    },
+    {
+      "key": "ui.thing.invented_by",
+      "text": "Erfunden von {name}"
+    },
+    {
+      "key": "ui.thing.known",
+      "text": "Was die Bewohner darüber wissen"
+    },
+    {
+      "key": "ui.thing.nobody_knows",
+      "text": "Noch weiß niemand etwas darüber."
+    },
+    {
+      "key": "ui.thing.knows",
+      "text": "{name}: {facts}"
+    },
+    {
+      "key": "ui.thing.fact",
+      "text": "{fact} ({source})"
+    },
+    {
+      "key": "ui.thing.fact_not",
+      "text": "nicht {property}"
+    },
+    {
+      "key": "ui.thing.source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.thing.source.seen",
+      "text": "gesehen"
+    },
+    {
+      "key": "ui.thing.source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "ui.thing.source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "ui.thing.source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "ui.thing.ground",
+      "text": "Boden: {ground}"
+    },
+    {
+      "key": "ui.thing.ground_slow",
+      "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Erinnerungen an {name}"
     },
@@ -489,6 +549,18 @@
     {
       "key": "ui.settings.hints_until_dismissed",
       "text": "Hinweise bleiben, bis ich sie schließe"
+    },
+    {
+      "key": "ui.settings.data_folder",
+      "text": "Datenordner"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "Hier liegen die Welten, Einstellungen und Protokolle dieses Spiels."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Öffnen"
     },
     {
       "key": "ui.settings.language",

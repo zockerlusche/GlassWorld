@@ -159,6 +159,66 @@
       "text": "{name} – favourite"
     },
     {
+      "key": "ui.thing.title",
+      "text": "Thing"
+    },
+    {
+      "key": "ui.thing.built_by",
+      "text": "Built by {name}"
+    },
+    {
+      "key": "ui.thing.invented_by",
+      "text": "Invented by {name}"
+    },
+    {
+      "key": "ui.thing.known",
+      "text": "What the inhabitants know about it"
+    },
+    {
+      "key": "ui.thing.nobody_knows",
+      "text": "Nobody knows anything about it yet."
+    },
+    {
+      "key": "ui.thing.knows",
+      "text": "{name}: {facts}"
+    },
+    {
+      "key": "ui.thing.fact",
+      "text": "{fact} ({source})"
+    },
+    {
+      "key": "ui.thing.fact_not",
+      "text": "not {property}"
+    },
+    {
+      "key": "ui.thing.source.experienced",
+      "text": "own experience"
+    },
+    {
+      "key": "ui.thing.source.seen",
+      "text": "seen"
+    },
+    {
+      "key": "ui.thing.source.heard",
+      "text": "heard"
+    },
+    {
+      "key": "ui.thing.source.read",
+      "text": "read"
+    },
+    {
+      "key": "ui.thing.source.guessed",
+      "text": "guessed"
+    },
+    {
+      "key": "ui.thing.ground",
+      "text": "Ground: {ground}"
+    },
+    {
+      "key": "ui.thing.ground_slow",
+      "text": "Ground: {ground} - walking is slower ({percent} %)"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Memories of {name}"
     },
@@ -489,6 +549,18 @@
     {
       "key": "ui.settings.hints_until_dismissed",
       "text": "Hints stay until I close them"
+    },
+    {
+      "key": "ui.settings.data_folder",
+      "text": "Data folder"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "This game's worlds, settings and logs are kept here."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Open"
     },
     {
       "key": "ui.settings.language",
