@@ -26,6 +26,9 @@ public sealed class BodyTests
         var body = host.Body!;
         var hour = host.World.Calendar.Settings.TicksPerHour;
 
+        // It stays where it stands: since A1793 wading wets too, so a walk through a stream would keep it wet (A1578: the
+        // ore on the island changed where it walked). This test is about rain and drying alone.
+        inhabitant.Activity = new Activity("idle", null, inhabitant.Position, 1_000_000);
         weather.Force("rain", host.World.Tick);
         host.World.Run(hour);
         Assert.Equal(1000, body.WetPermille(inhabitant.Id));

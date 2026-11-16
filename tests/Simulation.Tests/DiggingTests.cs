@@ -130,6 +130,26 @@ public sealed class DiggingTests
             .Where(c => map.Map.Cell(c.X, c.Z).Water == WaterKind.None && map.Map.Cell(c.X, c.Z).WalkCost != MapCell.Blocked);
 
     /// <summary>An island and an inhabitant standing on a dry cell of loose soil whose groundwater lies deep (a metre or more).</summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(11)]
+    public void OreLiesAtTheSurfaceOnlyWhereTheGroundHoldsOre(ulong seed)
+    {
+        // A1578 (B2827, Marcel W2245): no ore entrance - ore chunks lie at the surface over ore veins, nowhere else.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, seed, new MockDecisionPort(), "de", "start_island");
+        var map = host.Map!;
+        var underground = map.Map.Underground!;
+        var rule = Content.Value.WorldGen.Spawns.Spawns.Single(r => r.ObjectType == Content.Value.Digging!.Ore!.Type);
+        var ore = host.Objects.All.Where(o => o.TypeId == rule.ObjectType).ToList();
+        Assert.NotEmpty(ore);
+        Assert.InRange(ore.Count, 1, rule.MaxTotal);
+        Assert.All(ore, o =>
+        {
+            var cell = map.CellOf(o.Position)!.Value;
+            Assert.True(underground.Cell(cell.X, cell.Z).OrePermille >= rule.MinOrePermille, $"{o.Id} at {cell} holds no ore");
+        });
+    }
+
     private static (SimulationHost Host, Inhabitant Who, (int X, int Z) Cell) Digger()
     {
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
