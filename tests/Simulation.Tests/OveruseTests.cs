@@ -84,27 +84,33 @@ public sealed class OveruseTests
     public void OveruseIsStateOnlyWhileThereIsAny()
     {
         var overuse = Content.Nature!.Overuse!;
-        var (host, map, cell) = Island(overuse.BareAfter);
-        string Hash()
+        static string Hash(WorldMapSystem map)
         {
             using var hasher = new State.StateHasher();
             map.WriteState(hasher);
             return hasher.Finish();
         }
 
-        var before = Hash();
+        // The data alone change nothing: an island with overuse data hashes as one without, as long as nobody harvested.
+        var (host, map, cell) = Island(overuse.BareAfter);
+        var (_, plainMap, _) = Island(overuse.BareAfter, withOveruse: false);
         Assert.Empty(map.CaptureOveruse());
+        Assert.Equal(Hash(plainMap), Hash(map));
+
+        // Harvests make state; it goes and comes back with a save game (the harvested places themselves are state anyway).
         foreach (var place in PlacesIn(map, cell, overuse).Take(overuse.BareAfter).ToList())
         {
             Harvest(host, place);
         }
 
         var saved = map.CaptureOveruse();
-        Assert.NotEqual(before, Hash());
-
+        Assert.NotEmpty(saved);
+        var withOveruse = Hash(map);
         map.RestoreOveruse([]);
-        Assert.Equal(before, Hash());
+        Assert.NotEqual(withOveruse, Hash(map));
+        Assert.Empty(map.BareCells);
         map.RestoreOveruse(saved);
+        Assert.Equal(withOveruse, Hash(map));
         Assert.Equal([cell], map.BareCells);
     }
 
