@@ -3830,7 +3830,13 @@ public partial class GameScreen : CanvasLayer
         string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : NameOfId(id);
         return rows.ToDictionary(
             r => r.Id,
-            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant)
+                ? InhabitantActivity.WithCarrying(
+                    InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf),
+                    InhabitantActivity.CarriedType(inhabitant, index) is { } carried ? ThingName(carried) : null, // A1784: what it carries
+                    key => Tr(key),
+                    smallThing: !TranslationServer.GetLocale().StartsWith("de", StringComparison.OrdinalIgnoreCase))
+                : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }
 

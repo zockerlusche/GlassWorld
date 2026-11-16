@@ -2511,6 +2511,10 @@
       "text": "is thinking"
     },
     {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · carrying {thing}"
+    },
+    {
       "key": "ui.activity.idle",
       "text": "is resting"
     },
