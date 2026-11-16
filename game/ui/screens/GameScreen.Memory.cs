@@ -50,6 +50,15 @@ public partial class GameScreen
                 window.Content.AddChild(new Label { Text = MemoryDay(item.Tick), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
             }
 
+            // A1796 (D1114): a line naming a thing still in the world (built, made, found) takes the camera there.
+            if (item.Event?.TargetId is { Length: > 0 } thingId && host.Objects.TryGet(thingId, out _))
+            {
+                var line = new Button { Text = MemoryLine(item, name), Flat = true, Alignment = HorizontalAlignment.Left, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.memory.go_to_thing", MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+                line.Pressed += () => _presenter?.FocusThing(thingId);
+                window.Content.AddChild(line);
+                continue;
+            }
+
             window.Content.AddChild(new Label { Text = MemoryLine(item, name), AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
         }
 

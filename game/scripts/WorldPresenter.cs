@@ -615,6 +615,7 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            MarkThing(e); // A1796: a thing just built gets a calm place mark
             if (LiesNow(e.InhabitantId))
             {
                 // D1112 #8: a figure lying asleep neither speaks nor thinks on screen (the core keeps sleepers quiet too, A1710).
