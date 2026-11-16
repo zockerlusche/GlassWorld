@@ -54,6 +54,7 @@ def _values(node: Any, path: str) -> list[Any]:
 
 # (data file under content/, path to the ids, vocabulary kind)
 REFERENCES = [
+    ("look/figures.json", "mood_faces[].mood", "mood"),  # A1802: the resting face by mood
     ("look/objects.json", "focus.mark_events[]", "event"),  # A1796: a calm mark after these events
     ("invention/base_functions.json", "functions[].grants_properties[]", "property"),
     ("world/biomes.json", "biomes[].id", "biome"),

@@ -145,6 +145,20 @@
     "crown_fade": {
       "description": "Tree crowns between the camera and the followed inhabitant fade semi-transparent (W1689).",
       "$ref": "#/$defs/FigureCrownFade"
+    },
+    "mood_faces": {
+      "description": "A1802 (Marcel W2245): the resting face by mood - the mood furthest above its 'shows_from' shows its mouth shape ('smile', 'sad', 'surprised') at 'weight' (0..1) while no expression or talking shows and the figure is awake. Omitted = a neutral face. Placeholder values (TL).",
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/FigureMoodFace"
+      }
+    },
+    "mood_face_hold": {
+      "description": "A1802 (review GW5 #547): a resting face once shown holds until its mood falls this far below its shows_from, so a mood hovering at the threshold does not switch it on and off. Omitted = 0. Placeholder value (TL).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5
     }
   },
   "$defs": {
@@ -872,6 +886,18 @@
         "not_understood_expression": {
           "description": "Expression shown when an inhabitant did not understand the player and the model chose none (TL #21712). Proposal value.",
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "talk_per_char_s": {
+          "description": "A1802 (Marcel W2245): the mouth moves this long per character of a spoken sentence, at least talk_s and at most talk_max_s. Omitted = always talk_s. Placeholder value (TL).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "talk_max_s": {
+          "description": "A1802: the longest the mouth moves for one sentence (seconds). Omitted = no limit beyond the sentence.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 30
         }
       }
     },
@@ -973,6 +999,52 @@
           "type": "number",
           "minimum": 0,
           "maximum": 200
+        }
+      }
+    },
+    "FigureMoodFace": {
+      "description": "A1802: one mood's resting face.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mood",
+        "face",
+        "shows_from",
+        "weight"
+      ],
+      "properties": {
+        "mood": {
+          "description": "Mood id (vocabulary moods).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "face": {
+          "description": "Mouth shape of the figure model.",
+          "type": "string",
+          "enum": [
+            "smile",
+            "sad",
+            "surprised"
+          ]
+        },
+        "weight": {
+          "description": "How strongly the shape shows (0..1): a resting face, not a grimace.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shows_from": {
+          "description": "The mood shows from this value (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "brow": {
+          "description": "A1802 (GW1 #553): the brows that go with this mood - raise (surprise, worry) or frown (anger, frustration), at the same weight as the mouth. Omitted = brows stay.",
+          "type": "string",
+          "enum": [
+            "raise",
+            "frown"
+          ]
         }
       }
     }

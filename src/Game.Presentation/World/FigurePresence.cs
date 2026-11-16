@@ -226,19 +226,41 @@ public static class GreetingReaction
     }
 
     /// <summary>
+    /// A1802 (Marcel W2245): how long the mouth moves for a sentence - the data's seconds per character, at least talk_s
+    /// and at most talk_max_s; talk_s without per-character data.
+    /// </summary>
+    public static double TalkSeconds(FigureGreeting data, int textLength)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (data.TalkPerCharS is not { } perChar)
+        {
+            return data.TalkS;
+        }
+
+        var seconds = Math.Max(data.TalkS, Math.Max(0, textLength) * perChar);
+        return data.TalkMaxS is { } most ? Math.Min(seconds, Math.Max(most, data.TalkS)) : seconds;
+    }
+
+    /// <summary>
     /// The reaction to a conversation event: hearers of a sentence look at the voice; the speaker of an
     /// answer keeps looking, waves for a wave expression and talks with a spoken reply. Null for other events.
     /// </summary>
-    public static Reaction? For(FigureGreeting data, string kind, string? expression, bool hasText)
+    /// <param name="data">The greeting data.</param>
+    /// <param name="kind">The event kind.</param>
+    /// <param name="expression">The answer's expression, or null.</param>
+    /// <param name="hasText">Whether a sentence was spoken.</param>
+    /// <param name="textLength">A1802: its length in characters - the mouth moves as long as it takes to say it.</param>
+    public static Reaction? For(FigureGreeting data, string kind, string? expression, bool hasText, int textLength = 0)
     {
         ArgumentNullException.ThrowIfNull(data);
+        var talk = hasText ? TalkSeconds(data, textLength) : 0;
         var wave = expression is not null && data.WaveExpressions.Contains(expression) ? data.WaveS : 0;
         var reaction = kind switch
         {
             "conversation_started" => new Reaction(data.ReactS, 0, 0),
-            "said" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
+            "said" => new Reaction(data.AfterAnswerS, wave, talk),
             "gestured" or "declined" => new Reaction(data.AfterAnswerS, wave, 0),
-            "not_understood" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
+            "not_understood" => new Reaction(data.AfterAnswerS, wave, talk),
 
             // No answer came (the service was away or too slow): the figure keeps looking, says nothing (TL #21712).
             "no_answer" => new Reaction(data.AfterAnswerS, 0, 0),

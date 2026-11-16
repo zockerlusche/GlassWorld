@@ -129,6 +129,16 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "action": {
+          "description": "A1357 part 2: the action id that writes (vocabulary actions, target object). Omitted = nobody writes on purpose.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min_confidence": {
+          "description": "A1357 part 2: a writer writes its surest own belief of at least this confidence (never one it only read). Placeholder (TL). Omitted = any.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
@@ -162,6 +172,16 @@
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "curiosity_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "action": {
+          "description": "A1357 part 2: the action id that reads a text on purpose (vocabulary actions, target object). Omitted = reading only in passing.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "author_weight_floor": {
+          "description": "A1357 (spec 33 section 9a): what is read is believed with the text's legibility times the reader's respect for the author, but at least this share of the legibility (an author it hardly knows). Placeholder value (TL). Omitted = respect alone.",
           "type": "number",
           "minimum": 0,
           "maximum": 1

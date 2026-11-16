@@ -615,7 +615,18 @@ public sealed class SimulationHost
         {
             Inhabitants = inhabitants,
             PerceptionRadiusM = content.Brain.Weights.PerceptionRadiusM,
+
+            // A1357: who can read learns in passing; an author it keeps no relationship with counts as the knowledge start.
+            Skills = skillLevels,
+            Held = new Writing.HeldByInhabitants(inhabitants, objects),
+            AuthorStart = new Relation(content.Knowledge.RelationshipStart.Affection, content.Knowledge.RelationshipStart.Trust, content.Knowledge.RelationshipStart.Respect),
         };
+
+        // A1357 part 2: write and read are offered where they can work, show what would be written, and end in the
+        // writing system (after the inhabitants, in the same tick).
+        inhabitants.Reported += writing.Observe;
+        decisions.OffersFor = writing.Offers;
+        decisions.WriteTopic = (asker, action) => action == writing.WriteAction ? writing.BeliefToWrite(asker) : null;
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour)
         {
             // A builder's knock calms down once it is no longer stuck (A1602).
@@ -641,6 +652,9 @@ public sealed class SimulationHost
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
         // become said events; no effect on the world. Dormant without a job port or without the data's block.
+        // A1568 (B2757): by day in night_only the decider is asked nothing either - the day runs on the core alone.
+        decisions.Quiet = () => nightQueue.HoldsNow;
+
         var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale)
         {
             ValidateRequests = options.ValidateRequests,

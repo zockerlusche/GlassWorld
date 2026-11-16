@@ -48,6 +48,11 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
         // D1105 H3b: a finished climb takes the climber up in the next body step.
         _inhabitants.Reported += OnReported;
 
+        // What shelters where is remembered within a tick; a thing that comes, goes or changes makes it ask anew.
+        _objects.Spawned += _ => _shelteredAt.Clear();
+        _objects.Removed += _ => _shelteredAt.Clear();
+        _objects.TypeChanged += (_, _) => _shelteredAt.Clear();
+
         // The tallest shade caster and the widest crown bound how far a shade can fall.
         var tallest = 0L;
         var widest = 0L;
@@ -208,6 +213,7 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        _shelteredAt.Clear();
         if (AirAt is null)
         {
             return;
@@ -379,7 +385,38 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>Whether a thing with the shelter property is near (it keeps the rain off; B2773: and makes one feel safe).</summary>
-    public bool Sheltered(Position at) => ShelterOf(at) is not null;
+    public bool Sheltered(Position at)
+    {
+        // Core speed (TL #27936): asked by the felt temperature, the stay and the wetness for every inhabitant every tick -
+        // once per place and tick, and without sorting (only whether one is near). Derived, never state.
+        if (_shelteredAt.TryGetValue(at, out var known))
+        {
+            return known;
+        }
+
+        _near.Clear();
+        _objects.Within(at, _data.Wetness.ShelterRadiusCm / 100.0, _near);
+        var any = false;
+        foreach (var thing in _near)
+        {
+            if (_objects.Catalog.Contains(thing.TypeId) && _objects.Catalog.HasProperty(thing.TypeId, _data.Wetness.ShelterProperty))
+            {
+                any = true;
+                break;
+            }
+        }
+
+        if (_shelteredAt.Count >= MostRememberedPlaces)
+        {
+            _shelteredAt.Clear();
+        }
+
+        _shelteredAt[at] = any;
+        return any;
+    }
+
+    private const int MostRememberedPlaces = 4096;
+    private readonly Dictionary<Position, bool> _shelteredAt = [];
 
     /// <summary>The nearest thing with the shelter property within the shelter radius (ties by id), or null.</summary>
     private WorldObject? ShelterOf(Position at)

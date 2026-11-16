@@ -43,6 +43,7 @@ public partial class FigureView : Node3D
     private bool _standsIdle;
     private bool _lying;
     private ShaderMaterial? _paint;
+    private (string Face, double Weight, string? Brow)? _moodFace; // A1802: the resting face by mood
     private double _wetShown = 1.0;
     private string _topColor = "#ffffff";
     private string? _wornShown;
@@ -283,6 +284,8 @@ public partial class FigureView : Node3D
 
         // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
         var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
+        _moodFace = GlassWorld.Presentation.World.MoodFace.For(figures.MoodFaces, inhabitant.Moods, _moodFace, figures.MoodFaceHold ?? 0);
+
         // A1385 (B5-8): wet clothes and hair look darker, in steps of the wetness (BodySystem).
         var wetShade = GlassWorld.Presentation.World.BareGround.WetShade(figures.WetShade, inhabitant.WetPermille);
         if (wetShade != _wetShown && _paint is not null)
@@ -632,6 +635,8 @@ public partial class FigureView : Node3D
         _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking || watching ? 1 : 0, ease, delta);
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
         _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
+        // A1802: the face rests by the strongest mood; neutral while it lies asleep.
+        (_face.Rest, _face.RestWeight, _face.RestBrow) = _lieSeconds > 0 || _moodFace is not { } rest ? (null, 0f, null) : (rest.Face, (float)rest.Weight, rest.Brow);
     }
 
     /// <summary>A1785: the shape of an object type and its size factor (from the object view), set by the presenter.</summary>

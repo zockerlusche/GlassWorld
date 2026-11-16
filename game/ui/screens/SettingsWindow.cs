@@ -483,7 +483,9 @@ public partial class SettingsWindow : GwWindow
     /// <param name="reportFolder">Where the player's copy of a report goes.</param>
     /// <param name="learnByDay">Whether the world learns by day now (A1568, B2652), or null without a world.</param>
     /// <param name="setLearnByDay">Switches learning by day on or off (a logged command of the core), or null.</param>
-    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder, Func<bool>? learnByDay = null, Action<bool>? setLearnByDay = null)
+    /// <param name="aiByDay">Whether the AI thinks along by day in this world (A1568, B2757; false = night_only), or null without a world.</param>
+    /// <param name="setAiByDay">Switches the AI by day on or off (the world's day mode, a logged command), or null.</param>
+    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder, Func<bool>? learnByDay = null, Action<bool>? setLearnByDay = null, Func<bool>? aiByDay = null, Action<bool>? setAiByDay = null)
     {
         // The AI tab of the data (D957 v4 section 10: state on top, learning by day below, report at the bottom).
         if (_pages.TryGetValue(AiTab, out var aiTab))
@@ -560,7 +562,23 @@ public partial class SettingsWindow : GwWindow
                 setLearnByDay?.Invoke(false);
             }
 
-            Show([.. SelfCheckView.Lines(answer.Check).SelectMany(AiLine), .. LearnByDayControls(answer.Check.LearnByDay)]);
+            Show([.. SelfCheckView.Lines(answer.Check).SelectMany(AiLine), .. AiByDayControls(), .. LearnByDayControls(answer.Check.LearnByDay)]);
+        }
+
+        // "KI am Tag" (A1568, B2757, Marcel W2134): on = the AI thinks along by day (as before); off = a day without AI,
+        // all AI work in the compute night (the world's day mode night_only, a logged command). Per world, like learning.
+        IEnumerable<Control> AiByDayControls()
+        {
+            if (aiByDay is null || setAiByDay is null)
+            {
+                yield break;
+            }
+
+            yield return new Label { Text = "ui.settings.ai_by_day", ThemeTypeVariation = UiTheme.SubheaderLabel };
+            var toggle = new CheckButton { Text = "ui.settings.ai_by_day_switch", ButtonPressed = aiByDay() };
+            toggle.Toggled += on => setAiByDay(on);
+            yield return toggle;
+            yield return Text("ui.settings.ai_by_day_hint");
         }
 
         // "Auch tagsüber lernen" (A1568, B2652): offered only when the service says the PC is strong enough; then a

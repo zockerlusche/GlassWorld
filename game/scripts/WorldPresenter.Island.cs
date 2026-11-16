@@ -1027,7 +1027,7 @@ public partial class WorldPresenter
     /// </summary>
     private void React(Simulation.Inhabitants.WorldEvent e)
     {
-        if (_figuresLook is null || GreetingReaction.For(_figuresLook.Greeting, e.Kind, e.Detail, e.Text is { Length: > 0 }) is not { } reaction)
+        if (_figuresLook is null || GreetingReaction.For(_figuresLook.Greeting, e.Kind, e.Detail, e.Text is { Length: > 0 }, e.Text?.Length ?? 0) is not { } reaction)
         {
             return;
         }

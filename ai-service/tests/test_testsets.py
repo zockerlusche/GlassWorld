@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 from glassworld_ai.decider.backends import DecisionError, MockDecider
@@ -116,3 +117,27 @@ def test_b9_runner_checks_content_with_the_mocks(tmp_path: Path) -> None:
         "model": "mock", "prompt": "decider/decide.v5", "temperature": 0.0,
     })  # fmt: skip
     assert "Valid incl. content checks" in (tmp_path / "report.md").read_text(encoding="utf-8")
+
+
+class SlowDecider:
+    """Takes 20 ms per call, otherwise behaves like the mock."""
+
+    def __init__(self) -> None:
+        self.mock = MockDecider()
+
+    async def decide(self, request: DecisionRequest, deadline: float) -> DecisionResponse:
+        await asyncio.sleep(0.02)
+        return await self.mock.decide(request, deadline)
+
+
+def test_a_duty_below_one_lets_the_model_rest_between_calls() -> None:
+    """A1824: --duty 0.5 - the model computes about half the time (as the day budget allows)."""
+    testset = load_testset(DEFAULT_CASES)
+    testset = testset.model_copy(update={"cases": testset.cases[:4]})
+    started = time.perf_counter()
+    asyncio.run(run_cases(SlowDecider(), testset, runs=1))
+    full = time.perf_counter() - started
+    started = time.perf_counter()
+    asyncio.run(run_cases(SlowDecider(), testset, runs=1, duty=0.5))
+    half = time.perf_counter() - started
+    assert half > full * 1.5

@@ -466,6 +466,29 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
+    public void ADayWithoutAiAsksTheDeciderNothingAndTheNightAsksTheQuestion()
+    {
+        // A1568 (B2757, Marcel W2134): in the day mode night_only the decider is asked nothing by day; the question
+        // keeps its mark and goes out in the compute night, when the AI may compute again.
+        var (host, _, _) = World(question: false);
+        Assert.True(host.Decisions.Submit(new PlayerCommand(NightQueueSystem.DayModeCommand, null) { Text = NightQueueSystem.DayModeNightOnly }).Accepted);
+        host.World.Step();
+
+        // The command takes effect with that step; what the core asked before it is not this test's.
+        var before = host.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request);
+        host.Objects.Spawn(Thing, new Position(1, 0));
+        host.World.Run(3);
+        var question = Assert.Single(host.Decisions.Open, q => q.Subject == "type:" + Thing);
+        Assert.Equal(string.Empty, question.RequestId);
+        Assert.Equal(before, host.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request));
+
+        RunIntoTheNight(host);
+
+        Assert.True(host.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request) > before, "the held question goes out at night");
+        Assert.NotEqual(string.Empty, host.Decisions.Open.Single(q => q.Id == question.Id).RequestId);
+    }
+
+    [Fact]
     public void TheMemoryComesFirstAndTheQuestionReadsTheNewSummary()
     {
         var (host, a, port) = World();
