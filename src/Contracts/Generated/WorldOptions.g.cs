@@ -36,6 +36,24 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ResourceOption
+    {
+
+        /// <summary>
+        /// Option id (text key ui.new_world.resources.&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on spawn density and upper limits (1.0 = the data as written).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("factor")]
+        public double Factor { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Choices offered in New World (B6 R3): world sizes and climates (B2514 FT3: at least temperate and warm). Display texts: ui.new_world.size.&lt;id&gt;, ui.new_world.climate.&lt;id&gt;. All numbers are placeholders until Marcel decides (PR4, F5231).
     /// </summary>
@@ -66,6 +84,34 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("player_name_max_length")]
         public int PlayerNameMaxLength { get; set; } = default!;
+
+        /// <summary>
+        /// A1770 (B2805 'Einfach'): how much grows and lies on the island - a factor on every spawn rule's density and upper limit (start supplies stay guaranteed). Missing = normal (1.0).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("resources")]
+        public System.Collections.Generic.ICollection<ResourceOption>? Resources { get; set; } = default!;
+
+        /// <summary>
+        /// A1770: id of the preselected resources option.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("default_resources")]
+        public string? DefaultResources { get; set; } = default!;
+
+        /// <summary>
+        /// A1770 (B2805): how many pairs of inhabitants a new world starts with (each pair gets its start place).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("start_pairs")]
+        public System.Collections.Generic.ICollection<int>? StartPairs { get; set; } = default!;
+
+        /// <summary>
+        /// A1770: the preselected number of start pairs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("default_start_pairs")]
+        public int? DefaultStartPairs { get; set; } = default!;
 
     }
 }

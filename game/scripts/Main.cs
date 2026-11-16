@@ -508,7 +508,7 @@ public partial class Main : Node3D
         var parts = value.Split(',');
         if (!ulong.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seed))
         {
-            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR]]])");
+            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR[,RESOURCES[,PAIRS]]]]])");
             return null;
         }
 
@@ -518,7 +518,9 @@ public partial class Main : Node3D
             seed,
             parts.Length > 1 ? parts[1] : string.Empty,
             parts.Length > 2 ? parts[2] : string.Empty,
-            favor);
+            favor,
+            parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null,
+            parts.Length > 5 && int.TryParse(parts[5], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pairs) ? pairs : null);
     }
 
     /// <summary>
@@ -583,7 +585,10 @@ public partial class Main : Node3D
             choice.Size,
             _menuData?.Options?.Sizes.FirstOrDefault(o => string.Equals(o.Id, choice.Size, StringComparison.Ordinal)) is { } option ? option.GridCells : null,
             choice.Climate,
-            choice.StartFavor);
+            choice.StartFavor,
+            choice.Resources,
+            _menuData?.Options?.Resources?.FirstOrDefault(r => string.Equals(r.Id, choice.Resources, StringComparison.Ordinal)) is { } resources ? resources.Factor : null,
+            choice.StartPairs);
 
     private async Task RunThenQuitAsync(double seconds)
     {

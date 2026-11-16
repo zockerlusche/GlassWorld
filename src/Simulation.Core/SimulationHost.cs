@@ -39,6 +39,12 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// </summary>
     public int? GridCells { get; init; }
 
+    /// <summary>A1770 (B2805): factor on spawn density and limits (resources poor/normal/rich); null = the data as written.</summary>
+    public double? ResourceFactor { get; init; }
+
+    /// <summary>A1770 (B2805): pairs of start inhabitants (each pair its start place); null = the preset's pairs.</summary>
+    public int? StartPairs { get; init; }
+
     /// <summary>A1768 (B2805): the world specification of the new-world form, kept in the save game; null = none (older saves, tests).</summary>
     public State.WorldSpec? Spec { get; init; }
 }
@@ -181,7 +187,7 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells);
+            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -1043,6 +1049,9 @@ public sealed class SimulationHost
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
         var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset, jobPort, null, options);
         var map = host.Map!;
+
+        // A1770 (B2805): the chosen pairs bring two inhabitants each (a measurement's own count wins).
+        inhabitants ??= options?.StartPairs * 2;
         var free = map.Island.Starts.GroupBy(s => s.Pair).ToDictionary(g => g.Key + 1, g => new Queue<StartPosition>(g));
         var listedGroups = content.InhabitantModel.Start.Inhabitants.Select(s => s.Group).DefaultIfEmpty(0).Max();
         var further = new Dictionary<int, IEnumerator<(int X, int Z)>>();

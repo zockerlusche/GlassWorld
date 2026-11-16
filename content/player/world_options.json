@@ -16,10 +16,30 @@
     },
     {
       "id": "warm"
+    },
+    {
+      "id": "cool"
     }
   ],
+  "resources": [
+    {
+      "id": "poor",
+      "factor": 0.6
+    },
+    {
+      "id": "normal",
+      "factor": 1.0
+    },
+    {
+      "id": "rich",
+      "factor": 1.5
+    }
+  ],
+  "start_pairs": [1, 2, 3, 4],
   "default_size": "small",
   "default_climate": "temperate",
+  "default_resources": "normal",
+  "default_start_pairs": 2,
   "name_max_length": 32,
   "player_name_max_length": 24
 }
