@@ -124,8 +124,8 @@ def test_a_new_kind_of_thing_without_an_event_fails_inv15(tmp_path: Path) -> Non
 
 
 def test_an_invariant_the_trace_cannot_show_is_named_not_failed(tmp_path: Path) -> None:
-    status, detail = _status(_trace(tmp_path, [_snap(0, [_who("eat")])]), "inv05")
-    assert status == "n/a" and "moods" in detail
+    status, detail = _status(_trace(tmp_path, [_snap(0, [_who("eat")])]), "inv07")
+    assert status == "n/a" and "locks" in detail
 
 
 def test_every_one_of_the_twenty_invariants_is_listed() -> None:
@@ -138,3 +138,64 @@ def test_a_run_too_short_for_the_sleep_mean_is_na_not_ok(tmp_path: Path) -> None
     """Review GW4 #540: not checked is not 'held'."""
     status, detail = _status(_trace(tmp_path, [_snap(0, [_who("sleep")])]), "inv12")
     assert status == "n/a" and "not checked" in detail
+
+
+def _soul(
+    action: str, mood: float = 0.1, will: float = 0.8, traits: float = 0.5, **needs: float
+) -> dict[str, Any]:
+    """An inhabitant line with moods, traits and the will to live (GW4 #554)."""
+    who = _who(action, **(needs or {"hunger": 0.8, "thirst": 0.8, "sleep": 0.8, "warmth": 0.8}))
+    who |= {
+        "moods": {"frustration": mood, "joy": 0.4},
+        "traits": {"patience": traits},
+        "will_to_live": will,
+    }
+    return who
+
+
+def test_a_feeling_above_the_mark_for_hours_fails_inv05_and_an_old_trace_is_na(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    long = _trace(tmp_path / "a", [_snap(h * TPH, [_soul("eat", mood=0.7)]) for h in range(6)])
+    status, detail = _status(long, "inv05")
+    assert status == "FAIL" and "5 h (frustration" in detail
+    assert _status(_trace(tmp_path / "b", [_snap(0, [_who("eat")])]), "inv05")[0] == "n/a"
+
+
+def test_frustration_rising_from_cold_alone_fails_inv13_with_hunger_it_holds(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    cold = {"hunger": 0.8, "thirst": 0.8, "sleep": 0.8, "warmth": 0.2}
+    alone = _trace(
+        tmp_path / "a",
+        [_snap(0, [_soul("eat", 0.1, **cold)]), _snap(TPH, [_soul("eat", 0.3, **cold)])],
+    )
+    assert _status(alone, "inv13")[0] == "FAIL"
+    hungry = cold | {"hunger": 0.2}
+    both = _trace(
+        tmp_path / "b",
+        [_snap(0, [_soul("eat", 0.1, **hungry)]), _snap(TPH, [_soul("eat", 0.3, **hungry)])],
+    )
+    assert _status(both, "inv13")[0] == "ok"
+
+
+def test_a_changed_character_fails_inv18(tmp_path: Path) -> None:
+    folder = _trace(
+        tmp_path, [_snap(0, [_soul("eat", traits=0.5)]), _snap(TPH, [_soul("eat", traits=0.6)])]
+    )
+    status, detail = _status(folder, "inv18")
+    assert status == "FAIL" and "inh-000001" in detail
+
+
+def test_the_will_changing_at_midday_fails_inv19(tmp_path: Path) -> None:
+    noon = 12 * TPH
+    folder = _trace(
+        tmp_path,
+        [_snap(noon, [_soul("eat", will=0.8)]), _snap(noon + TPH, [_soul("eat", will=0.79)])],
+    )
+    status, detail = _status(folder, "inv19")
+    assert status == "FAIL" and "changes by day: 1" in detail
