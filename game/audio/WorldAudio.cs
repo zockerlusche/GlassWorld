@@ -338,8 +338,19 @@ public partial class WorldAudio : Node3D
     /// </summary>
     private void PlayFires(Position listener)
     {
-        if (_fires.Count == 0 || _host?.Fire is not { } fire || RetroAudio.Library?.Map.Burning is not { } data || Off(MixBusId.Effects))
+        if (_fires.Count == 0 || _host?.Fire is not { } fire || RetroAudio.Library?.Map.Burning is not { } data)
         {
+            return;
+        }
+
+        if (Off(MixBusId.Effects))
+        {
+            // Review GW4 #575: the effects switched off - the loops stop, they do not go on at their last volume.
+            foreach (var player in _fires.Where(p => p.Playing))
+            {
+                player.Stop();
+            }
+
             return;
         }
 
