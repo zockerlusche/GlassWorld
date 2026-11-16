@@ -362,6 +362,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Changed
 
+- Free time (A1794, D1212, TL #27680; Marcel 15a 'only exploring, nothing happens'): an inhabitant asks the AI what to do every 3 game hours instead of 6, and after 45 minutes of standing idle; standing idle is no longer one of the free-time options (`decider/settings.json` `leisure.when_idle`, `leisure.not_offered`).
 - The game's logs in `log/` next to the game (A1787 part 2, Marcel W2246): Godot's log, the AI service's logs (`log/ki`) and one folder per world (`log/welten/<world>`: run trace, learning log) - no longer inside the world folder, so a world removed by hand keeps its logs; they move to `log/archiv/<world>-<date>` when the world list is read. Nothing is deleted. Older worlds keep the trace they wrote beside their save.
 - Walking rustles only through plants (A1515 rest, B2608): on sand, rock, in water or snow the step sound of the ground plays instead (sound map `underfoot`: the surface of each biome, snow from 20 mm; `only_on` for the moving actions). Every sound has a visible cause.
 - Save games stay small (A1750, B2768): a request in the decision and job logs keeps only its fingerprint (sha256 and length) once it is older than `request_log_full_hours` (decider settings, placeholder 24 game hours); answers, commands and the chronicle stay whole, and the replay checks a replayed request against the fingerprint. At 666 days nearly all of the 315 MB save was these requests (decision_log 306 MB, answers 2 MB).
