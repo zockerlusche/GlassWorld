@@ -799,6 +799,10 @@
       "footprint_m": 0.35,
       "sway_m": 0.04,
       "glow": {
+        "min_scale": 0.45,
+        "embers_scale": 0.35,
+        "embers_light_color": "ember",
+        "embers_energy": 0.25,
         "light_color": "flame",
         "light_energy": 2.5,
         "light_range_m": 7.0,
