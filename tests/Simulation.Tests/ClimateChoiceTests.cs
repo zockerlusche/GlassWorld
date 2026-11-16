@@ -38,6 +38,34 @@ public sealed class ClimateChoiceTests : IDisposable
     }
 
     [Fact]
+    public void TheWorldSpecificationIsInTheSaveGameAndTheChosenSizeMadeTheIsland()
+    {
+        // A1768 (B2805): the form's values go with the world into its save and come back with it; the size made the island.
+        var spec = new WorldSpec("medium", 256, "warm", 70);
+        var original = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", "start_island",
+            options: new SimulationHostOptions { Climate = spec.Climate, GridCells = spec.GridCells, Spec = spec });
+        Assert.Equal(256, original.Map!.Island.Map.WidthCells);
+        original.World.Run(300);
+        var path = Path.Combine(_directory, "spec.db");
+        SaveGameStore.Save(path, StateCodec.Capture(original));
+        var state = SaveGameStore.Load(path);
+        Assert.Equal(spec, state.Spec);
+
+        var loaded = Restore(state, new ReplayDecisionPort(original.Decisions.Log));
+        Assert.Equal(spec, loaded.Options.Spec);
+        Assert.Equal(256, loaded.Map!.Island.Map.WidthCells);
+        Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(spec, StateCodec.Capture(loaded).Spec);
+
+        // The specification is not part of the hash; a world without one (older saves) carries none.
+        var without = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", "start_island");
+        Assert.Null(StateCodec.Capture(without).Spec);
+        var same = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", "start_island",
+            options: new SimulationHostOptions { Spec = new WorldSpec("small", null, null, null) });
+        Assert.Equal(without.World.StateHash(), same.World.StateHash());
+    }
+
+    [Fact]
     public void AnUnknownClimateIsRefused() =>
         Assert.Throws<InvalidDataException>(() => Create("arctic"));
 

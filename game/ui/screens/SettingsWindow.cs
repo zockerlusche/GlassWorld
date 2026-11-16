@@ -135,7 +135,6 @@ public partial class SettingsWindow : GwWindow
             }
         }
 
-        AddAction("ui.common.close").Pressed += Close;
     }
 
     /// <summary>The controls of one row of the data (its id names the setting).</summary>

@@ -475,7 +475,7 @@ public sealed partial class InventionSystem
             var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
             var radiusSquared = radius * radius;
             var material = _objects.All
-                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != task.HelperPendingObjectId)
+                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != task.HelperPendingObjectId && !InOtherHand(o, inhabitant.Id))
                 .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
                 .Where(x => x.d <= radiusSquared)
                 .OrderBy(x => x.d)
@@ -501,13 +501,20 @@ public sealed partial class InventionSystem
     /// A material the inhabitant remembers where it lies (place memory - its own, or shown by a helper, A1376), nearest
     /// first, still there; null if it knows none. The building then walks there.
     /// </summary>
+    /// <summary>
+    /// A1727: a thing in someone else's hand is no material - the core cancels a step on it at once (AK1a), and the
+    /// next tick chose it again: 591 cancels in the 30-day night run (D1124), the builder stood still for hours.
+    /// </summary>
+    private bool InOtherHand(WorldObject thing, string inhabitantId) => _objects.HeldBy(thing.Id) is { } holder && holder != inhabitantId;
+
     private WorldObject? Remembered(Inhabitant inhabitant, Dictionary<string, string> standsFor, string? taken)
     {
         WorldObject? best = null;
         var bestD = double.MaxValue;
         foreach (var (objectId, place) in inhabitant.Places)
         {
-            if (objectId == taken || !standsFor.ContainsKey(place.TypeId) || !_objects.TryGet(objectId, out var thing) || thing.TypeId != place.TypeId)
+            if (objectId == taken || !standsFor.ContainsKey(place.TypeId) || !_objects.TryGet(objectId, out var thing) || thing.TypeId != place.TypeId
+                || InOtherHand(thing, inhabitant.Id))
             {
                 continue;
             }
@@ -564,7 +571,7 @@ public sealed partial class InventionSystem
             var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
             var radiusSquared = radius * radius;
             var material = _objects.All
-                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != current.PendingObjectId)
+                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != current.PendingObjectId && !InOtherHand(o, helper.Id))
                 .Select(o => (o, d: Square(o.Position.X - helper.Position.X) + Square(o.Position.Z - helper.Position.Z)))
                 .Where(x => x.d <= radiusSquared)
                 .OrderBy(x => x.d)

@@ -140,6 +140,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of <see cref="ActionFinished"/> when the run without effect reached the limit and the action now rests (W1696).</summary>
     public const string RepeatLimit = "repeat_limit";
 
+    /// <summary>A1727: detail of <see cref="ActionCancelled"/> - the target is in someone else's hand (AK1a); transient by the decider data.</summary>
+    public const string HeldByOther = "held_by_other";
+
     /// <summary>Detail of <see cref="ActionCancelled"/> for an action that rests after repeats without effect (W1696).</summary>
     public const string Resting = "resting";
 
@@ -1456,7 +1459,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             // AK1a: a thing in someone else's hand is no target (others see it, but cannot act on it).
             if (target is not null && _objects.HeldBy(target.Id) is { } holder && holder != inhabitant.Id)
             {
-                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = HeldByOther });
                 inhabitant.Activity = null;
                 return;
             }

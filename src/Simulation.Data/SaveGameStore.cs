@@ -512,6 +512,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("climate", s.Climate));
         }
 
+        if (s.Spec is not null)
+        {
+            // A1768 (B2805): the world specification (every value of the new-world form); no entry in older saves.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("world_spec", JsonSerializer.Serialize(s.Spec, Json)));
+        }
+
         if (s.Exploration is { } explored)
         {
             // Seen cells (B2-6 R14): the player's view under the empty owner, then one row per inhabitant.
@@ -929,6 +935,7 @@ public static class SaveGameStore
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             LookEpoch = meta.GetValueOrDefault("look_epoch"),
             Climate = meta.GetValueOrDefault("climate"),
+            Spec = meta.TryGetValue("world_spec", out var spec) ? JsonSerializer.Deserialize<Simulation.State.WorldSpec>(spec, Json) : null,
             Exploration = ReadExploration(c),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Needs = meta.TryGetValue("needs", out var needs) ? JsonSerializer.Deserialize<Simulation.Inhabitants.NeedRegisterState>(needs, Json) : null,

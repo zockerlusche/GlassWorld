@@ -535,6 +535,41 @@ namespace GlassWorld.Contracts
         public double Flicker { get; set; } = default!;
 
         /// <summary>
+        /// A1823 (B2736): the size (and light) of the glowing thing at its weakest - it grows with the core's strength to full size; absent = always full.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_scale")]
+        public double? MinScale { get; set; } = default!;
+
+        /// <summary>
+        /// A1823: the size of the thing while it lies as embers (no flame); absent = min_scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("embers_scale")]
+        public double? EmbersScale { get; set; } = default!;
+
+        /// <summary>
+        /// A1823: palette colour of the light while it lies as embers; absent = light_color.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("embers_light_color")]
+        public string? EmbersLightColor { get; set; } = default!;
+
+        /// <summary>
+        /// A1823 (review GW4 #572): share of the flicker while it lies as embers (calmer); absent = as a flame.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("embers_flicker")]
+        public double? EmbersFlicker { get; set; } = default!;
+
+        /// <summary>
+        /// A1823: share of light_energy while it lies as embers (0..1); absent = the strength's share.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("embers_energy")]
+        public double? EmbersEnergy { get; set; } = default!;
+
+        /// <summary>
         /// How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("flicker_hz")]

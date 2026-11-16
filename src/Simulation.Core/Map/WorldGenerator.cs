@@ -89,7 +89,16 @@ public static partial class WorldGenerator
     private static readonly (int Dx, int Dz)[] Neighbours4 = [(1, 0), (0, -1), (-1, 0), (0, 1)];
 
     /// <summary>Generates the start island; retries with derived seeds until the check passes.</summary>
-    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed)
+    /// <param name="content">World generation content.</param>
+    /// <param name="catalog">Object catalog.</param>
+    /// <param name="presetId">The world preset.</param>
+    /// <param name="seed">World seed.</param>
+    /// <param name="gridCells">
+    /// A1768 (B2805): width and depth of the island's grid in cells, the size the player chose (content/player/world_options.json);
+    /// null = the preset's grid. Everything else stays the preset's - noise, coast and rules scale with the area.
+    /// </param>
+    /// <exception cref="ArgumentException">Unknown preset, or a grid size that is not a multiple of the preset's chunk size.</exception>
+    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed, int? gridCells = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -97,6 +106,8 @@ public static partial class WorldGenerator
         {
             throw new ArgumentException($"unknown world preset '{presetId}'", nameof(presetId));
         }
+
+        preset = Sized(preset, gridCells);
 
         GeneratedIsland? last = null;
         for (var attempt = 1; attempt <= preset.Start.MaxAttempts; attempt++)
@@ -110,6 +121,29 @@ public static partial class WorldGenerator
         }
 
         return last!;
+    }
+
+    /// <summary>The preset with another grid size (a copy; the content's preset stays as it is), or the preset itself.</summary>
+    /// <exception cref="ArgumentException">The size is not a positive multiple of the preset's chunk size.</exception>
+    public static WorldPreset Sized(WorldPreset preset, int? gridCells)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (gridCells is not { } cells || (cells == preset.Grid.WidthCells && cells == preset.Grid.DepthCells))
+        {
+            return preset;
+        }
+
+        if (cells <= 0 || cells % preset.Grid.ChunkCells != 0)
+        {
+            throw new ArgumentException($"grid size {cells} is not a multiple of the preset's chunk size {preset.Grid.ChunkCells}", nameof(gridCells));
+        }
+
+        // A deep copy of loaded content, not a message: plain System.Text.Json (ContractSerializer.Serialize in the core
+        // stands for a request to the AI and goes through the switch of ADR-0009, RequestValidationTests).
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
+        copy.Grid.WidthCells = cells;
+        copy.Grid.DepthCells = cells;
+        return copy;
     }
 
     private static GeneratedIsland Attempt(WorldGenContent content, ObjectCatalog catalog, WorldPreset preset, ulong seed, ulong attemptSeed, int attempt)

@@ -40,6 +40,7 @@ public partial class Main : Node3D
     private const string LookAtArgument = "--look-at=";
     private const string NewWorldArgument = "--new-world=";
     private const string RunSecondsArgument = "--run-s=";
+    private const string FilmFireArgument = "--film-fire"; // A1543: check runs only - a burning fire beside the first inhabitant
     private const string SpeedArgument = "--speed=";
 
     // A1749 (Marcel W2271): the speed a world starts with, from the command line only (the menu has no such option).
@@ -56,6 +57,7 @@ public partial class Main : Node3D
     // fastest speed before it quits saved (0 = until the window is closed).
     private NewWorldChoice? _newWorld;
     private double _runS;
+    private bool _filmFire;
     private bool _quitting;
     private bool _tour;
     private double _tourRunS;
@@ -136,6 +138,16 @@ public partial class Main : Node3D
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
             _settings = _smokeFrames > 0 || _shotsFolder is not null ? PlayerSettings.Parse(null, _limits) : SettingsStore.Load(_settingsPath, _limits);
+
+            // A1789 (B2826): a moved window is kept in the settings (written with them when the game quits or settings close).
+            GwWindow.PlaceChosen += (key, place) =>
+            {
+                if (_limits is not null)
+                {
+                    _settings = (_settings with { WindowPlaces = new Dictionary<string, string>(_settings.WindowPlaces, StringComparer.Ordinal) { [key] = WindowPlacement.Format((place.X, place.Y)) } }).Clamp(_limits);
+                    _settingsDirty = true;
+                }
+            };
 
             ApplySettings(_settings);
         }
@@ -294,6 +306,11 @@ public partial class Main : Node3D
                 _newWorld = ParseNewWorld(arg[NewWorldArgument.Length..]);
             }
 
+            if (arg == FilmFireArgument)
+            {
+                _filmFire = true;
+            }
+
             if (arg.StartsWith(RunSecondsArgument, StringComparison.Ordinal)
                 && double.TryParse(arg[RunSecondsArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var runS) && runS > 0)
             {
@@ -348,6 +365,16 @@ public partial class Main : Node3D
             InputDefaults.Apply(_limits.KeyActions, settings.KeyBindings);
         }
 
+        // A1789 (B2826): where the player put the windows.
+        GwWindow.Remembered.Clear();
+        foreach (var (key, text) in settings.WindowPlaces)
+        {
+            if (WindowPlacement.Parse(text) is { } place)
+            {
+                GwWindow.Remembered[key] = new Vector2(place.X, place.Y);
+            }
+        }
+
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
     }
@@ -377,7 +404,7 @@ public partial class Main : Node3D
         _menu.NewWorldRequested += choice =>
         {
             var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate), meta, created: true);
+            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         };
         _menu.LoadRequested += meta => Enter(presenter => presenter.Load(_contentDirectory, _library.SavePath(meta.Id)), meta);
         _menu.SettingsRequested += () => OpenSettings(_menu.ShowWindow);
@@ -465,7 +492,6 @@ public partial class Main : Node3D
                 var message = new GwWindow();
                 message.Setup("ui.worlds.title", _style);
                 message.Content.AddChild(new Label { Text = "msg.load.failed", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-                message.AddAction("ui.common.close").Pressed += message.Close;
                 _menu.Rebuild();
                 _menu.ShowWindow(message);
             }
@@ -528,7 +554,7 @@ public partial class Main : Node3D
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
         GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} save={_library.SavePath(meta.Id)}");
-        EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate), meta, created: true);
+        EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         if (_world?.Host is null)
         {
             GD.PushError("NEW_WORLD_FAIL the world did not start");
@@ -536,11 +562,28 @@ public partial class Main : Node3D
             return;
         }
 
+        if (_filmFire && _world.Host.Inhabitants.All.FirstOrDefault() is { } near)
+        {
+            // A1543 (check runs only, hearing sample): a burning fire one and a half metres from the first inhabitant,
+            // which the camera follows - so the film has a fire to hear. The game itself never does this.
+            var fire = _world.Host.Objects.Spawn("fire", new Simulation.Objects.Position(near.Position.X + 1.5, near.Position.Z));
+            _world.ChooseFigure(near.Id);
+            GD.Print($"FILM_FIRE {fire.Id} beside {near.Id}");
+        }
+
         if (_runS > 0)
         {
             _ = RunThenQuitAsync(_runS);
         }
     }
+
+    /// <summary>A1768 (B2805): the world specification of a filled-in form, with the grid size of its size option (none known = the preset's grid).</summary>
+    private Simulation.State.WorldSpec SpecOf(NewWorldChoice choice) =>
+        new(
+            choice.Size,
+            _menuData?.Options?.Sizes.FirstOrDefault(o => string.Equals(o.Id, choice.Size, StringComparison.Ordinal)) is { } option ? option.GridCells : null,
+            choice.Climate,
+            choice.StartFavor);
 
     private async Task RunThenQuitAsync(double seconds)
     {
