@@ -14,6 +14,18 @@ namespace GlassWorld.Simulation.Map;
 /// <param name="GoneSinceTick">Tick at which the object was first missed; null while it exists.</param>
 public sealed record Occurrence(string ObjectId, string TypeId, int X, int Z, long? GoneSinceTick);
 
+/// <summary>A time a field cell was bare from overuse (A1380 N2): from Start to End, or still (End null).</summary>
+/// <param name="Start">The tick it went bare.</param>
+/// <param name="End">The tick it was green again, or null while bare.</param>
+public sealed record BareSpan(long Start, long? End);
+
+/// <summary>The overuse of one field cell (A1380 N2) as saved: its harvests within the window and its bare times.</summary>
+/// <param name="X">Field cell, east.</param>
+/// <param name="Z">Field cell, south.</param>
+/// <param name="Harvests">Ticks of the harvests still within the window.</param>
+/// <param name="Bare">Its bare times still needed (open, or overlapping a place still regrowing).</param>
+public sealed record OveruseCell(int X, int Z, IReadOnlyList<long> Harvests, IReadOnlyList<BareSpan> Bare);
+
 /// <summary>
 /// The generated start island as a world system (B2 R1): the base grid never changes after generation,
 /// so the system does nothing per tick and writes the island data into the state hash. It is rebuilt
@@ -70,6 +82,155 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 
     /// <summary>Places that grow back, in the order they were placed.</summary>
     public IReadOnlyList<Occurrence> Occurrences => _occurrences;
+
+    /// <summary>A1380 N2: the overuse data (nature settings); null = no overuse.</summary>
+    public Contracts.NatureOveruse? Overuse { get; set; }
+
+    /// <summary>A1380 N2: the growth of a type between two ticks in permille-ticks (the nature takt); null = by the clock.</summary>
+    public Func<string, long, long, long>? GrowthBetween { get; set; }
+
+    private readonly SortedDictionary<(int X, int Z), List<long>> _harvests = [];
+    private readonly SortedDictionary<(int X, int Z), List<BareSpan>> _bare = [];
+
+    /// <summary>A1380 N2: the field cells bare now (for the look, A1385), in order.</summary>
+    public IEnumerable<(int X, int Z)> BareCells => _bare.Where(b => b.Value.Count > 0 && b.Value[^1].End is null).Select(b => b.Key);
+
+    /// <summary>A1380 N2: whether the field cell of a position is bare now.</summary>
+    public bool BareAt(Position at) =>
+        Overuse is { } o && _bare.TryGetValue(FieldOf(at, o), out var spans) && spans.Count > 0 && spans[^1].End is null;
+
+    /// <summary>A1380 N2: the overuse for a save game, in cell order (only cells with anything).</summary>
+    public IReadOnlyList<OveruseCell> CaptureOveruse()
+    {
+        var cells = new SortedSet<(int X, int Z)>(_harvests.Keys.Concat(_bare.Keys));
+        return [.. cells.Select(c => new OveruseCell(c.X, c.Z, _harvests.TryGetValue(c, out var h) ? [.. h] : [], _bare.TryGetValue(c, out var b) ? [.. b] : []))];
+    }
+
+    /// <summary>A1380 N2: restores the overuse of a save game.</summary>
+    public void RestoreOveruse(IReadOnlyList<OveruseCell>? cells)
+    {
+        _harvests.Clear();
+        _bare.Clear();
+        foreach (var cell in cells ?? [])
+        {
+            if (cell.Harvests.Count > 0)
+            {
+                _harvests[(cell.X, cell.Z)] = [.. cell.Harvests];
+            }
+
+            if (cell.Bare.Count > 0)
+            {
+                _bare[(cell.X, cell.Z)] = [.. cell.Bare];
+            }
+        }
+    }
+
+    private static (int X, int Z) FieldOf(Position at, Contracts.NatureOveruse o) =>
+        ((int)Math.Floor(at.X / o.CellM), (int)Math.Floor(at.Z / o.CellM));
+
+    private (int X, int Z) FieldOf(Occurrence place, Contracts.NatureOveruse o) => FieldOf(CentreOf(place.X, place.Z), o);
+
+    /// <summary>A harvest in a field cell: counted within the window; too many make it bare (A1380 N2).</summary>
+    private void Harvested(Occurrence place, long tick, int ticksPerHour)
+    {
+        if (Overuse is not { } o)
+        {
+            return;
+        }
+
+        var cell = FieldOf(place, o);
+        if (!_harvests.TryGetValue(cell, out var ticks))
+        {
+            _harvests[cell] = ticks = [];
+        }
+
+        ticks.Add(tick);
+        ticks.RemoveAll(t => t <= tick - ((long)o.WindowHours * ticksPerHour));
+        var bare = _bare.TryGetValue(cell, out var spans) && spans.Count > 0 && spans[^1].End is null;
+        if (!bare && ticks.Count >= o.BareAfter)
+        {
+            if (spans is null)
+            {
+                _bare[cell] = spans = [];
+            }
+
+            spans.Add(new BareSpan(tick, null));
+            ticks.Clear();
+        }
+
+        if (ticks.Count == 0)
+        {
+            _harvests.Remove(cell);
+        }
+    }
+
+    /// <summary>
+    /// Once an hour (A1380 N2): a bare cell all of whose places have grown back is green again (at the earliest after the
+    /// data's hours); bare times no place still regrowing reaches back to are dropped, and old harvests leave the window.
+    /// </summary>
+    private void Recover(long tick, int ticksPerHour)
+    {
+        if (Overuse is not { } o || (_bare.Count == 0 && _harvests.Count == 0))
+        {
+            return;
+        }
+
+        var oldestGone = new Dictionary<(int X, int Z), long>();
+        foreach (var place in _occurrences)
+        {
+            if (place.GoneSinceTick is { } gone)
+            {
+                var cell = FieldOf(place, o);
+                oldestGone[cell] = oldestGone.TryGetValue(cell, out var was) ? Math.Min(was, gone) : gone;
+            }
+        }
+
+        foreach (var cell in _bare.Keys.ToList())
+        {
+            var spans = _bare[cell];
+            if (spans[^1] is { End: null } open && !oldestGone.ContainsKey(cell) && tick - open.Start >= (long)o.BareMinHours * ticksPerHour)
+            {
+                spans[^1] = open with { End = tick };
+            }
+
+            spans.RemoveAll(s => s.End is { } end && (!oldestGone.TryGetValue(cell, out var since) || end <= since));
+            if (spans.Count == 0)
+            {
+                _bare.Remove(cell);
+            }
+        }
+
+        foreach (var cell in _harvests.Keys.ToList())
+        {
+            _harvests[cell].RemoveAll(t => t <= tick - ((long)o.WindowHours * ticksPerHour));
+            if (_harvests[cell].Count == 0)
+            {
+                _harvests.Remove(cell);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether a place gone since <paramref name="since"/> has grown back (A1380 N2, review GW1 #27201): the growth of its
+    /// group since then, less what it lacked while its cell was bare (bare_growth_permille, only within the bare times).
+    /// </summary>
+    private bool GrownWithBare(Occurrence place, long since, long now, long regrowTicks, List<BareSpan> spans, Contracts.NatureOveruse o)
+    {
+        long Growth(long from, long to) => GrowthBetween?.Invoke(place.TypeId, from, to) ?? (Math.Max(0, to - from) * 1000);
+        var full = Growth(since, now) * 1000;
+        var lacking = 0L;
+        foreach (var span in spans)
+        {
+            var from = Math.Max(span.Start, since);
+            var to = Math.Min(span.End ?? now, now);
+            if (to > from)
+            {
+                lacking += Growth(from, to) * (1000 - o.BareGrowthPermille);
+            }
+        }
+
+        return full - lacking >= regrowTicks * 1_000_000;
+    }
 
     /// <summary>Remembers a placed object if its type grows back.</summary>
     public void Track(WorldObject obj, int x, int z)
@@ -673,6 +834,11 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             return;
         }
 
+        if (world.Tick % world.Calendar.Settings.TicksPerHour == 0)
+        {
+            Recover(world.Tick, world.Calendar.Settings.TicksPerHour);
+        }
+
         for (var i = 0; i < _occurrences.Count; i++)
         {
             var place = _occurrences[i];
@@ -682,6 +848,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 if (!_objects.TryGet(place.ObjectId, out _) || _objects.HeldBy(place.ObjectId) is not null)
                 {
                     _occurrences[i] = place with { GoneSinceTick = world.Tick };
+                    Harvested(place, world.Tick, world.Calendar.Settings.TicksPerHour);
                     if (_growing.Remove(place.ObjectId) && _objects.TryGet(place.ObjectId, out _))
                     {
                         LeftPlace?.Invoke(place.ObjectId, world.Tick);
@@ -702,8 +869,10 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 continue;
             }
 
-            if (Grown?.Invoke(place.TypeId, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId])
-                ?? world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
+            if (Overuse is { } overuse && _bare.TryGetValue(FieldOf(place, overuse), out var bareSpans)
+                ? GrownWithBare(place, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId], bareSpans, overuse)
+                : Grown?.Invoke(place.TypeId, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId])
+                    ?? world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
             {
                 var grown = _objects.Spawn(place.TypeId, CentreOf(place.X, place.Z));
                 _occurrences[i] = place with { ObjectId = grown.Id, GoneSinceTick = null };
@@ -721,6 +890,26 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         foreach (var place in _occurrences)
         {
             hasher.Write(place.ObjectId).Write(place.TypeId).Write(place.X).Write(place.Z).Write(place.GoneSinceTick ?? -1);
+        }
+
+        // A1380 N2: overuse only while there is any (worlds without it keep their hashes).
+        if (_harvests.Count > 0 || _bare.Count > 0)
+        {
+            hasher.Write("overuse");
+            foreach (var cell in CaptureOveruse())
+            {
+                hasher.Write(cell.X).Write(cell.Z).Write(cell.Harvests.Count);
+                foreach (var t in cell.Harvests)
+                {
+                    hasher.Write(t);
+                }
+
+                hasher.Write(cell.Bare.Count);
+                foreach (var span in cell.Bare)
+                {
+                    hasher.Write(span.Start).Write(span.End ?? -1);
+                }
+            }
         }
     }
 }

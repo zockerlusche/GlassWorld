@@ -198,6 +198,9 @@ public sealed class SimulationHost
                     .ToDictionary(g => g.Key, g => (g.First().GrowsOn!.ObjectType, g.First().GrowsOn!.WithinCells), StringComparer.Ordinal),
 
                 // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
+                // A1380 N2: overuse of field cells (nature data).
+                Overuse = content.Nature?.Overuse,
+
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
                     .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
@@ -262,6 +265,7 @@ public sealed class SimulationHost
         {
             nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
             map.Grown = nature.Grown;
+            map.GrowthBetween = nature.GrowthBetween;
             world.Add(nature);
         }
 

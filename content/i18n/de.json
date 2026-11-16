@@ -671,6 +671,38 @@
       "text": "Öffnen"
     },
     {
+      "key": "ui.settings.invert_turn_x",
+      "text": "Drehen umkehren"
+    },
+    {
+      "key": "ui.settings.invert_turn_x.desc",
+      "text": "Mit gehaltener rechter Maustaste dreht sich die Sicht in die andere Richtung."
+    },
+    {
+      "key": "ui.settings.invert_turn_y",
+      "text": "Neigen umkehren"
+    },
+    {
+      "key": "ui.settings.invert_turn_y.desc",
+      "text": "Mit gehaltener rechter Maustaste neigt sich die Sicht nach oben und unten andersherum."
+    },
+    {
+      "key": "ui.settings.invert_pan_x",
+      "text": "Verschieben waagerecht umkehren"
+    },
+    {
+      "key": "ui.settings.invert_pan_x.desc",
+      "text": "Beim Ziehen mit der Maus wandert die Insel nach links und rechts andersherum."
+    },
+    {
+      "key": "ui.settings.invert_pan_y",
+      "text": "Verschieben senkrecht umkehren"
+    },
+    {
+      "key": "ui.settings.invert_pan_y.desc",
+      "text": "Beim Ziehen mit der Maus wandert die Insel nach oben und unten andersherum."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },

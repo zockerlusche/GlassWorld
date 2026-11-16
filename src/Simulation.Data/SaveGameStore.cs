@@ -615,6 +615,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("wet", JsonSerializer.Serialize(s.Wet, Json)));
         }
 
+        if (s.Overuse is { Count: > 0 })
+        {
+            // Overuse of field cells (A1380 N2); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("overuse", JsonSerializer.Serialize(s.Overuse, Json)));
+        }
+
         if (s.Climbed is { Count: > 0 })
         {
             // Who is up in a crown (D1105 H3b); no entry = nobody.
@@ -941,6 +947,7 @@ public static class SaveGameStore
             Dug = meta.TryGetValue("dug", out var dug) ? JsonSerializer.Deserialize<List<Simulation.Objects.DugCell>>(dug, Json) : null,
             Used = meta.TryGetValue("used", out var used) ? JsonSerializer.Deserialize<List<Simulation.Objects.UsedThing>>(used, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
+            Overuse = meta.TryGetValue("overuse", out var overuse) ? JsonSerializer.Deserialize<List<Map.OveruseCell>>(overuse, Json) : null,
             Climbed = meta.TryGetValue("climbed", out var climbed) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.UpInhabitant>>(climbed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,

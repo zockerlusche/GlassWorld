@@ -1,6 +1,7 @@
 {
   "contract_version": "0.2",
   "takt_minutes": 60,
+  "overuse": { "cell_m": 8, "window_hours": 72, "bare_after": 6, "bare_growth_permille": 300, "bare_min_hours": 168 },
   "groups": [
     {
       "id": "fruit",
