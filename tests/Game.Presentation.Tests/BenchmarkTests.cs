@@ -246,4 +246,20 @@ public sealed class BenchmarkTests
         Assert.Equal(cycle[1], plan.WeatherAt(data.WeatherChangeS + 0.1));
         Assert.Equal(cycle[0], plan.WeatherAt(cycle.Count * data.WeatherChangeS));
     }
+
+    [Fact]
+    public void EveryLateGameThingIsInTheCatalogAndHasALook()
+    {
+        // Review GW3 #542: a type without a catalog entry fails the spawn, one without a look is drawn as nothing.
+        var data = Data().LateGame!;
+        var catalog = ContractSerializer.Deserialize<ObjectTypes>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "objects", "start-catalog.json")));
+        var looks = ContractSerializer.Deserialize<LookObjects>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "objects.json")));
+        var known = catalog.Types.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+        var drawn = looks.Visuals.SelectMany(v => v.Types).ToHashSet(StringComparer.Ordinal);
+        foreach (var type in data.HeldTypes.Concat(data.PlacedTypes).Append(data.FireType))
+        {
+            Assert.Contains(type, known);
+            Assert.Contains(type, drawn);
+        }
+    }
 }

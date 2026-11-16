@@ -130,7 +130,14 @@ public partial class IslandScene : Node3D
         var figuresLook = Look<LookFigures>("figures.json");
         var appearanceLook = Look<LookAppearance>("appearance.json");
         var library = ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(content, "animation", "library.json")));
-        var shared = new FigureShared(library, figuresLook, time, speed) { HullOutline = _quality.HullOutline };
+        var shared = new FigureShared(library, figuresLook, time, speed)
+        {
+            HullOutline = _quality.HullOutline,
+
+            // A1775 (review GW3 #542): carried things as in the game - pose by the thing's properties, shape from the object view.
+            Carried = Look<LookCarried>("carried.json"),
+            PropertiesOf = type => host.Types.Contains(type) ? host.Types.TrueProperties(type) : new HashSet<string>(),
+        };
         var ground = island.Map;
         var terrain = view.Look;
         foreach (var inhabitant in host.Snapshot().Inhabitants)

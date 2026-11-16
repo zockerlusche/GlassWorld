@@ -48,6 +48,7 @@ public partial class IslandScene
     private BenchmarkLatePlan? _late;
     private readonly List<WorldObject> _crowdHeld = [];
     private string _lateWeather = string.Empty;
+    private readonly List<(string Id, double X, double Z)> _lateFires = [];
 
     /// <summary>A1775: plans the late game and lays its fires and things into the core's world (seed-fixed).</summary>
     private void PlanLateGame(LookBenchmark data, string scenario, ulong seed, GlassWorld.Simulation.SimulationHost host, Func<double, double, bool> onLand)
@@ -67,7 +68,11 @@ public partial class IslandScene
         _late = BenchmarkLatePlan.Build(late, seed, centre, onLand);
         foreach (var place in _late.Placements)
         {
-            host.Objects.Spawn(place.TypeId, new Position(place.X, place.Z));
+            var spawned = host.Objects.Spawn(place.TypeId, new Position(place.X, place.Z));
+            if (place.TypeId == late.FireType)
+            {
+                _lateFires.Add((spawned.Id, place.X, place.Z));
+            }
         }
     }
 
@@ -77,6 +82,23 @@ public partial class IslandScene
         var level = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * unitM;
         return (x, z) => x > 0 && z > 0 && x < _width && z < _depth && groundAt(x, z) > level;
     }
+
+    /// <summary>A1775 (review GW3 #542): a fire that burned out in an earlier pass is lit again at its spot.</summary>
+    private void RelightLateFires()
+    {
+        for (var i = 0; _late is not null && i < _lateFires.Count; i++)
+        {
+            var (id, x, z) = _lateFires[i];
+            if (!_host.Objects.TryGet(id, out _))
+            {
+                _lateFires[i] = (_host.Objects.Spawn(_benchmark!.LateGame!.FireType, new Position(x, z)).Id, x, z);
+            }
+        }
+    }
+
+    /// <summary>A1775 (review GW3 #542): the shape of a carried thing from the object view, as in the game.</summary>
+    private (Mesh Mesh, Material Material, double SizeM)? CarriedShape(string type) =>
+        _objects is { } view && view.LayerOf(view.Looks.For(type).VisualId) is { } layer ? (layer.Mesh, layer.Material, view.Looks.For(type).SizeM) : null;
 
     /// <summary>A1775: the id of the thing a crowd figure carries in the late game.</summary>
     private static string HeldId(string figureId) => figureId + "_held";
@@ -145,6 +167,7 @@ public partial class IslandScene
             var entry = new CrowdEntry(plan, templates[plan.Template]);
             var snapshot = CrowdSnapshot(entry, 0);
             entry.View = FigureView.Create(snapshot, spec(entry.Template), shared, ground);
+            entry.View.ShapeOf = CarriedShape;
             AddChild(entry.View);
             entry.View.Apply(snapshot, 0, 1, place: true, objects: _crowdHeld);
             _crowdFigures.Add(entry);
@@ -233,6 +256,7 @@ public partial class IslandScene
         var wind = pass.WindPermille / 1000.0;
         _benchWeather = new WeatherReading(pass.Weather, [pass.Weather], pass.WindPermille, 0, 0, 0, 0, 0, 0) { Wind = wind };
         _lateWeather = string.Empty; // A1775: the late game's cycle starts again with each pass
+        RelightLateFires();
         _nature!.Show(pass.Season, pass.Weather, Focus(_crowdCentre.X, _crowdCentre.Z), pass.Epoch ?? _epoch);
         ApplyPhase(pass.Phase);
     }
