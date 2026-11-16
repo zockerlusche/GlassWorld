@@ -45,7 +45,7 @@ Das Spiel hält alles neben sich, damit ein Blick in seinen Ordner alles zeigt:
 
 | Ordner | Was darin liegt |
 |---|---|
-| `daten\` | deine Welten (`worlds\`), Einstellungen, die Sammlung der erzeugten Dinge (`collection\`), Diagnoseberichte (`diagnostics\`) |
+| `daten\` | deine Welten (`worlds\`), Einstellungen, die Sammlung der erzeugten Dinge (`collection\`), Diagnoseberichte (`diagnostics\`), die KI-Modelle und Ollama (`ai-service\`, mehrere GB) |
 | `log\` | das Protokoll des Spiels (`godot.log`), die Protokolle der KI (`ki\`) und je Welt die Lauf-Spur (`welten\`) |
 
 - In den Einstellungen unter „Spiel“ öffnen die Knöpfe **Datenordner** und **Protokollordner**
@@ -54,6 +54,7 @@ Das Spiel hält alles neben sich, damit ein Blick in seinen Ordner alles zeigt:
   legt es `daten\` in `Dokumente\GlassWorld` an, die Protokolle dann in
   `Dokumente\GlassWorld\log\`.
 - Willst du das Spiel verschieben, nimm den ganzen Ordner mit: Dann wandern deine Welten mit.
+- Wer den Ordner sichert, sichert auch die KI-Modelle (mehrere GB).
 - Löschst du den Ordner, sind auch deine Welten weg. Sichere vorher `daten\worlds\`, wenn du sie
   behalten willst.
 
