@@ -27,6 +27,17 @@ public sealed class ThingInfoTests
     }
 
     [Fact]
+    public void AThingThatCannotBePickedIsSkippedAndALargeOneReachesFurther()
+    {
+        // Review GW3 #527: sea water (not drawn) or a thing in a hand is never meant; a large invention is hit at its edge.
+        WorldObject[] things = [new("obj-1", "sea_water", new Position(10, 5)), new("obj-2", "stone", new Position(10.8, 5)), new("obj-3", "hut", new Position(14, 5))];
+        double? Radius(WorldObject o) => o.TypeId switch { "sea_water" => null, "hut" => 3.0, _ => 1.0 };
+        Assert.Equal("obj-2", ThingInfo.Nearest(things, 10, 5, Radius)); // the sea water lies nearer but is not drawn
+        Assert.Equal("obj-3", ThingInfo.Nearest(things, 12, 5, Radius)); // 2 m from the hut's centre, within its 3 m
+        Assert.Null(ThingInfo.Nearest(things, 10, 5, _ => null));
+    }
+
+    [Fact]
     public void ItSaysWhatTheInhabitantsBelieveAndTheGround()
     {
         var host = Island();

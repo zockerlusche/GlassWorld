@@ -47,21 +47,37 @@ public sealed record ThingInfo(string ObjectId, string TypeId, string? BuilderId
     /// The thing nearest to a point on the ground within <paramref name="radiusM"/> metres (ties by id), or null - what a
     /// click into the world means when it hit no inhabitant.
     /// </summary>
-    public static string? Nearest(IEnumerable<WorldObject> things, double x, double z, double radiusM)
+    public static string? Nearest(IEnumerable<WorldObject> things, double x, double z, double radiusM) =>
+        Nearest(things, x, z, _ => radiusM);
+
+    /// <summary>
+    /// The thing nearest to a point whose own pick radius reaches it (review GW3 #527): <paramref name="radiusOf"/> gives
+    /// each thing's radius in metres (a large invention reaches further), or null for a thing that cannot be picked (not
+    /// drawn, or carried in a hand). Nearest by distance to its centre; ties by id.
+    /// </summary>
+    public static string? Nearest(IEnumerable<WorldObject> things, double x, double z, Func<WorldObject, double?> radiusOf)
     {
         ArgumentNullException.ThrowIfNull(things);
+        ArgumentNullException.ThrowIfNull(radiusOf);
         string? best = null;
-        var bestDistance = radiusM * radiusM;
+        var bestDistance = double.MaxValue;
         foreach (var thing in things)
         {
             var dx = thing.Position.X - x;
             var dz = thing.Position.Z - z;
             var distance = (dx * dx) + (dz * dz);
-            if (distance < bestDistance || (distance == bestDistance && best is not null && string.CompareOrdinal(thing.Id, best) < 0))
+            if (distance > bestDistance || (distance == bestDistance && best is not null && string.CompareOrdinal(thing.Id, best) > 0))
             {
-                best = thing.Id;
-                bestDistance = distance;
+                continue;
             }
+
+            if (radiusOf(thing) is not { } radius || distance > radius * radius)
+            {
+                continue;
+            }
+
+            best = thing.Id;
+            bestDistance = distance;
         }
 
         return best;

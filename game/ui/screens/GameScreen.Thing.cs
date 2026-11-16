@@ -15,10 +15,18 @@ public partial class GameScreen
     private GwWindow? _thingWindow;
 
     /// <summary>The thing a click at a point on the ground means (within the data's radius), or null.</summary>
-    private string? ThingAt(Vector3 point) =>
-        _feed?.Snapshot is { } snapshot && _style is not null
-            ? ThingInfo.Nearest(snapshot.Objects, point.X, point.Z, _style.Tokens.Window.ThingPickM)
-            : null;
+    private string? ThingAt(Vector3 point)
+    {
+        if (_feed?.Snapshot is not { } snapshot || _style is null || _presenter is null)
+        {
+            return null;
+        }
+
+        // Only what the island draws: not a type without a shape (sea water), not a thing in a hand (review GW3 #527).
+        var carried = snapshot.Inhabitants.Select(i => i.Held).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var least = _style.Tokens.Window.ThingPickM;
+        return ThingInfo.Nearest(snapshot.Objects, point.X, point.Z, thing => _presenter.PickRadius(thing, least, carried));
+    }
 
     /// <summary>Opens the info window of a thing (one at a time); returns it, or null when the thing is gone.</summary>
     public GwWindow? OpenThing(string objectId)
@@ -121,8 +129,11 @@ public partial class GameScreen
             return null;
         }
 
+        // Only what a click could open (drawn, not in a hand), as in the game (review GW3 #527).
         var types = host.Inhabitants.All.SelectMany(i => i.Beliefs.All.Select(b => b.TypeId)).ToHashSet(StringComparer.Ordinal);
-        var thing = host.Objects.All.FirstOrDefault(o => types.Contains(o.TypeId)) ?? host.Objects.All.FirstOrDefault();
+        var carried = host.Inhabitants.All.Select(i => i.Held).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var pickable = host.Objects.All.Where(o => _presenter.PickRadius(o, 1, carried) is not null).ToList();
+        var thing = pickable.FirstOrDefault(o => types.Contains(o.TypeId)) ?? pickable.FirstOrDefault();
         return thing is not null && OpenThing(thing.Id) is not null ? thing.Id : null;
     }
 }
