@@ -19,6 +19,24 @@ class FallbackEnvironment(BaseModel):
     weather: list[common_schema.VocabId] = Field(..., max_length=4, min_length=1)
 
 
+class LevelsBySpeedItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    speed: int = Field(
+        ...,
+        description='Speed factor from which the entry holds (1 = normal).',
+        ge=1,
+        le=1000,
+    )
+    up_to_level: int = Field(
+        ..., description='Highest rank that still goes to the AI (1-4).', ge=1, le=4
+    )
+
+
+type FirstKind = Annotated[str, Field(..., max_length=64, min_length=1)]
+
+
 class ThroughputSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -46,6 +64,20 @@ class ThroughputSettings(BaseModel):
         description="Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.",
         ge=1,
         le=1440,
+    )
+    levels_by_speed: list[LevelsBySpeedItem] | None = Field(
+        None,
+        description="A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.",
+    )
+    near_followed_m: float | None = Field(
+        None,
+        description='Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.',
+        ge=0.0,
+        le=1000.0,
+    )
+    first_kinds: list[FirstKind] | None = Field(
+        None,
+        description='Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.',
     )
 
 

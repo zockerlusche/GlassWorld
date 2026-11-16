@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 using GlassWorld.Simulation.Time;
 
@@ -58,6 +59,76 @@ public sealed class AiBudget : IWorldSystem, IOptionalWorldState
 
     /// <summary>Whether one more counted request may go out at <paramref name="tick"/>.</summary>
     public bool HasRoom(long tick) => !Active || Used(tick) < PerHour;
+
+    /// <summary>Rank 1 (R23): what the player raises - always goes, never counted.</summary>
+    public const int RankPlayer = 1;
+
+    /// <summary>Rank 2: the inhabitant the camera follows and those near it (B2804).</summary>
+    public const int RankFollowed = 2;
+
+    /// <summary>Rank 3: what is new or pressing (data: first_kinds).</summary>
+    public const int RankFirst = 3;
+
+    /// <summary>Rank 4: everything else.</summary>
+    public const int RankOther = 4;
+
+    /// <summary>
+    /// A1587 S3 (R26): the highest rank that still goes to the AI at the current speed - the data entry with the highest
+    /// speed not above the game's; every rank without the data.
+    /// </summary>
+    public int UpToRank =>
+        _settings?.LevelsBySpeed is { Count: > 0 } levels
+            ? levels.Where(l => l.Speed <= _pace.Speed).OrderByDescending(l => l.Speed).Select(l => l.UpToLevel).DefaultIfEmpty(RankOther).First()
+            : RankOther;
+
+    /// <summary>Whether a request of this rank may go to the AI at the current speed (rank 1 always).</summary>
+    public bool Allows(int rank) => !Active || rank <= RankPlayer || rank <= UpToRank;
+
+    /// <summary>
+    /// A1587 S3 (R23): the rank of a day request of an inhabitant - 1 the player's, 2 the followed inhabitant or one
+    /// near it, 3 a kind the data call new or pressing, 4 the rest. <paramref name="positionOf"/> gives where a living
+    /// inhabitant is (null = not in the world): a followed one who died or left ranks nobody (review GW1 #487).
+    /// </summary>
+    public int RankOf(string inhabitantId, string kind, Func<string, Position?> positionOf)
+    {
+        ArgumentNullException.ThrowIfNull(positionOf);
+        if (kind == DecisionsSystem.NoticedPlayer)
+        {
+            return RankPlayer;
+        }
+
+        if (IsNearFollowed(inhabitantId, positionOf))
+        {
+            return RankFollowed;
+        }
+
+        return _settings?.FirstKinds?.Contains(kind) == true ? RankFirst : RankOther;
+    }
+
+    /// <summary>Whether an inhabitant is the followed one or within the data's distance of it.</summary>
+    public bool IsNearFollowed(string inhabitantId, Func<string, Position?> positionOf)
+    {
+        ArgumentNullException.ThrowIfNull(positionOf);
+        if (_pace.FollowedId is not { } followed || positionOf(followed) is not { } at)
+        {
+            return false;
+        }
+
+        if (string.Equals(inhabitantId, followed, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var near = _settings?.NearFollowedM ?? 0;
+        if (near <= 0 || positionOf(inhabitantId) is not { } here)
+        {
+            return false;
+        }
+
+        var dx = here.X - at.X;
+        var dz = here.Z - at.Z;
+        return (dx * dx) + (dz * dz) <= near * near;
+    }
 
     /// <summary>Counts a request that went out at <paramref name="tick"/> (nothing without the data block).</summary>
     public void Note(long tick)
