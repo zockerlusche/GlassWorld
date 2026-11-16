@@ -148,6 +148,12 @@ Grafikkarte fuer die KI (etwa 1 Spieltag je Minute).
 Danach: Spiel starten (Start-mit-KI.cmd oder Start-ohne-KI.cmd) -> Hauptmenue -> Welten -> die Welt
 "Schnell <Seed>" laden und mit Grafik weiterspielen. Eine vorhandene Welt wird nie ueberschrieben.
 Waehrend eines Laufs mit KI bitte kein Spiel mit KI offen haben (beide brauchen den KI-Dienst).
+
+Tempo per Befehlszeile (Marcel W2271): Das Spiel startet eine Welt immer mit normalem Tempo; im Menue gibt es
+dafuer keine Einstellung. Fuer lange Laeufe mit Fenster kann die Befehlszeile ein Tempo setzen:
+  GlassWorld.exe -- --speed=16        (Tempo x16; erlaubt sind 0 = Pause, 1 = normal und die schnellen Stufen)
+  GlassWorld.exe -- --run-s=600       (10 Minuten im schnellsten Tempo, dann speichern und beenden)
+Der Schnelldurchlauf oben rechnet ohne Fenster immer so schnell er kann.
 TXT
 sed -i -e 's/$/\r/' "$OUT/Schnelldurchlauf-LIESMICH.txt"
 # The AI service's environment is made now, not at the first start (TL #24536): uv would build it there in
