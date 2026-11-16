@@ -23,6 +23,45 @@ class BuildQualityTier(BaseModel):
     )
 
 
+class BuildSite(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='The decider option that chooses a place (vocabulary action, only_when build_site).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    candidates: int = Field(
+        ...,
+        description='Places offered at most; with one only, nobody is asked.',
+        ge=1,
+        le=5,
+    )
+    radius_m: float = Field(
+        ...,
+        description='How far from the builder places are looked for.',
+        ge=1.0,
+        le=64.0,
+    )
+    clearance_m: float = Field(
+        ...,
+        description='No thing may stand closer than this to a place.',
+        ge=0.0,
+        le=10.0,
+    )
+    min_spacing_m: float = Field(
+        ..., description='Places offered lie at least this far apart.', ge=0.0, le=32.0
+    )
+    near_m: float = Field(
+        ...,
+        description='A thing the builder knows within this distance names a place (its own name for it); none = a free place.',
+        ge=0.0,
+        le=32.0,
+    )
+
+
 class BuildEscalation(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -159,4 +198,8 @@ class BuildSettings(BaseModel):
         le=20,
     )
     escalation: BuildEscalation | None = None
+    site: BuildSite | None = Field(
+        None,
+        description='A1373 (D827 R15, TL #26920): where to build - when a plan is accepted the core finds up to candidates free places near the builder (walkable, dry, nothing within clearance_m, reachable), the nearest stands as the site, and the decider is asked to choose among them (occasion build_site, action of the data). The answer moves the site while nothing of the thing stands yet; without an answer the nearest stays. Omitted = the site is where the builder stands, as before.',
+    )
     quality: BuildQuality | None = None

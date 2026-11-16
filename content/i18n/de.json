@@ -927,6 +927,10 @@
       "text": "Um Hilfe bitten"
     },
     {
+      "key": "vocab.action.build_here",
+      "text": "Hier bauen"
+    },
+    {
       "key": "vocab.action.give_up",
       "text": "Aufgeben"
     },

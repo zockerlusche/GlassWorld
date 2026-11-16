@@ -446,6 +446,26 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
+    public void AQuestionHeldByTheDayBudgetIsAskedInTheNight()
+    {
+        // A1587 S4 (D1161, B7 R25 'no occasion is lost'): a question the day budget never let out keeps its mark and goes
+        // with the compute night, like a question of a trigger that asks at night.
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        settings.Throughput = new ThroughputSettings { DayShare = 0.000001, FallbackJobMs = 600_000, MinPerHour = 0, AnswerWithinMinutes = 60 };
+        var (host, a, port) = World(settings: settings);
+        host.World.Run(2);
+        var question = Assert.Single(host.Decisions.Open, q => q.Subject == "type:" + Thing);
+        Assert.Equal(string.Empty, question.RequestId);
+        Assert.DoesNotContain(host.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Request);
+
+        RunIntoTheNight(host);
+
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal(Thing, job.Payload.Question!.Subject.Id);
+        Assert.Equal(a.Id, host.Decisions.Open.Single(q => q.Id == question.Id).InhabitantId);
+    }
+
+    [Fact]
     public void TheMemoryComesFirstAndTheQuestionReadsTheNewSummary()
     {
         var (host, a, port) = World();
