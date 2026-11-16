@@ -803,6 +803,12 @@ public partial class GameScreen : CanvasLayer
     /// <inheritdoc/>
     public override void _Input(InputEvent @event)
     {
+        // A1356 (B8-11): a written thing under the resting pointer says what is written on it.
+        if (@event is InputEventMouseMotion hover && !_worldHeld && _click is not { Pressed: true })
+        {
+            HoverWriting(hover.Position);
+        }
+
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
         // still a drag; nothing is consumed here (only a time key on a focused time button, GameScreen.Keys).
         if (_worldHeld || TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)

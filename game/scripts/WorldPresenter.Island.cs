@@ -58,6 +58,10 @@ public partial class WorldPresenter
     private double _seaLevelM = double.NegativeInfinity;
     private float _cellM = 1;
     private long _bareSeen = -1; // A1385: the core's BareVersion last shown
+    private GlassWorld.Game.World.WritingView? _writingView; // A1356: marks above written things
+
+    /// <summary>A1356: the look of written things (thresholds of the legibility words), null before an island.</summary>
+    public LookWriting? WritingLookData { get; private set; }
     private Color _bareColor = Colors.Tan;
     private readonly List<int> _groups = [];
     private readonly Dictionary<int, List<Node3D>> _groupMembers = [];
@@ -374,6 +378,26 @@ public partial class WorldPresenter
         _islandView.ShowBare(BareGround.Mask(width, depth, map.BareCells), width, depth, overuse.CellM, _bareColor, bare.Strength);
     }
 
+    /// <summary>A1356 (B8-11): the written things of the world, with their marks (redrawn only when they changed).</summary>
+    private void ShowWriting()
+    {
+        if (_host is null || _writingView is null)
+        {
+            return;
+        }
+
+        var texts = new List<(string, string, double, double, double)>();
+        foreach (var text in _host.Writing.Capture())
+        {
+            if (_host.Objects.TryGet(text.ObjectId, out var carrier))
+            {
+                texts.Add((text.ObjectId, text.MediumId, text.Legibility, carrier.Position.X, carrier.Position.Z));
+            }
+        }
+
+        _writingView.Refresh(texts);
+    }
+
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
     public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
 
@@ -516,6 +540,10 @@ public partial class WorldPresenter
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
+        _writingView?.QueueFree();
+        WritingLookData = Read<LookWriting>(content, "look", "writing.json");
+        _writingView = GlassWorld.Game.World.WritingView.Create(WritingLookData, palette, _ground);
+        AddChild(_writingView);
         if (_nature.Data.Bare is { } bareLook && palette.Colors.FirstOrDefault(c => c.Id == bareLook.Color) is { } bareColor)
         {
             _bareColor = Color.FromHtml(bareColor.Color);
@@ -875,6 +903,7 @@ public partial class WorldPresenter
         }
 
         ShowBareGround();
+        ShowWriting();
 
         // Inventions with a building plan are drawn from it (A1375): their objects are not the object view's.
         // A world without a building plan (most of the time) costs nothing here.
