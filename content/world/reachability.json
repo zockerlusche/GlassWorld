@@ -11,8 +11,6 @@
   "known_gaps": [
     { "gap": "property:wearable", "reason": "Only an invention with the base function worn has it (B2752, base_functions.json); the analysis does not model inventions." },
     { "gap": "property:digs", "reason": "A1578: only a made digging tool has it (an invention, like wearable); the analysis does not model inventions." },
-    { "gap": "type:ore_chunk", "reason": "A1578: ore lies below the layers bare hands can dig; it needs a tool with digs (see property:digs)." },
-    { "gap": "property:ore_bearing", "reason": "A1578: only the ore chunk has it (see type:ore_chunk)." },
     { "gap": "type:waterhole", "reason": "A1578: the groundwater lies below what bare hands can dig in the analysis; it needs a tool with digs (see property:digs). In the game shallow groundwater can be reached by hand." },
     { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
 
