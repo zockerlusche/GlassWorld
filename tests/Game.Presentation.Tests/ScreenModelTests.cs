@@ -171,7 +171,7 @@ public sealed class ScreenModelTests
     [Theory]
     [InlineData(0, "")]
     [InlineData(1, "?")]
-    [InlineData(2, "??")]
-    [InlineData(7, "???")]
-    public void QuestionMarksShowHowManyUpToThree(int open, string expected) => Assert.Equal(expected, ScreenModel.QuestionMarks(open));
+    [InlineData(2, "?")]
+    [InlineData(7, "?")]
+    public void OneQuestionMarkWhateverHowMany(int open, string expected) => Assert.Equal(expected, ScreenModel.QuestionMarks(open)); // A1788: one sign, one meaning
 }

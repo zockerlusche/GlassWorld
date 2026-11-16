@@ -62,6 +62,20 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
             }
         };
 
+        // A processed thing keeps its age and is queued anew by its new class, as a loaded world does (GW2 #492).
+        _objects.TypeChanged += (_, now) =>
+        {
+            if (_dueOf.Remove(now.Id, out var was))
+            {
+                _queue.Remove((was, now.Id));
+            }
+
+            if (_started)
+            {
+                Track(now, null);
+            }
+        };
+
         // A thing that leaves the world is forgotten at once, so a loaded world and the running one agree.
         _objects.Removed += thing =>
         {
@@ -315,7 +329,10 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
         // The rest of the life, stretched by quality (A1576); use only ever brings the end nearer and is looked at when it happens.
         var rest = Math.Max(1L, (1000 - wear) * life / 1000 * LifePermille(thing.TypeId) / 1000);
         var fastest = 1000L + (material.WetPermille ?? 0) + (material.FrostPermille ?? 0) + (material.HeatPermille ?? 0) + (material.WetFrostPermille ?? 0);
-        var due = now + Math.Max(1L, rest * 1000 / fastest);
+        // In its last hour it is looked at every tick, so its end is the first tick its wear reaches 1000 - the same in a
+        // running and a loaded world, whenever it was queued (GW2 #492: before, the end came a tick or two apart).
+        var delay = Math.Max(1L, rest * 1000 / fastest);
+        var due = now + (delay <= _ticksPerHour ? 1 : delay);
         _queue.Add((due, thing.Id));
         _dueOf[thing.Id] = due;
     }

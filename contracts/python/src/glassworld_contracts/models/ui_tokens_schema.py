@@ -94,6 +94,12 @@ class UiWindowTokens(BaseModel):
         ge=8,
         le=200,
     )
+    thing_pick_m: float = Field(
+        ...,
+        description='A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).',
+        ge=0.1,
+        le=10.0,
+    )
     side_panel_width: int = Field(
         ...,
         description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',
@@ -472,6 +478,71 @@ class UiLogCategory(BaseModel):
     highlight: bool
 
 
+class UiPortraitStates(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    knock_taps: int = Field(
+        ...,
+        description='Pulses of the ring per knock (B2792: twice short, then a pause).',
+        ge=1,
+        le=5,
+    )
+    knock_tap_s: float = Field(
+        ...,
+        description='How long one pulse of the knock ring lasts (real seconds).',
+        ge=0.05,
+        le=2.0,
+    )
+    knock_gap_s: float = Field(
+        ...,
+        description='The pause between two pulses of one knock (real seconds).',
+        ge=0.0,
+        le=2.0,
+    )
+    knock_pause_s: float = Field(
+        ...,
+        description='The pause after a knock before the next one (real seconds).',
+        ge=0.1,
+        le=10.0,
+    )
+    ring_share: float = Field(
+        ...,
+        description="Thickness of a state's ring as a share of the portrait's diameter.",
+        ge=0.02,
+        le=0.3,
+    )
+    aha_flash_s: float = Field(
+        ...,
+        description='The aha ring lights up once this long (real seconds), then stays calmly bright without pulsing.',
+        ge=0.0,
+        le=5.0,
+    )
+    aha_hours: float = Field(
+        ...,
+        description='How long an aha stays (game hours, B2792: about one game day) unless the portrait is clicked.',
+        ge=0.1,
+        le=240.0,
+    )
+    aha_events: list[common_schema.VocabId] = Field(
+        ...,
+        description="The inhabitant's own events that are an aha (GW1 #27065: invented, built, word_heard); vocabulary event ids.",
+        max_length=16,
+    )
+    worry_after_hours: float = Field(
+        ...,
+        description="A need below its neglect line this long (game hours, the snapshot's NeglectHours) shows the worry mark; a fading inhabitant shows it too.",
+        ge=0.0,
+        le=240.0,
+    )
+    badge_share: float = Field(
+        ...,
+        description="Diameter of the badge on the portrait's edge as a share of the portrait's diameter.",
+        ge=0.2,
+        le=0.7,
+    )
+
+
 class Log(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -564,6 +635,12 @@ class Zones(BaseModel):
     )
     favor_bar_width: int = Field(
         ..., description='Width of the favour bar top right.', ge=60, le=1200
+    )
+    season_bar_width: int = Field(
+        ...,
+        description="A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+        ge=16,
+        le=400,
     )
     middle_share: float = Field(
         ...,
@@ -691,3 +768,4 @@ class UiTokens(BaseModel):
         ...,
         description='One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).',
     )
+    portrait_states: UiPortraitStates

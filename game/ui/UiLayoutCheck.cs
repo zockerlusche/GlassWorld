@@ -279,7 +279,7 @@ public static class UiLayoutCheck
             window.Visible = right == window;
             card.Visible = right == card;
             var showing = count >= zones.PortraitsImportantFrom ? zones.PortraitsImportantMax : count;
-            portraits.SetRows([.. Enumerable.Range(1, showing).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, i % 2 == 0))], count - showing);
+            portraits.SetRows([.. Enumerable.Range(1, showing).Select(i => new PortraitEntry($"inh-{i}", TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }) + " Maximiliane-Friederike", activity, (PortraitState)(i % 5)))], count - showing);
             for (var pass = 0; pass < 2; pass++)
             {
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);

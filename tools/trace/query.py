@@ -42,20 +42,28 @@ SERVICE_FIELDS = (
 
 
 def default_service_logs() -> Path | None:
-    """The service's call logs (GW2 #25922/#25989): a headless run's GLASSWORLD_HEADLESS_DATA/logs
-    when that is set, else the game's <userdata>/ai-service/logs; None if neither exists."""
+    """The service's call logs (GW2 #25922/#25989): the game's log folder (A1787 part 2: log/ki
+    next to a daten/ folder, else in it), a headless run's GLASSWORLD_HEADLESS_DATA/logs, else the
+    game's <userdata>/log/ki or older <userdata>/ai-service/logs; None if none exists."""
     candidates: list[Path] = []
+    if data := os.environ.get("GLASSWORLD_DATA"):
+        folder = Path(data)
+        candidates.append(
+            (folder.parent if folder.name.lower() == "daten" else folder) / "log" / "ki"
+        )
+        candidates.append(folder / "ai-service" / "logs")
     if headless := os.environ.get("GLASSWORLD_HEADLESS_DATA"):
         candidates.append(Path(headless) / "logs")
     if appdata := os.environ.get("APPDATA"):
-        candidates.append(
-            Path(appdata) / "Godot" / "app_userdata" / "GlassWorld" / "ai-service" / "logs"
-        )
+        user = Path(appdata) / "Godot" / "app_userdata" / "GlassWorld"
+        candidates.append(user / "log" / "ki")
+        candidates.append(user / "ai-service" / "logs")
     return next((folder for folder in candidates if folder.is_dir()), None)
 
 
 def service_calls(logs: Path, request_id: str) -> Iterator[dict[str, Any]]:
     """Every model call of the service for one request (one line per attempt, one file per role)."""
+    # Rolled parts (GW2 #505: <name>.N.jsonl) are read too, in name order.
     for path in sorted(logs.glob("*.jsonl")):
         with path.open(encoding="utf-8") as handle:
             for raw in handle:

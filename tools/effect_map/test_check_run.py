@@ -99,6 +99,31 @@ def test_the_mood_driver_rule_holds_on_the_data() -> None:
     assert results["mood_drivers_move_their_mood"]
 
 
+def test_an_exempt_sensation_may_stay_below_the_return_but_a_need_may_not() -> None:
+    """A1786 (B2839): cold alone may drive frustration slower than it returns; a need's driver still has to lift it."""
+    module = _module()
+    model = {
+        "moods": [{"id": "frustration", "baseline": 0.05, "return_per_hour": 0.05}],
+        "mood_drivers": [
+            {"sensation": "too_cold", "mood": "frustration", "delta_per_hour": 0.02},
+            {"need": "hunger", "below": 0.3, "mood": "frustration", "delta_per_hour": 0.05},
+        ],
+    }
+    expectation = {
+        "kind": "mood_driver_lift_per_day",
+        "min_lift": 0.3,
+        "exempt_sensations": ["too_cold"],
+    }
+    ok, text = module.check_data(expectation, model)
+    assert not ok
+    assert "hunger" in text
+    assert "too_cold" not in text
+
+    model["mood_drivers"][1]["delta_per_hour"] = 0.07
+    ok, text = module.check_data(expectation, model)
+    assert ok, text
+
+
 def test_a_missing_day_ends_a_neglect_streak(tmp_path: Path) -> None:
     """Review GW3 #461: a gap in the trace is no streak - two neglected halves around a missing day file."""
     module = _module()
