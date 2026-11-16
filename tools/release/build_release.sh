@@ -81,6 +81,9 @@ bash "$ROOT/tools/export-windows.sh" "$STAGE"
 # The test package's start scripts point at the build machine's repository: not for a release. The quick run
 # (A1743, B2787) is a test package tool too: it runs tools/schnelldurchlauf from the repository with uv and the .NET SDK.
 rm -f "$STAGE/Start-mit-KI.cmd" "$STAGE/Start-ohne-KI.cmd" "$STAGE/Schnelldurchlauf.cmd" "$STAGE/Schnelldurchlauf-LIESMICH.txt"
+# A release starts its packaged AI by itself (A1421); to play without AI it gets its own start script (review GW5 #563),
+# with nothing of the build machine in it.
+printf '@echo off\r\nrem GlassWorld ohne KI starten (die Bewohner leben nach einfachen Regeln).\r\nset GLASSWORLD_AI=mock\r\nstart "" "%%~dp0GlassWorld.exe" --log-file "%%~dp0log\\godot.log"\r\n' > "$STAGE/Start-ohne-KI.cmd"
 
 echo "== AI service (embedded Python)"
 uv run --project "$ROOT" python "$ROOT/tools/package_ai_service.py" "$PYTHON_DIR" "$STAGE"
