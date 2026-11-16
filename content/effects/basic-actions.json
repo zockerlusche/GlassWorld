@@ -15,6 +15,7 @@
     { "action": "build_smaller", "destination": "here", "duration_minutes": 10, "reach_m": 0, "decider_option": false },
     { "action": "ask_for_help", "destination": "here", "duration_minutes": 5, "reach_m": 2, "decider_option": false },
     { "action": "give_up", "destination": "here", "duration_minutes": 5, "reach_m": 0, "decider_option": false },
+    { "action": "build_here", "destination": "here", "duration_minutes": 1, "reach_m": 0, "decider_option": false },
     { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 },
     { "action": "explore", "destination": "frontier", "duration_minutes": 10, "reach_m": 1 },
     { "action": "warn", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
