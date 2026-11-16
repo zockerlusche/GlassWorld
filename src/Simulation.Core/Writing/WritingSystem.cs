@@ -194,12 +194,12 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
                     Inhabitants.Report(new WorldEvent(WritingFound, tick, inhabitant.Id, null, text.ObjectId) { Detail = text.AuthorId });
                 }
 
-                // A1357 (spec 33 section 9a): one who can read and is curious reads it in passing - once, also a text
-                // it saw before it could read.
-                if (Skills is not null && !_seen.Contains(ReadMark + inhabitant.Id + "|" + text.ObjectId)
-                    && WouldReadInPassing(inhabitant, text, Skills) is null)
+                // A1357 (spec 33 section 9a): one who is awake, can read and is curious reads it in passing - once, also a
+                // text it saw before it could read. A sleeper reads nothing (review GW3 #543, D1112 #8). The cheap checks
+                // come first, so the mark's key is only built for one who would read.
+                if (Skills is not null && !Inhabitants.IsAsleep(inhabitant) && WouldReadInPassing(inhabitant, text, Skills) is null
+                    && _seen.Add(ReadMark + inhabitant.Id + "|" + text.ObjectId))
                 {
-                    _seen.Add(ReadMark + inhabitant.Id + "|" + text.ObjectId);
                     Learn(inhabitant, text, tick);
                 }
             }
@@ -214,6 +214,8 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     private void Learn(Inhabitant reader, WrittenText text, long tick)
     {
+        // It was read, whatever it teaches (review GW3 #543: the look shows the glance, the chronicle can tell it).
+        Inhabitants!.Report(new WorldEvent(TextRead, tick, reader.Id, null, text.ObjectId) { Detail = text.KnowledgeRef });
         if (ParseBelief(text.KnowledgeRef) is not { } belief)
         {
             return;
@@ -228,7 +230,6 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
         }
 
         reader.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, confidence, KnowledgeSources.Read, text.AuthorId, tick);
-        Inhabitants!.Report(new WorldEvent(TextRead, tick, reader.Id, null, text.ObjectId) { Detail = text.KnowledgeRef });
     }
 
     /// <summary>A knowledge ref of the form <c>belief:type|property|true|false</c>, or null.</summary>

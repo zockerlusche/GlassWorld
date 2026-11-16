@@ -185,6 +185,40 @@ public sealed class WritingRulesTests : IDisposable
     }
 
     [Fact]
+    public void ASleeperReadsNothingAndReadsItOnceAwake()
+    {
+        // Review GW3 #543 (D1112 #8): one asleep beside a text neither reads nor learns; awake it reads it, and the read is
+        // reported even when it teaches nothing new.
+        var (host, reader, _) = Placeholder();
+        var rules = host.Content.Writing.Read;
+        reader.Traits[rules.CuriosityTrait] = 1.0;
+        host.SkillLevels.Restore([new SkillGain(reader.Id, rules.Ability, 0.5)]);
+        reader.Beliefs.Set("water", "drinkable", true, 0.99, KnowledgeSources.Experienced);
+        var read = new List<WorldEvent>();
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == WritingSystem.TextRead && e.InhabitantId == reader.Id)
+            {
+                read.Add(e);
+            }
+        };
+
+        reader.Activity = new Activity(host.Content.InhabitantModel.Togetherness!.SleepAction, null, reader.Position, 10_000);
+        host.World.Step();
+        Assert.True(host.Inhabitants.IsAsleep(reader));
+        var stone = host.Objects.Spawn("fieldstone", reader.Position);
+        host.Writing.Place(new WrittenText(stone.Id, "carving_stone", "belief:water|drinkable|true", "inh-000099", host.World.Tick, 0.8));
+        host.World.Run(5);
+        Assert.Empty(read);
+
+        reader.Activity = null;
+        host.World.Run(2);
+        var e = Assert.Single(read);
+        Assert.Equal(stone.Id, e.TargetId);
+        Assert.Equal(KnowledgeSources.Experienced, reader.Beliefs.TryGet("water", "drinkable", out var kept) ? kept.Source : null);
+    }
+
+    [Fact]
     public void AnOldTextIsFoundOnceAYoungOneIsOnlySeen()
     {
         var (host, finder, other) = Placeholder();
