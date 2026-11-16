@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/digging-settings.schema.json",
+  "title": "DiggingSettings",
+  "description": "A1578 (B4b K5, R33, D711 section 6): digging into the island's underground (map layer: soil, groundwater depth, ore). Each dig where an inhabitant stands deepens the hole of that map cell by step_cm and brings up the material of the layer at that depth as a thing; the first dig makes the pit, reaching the groundwater makes it a well and nothing goes deeper. Ore only above the groundwater, by the cell's ore share. Limited: the height map does not change (that is A1460). Placeholder values for the TL.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "action",
+    "step_cm",
+    "pit_type",
+    "well_type",
+    "tool_property",
+    "layers"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "action": {
+      "description": "The action that digs (vocabulary action, target none).",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "step_cm": {
+      "description": "How much deeper one dig goes.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "pit_type": {
+      "description": "Object type of the hole (made by the first dig at a cell).",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "well_type": {
+      "description": "Object type the hole becomes at the groundwater.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "tool_property": {
+      "description": "A held thing with this TRUE property digs any layer; with bare hands only layers marked by_hand (no_tool otherwise).",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "layers": {
+      "description": "Top down: the first whose until_cm lies below the depth dug so far gives the material.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/DigLayer"
+      }
+    },
+    "ore": {
+      "$ref": "#/$defs/DigOre"
+    }
+  },
+  "$defs": {
+    "DigLayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "until_cm"
+      ],
+      "properties": {
+        "until_cm": {
+          "description": "The layer reaches down to this depth.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "material": {
+          "description": "Object type it brings up; null = nothing.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "by_soil": {
+          "description": "The cell's soil (map soil ids) decides the material instead, where listed (the top layer is the soil).",
+          "type": "object",
+          "maxProperties": 16,
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "by_hand": {
+          "description": "Bare hands can dig it (loose soil). Omitted = only with a tool.",
+          "type": "boolean"
+        },
+        "ore_possible": {
+          "description": "Ore can come from this layer (by the cell's ore share).",
+          "type": "boolean"
+        },
+        "not_by_hand_on": {
+          "description": "Review GW4 #506: soils of this layer bare hands cannot dig even if by_hand (rock is rock); omitted = none.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "DigOre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "description": "Object type of ore.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    }
+  }
+}

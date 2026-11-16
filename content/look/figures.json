@@ -175,8 +175,7 @@
     "spacing_px": 22,
     "period_s": 2.4,
     "alpha_min": 0.2,
-    "alpha_max": 0.85,
-    "question_font_px": 48
+    "alpha_max": 0.85
   },
   "lying": {
     "clips": [
@@ -512,6 +511,53 @@
       ],
       "tap_hz": 2.5,
       "tap_m": 0.05
+    },
+    {
+      "id": "carry_two",
+      "actions": [],
+      "arms": [
+        "left",
+        "right"
+      ],
+      "rise_s": 0.5,
+      "hold_s": 1.0,
+      "lower_s": 0.5,
+      "rest_s": 0.0,
+      "influence": 0.8,
+      "to_head": [
+        0.16,
+        -0.5,
+        0.28
+      ],
+      "pole": [
+        0.5,
+        0.6,
+        -0.3
+      ],
+      "steady": true
+    },
+    {
+      "id": "carry_one",
+      "actions": [],
+      "arms": [
+        "right"
+      ],
+      "rise_s": 0.5,
+      "hold_s": 1.0,
+      "lower_s": 0.5,
+      "rest_s": 0.0,
+      "influence": 0.7,
+      "to_head": [
+        0.2,
+        -0.75,
+        0.18
+      ],
+      "pole": [
+        0.5,
+        0.6,
+        -0.3
+      ],
+      "steady": true
     }
   ],
   "comfort": [

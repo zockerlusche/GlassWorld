@@ -84,6 +84,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("shelter_radius_cm")]
         public int ShelterRadiusCm { get; set; } = default!;
 
+        /// <summary>
+        /// How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("shelter_still_air_tenth_c")]
+        public int? ShelterStillAirTenthC { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -414,6 +421,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("at_levels")]
         public System.Collections.Generic.ICollection<string>? AtLevels { get; set; } = default!;
 
+        /// <summary>
+        /// A1793 (D1192 #7): this action on a thing under a shelter, done under the shelter, does not end while the rain or the cold of in_precipitation/at_levels lasts there, or while the need of hold_while is still below its line - one action instead of short pieces (no new start, no repetition count, one diary line). Absent = it ends after its duration as any action.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("holds_action")]
+        public string? HoldsAction { get; set; } = default!;
+
+        /// <summary>
+        /// A need the shelter is taken for and its line: while the need is below it, the shelter holds too (feeling cool is not yet cold). Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hold_while")]
+        public HoldWhile? HoldWhile { get; set; } = default!;
+
+        /// <summary>
+        /// It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hold_while_needs_above")]
+        public double? HoldWhileNeedsAbove { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -437,6 +462,18 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("height_cm")]
         public int HeightCm { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class HoldWhile
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("below")]
+        public double Below { get; set; } = default!;
 
     }
 }

@@ -167,4 +167,65 @@ public sealed class DurabilityTests
 
         host.World.Run(1);
     }
+
+    [Fact]
+    public void AProcessedThingKeepsItsAgeAndHolderAndEndsAtTheSameTickAfterSavingAndLoading()
+    {
+        // GW2 #492: a processed thing (WorldObjects.ChangeType) left the world and came back - the running world forgot its
+        // age, a loaded one started it anew, and they ended it at different ticks; the holder lost it from the hand too.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var who = host.Inhabitants.All.First();
+        var apple = host.Objects.Spawn("apple", new Position(who.Position.X + 30, who.Position.Z));
+        host.World.Run(30);
+        host.Objects.ChangeType(apple.Id, "egg"); // firm fruit -> fresh food: another material class
+        Assert.True(host.Objects.TryGet(apple.Id, out var changed));
+        Assert.Equal("egg", changed.TypeId);
+        host.World.Run(5);
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-durability-change-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            Assert.Equal(host.Durability!.WearPermille(changed, host.World.Tick), loaded.Durability!.WearPermille(changed, loaded.World.Tick));
+            long? Gone(SimulationHost world)
+            {
+                for (var i = 0; i < 20_000; i++)
+                {
+                    if (!world.Objects.TryGet(apple.Id, out _))
+                    {
+                        return world.World.Tick;
+                    }
+
+                    world.World.Step();
+                }
+
+                return null;
+            }
+
+            var running = Gone(host);
+            Assert.NotNull(running);
+            Assert.Equal(running, Gone(loaded));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AProcessedThingStaysInTheHandOfWhoHoldsIt()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var who = host.Inhabitants.All.First();
+        var apple = host.Objects.Spawn("apple", who.Position);
+        host.Objects.SetHeld(apple.Id, who.Id);
+        who.Held = apple.Id;
+        host.Objects.ChangeType(apple.Id, "egg");
+        Assert.Equal(apple.Id, who.Held);
+        Assert.Equal(who.Id, host.Objects.HeldBy(apple.Id));
+    }
 }
