@@ -373,7 +373,7 @@ class DecisionRequest(BaseModel):
     )
     occasion: str | None = Field(
         None,
-        description="Why the core asks, when it is not something new or a stuck building (B2663): 'leisure', 'intention', 'action_failed' or 'build_site' (where to build, A1373) - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
+        description="Why the core asks, when it is not something new or a stuck building (B2663): 'leisure' (the inhabitant is awake, no need presses and it is bored), 'intention' (its morning intention, offered in such a free moment), 'action_failed' (an action failed, A1778) or 'build_site' (where to build, A1373; review GW2 #526). A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
