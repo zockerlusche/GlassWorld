@@ -64,8 +64,9 @@ def runner_dll() -> Path | None:
 
     'dotnet run --no-build' still evaluates the project with MSBuild first, about 15 s per
     start (TL #27953, measured 16.11.)."""
-    found = sorted((PROJECT / "bin" / "Release").glob("*/GlassWorld.Simulation.Headless.dll"))
-    return found[-1] if found else None
+    # The newest build wins (review GW3 #544: as text, net9.0 would sort after net10.0).
+    found = (PROJECT / "bin" / "Release").glob("*/GlassWorld.Simulation.Headless.dll")
+    return max(found, key=lambda dll: dll.stat().st_mtime, default=None)
 
 
 def slug(name: str) -> str:
