@@ -37,6 +37,16 @@
       }
     ]
   },
+  "late_game": {
+    "held_types": ["dry_wood", "fieldstone", "flint", "reed", "bark", "driftwood", "shell", "slate", "clay", "apple"],
+    "placed_count": 500,
+    "placed_radius_m": 45,
+    "placed_types": ["dry_wood", "fieldstone", "slate", "sandstone", "driftwood", "reed", "flax", "bark", "clay", "shell", "flint", "dry_grass", "wool", "feather"],
+    "fires": 6,
+    "fire_type": "fire",
+    "weather_cycle": ["clear", "cloudy", "rain", "storm"],
+    "weather_change_s": 15
+  },
   "camera": [
     { "at_s": 0, "yaw_deg": 0, "pitch_deg": 60, "distance_m": 140 },
     { "at_s": 20, "yaw_deg": 40, "pitch_deg": 55, "distance_m": 110 },

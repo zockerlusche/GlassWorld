@@ -13,7 +13,7 @@ namespace GlassWorld.Game.World;
 /// The FPS benchmark of the island scene (B2-7, acceptance 5, R30). Arguments after <c>--</c>:
 /// <c>--benchmark=CSV</c> (frame-time file: pass, time_s, frame_ms), <c>--bench-pass=ID|all</c>,
 /// <c>--quality=ID</c>, <c>--resolution=WxH</c>, <c>--fullscreen</c>, and for short headless checks
-/// <c>--bench-seconds=S</c> / <c>--bench-warmup=S</c>. Everything else is data (content/look/benchmark.json):
+/// <c>--bench-seconds=S</c> / <c>--bench-warmup=S</c>, <c>--bench-scenario=late</c> (A1775, B2810: the late game of the data). Everything else is data (content/look/benchmark.json):
 /// the fixed world, the crowd, the camera path and the passes. VSync is off and the frame rate unlimited.
 /// The crowd is placeholder figures of the presentation only: they borrow the look of the inhabitants, play
 /// the same clips through the same figure code, and never enter the core or its state hash. A pass shows its
@@ -43,6 +43,65 @@ public partial class IslandScene
     private (double X, double Z) _crowdCentre;
     private WeatherReading? _benchWeather;
     private string _crowdWalkGait = string.Empty;
+
+    // A1775 (B2810): the late game scenario (--bench-scenario=late), or null for the start scenario.
+    private BenchmarkLatePlan? _late;
+    private readonly List<WorldObject> _crowdHeld = [];
+    private string _lateWeather = string.Empty;
+    private readonly List<(string Id, double X, double Z)> _lateFires = [];
+
+    /// <summary>A1775: plans the late game and lays its fires and things into the core's world (seed-fixed).</summary>
+    private void PlanLateGame(LookBenchmark data, string scenario, ulong seed, GlassWorld.Simulation.SimulationHost host, Func<double, double, bool> onLand)
+    {
+        if (scenario != "late" || data.LateGame is not { } late)
+        {
+            throw new InvalidDataException($"--bench-scenario={scenario}: only 'late' is known, and it needs late_game in content/look/benchmark.json.");
+        }
+
+        if (late.WeatherCycle.FirstOrDefault(w => !_nature!.WeatherWithLook.Contains(w)) is { } unknown)
+        {
+            throw new InvalidDataException($"late_game weather '{unknown}' has no look (content/look/weather.json).");
+        }
+
+        var first = host.Snapshot().Inhabitants.Where(i => i.Appearance is not null).OrderBy(i => i.Id, StringComparer.Ordinal).FirstOrDefault();
+        var centre = first is null ? (_width / 2.0, _depth / 2.0) : (first.Position.X, first.Position.Z);
+        _late = BenchmarkLatePlan.Build(late, seed, centre, onLand);
+        foreach (var place in _late.Placements)
+        {
+            var spawned = host.Objects.Spawn(place.TypeId, new Position(place.X, place.Z));
+            if (place.TypeId == late.FireType)
+            {
+                _lateFires.Add((spawned.Id, place.X, place.Z));
+            }
+        }
+    }
+
+    /// <summary>Whether a spot is dry ground of the island (inside the map, above the sea).</summary>
+    private Func<double, double, bool> IsLandFor(GlassWorld.Simulation.SimulationHost host, string preset, double unitM, Func<double, double, double> groundAt)
+    {
+        var level = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * unitM;
+        return (x, z) => x > 0 && z > 0 && x < _width && z < _depth && groundAt(x, z) > level;
+    }
+
+    /// <summary>A1775 (review GW3 #542): a fire that burned out in an earlier pass is lit again at its spot.</summary>
+    private void RelightLateFires()
+    {
+        for (var i = 0; _late is not null && i < _lateFires.Count; i++)
+        {
+            var (id, x, z) = _lateFires[i];
+            if (!_host.Objects.TryGet(id, out _))
+            {
+                _lateFires[i] = (_host.Objects.Spawn(_benchmark!.LateGame!.FireType, new Position(x, z)).Id, x, z);
+            }
+        }
+    }
+
+    /// <summary>A1775 (review GW3 #542): the shape of a carried thing from the object view, as in the game.</summary>
+    private (Mesh Mesh, Material Material, double SizeM)? CarriedShape(string type) =>
+        _objects is { } view && view.LayerOf(view.Looks.For(type).VisualId) is { } layer ? (layer.Mesh, layer.Material, view.Looks.For(type).SizeM) : null;
+
+    /// <summary>A1775: the id of the thing a crowd figure carries in the late game.</summary>
+    private static string HeldId(string figureId) => figureId + "_held";
 
     private void BuildBenchmark(
         LookBenchmark data,
@@ -96,13 +155,21 @@ public partial class IslandScene
         BenchmarkCameraPath.Check([.. data.Camera], _crowd.Walkers.Count);
         _crowdShared = shared;
         _crowdWalkGait = data.Crowd.WalkGait;
+        for (var i = 0; _late is not null && i < _crowd.Figures.Count; i++)
+        {
+            // A1775: every figure carries a thing - presentation only, never in the core's world.
+            var figure = _crowd.Figures[i];
+            _crowdHeld.Add(new WorldObject(HeldId(figure.Id), _late.HeldType(i), new Position(figure.HomeX, figure.HomeZ)));
+        }
+
         foreach (var plan in _crowd.Figures)
         {
             var entry = new CrowdEntry(plan, templates[plan.Template]);
             var snapshot = CrowdSnapshot(entry, 0);
             entry.View = FigureView.Create(snapshot, spec(entry.Template), shared, ground);
+            entry.View.ShapeOf = CarriedShape;
             AddChild(entry.View);
-            entry.View.Apply(snapshot, 0, 1, place: true);
+            entry.View.Apply(snapshot, 0, 1, place: true, objects: _crowdHeld);
             _crowdFigures.Add(entry);
         }
 
@@ -110,7 +177,7 @@ public partial class IslandScene
         _benchmark = data;
 
         _benchCsv = Path.GetFullPath(csv);
-        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} revealed_permille={(_cover is null ? "none" : ((int)(_cover.Map.SeenShare * 1000)).ToString(CultureInfo.InvariantCulture))} size={Size()} csv={_benchCsv}"));
+        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} scenario={(_late is null ? "start" : "late")} placed={_late?.Placements.Count ?? 0} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} revealed_permille={(_cover is null ? "none" : ((int)(_cover.Map.SeenShare * 1000)).ToString(CultureInfo.InvariantCulture))} size={Size()} csv={_benchCsv}"));
 
         // Asked once, before the clock runs (the query can take a moment); empty without a driver (headless).
         _benchDriver = string.Join(' ', OS.GetVideoAdapterDriverInfo());
@@ -166,6 +233,13 @@ public partial class IslandScene
             _benchWarmupFrames++;
         }
 
+        if (_late is not null && _late.WeatherAt(moment.MeasureS) is var weather && weather != _lateWeather)
+        {
+            // A1775: the late game's weather changes within the pass (the look blends as in the game).
+            _lateWeather = weather;
+            _benchWeather = new WeatherReading(weather, [weather], pass.WindPermille, 0, 0, 0, 0, 0, 0) { Wind = pass.WindPermille / 1000.0 };
+        }
+
         StepWorld(delta);
         var time = _host.World.Calendar;
         var pose = BenchmarkCameraPath.At([.. _benchmark!.Camera], moment.MeasureS, _schedule.DurationS / _benchmark.DurationS, CameraTarget);
@@ -181,6 +255,8 @@ public partial class IslandScene
     {
         var wind = pass.WindPermille / 1000.0;
         _benchWeather = new WeatherReading(pass.Weather, [pass.Weather], pass.WindPermille, 0, 0, 0, 0, 0, 0) { Wind = wind };
+        _lateWeather = string.Empty; // A1775: the late game's cycle starts again with each pass
+        RelightLateFires();
         _nature!.Show(pass.Season, pass.Weather, Focus(_crowdCentre.X, _crowdCentre.Z), pass.Epoch ?? _epoch);
         ApplyPhase(pass.Phase);
     }
@@ -236,7 +312,7 @@ public partial class IslandScene
             }
 
             entry.Step = step;
-            entry.View!.Apply(CrowdSnapshot(entry, at), 0, ticks, place);
+            entry.View!.Apply(CrowdSnapshot(entry, at), 0, ticks, place, objects: _crowdHeld);
         }
     }
 
@@ -253,6 +329,7 @@ public partial class IslandScene
             OpenQuestionIds = [],
             Facing = null,
             Topic = null,
+            Held = _late is null ? null : HeldId(entry.Plan.Id),
         };
     }
 
