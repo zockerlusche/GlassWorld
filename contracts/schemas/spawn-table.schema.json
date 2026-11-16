@@ -88,6 +88,12 @@
         },
         "grows_on": {
           "$ref": "#/$defs/SpawnGrowsOn"
+        },
+        "min_ore_permille": {
+          "description": "A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
         }
       }
     },
@@ -95,22 +101,52 @@
       "description": "W1936 (B2640, the world for the eye): a fruit grows at its plant. Instances of this rule lie only within within_cells (each axis) of an instance of object_type, which another rule spawns; the plant is never thinned out around a start while its fruit lies there. Absent = the thing lies on its own (stones, wood, mushrooms).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["object_type", "within_cells"],
+      "required": [
+        "object_type",
+        "within_cells"
+      ],
       "properties": {
-        "object_type": { "description": "The plant the thing grows on (a type another spawn rule places).", "$ref": "common.schema.json#/$defs/VocabId" },
-        "within_cells": { "description": "Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).", "type": "integer", "minimum": 1, "maximum": 8 },
-        "hangs": { "$ref": "#/$defs/SpawnHangs" }
+        "object_type": {
+          "description": "The plant the thing grows on (a type another spawn rule places).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "within_cells": {
+          "description": "Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "hangs": {
+          "$ref": "#/$defs/SpawnHangs"
+        }
       }
     },
     "SpawnHangs": {
       "description": "D1105 H2: the thing hangs in its plant's crown while it grows there - each at its own height (seeded from its id) between min and max permille of the plant's shade_height_cm - and falls to the ground with a chance per day; fallen, it lies there (and ages) and the plant grows a new one. Absent = it grows at ground height.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["min_permille", "max_permille", "falls_per_day_permille"],
+      "required": [
+        "min_permille",
+        "max_permille",
+        "falls_per_day_permille"
+      ],
       "properties": {
-        "min_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
-        "max_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
-        "falls_per_day_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Chance per game day that it falls (checked hourly)." }
+        "min_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "falls_per_day_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Chance per game day that it falls (checked hourly)."
+        }
       }
     },
     "SpawnCountRange": {
