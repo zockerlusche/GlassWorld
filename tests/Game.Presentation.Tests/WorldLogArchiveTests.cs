@@ -25,8 +25,7 @@ public sealed class WorldLogArchiveTests : IDisposable
         {
             var folder = WorldLogArchive.Of(logs, id);
             Directory.CreateDirectory(Path.Combine(folder, "trace"));
-            File.WriteAllText(Path.Combine(folder, "trace", "day-0001.jsonl"), "{}
-");
+            File.WriteAllText(Path.Combine(folder, "trace", "day-0001.jsonl"), "{}");
         }
 
         var now = new DateTimeOffset(2026, 11, 16, 1, 2, 3, TimeSpan.Zero);
