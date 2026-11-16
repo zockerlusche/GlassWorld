@@ -1,0 +1,25 @@
+{
+  "description": "A1808 (B2833, D1202 section 3): the 20 invariants of the parameter core as checks on the run trace (A1719). Limits are placeholders for the TL (B2649). An invariant the trace cannot show yet has kind 'not_measurable' and names what is missing - the night report lists it, so the gap stays visible.",
+  "invariants": [
+    { "id": "inv01", "text": "Every value in range, no NaN", "kind": "values_in_range" },
+    { "id": "inv02", "text": "Same seed plus log gives the same state hash", "kind": "not_measurable", "missing": "checked by the replay of each reference run (reference_runs.py), not from the trace" },
+    { "id": "inv03", "text": "No layer reads from a higher one in the same tick", "kind": "not_measurable", "missing": "a static check of the dependency graph (code), not a run" },
+    { "id": "inv04", "text": "Every world change has a core action as its cause; AI and player write guesses <= 0.3", "kind": "not_measurable", "missing": "beliefs with source and confidence in the trace" },
+    { "id": "inv05", "text": "No feeling above 0.6 for more than 3 h once its trigger is gone", "kind": "not_measurable", "missing": "moods and their trigger in the snapshots" },
+    { "id": "inv06", "text": "The same failed action on the same thing at most 3 times a day", "kind": "max_same_failure_per_day", "limit": 3 },
+    { "id": "inv07", "text": "Every lock has a reachable release and is never older than 24 h", "kind": "not_measurable", "missing": "cause-bound locks do not exist yet (D1203 step 2)" },
+    { "id": "inv08", "text": "At most 6 changes of plan per hour; no A-B-A-B over 2 rounds", "kind": "max_action_changes_per_hour", "limit": 6 },
+    { "id": "inv09", "text": "Confidence never rises through a message whose chain holds the receiver", "kind": "not_measurable", "missing": "the provenance chain of knowledge (D1203 layer 3)" },
+    { "id": "inv10", "text": "Confidence above 0.8 only with own confirmation or 2 independent sources", "kind": "not_measurable", "missing": "beliefs with source and confidence in the trace" },
+    { "id": "inv11", "text": "Critical body value plus known reachable remedy: the remedy is the plan within N ticks", "kind": "not_measurable", "missing": "which action serves which need is in the data, but known and reachable remedies are not in the trace" },
+    { "id": "inv12", "text": "At least 5 h sleep in the 3-day mean (no sleep on wet ground: not in the trace yet)", "kind": "min_sleep_hours_mean", "hours": 5, "days": 3 },
+    { "id": "inv13", "text": "Cold raises frustration only with a second need below its threshold", "kind": "not_measurable", "missing": "moods in the snapshots" },
+    { "id": "inv14", "text": "No inhabitant awake longer than 30 min without a plan", "kind": "max_idle_minutes", "minutes": 30 },
+    { "id": "inv15", "text": "Every new kind of thing has a log entry with its sources and core rule", "kind": "invented_things_have_an_event", "prefix": "inv_", "events": ["invented", "processed"] },
+    { "id": "inv16", "text": "Every AI job stays in its token budget; every named thing maps to an id", "kind": "not_measurable", "missing": "token counts are in the service call logs (prompt_tokens), not in the trace" },
+    { "id": "inv17", "text": "Every memory list stays below its cap", "kind": "not_measurable", "missing": "memory list sizes in the snapshots" },
+    { "id": "inv18", "text": "The character never changes after birth", "kind": "not_measurable", "missing": "traits in the snapshots" },
+    { "id": "inv19", "text": "Will to live changes only at night and never sinks when all body needs were met", "kind": "not_measurable", "missing": "will to live in the snapshots" },
+    { "id": "inv20", "text": "Long run: trait spread per generation >= 50 % of the start; enough variety of actions", "kind": "not_measurable", "missing": "generations do not exist yet (B9)" }
+  ]
+}

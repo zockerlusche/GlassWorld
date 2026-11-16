@@ -75,17 +75,17 @@
       "maximum": 5,
       "exclusiveMinimum": 0
     },
+    "wet_shade": {
+      "description": "A1385 (B5-8): how dark the clothes and hair of a fully wet figure look (1 = as dry); between dry and fully wet in steps of the wetness. Skin and eyes stay. Omitted = wetness does not show. Placeholder value (TL).",
+      "type": "number",
+      "minimum": 0.3,
+      "maximum": 1
+    },
     "turn_rate_deg_s": {
       "description": "How fast a figure turns towards where it walks, in degrees per real second.",
       "type": "number",
       "exclusiveMinimum": 0,
       "maximum": 3600
-    },
-    "turn_back_after_steps": {
-      "description": "A walking figure whose step points backwards (more than 90 degrees from its facing, e.g. when it gives way on a narrow path, W1726) turns round only from this many such steps in a row; a step forward in between resets the count, a first step after standing turns at once. Absent = 1 (every step turns the figure).",
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 1000
     },
     "gait_time_scale": {
       "description": "Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).",
@@ -151,12 +151,31 @@
     "FigureComfort": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["level"],
+      "required": [
+        "level"
+      ],
       "properties": {
-        "level": { "description": "Comfort level (vocabulary comfort_level).", "$ref": "common.schema.json#/$defs/VocabId" },
-        "gesture": { "description": "Id of a gesture of gestures; missing = none.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "shiver_m": { "description": "Amplitude of the shiver of the body, metres for a figure of size 1; missing or 0 = none.", "type": "number", "minimum": 0, "maximum": 0.02 },
-        "shiver_hz": { "description": "How fast it shivers.", "type": "number", "minimum": 1, "maximum": 20 }
+        "level": {
+          "description": "Comfort level (vocabulary comfort_level).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "gesture": {
+          "description": "Id of a gesture of gestures; missing = none.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "shiver_m": {
+          "description": "Amplitude of the shiver of the body, metres for a figure of size 1; missing or 0 = none.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.02
+        },
+        "shiver_hz": {
+          "description": "How fast it shivers.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20
+        }
       }
     },
     "FigureGesture": {
@@ -311,7 +330,24 @@
       "description": "Lying down to sleep (W1695, W1729), a placeholder until the figures have a lying clip: the figure sits down on the ground with the library's sit transition (sit_clip over sit_s), then rolls from sitting onto its side about its hips (roll_deg over roll_s, eased) while the hips slide to the lying spot and the legs open a little; the lying clips play their seated loop laid on its side. The lying body follows the ground: tilted to the slope under it (at most max_tilt_deg) and lifted so that no sampled body point is below the ground. Getting up is the same in reverse and ends with rise_clip. A lying figure never turns its body to a voice or to another inhabitant.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["clips", "sit_clip", "rise_clip", "sit_s", "sink_from", "sink_to", "roll_s", "roll_deg", "hip_back_m", "hip_slide_m", "legs_from", "hip_open", "knee_straighten", "lift_m", "max_tilt_deg", "body_points"],
+      "required": [
+        "clips",
+        "sit_clip",
+        "rise_clip",
+        "sit_s",
+        "sink_from",
+        "sink_to",
+        "roll_s",
+        "roll_deg",
+        "hip_back_m",
+        "hip_slide_m",
+        "legs_from",
+        "hip_open",
+        "knee_straighten",
+        "lift_m",
+        "max_tilt_deg",
+        "body_points"
+      ],
       "properties": {
         "clips": {
           "description": "Library clip ids played lying (e.g. sleep); their asset is a seated loop.",
@@ -319,28 +355,101 @@
           "minItems": 1,
           "maxItems": 32,
           "uniqueItems": true,
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
         },
-        "sit_clip": { "description": "Library clip id of the transition from standing to sitting, played first when lying down.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "rise_clip": { "description": "Library clip id of the transition from sitting to standing, played last when getting up.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "sit_s": { "description": "Real seconds of sitting down and of standing up; the transition clips are played at the speed that fits them into it.", "type": "number", "minimum": 0.05, "maximum": 10 },
-        "sink_from": { "description": "Share of sit_s at which the hips begin to sink to the ground (as in the sit transition clip).", "type": "number", "minimum": 0, "maximum": 0.95 },
-        "sink_to": { "description": "Share of sit_s at which the hips have reached the ground; greater than sink_from.", "type": "number", "minimum": 0.05, "maximum": 1 },
-        "roll_s": { "description": "Real seconds of the eased roll from sitting onto the side, and back.", "type": "number", "minimum": 0.05, "maximum": 10 },
-        "roll_deg": { "description": "Roll about the figure's facing axis through its hips in degrees: -90 lays it on its left side with the head to its left, 90 on its right side.", "type": "number", "minimum": -90, "maximum": 90 },
-        "hip_back_m": { "description": "How far the hips of the seated pose are behind the figure's origin in metres at scale 1.", "type": "number", "minimum": 0, "maximum": 1 },
-        "hip_slide_m": { "description": "How far the hips slide away from the side the head goes down to while rolling, in metres at scale 1, so the lying body is centred on its spot.", "type": "number", "minimum": 0, "maximum": 1 },
-        "legs_from": { "description": "Share of the roll after which the legs leave the seated pose (thighs open, knees bend): late, while the body is nearly down, so the legs do not dip into the ground.", "type": "number", "minimum": 0, "maximum": 0.95 },
-        "hip_open": { "description": "How far the thighs open from the seated pose towards straight legs while lying (0 = seated, 1 = straight); less than 1 keeps the body slightly curled.", "type": "number", "minimum": 0, "maximum": 1 },
-        "knee_straighten": { "description": "How far the knees straighten while lying (0 = bent as seated, 1 = straight).", "type": "number", "minimum": 0, "maximum": 1 },
-        "lift_m": { "description": "Height of the hips above the ground in metres at scale 1 while the body points are not known yet (the first frame of a figure).", "type": "number", "minimum": 0, "maximum": 1 },
-        "max_tilt_deg": { "description": "Largest tilt of the lying body towards the slope under it in degrees; on steeper ground it is lifted instead.", "type": "number", "minimum": 0, "maximum": 60 },
+        "sit_clip": {
+          "description": "Library clip id of the transition from standing to sitting, played first when lying down.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "rise_clip": {
+          "description": "Library clip id of the transition from sitting to standing, played last when getting up.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "sit_s": {
+          "description": "Real seconds of sitting down and of standing up; the transition clips are played at the speed that fits them into it.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10
+        },
+        "sink_from": {
+          "description": "Share of sit_s at which the hips begin to sink to the ground (as in the sit transition clip).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.95
+        },
+        "sink_to": {
+          "description": "Share of sit_s at which the hips have reached the ground; greater than sink_from.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        },
+        "roll_s": {
+          "description": "Real seconds of the eased roll from sitting onto the side, and back.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 10
+        },
+        "roll_deg": {
+          "description": "Roll about the figure's facing axis through its hips in degrees: -90 lays it on its left side with the head to its left, 90 on its right side.",
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "hip_back_m": {
+          "description": "How far the hips of the seated pose are behind the figure's origin in metres at scale 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hip_slide_m": {
+          "description": "How far the hips slide away from the side the head goes down to while rolling, in metres at scale 1, so the lying body is centred on its spot.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "legs_from": {
+          "description": "Share of the roll after which the legs leave the seated pose (thighs open, knees bend): late, while the body is nearly down, so the legs do not dip into the ground.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.95
+        },
+        "hip_open": {
+          "description": "How far the thighs open from the seated pose towards straight legs while lying (0 = seated, 1 = straight); less than 1 keeps the body slightly curled.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "knee_straighten": {
+          "description": "How far the knees straighten while lying (0 = bent as seated, 1 = straight).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lift_m": {
+          "description": "Height of the hips above the ground in metres at scale 1 while the body points are not known yet (the first frame of a figure).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_tilt_deg": {
+          "description": "Largest tilt of the lying body towards the slope under it in degrees; on steeper ground it is lifted instead.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
         "body_points": {
           "description": "The sampled points of the lying body: bones of the figure rig and how thick the body is around them. The ground is read under each of them.",
           "type": "array",
           "minItems": 1,
           "maxItems": 24,
-          "items": { "$ref": "#/$defs/FigureBodyPoint" }
+          "items": {
+            "$ref": "#/$defs/FigureBodyPoint"
+          }
         }
       }
     },
@@ -348,33 +457,92 @@
       "description": "One sampled point of a lying body.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["bone", "radius_m"],
+      "required": [
+        "bone",
+        "radius_m"
+      ],
       "properties": {
-        "bone": { "description": "Bone of the figure rig (its joint is the point).", "type": "string", "minLength": 1, "maxLength": 64 },
-        "radius_m": { "description": "Thickness of the body around the point in metres at scale 1: the point stays at least this far above the ground.", "type": "number", "minimum": 0, "maximum": 1 }
+        "bone": {
+          "description": "Bone of the figure rig (its joint is the point).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "radius_m": {
+          "description": "Thickness of the body around the point in metres at scale 1: the point stays at least this far above the ground.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "FigurePoseCadence": {
       "description": "Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. An idle behaviour is held at least min_pose_s before the next idle behaviour; walking and core actions show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["min_pose_s", "idle_variety_after_s", "idle_slot_s", "rest_idle", "stagger_s", "conversation_idle", "max_changes_per_minute", "max_walk_changes_per_minute"],
+      "required": [
+        "min_pose_s",
+        "idle_variety_after_s",
+        "idle_slot_s",
+        "rest_idle",
+        "stagger_s",
+        "conversation_idle",
+        "max_changes_per_minute",
+        "max_walk_changes_per_minute"
+      ],
       "properties": {
-        "min_pose_s": { "description": "Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).", "type": "number", "minimum": 0, "maximum": 120 },
-        "idle_variety_after_s": { "description": "Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.", "type": "number", "minimum": 0, "maximum": 600 },
-        "idle_slot_s": { "description": "Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).", "type": "number", "minimum": 0.5, "maximum": 600 },
-        "rest_idle": { "description": "Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "stagger_s": { "description": "Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).", "type": "number", "minimum": 0, "maximum": 10 },
+        "min_pose_s": {
+          "description": "Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 120
+        },
+        "idle_variety_after_s": {
+          "description": "Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 600
+        },
+        "idle_slot_s": {
+          "description": "Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 600
+        },
+        "rest_idle": {
+          "description": "Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "stagger_s": {
+          "description": "Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
         "conversation_idle": {
           "description": "Idle behaviour ids allowed while the inhabitant is in a conversation (no sitting, crouching or bending).",
           "type": "array",
           "minItems": 1,
           "maxItems": 64,
           "uniqueItems": true,
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
         },
-        "max_changes_per_minute": { "description": "Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.", "type": "number", "minimum": 1, "maximum": 600 },
-        "max_walk_changes_per_minute": { "description": "Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.", "type": "number", "minimum": 1, "maximum": 600 }
+        "max_changes_per_minute": {
+          "description": "Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "max_walk_changes_per_minute": {
+          "description": "Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 600
+        }
       }
     },
     "FigureThinkingDots": {

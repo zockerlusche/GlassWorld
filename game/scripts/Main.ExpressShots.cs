@@ -77,6 +77,24 @@ public partial class Main
                     continue;
                 }
 
+                if (spec is "wet" or "up")
+                {
+                    // A1385: wait (fast) until someone awake is soaked (rain, wading) or up in a tree, then follow that one.
+                    var quick = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
+                    var since = Time.GetTicksMsec();
+                    who = null;
+                    while (who is null && (Time.GetTicksMsec() - since) / 1000.0 < 600)
+                    {
+                        _world.Speed = quick;
+                        await Frames(5);
+                        who = _world.Host.Snapshot().Inhabitants.FirstOrDefault(i => !_world.LiesNow(i.Id)
+                            && (spec == "wet" ? i.WetPermille >= 600 : i.ClimbedCm > 0));
+                    }
+
+                    _world.Speed = 1;
+                    GD.Print($"EXPRESS_SHOT_{spec.ToUpperInvariant()} {(who is null ? "nobody" : $"{who.Name ?? who.Id} wet={who.WetPermille} up={who.ClimbedCm}")}");
+                }
+
                 if (spec == "held")
                 {
                     // A1785: wait (fast) until someone awake carries a thing, then follow that one.

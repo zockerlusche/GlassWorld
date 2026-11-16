@@ -101,20 +101,18 @@ public sealed class FigureMotionTests
     }
 
     /// <summary>
-    /// W1726 (seed 2, review GW3): a walker giving way on a path one cell wide steps back and forth for a
-    /// few ticks; it keeps facing the way it goes instead of flipping round every tick. Only the data's
-    /// number of backward steps in a row turns it; after standing, a step back turns it at once.
+    /// A1795 (Marcel W2242): a figure that walks back turns round at once instead of walking backwards; only the
+    /// core's give-way step (W1726, seed 2: a walker yields back and forth on a path one cell wide) keeps its facing.
     /// </summary>
     [Fact]
-    public void AStepBackWhileWalkingKeepsTheHeading()
+    public void AFigureTurnsRoundWhenItWalksBackButNotWhileItGivesWay()
     {
-        const int After = 6;
-        var motion = new FigureMotion(new Point3(0, 0, 0), 3600, After);
+        var motion = new FigureMotion(new Point3(0, 0, 0), 3600);
         var x = 0.0;
-        void Step(double dx)
+        void Step(double dx, bool givingWay = false)
         {
             x += dx;
-            motion.Retarget(new Point3(x, 0, 0), 1, 60, 1, 0.05);
+            motion.Retarget(new Point3(x, 0, 0), 1, 60, 1, 0.05, givingWay);
             motion.Advance(1);
         }
 
@@ -123,27 +121,17 @@ public sealed class FigureMotionTests
         Step(0.8);
         Assert.Equal(forward, motion.Yaw, 9);
 
-        // Back, back, forward, back, forward ... (the yield of seed 2): never turned round.
-        foreach (var dx in new[] { -0.8, -0.8, 0.8, -0.8, 0.8, -0.8, -0.8, 0.4 })
+        // Giving way back and forth: never turned round.
+        foreach (var dx in new[] { -0.8, -0.8, 0.8, -0.8, 0.8, -0.8 })
         {
-            Step(dx);
+            Step(dx, givingWay: dx < 0);
             Assert.Equal(forward, motion.Yaw, 9);
         }
 
-        // A long retreat: it turns round with the data's number of backward steps in a row.
-        for (var k = 1; k < After; k++)
-        {
-            Step(-0.8);
-            Assert.Equal(forward, motion.Yaw, 9);
-        }
-
+        // Its way turns back (a new goal behind it): the first step back turns it round.
         Step(-0.8);
         Assert.Equal(-forward, motion.Yaw, 9);
-
-        // After standing, the first step decides the facing at once, backwards too.
-        Step(0);
-        Step(0.8);
-        Assert.Equal(forward, motion.Yaw, 9);
-        Assert.Equal(After, ContractSerializer.Deserialize<LookFigures>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "figures.json"))).TurnBackAfterSteps);
+        Step(-0.8);
+        Assert.Equal(-forward, motion.Yaw, 9);
     }
 }
