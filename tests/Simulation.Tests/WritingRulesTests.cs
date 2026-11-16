@@ -255,8 +255,10 @@ public sealed class WritingRulesTests : IDisposable
         Assert.True(text.Legibility > 0 && text.Legibility <= 0.5, $"legibility {text.Legibility}"); // carrier's best x skill 0.5
         Assert.Contains(events, e => e.Kind == WritingSystem.TextWritten && e.InhabitantId == writer.Id && e.TargetId == stone.Id);
 
-        // The stone carries a text now: nobody writes on it again; the reader may read it.
+        // The stone carries a text now: nobody writes on it again; the next text nearby would say the next surest thing
+        // (review GW3 #549: not the same sentence on every stone).
         Assert.False(host.Writing.Offers(writer, write.Action!, stone));
+        Assert.Equal(("water", "edible", false), host.Writing.BeliefToWrite(writer));
         Assert.True(host.Writing.Offers(reader, read.Action!, stone));
         reader.Position = stone.Position;
         reader.Activity = new Activity(read.Action!, stone.Id, stone.Position, null);

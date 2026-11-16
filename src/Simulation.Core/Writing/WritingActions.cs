@@ -74,18 +74,21 @@ public sealed partial class WritingSystem
     }
 
     /// <summary>
-    /// What a writer would write: its surest own belief (not one it only read) of at least the data's confidence; ties by
-    /// type, then property. The same choice the decider is shown as the option's topic.
+    /// What a writer would write: its surest own belief (not one it only read) of at least the data's confidence that no
+    /// readable text within its sight says yet (review GW3 #549: not the same sentence on every stone); ties by type, then
+    /// property. The same choice the decider is shown as the option's topic.
     /// </summary>
     public (string TypeId, string PropertyId, bool Value)? BeliefToWrite(Inhabitant writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
         var least = _rules.Write.MinConfidence ?? 0;
+        var near = WrittenNear(writer.Position);
         (string TypeId, string PropertyId, bool Value)? best = null;
         var surest = double.MinValue;
         foreach (var (typeId, propertyId, belief) in writer.Beliefs.All)
         {
-            if (belief.Source == KnowledgeSources.Read || belief.Confidence < least || belief.Confidence <= surest)
+            if (belief.Source == KnowledgeSources.Read || belief.Confidence < least || belief.Confidence <= surest
+                || near.Contains(RefOf(typeId, propertyId, belief.Value)))
             {
                 continue;
             }
@@ -96,6 +99,30 @@ public sealed partial class WritingSystem
 
         return best;
     }
+
+    /// <summary>The knowledge refs of the readable texts within sight of a position (none without inhabitants).</summary>
+    private HashSet<string> WrittenNear(Position at)
+    {
+        var near = new HashSet<string>(StringComparer.Ordinal);
+        if (Inhabitants is null || _texts.Count == 0)
+        {
+            return near;
+        }
+
+        var radius = Inhabitants.Sight.Metres(PerceptionRadiusM);
+        foreach (var text in _texts.Values)
+        {
+            if (Readable(text) && _objects.TryGet(text.ObjectId, out var obj)
+                && ((obj.Position.X - at.X) * (obj.Position.X - at.X)) + ((obj.Position.Z - at.Z) * (obj.Position.Z - at.Z)) <= radius * radius)
+            {
+                near.Add(text.KnowledgeRef);
+            }
+        }
+
+        return near;
+    }
+
+    private static string RefOf(string typeId, string propertyId, bool value) => $"belief:{typeId}|{propertyId}|{(value ? "true" : "false")}";
 
     /// <summary>An inhabitant event: the end of a write or read action is applied in this tick's step of the system.</summary>
     public void Observe(WorldEvent e)
@@ -145,7 +172,7 @@ public sealed partial class WritingSystem
             return;
         }
 
-        var knowledgeRef = $"belief:{belief.TypeId}|{belief.PropertyId}|{(belief.Value ? "true" : "false")}";
+        var knowledgeRef = RefOf(belief.TypeId, belief.PropertyId, belief.Value);
         var legibility = LegibilityFor(medium, Skills!.Level(writer.Id, _rules.Write.Ability));
         Place(new WrittenText(target.Id, medium, knowledgeRef, writer.Id, tick, legibility));
         Inhabitants!.Report(new WorldEvent(TextWritten, tick, writer.Id, WriteAction, target.Id) { Detail = knowledgeRef });
