@@ -936,6 +936,13 @@ public sealed class ContentSet
         }
 
         var body = ContractSerializer.Deserialize<BodySettings>(File.ReadAllText(path));
+
+        // A1731 (review GW3 #573): the reflex steps back beyond its own radius, else it would flinch again at once.
+        if (body.Reflex is { } reflex && reflex.StepBackCm <= reflex.RadiusCm)
+        {
+            throw new InvalidDataException($"body/settings.json: reflex step_back_cm {reflex.StepBackCm} must be greater than radius_cm {reflex.RadiusCm}.");
+        }
+
         if (body.FeltPlaces is { } places)
         {
             var felt = vocabularies.TryGetValue(VocabularyKind.Felt, out var known) ? known.Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal) : [];

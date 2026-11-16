@@ -42,6 +42,16 @@
         "fright_delta": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "reflex": {
+      "description": "A1731 (B2716 1): a reflex from the world, without AI - an inhabitant closer than radius_cm to something that gives off heat (a burning fire, a spark) steps back at once to step_back_cm from it, reports flinched (for the gesture), feels fear by the data and knows at once that the thing is hot (the experience of the warmth, without waiting). Gentle: no injury is shown (B2466). Absent = no reflex. Placeholder values.",
+      "type": "object", "additionalProperties": false, "required": ["radius_cm", "step_back_cm"],
+      "properties": {
+        "radius_cm": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "step_back_cm": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "fear": { "type": "number", "minimum": 0, "maximum": 1 },
+        "property": { "description": "The property the inhabitant learns from it; omitted = hot.", "$ref": "common.schema.json#/$defs/VocabId" }
+      }
+    },
     "stay_sheltered": {
       "description": "A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.",
       "type": "object", "additionalProperties": false, "required": ["leaving_factor_permille"],

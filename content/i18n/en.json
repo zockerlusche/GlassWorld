@@ -2691,6 +2691,10 @@
       "text": "Slipped"
     },
     {
+      "key": "vocab.event.flinched",
+      "text": "Flinched back"
+    },
+    {
       "key": "vocab.event.out_of_reach",
       "text": "Out of reach"
     },

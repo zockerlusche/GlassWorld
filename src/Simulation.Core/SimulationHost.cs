@@ -746,6 +746,9 @@ public sealed class SimulationHost
                 WindAt = bodyWeather.WindAt,
                 HeatFrom = fire.HeatFrom,
 
+                // A1731: the reflex steps back only where one can walk.
+                Walkable = map.Connected,
+
                 // A1793: a cell with water wets who stands in it - a sea cell only while the tide covers it (review GW2
                 // #518: the flats the ebb leaves dry do not wet; the same rule as the tide's walk layer).
                 InWater = at => map.CellOf(at) is { } at2 && map.Map.Cell(at2.X, at2.Z) is { Water: not WaterKind.None } water

@@ -81,6 +81,81 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     /// <summary>A1793: whether a position stands in water (a map cell with water); null = nothing wets but rain.</summary>
     public Func<Position, bool>? InWater { get; init; }
 
+    /// <summary>A1731: whether one can step from a place to another on foot (the map's walkable areas); null = always.</summary>
+    public Func<Position, Position, bool>? Walkable { get; init; }
+
+    /// <summary>A1731 (B2716 1): event - an inhabitant came too close to something hot and stepped back (target = the thing).</summary>
+    public const string Flinched = "flinched";
+
+    /// <summary>
+    /// A1731 (B2716 1): the reflex of the data - closer than its radius to something that gives off heat, the inhabitant
+    /// steps back at once to the data's distance (away from it, else the first walkable of eight directions), reports
+    /// flinched, feels the data's fear and knows the thing is hot without waiting for the experience step. A walk on
+    /// its way searches its route anew (the fire may be new on it). No AI, no injury shown.
+    /// </summary>
+    private void Reflex(World world, Inhabitant inhabitant)
+    {
+        // Review GW3 #573: a sleeper does not flinch in its sleep (a sleeping place by the fire keeps it warm).
+        if (_data.Reflex is not { } reflex || HeatFrom is not { } heatFrom || _inhabitants.IsAsleep(inhabitant))
+        {
+            return;
+        }
+
+        var radius = reflex.RadiusCm / 100.0;
+        foreach (var (thing, _) in heatFrom(inhabitant.Position))
+        {
+            // Review GW3 #573: the thing its own action is on (tending the fire, warming at it) is no surprise - it walked
+            // there on purpose, and would flinch at every arrival and walk back again.
+            if (string.Equals(inhabitant.Activity?.TargetId, thing.Id, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var (dx, dz) = (inhabitant.Position.X - thing.Position.X, inhabitant.Position.Z - thing.Position.Z);
+            var distance = Math.Sqrt((dx * dx) + (dz * dz));
+            if (distance >= radius)
+            {
+                continue;
+            }
+
+            var back = reflex.StepBackCm / 100.0;
+            // Away from the thing as a unit vector, turned by an eighth each try (only + * and sqrt: the same on every platform).
+            var (ux, uz) = distance < 1e-6 ? (1.0, 0.0) : (dx / distance, dz / distance);
+            var eighth = Math.Sqrt(0.5);
+            var stepped = false;
+            for (var k = 0; k < 8 && !stepped; k++)
+            {
+                var to = new Position(thing.Position.X + (ux * back), thing.Position.Z + (uz * back));
+                (ux, uz) = ((ux * eighth) - (uz * eighth), (ux * eighth) + (uz * eighth));
+                if (Walkable?.Invoke(inhabitant.Position, to) ?? true)
+                {
+                    inhabitant.Position = to;
+                    if (inhabitant.Activity is { Route: not null } walking)
+                    {
+                        inhabitant.Activity = walking with { Route = null };
+                    }
+
+                    stepped = true;
+                }
+            }
+
+            // Review GW3 #573: with no way back there is no reflex at all - else it would flinch (and fear) every tick.
+            if (!stepped)
+            {
+                return;
+            }
+
+            if (reflex.Fear is > 0 and var fear && inhabitant.Moods.TryGetValue("fear", out var now))
+            {
+                inhabitant.Moods["fear"] = Math.Min(1.0, now + fear);
+            }
+
+            _inhabitants.Experience(world.Tick, inhabitant, inhabitant.Activity?.Action, thing.TypeId, [reflex.Property ?? "hot"]);
+            _inhabitants.Report(new WorldEvent(Flinched, world.Tick, inhabitant.Id, inhabitant.Activity?.Action, thing.Id) { TargetType = thing.TypeId, Detail = "heat" });
+            return;
+        }
+    }
+
     /// <summary>B5 R37: the things that warm a place and by how much (the fire); null = none.</summary>
     public Func<Position, IEnumerable<(WorldObject Thing, int TenthC)>>? HeatFrom { get; init; }
 
@@ -221,6 +296,7 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
 
         foreach (var inhabitant in _inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal))
         {
+            Reflex(world, inhabitant);
             if (AirAt(world, inhabitant.Position) is not { } air)
             {
                 continue;

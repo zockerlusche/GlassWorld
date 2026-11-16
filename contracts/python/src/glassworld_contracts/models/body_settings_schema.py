@@ -82,6 +82,21 @@ class Climbing(BaseModel):
     fright_delta: float | None = Field(None, ge=0.0, le=1.0)
 
 
+class Reflex(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    radius_cm: int = Field(..., ge=1, le=500)
+    step_back_cm: int = Field(..., ge=1, le=1000)
+    fear: float | None = Field(None, ge=0.0, le=1.0)
+    property: str | None = Field(
+        None,
+        description='The property the inhabitant learns from it; omitted = hot.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class HoldWhile(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -372,6 +387,10 @@ class BodySettings(BaseModel):
     climbing: Climbing | None = Field(
         None,
         description="D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/<inhabitant>): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.",
+    )
+    reflex: Reflex | None = Field(
+        None,
+        description='A1731 (B2716 1): a reflex from the world, without AI - an inhabitant closer than radius_cm to something that gives off heat (a burning fire, a spark) steps back at once to step_back_cm from it, reports flinched (for the gesture), feels fear by the data and knows at once that the thing is hot (the experience of the warmth, without waiting). Gentle: no injury is shown (B2466). Absent = no reflex. Placeholder values.',
     )
     stay_sheltered: StaySheltered | None = Field(
         None,

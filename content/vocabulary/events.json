@@ -359,6 +359,10 @@
       "description": "Inhabitants arrived from across the water (B9 R29)."
     },
     {
+      "id": "flinched",
+      "description": "A1731 (B2716 1): an inhabitant came too close to something hot and stepped back at once (target = the hot thing, detail = heat) - for the short gesture; no injury is shown."
+    },
+    {
       "id": "dug",
       "description": "A1578 (K5): an inhabitant dug where it stood (target = the pit, detail = the material it brought up, if any)."
     },
