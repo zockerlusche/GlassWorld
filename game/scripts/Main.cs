@@ -324,6 +324,9 @@ public partial class Main : Node3D
         // A1748: the graphics - window, V-Sync, frame rate now; the quality level when the next world is built.
         DisplaySettings.Apply(settings);
         WorldPresenter.QualityChoice = settings.Quality;
+
+        // A1749 (B2825): the mouse axes of the camera.
+        GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
     }
 
     /// <summary>

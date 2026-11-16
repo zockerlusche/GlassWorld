@@ -39,7 +39,12 @@
     },
     {
       "id": "controls",
-      "rows": []
+      "rows": [
+        "invert_turn_x",
+        "invert_turn_y",
+        "invert_pan_x",
+        "invert_pan_y"
+      ]
     },
     {
       "id": "accessibility",
