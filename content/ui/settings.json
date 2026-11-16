@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.2",
+  "tabs": [
+    {
+      "id": "game",
+      "rows": [
+        "language",
+        "player_name"
+      ]
+    },
+    {
+      "id": "graphics",
+      "rows": []
+    },
+    {
+      "id": "audio",
+      "rows": [
+        "volume"
+      ]
+    },
+    {
+      "id": "interface",
+      "rows": [
+        "ui_scale",
+        "text_scale",
+        "feeling_symbols",
+        "hint_duration",
+        "hints_until_dismissed",
+        "hide_ui"
+      ]
+    },
+    {
+      "id": "controls",
+      "rows": []
+    },
+    {
+      "id": "accessibility",
+      "rows": [
+        "high_contrast",
+        "reduce_motion"
+      ]
+    },
+    {
+      "id": "ai",
+      "rows": [
+        "ai"
+      ]
+    }
+  ]
+}

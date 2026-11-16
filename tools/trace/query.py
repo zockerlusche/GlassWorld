@@ -45,6 +45,8 @@ def default_service_logs() -> Path | None:
     """The service's call logs (GW2 #25922/#25989): a headless run's GLASSWORLD_HEADLESS_DATA/logs
     when that is set, else the game's <userdata>/ai-service/logs; None if neither exists."""
     candidates: list[Path] = []
+    if data := os.environ.get("GLASSWORLD_DATA"):
+        candidates.append(Path(data) / "ai-service" / "logs")
     if headless := os.environ.get("GLASSWORLD_HEADLESS_DATA"):
         candidates.append(Path(headless) / "logs")
     if appdata := os.environ.get("APPDATA"):

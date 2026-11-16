@@ -209,12 +209,19 @@ public sealed class CameraModel
     /// <summary>
     /// Follows a figure (its position is read every update) at the follow distance, or at
     /// <paramref name="distanceM"/> when given (the screenshot tool keeps the distance of its shot point).
+    /// With <paramref name="keepZoom"/> and no distance given, the distance the player zoomed to stays
+    /// (A1803: the camera already follows this figure and the player talks to it or clicks it again).
     /// </summary>
-    public void Follow(Func<(double X, double Z)> position, double? distanceM = null)
+    public void Follow(Func<(double X, double Z)> position, double? distanceM = null, bool keepZoom = false)
     {
         ArgumentNullException.ThrowIfNull(position);
         _follow = position;
         _moveRight = _moveForward = 0;
+        if (distanceM is null && keepZoom)
+        {
+            return;
+        }
+
         _wantDistance = Math.Clamp(distanceM ?? _data.FollowDistanceM, _data.DistanceM.Min, _data.DistanceM.Max);
     }
 

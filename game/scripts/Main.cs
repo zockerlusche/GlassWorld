@@ -113,7 +113,7 @@ public partial class Main : Node3D
         var audioLoaded = RetroAudio.Load() & MurmurAudio.Load();
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
-        _library = new WorldLibrary(ProjectSettings.GlobalizePath("user://worlds"));
+        _library = new WorldLibrary(GameData.At("worlds"));
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
@@ -152,7 +152,7 @@ public partial class Main : Node3D
 
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = _nightShots ? NightShotsAsync() : _actionShots ? ActionShotsAsync() : _coverShots ? CoverShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
+                _ = _nightShots ? NightShotsAsync() : _actionShots ? ActionShotsAsync() : _coverShots ? CoverShotsAsync() : _expressShots ? ExpressShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
             else if (_tour || _nightShots)
             {
@@ -219,6 +219,12 @@ public partial class Main : Node3D
 
             // Pictures at look/pick moments (W1936), check runs only.
             if (OS.IsDebugBuild() && ReadActionShotsArgument(arg))
+            {
+                continue;
+            }
+
+            // Pictures of a figure showing an expression (A1542 knock, A1732 cheer), check runs only.
+            if (OS.IsDebugBuild() && ReadExpressShotsArgument(arg))
             {
                 continue;
             }
@@ -316,7 +322,7 @@ public partial class Main : Node3D
     /// </summary>
     private static string CheckCopy(string save)
     {
-        var copy = System.IO.Path.Combine(ProjectSettings.GlobalizePath("user://"), "check-load.db");
+        var copy = GameData.At("check-load.db");
         System.IO.File.Copy(save, copy, overwrite: true);
         GD.Print($"LOAD_SAVE {save} -> {copy}");
         return copy;
@@ -347,7 +353,7 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// Saves and writes the world as one shareable local file (F5234 C) into user://shared; the hint names
+    /// Saves and writes the world as one shareable local file (F5234 C) into the data folder's shared/ (GameData, A1787); the hint names
     /// the folder and says the file holds the whole world, conversations and names included.
     /// </summary>
     private void ShareWorld()
@@ -362,7 +368,7 @@ public partial class Main : Node3D
         {
             var sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "player", "sharing.json")));
             var meta = _library.List().FirstOrDefault(w => w.Id == _meta.Id) ?? _meta;
-            var folder = ProjectSettings.GlobalizePath("user://shared");
+            var folder = GameData.At("shared");
             var file = WorldShare.Export(_library, meta, _screen.ChronicleHtml(), folder, sharing, DateTimeOffset.UtcNow);
             _screen.ShowHint(new ToastMessage("msg.share.saved", new Dictionary<string, string> { ["folder"] = folder, ["file"] = System.IO.Path.GetFileName(file) }, null));
         }
@@ -678,7 +684,7 @@ public partial class Main : Node3D
     }
 
     /// <summary>Where the player's copies of diagnostics reports lie (W1703): the game's own folder, which it can open.</summary>
-    private static string DiagnosticsFolder() => System.IO.Path.Combine(OS.GetUserDataDir(), "diagnostics");
+    private static string DiagnosticsFolder() => GameData.At("diagnostics");
 
     /// <summary>
     /// Once per world (W1703 rule 2): if an AI needs the player, one calm hint that points to the settings.

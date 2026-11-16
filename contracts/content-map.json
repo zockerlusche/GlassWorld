@@ -7,6 +7,10 @@
       "schema": "vocabulary"
     },
     {
+      "pattern": "look/carried.json",
+      "schema": "look-carried"
+    },
+    {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
     },
@@ -65,6 +69,10 @@
     {
       "pattern": "ui/tokens.json",
       "schema": "ui-tokens"
+    },
+    {
+      "pattern": "ui/settings.json",
+      "schema": "settings-layout"
     },
     {
       "pattern": "ui/frames.json",
@@ -337,6 +345,14 @@
     {
       "pattern": "learning/log.json",
       "schema": "learning-log-settings"
+    },
+    {
+      "pattern": "world/digging.json",
+      "schema": "digging-settings"
+    },
+    {
+      "pattern": "fauna/ambient.json",
+      "schema": "fauna-ambient"
     }
   ]
 }

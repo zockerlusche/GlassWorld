@@ -1,0 +1,67 @@
+{
+  "contract_version": "0.2",
+  "heights": {
+    "hip": 0.85,
+    "chest": 1.15,
+    "shoulder": 1.4
+  },
+  "forward_m": 0.3,
+  "default": {
+    "grip": "two",
+    "lie": "across",
+    "at": "chest"
+  },
+  "kinds": [
+    {
+      "properties": [
+        "stone"
+      ],
+      "way": {
+        "grip": "two",
+        "lie": "across",
+        "at": "hip"
+      }
+    },
+    {
+      "properties": [
+        "fibrous"
+      ],
+      "way": {
+        "grip": "two",
+        "lie": "slanted",
+        "at": "chest"
+      }
+    },
+    {
+      "properties": [
+        "burnable",
+        "building_material"
+      ],
+      "way": {
+        "grip": "two",
+        "lie": "across",
+        "at": "chest"
+      }
+    },
+    {
+      "properties": [
+        "fruit"
+      ],
+      "way": {
+        "grip": "one",
+        "lie": "upright",
+        "at": "hip"
+      }
+    },
+    {
+      "properties": [
+        "edible"
+      ],
+      "way": {
+        "grip": "one",
+        "lie": "upright",
+        "at": "hip"
+      }
+    }
+  ]
+}

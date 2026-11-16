@@ -98,6 +98,13 @@ namespace GlassWorld.Contracts
         public double? LiftS { get; set; } = default!;
 
         /// <summary>
+        /// A1785: once risen the gesture holds as long as it is shown (carrying) - no lowering, no rest; missing = it cycles.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("steady")]
+        public bool? Steady { get; set; } = default!;
+
+        /// <summary>
         /// Real seconds the hand stays at the head (mouth).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hold_s")]
@@ -139,6 +146,20 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pole")]
         public System.Collections.Generic.ICollection<double> Pole { get; set; } = new System.Collections.ObjectModel.Collection<double>();
+
+        /// <summary>
+        /// A1542: while it holds, the hand taps (knocking at the glass) about this often per second - rounded to whole taps over hold_s, so it ends where it began; missing = it holds still.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tap_hz")]
+        public double? TapHz { get; set; } = default!;
+
+        /// <summary>
+        /// How far the hand draws back for a tap (metres for a figure of size 1, along the facing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tap_m")]
+        public double? TapM { get; set; } = default!;
 
     }
 
@@ -364,13 +385,6 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("alpha_max")]
         public double AlphaMax { get; set; } = default!;
-
-        /// <summary>
-        /// A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm "?" of this size stands in the dots' place; once only the effect is open, the dots again. Missing = dots only.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("question_font_px")]
-        public int? QuestionFontPx { get; set; } = default!;
 
     }
 

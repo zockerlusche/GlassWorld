@@ -300,16 +300,18 @@ public partial class Main
                 return window;
             }
 
-            settings.ShowTab("ui.settings.section.player");
+            settings.ShowTab("ui.settings.tab.game");
             return
             [
                 ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),
                 ("worlds", MainMenu.WorldsWindow(data, style, _ => { })),
                 ("settings", settings),
-                ("settings display", Tab("ui.settings.section.display")),
-                ("settings hints", Tab("ui.settings.section.hints")),
-                ("settings audio", Tab("ui.settings.section.audio")),
-                ("settings ai", Tab("ui.settings.section.ai")),
+                ("settings graphics", Tab("ui.settings.tab.graphics")),
+                ("settings audio", Tab("ui.settings.tab.audio")),
+                ("settings interface", Tab("ui.settings.tab.interface")),
+                ("settings controls", Tab("ui.settings.tab.controls")),
+                ("settings accessibility", Tab("ui.settings.tab.accessibility")),
+                ("settings ai", Tab("ui.settings.tab.ai")),
                 ("pause", PauseMenu.Create(style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }) { Help = () => { } })),
             ];
         };
@@ -724,10 +726,10 @@ public partial class Main
             });
             if (settings is not null)
             {
-                foreach (var tab in new[] { "player", "language", "display", "hints", "audio", "ai" })
+                foreach (var tab in settings.TabKeys)
                 {
-                    settings.ShowTab("ui.settings.section." + tab);
-                    await Take($"20_einstellungen_{tab}");
+                    settings.ShowTab(tab);
+                    await Take($"20_einstellungen_{tab.Replace("ui.settings.tab.", string.Empty, StringComparison.Ordinal)}");
                 }
 
                 settings.Close();

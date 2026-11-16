@@ -80,6 +80,12 @@ namespace GlassWorld.Contracts
         public int PickRadiusPx { get; set; } = default!;
 
         /// <summary>
+        /// A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thing_pick_m")]
+        public double ThingPickM { get; set; } = default!;
+
+        /// <summary>
         /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]
@@ -217,6 +223,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scrim_alpha")]
         public double ScrimAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it shows at most faintly through its text (1 = fully opaque).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("window_ground_alpha")]
+        public double WindowGroundAlpha { get; set; } = default!;
 
         /// <summary>
         /// How far that dark ground fades out at its edges (a soft gradient, no box).
@@ -501,6 +513,75 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A1752 (B2792, Marcel W2166/W2167): the states of a portrait in the inhabitants corner - knock, worry, aha, question - told apart by shape and motion, never by colour alone; at most one shows, the most important (knock &gt; worry &gt; aha &gt; question). Calm: only the knock moves, and with reduced motion it stands still.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiPortraitStates
+    {
+
+        /// <summary>
+        /// Pulses of the ring per knock (B2792: twice short, then a pause).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knock_taps")]
+        public int KnockTaps { get; set; } = default!;
+
+        /// <summary>
+        /// How long one pulse of the knock ring lasts (real seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knock_tap_s")]
+        public double KnockTapS { get; set; } = default!;
+
+        /// <summary>
+        /// The pause between two pulses of one knock (real seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knock_gap_s")]
+        public double KnockGapS { get; set; } = default!;
+
+        /// <summary>
+        /// The pause after a knock before the next one (real seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knock_pause_s")]
+        public double KnockPauseS { get; set; } = default!;
+
+        /// <summary>
+        /// Thickness of a state's ring as a share of the portrait's diameter.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ring_share")]
+        public double RingShare { get; set; } = default!;
+
+        /// <summary>
+        /// The aha ring lights up once this long (real seconds), then stays calmly bright without pulsing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("aha_flash_s")]
+        public double AhaFlashS { get; set; } = default!;
+
+        /// <summary>
+        /// How long an aha stays (game hours, B2792: about one game day) unless the portrait is clicked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("aha_hours")]
+        public double AhaHours { get; set; } = default!;
+
+        /// <summary>
+        /// The inhabitant's own events that are an aha (GW1 #27065: invented, built, word_heard); vocabulary event ids.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("aha_events")]
+        public System.Collections.Generic.ICollection<string> AhaEvents { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// A need below its neglect line this long (game hours, the snapshot's NeglectHours) shows the worry mark; a fading inhabitant shows it too.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("worry_after_hours")]
+        public double WorryAfterHours { get; set; } = default!;
+
+        /// <summary>
+        /// Diameter of the badge on the portrait's edge as a share of the portrait's diameter.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("badge_share")]
+        public double BadgeShare { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -602,6 +683,9 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bars")]
         public Bars Bars { get; set; } = new Bars();
+
+        [System.Text.Json.Serialization.JsonPropertyName("portrait_states")]
+        public UiPortraitStates PortraitStates { get; set; } = new UiPortraitStates();
 
     }
 
@@ -943,6 +1027,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("favor_bar_width")]
         public int FavorBarWidth { get; set; } = default!;
+
+        /// <summary>
+        /// A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("season_bar_width")]
+        public int SeasonBarWidth { get; set; } = default!;
 
         /// <summary>
         /// Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).

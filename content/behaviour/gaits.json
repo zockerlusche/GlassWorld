@@ -16,6 +16,8 @@
     "conversation_min_m": 1.0,
     "conversation_max_m": 1.5,
     "min_separation_m": 0.8,
+    "stall_minutes": 20,
+    "stall_gain_m": 1.0,
     "yield_lookahead_m": 5.0,
     "yield_offset_m": 0.6,
     "facing_tolerance_deg": 15,

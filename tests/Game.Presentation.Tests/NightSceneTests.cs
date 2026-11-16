@@ -59,6 +59,32 @@ public sealed class NightSceneTests
     }
 
     [Fact]
+    public void WithPassNightTheRestOfTheNightPassesBehindTheShadeAndDawnFadesIn()
+    {
+        // A1798 (Marcel W2243): the service done in a minute does not show the same night again - it passes, the morning comes.
+        var data = Data();
+        data.PassNight = true;
+        var scene = new NightScene(data);
+        Run(scene, false, null, 1);
+        scene.Update(true, false, 0.1);
+        Run(scene, true, false, 4.1);
+        Assert.Equal(NightStage.Dream, scene.Stage);
+
+        Run(scene, true, true, 7);
+        Assert.Equal((NightStage.Dream, 0.8, true, true), (scene.Stage, scene.Darkness, scene.PassesNight, scene.HoldsWorld));
+
+        // Still night, the service may even be busy again: it keeps passing.
+        Run(scene, true, false, 10);
+        Assert.Equal((NightStage.Dream, true), (scene.Stage, scene.PassesNight));
+
+        // Dawn: the morning fades in and the world is the player's again.
+        scene.Update(false, null, 0.1);
+        Assert.Equal((NightStage.FadingIn, false), (scene.Stage, scene.PassesNight));
+        Run(scene, false, null, 3.1);
+        Assert.Equal((NightStage.Day, 0.0, false), (scene.Stage, scene.Darkness, scene.HoldsWorld));
+    }
+
+    [Fact]
     public void TheNightDarkensDreamsAndTheMorningFadesInWhenTheServiceIsDone()
     {
         var scene = new NightScene(Data());

@@ -159,6 +159,66 @@
       "text": "{name} – favourite"
     },
     {
+      "key": "ui.thing.title",
+      "text": "Thing"
+    },
+    {
+      "key": "ui.thing.built_by",
+      "text": "Built by {name}"
+    },
+    {
+      "key": "ui.thing.invented_by",
+      "text": "Invented by {name}"
+    },
+    {
+      "key": "ui.thing.known",
+      "text": "What the inhabitants know about it"
+    },
+    {
+      "key": "ui.thing.nobody_knows",
+      "text": "Nobody knows anything about it yet."
+    },
+    {
+      "key": "ui.thing.knows",
+      "text": "{name}: {facts}"
+    },
+    {
+      "key": "ui.thing.fact",
+      "text": "{fact} ({source})"
+    },
+    {
+      "key": "ui.thing.fact_not",
+      "text": "not {property}"
+    },
+    {
+      "key": "ui.thing.source.experienced",
+      "text": "own experience"
+    },
+    {
+      "key": "ui.thing.source.seen",
+      "text": "seen"
+    },
+    {
+      "key": "ui.thing.source.heard",
+      "text": "heard"
+    },
+    {
+      "key": "ui.thing.source.read",
+      "text": "read"
+    },
+    {
+      "key": "ui.thing.source.guessed",
+      "text": "guessed"
+    },
+    {
+      "key": "ui.thing.ground",
+      "text": "Ground: {ground}"
+    },
+    {
+      "key": "ui.thing.ground_slow",
+      "text": "Ground: {ground} - walking is slower ({percent} %)"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Memories of {name}"
     },
@@ -252,7 +312,7 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season} {day}/{days}"
+      "text": "{season}"
     },
     {
       "key": "ui.clock.date_tooltip",
@@ -261,6 +321,14 @@
     {
       "key": "ui.clock.day_year",
       "text": "day {game_day} · year {year}"
+    },
+    {
+      "key": "ui.clock.air",
+      "text": "{temp} °C"
+    },
+    {
+      "key": "ui.clock.air_tooltip",
+      "text": "Air temperature on the island"
     },
     {
       "key": "ui.common.cancel",
@@ -499,10 +567,6 @@
       "text": "Your name"
     },
     {
-      "key": "ui.settings.player_name_hint",
-      "text": "Only for the chronicle and hints"
-    },
-    {
       "key": "ui.settings.problem.name_blocked",
       "text": "Please choose a different name."
     },
@@ -523,32 +587,96 @@
       "text": "Reduce motion"
     },
     {
-      "key": "ui.settings.section.audio",
-      "text": "Sound"
-    },
-    {
-      "key": "ui.settings.section.display",
-      "text": "Display"
-    },
-    {
-      "key": "ui.settings.section.hints",
-      "text": "Hints"
-    },
-    {
-      "key": "ui.settings.section.language",
-      "text": "Language"
-    },
-    {
-      "key": "ui.settings.section.player",
-      "text": "Player"
-    },
-    {
       "key": "ui.settings.text_scale",
       "text": "Text size"
     },
     {
       "key": "ui.settings.title",
       "text": "Settings"
+    },
+    {
+      "key": "ui.settings.tab.game",
+      "text": "Game"
+    },
+    {
+      "key": "ui.settings.tab.graphics",
+      "text": "Graphics"
+    },
+    {
+      "key": "ui.settings.tab.audio",
+      "text": "Sound"
+    },
+    {
+      "key": "ui.settings.tab.interface",
+      "text": "Interface"
+    },
+    {
+      "key": "ui.settings.tab.controls",
+      "text": "Controls"
+    },
+    {
+      "key": "ui.settings.tab.accessibility",
+      "text": "Accessibility"
+    },
+    {
+      "key": "ui.settings.tab.ai",
+      "text": "AI"
+    },
+    {
+      "key": "ui.settings.coming",
+      "text": "These settings come with a later step."
+    },
+    {
+      "key": "ui.settings.restore",
+      "text": "Restore defaults"
+    },
+    {
+      "key": "ui.settings.desc_hint",
+      "text": "Point at a setting to read what it does."
+    },
+    {
+      "key": "ui.settings.language.desc",
+      "text": "The language of all texts in the game. The inhabitants speak it too."
+    },
+    {
+      "key": "ui.settings.player_name.desc",
+      "text": "Only for the chronicle and hints. You may leave it empty."
+    },
+    {
+      "key": "ui.settings.ui_scale.desc",
+      "text": "How large windows, buttons and text are together."
+    },
+    {
+      "key": "ui.settings.text_scale.desc",
+      "text": "Only the text larger or smaller; the windows grow with it."
+    },
+    {
+      "key": "ui.settings.feeling_symbols.desc",
+      "text": "Small signs above the heads show what an inhabitant feels."
+    },
+    {
+      "key": "ui.settings.hint_duration.desc",
+      "text": "How long a hint stays, as a multiple of the shortest time."
+    },
+    {
+      "key": "ui.settings.hints_until_dismissed.desc",
+      "text": "Hints stay until you close them."
+    },
+    {
+      "key": "ui.settings.hide_ui.desc",
+      "text": "Hides everything you cannot use, to watch only the world."
+    },
+    {
+      "key": "ui.settings.high_contrast.desc",
+      "text": "Stronger difference between text and background."
+    },
+    {
+      "key": "ui.settings.reduce_motion.desc",
+      "text": "Less motion: no trembling glass, calmer transitions."
+    },
+    {
+      "key": "ui.settings.volume.desc",
+      "text": "The volume of each channel; locked channels are grey."
     },
     {
       "key": "ui.settings.ui_scale",
@@ -1575,6 +1703,14 @@
       "text": "The gift now lies in the world. It belongs to nobody."
     },
     {
+      "key": "ui.help.weather",
+      "text": "Wish for a weather (costs {cost} favour; afterwards the weather goes its own way):"
+    },
+    {
+      "key": "msg.hint.weather_wished",
+      "text": "The weather turns: {weather}."
+    },
+    {
       "key": "ui.help.title",
       "text": "Help"
     },
@@ -1813,6 +1949,14 @@
     {
       "key": "vocab.event.build_plan_rejected",
       "text": "Building plan refused"
+    },
+    {
+      "key": "vocab.event.build_interrupted",
+      "text": "Building interrupted"
+    },
+    {
+      "key": "vocab.event.build_resumed",
+      "text": "Building taken up again"
     },
     {
       "key": "vocab.event.build_step",
@@ -2183,6 +2327,14 @@
       "text": "Fire burnt down"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Something spoiled"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Something broke"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Fire put out by rain"
     },
@@ -2417,6 +2569,10 @@
     {
       "key": "ui.activity.thinking",
       "text": "is thinking"
+    },
+    {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · carrying {thing}"
     },
     {
       "key": "ui.activity.idle",
@@ -2883,10 +3039,6 @@
       "text": "Learn by day as well"
     },
     {
-      "key": "ui.settings.section.ai",
-      "text": "AI"
-    },
-    {
       "key": "ui.selfcheck.checking",
       "text": "Checking the AI …"
     },
@@ -3001,6 +3153,18 @@
     {
       "key": "ui.pause.help",
       "text": "Help and gifts"
+    },
+    {
+      "key": "ui.corner.knocking",
+      "text": "Knocking at the glass"
+    },
+    {
+      "key": "ui.corner.worry",
+      "text": "Something has been missing for a long time"
+    },
+    {
+      "key": "ui.corner.aha",
+      "text": "Just managed something - click, and the star goes"
     },
     {
       "key": "ui.corner.brooding",
@@ -3753,6 +3917,54 @@
     {
       "key": "vocab.event.arrival",
       "text": "Arrived"
+    },
+    {
+      "key": "vocab.action.dig",
+      "text": "dig"
+    },
+    {
+      "key": "vocab.property.digs",
+      "text": "bites into the ground"
+    },
+    {
+      "key": "vocab.property.ore_bearing",
+      "text": "ore-bearing"
+    },
+    {
+      "key": "vocab.property.dug",
+      "text": "dug"
+    },
+    {
+      "key": "vocab.event.dug",
+      "text": "Dug"
+    },
+    {
+      "key": "vocab.event.dig_failed",
+      "text": "Digging did not work"
+    },
+    {
+      "key": "vocab.event.well_dug",
+      "text": "Water in the hole"
+    },
+    {
+      "key": "vocab.object.pit",
+      "text": "pit"
+    },
+    {
+      "key": "vocab.object.waterhole",
+      "text": "waterhole"
+    },
+    {
+      "key": "vocab.object.earth",
+      "text": "earth"
+    },
+    {
+      "key": "vocab.object.sand",
+      "text": "sand"
+    },
+    {
+      "key": "vocab.object.ore_chunk",
+      "text": "ore lump"
     }
   ]
 }

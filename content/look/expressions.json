@@ -30,6 +30,12 @@
       "face": "smile",
       "gesture": "hands_together",
       "seconds": 2.5
+    },
+    {
+      "id": "knock",
+      "gesture": "knock_glass",
+      "seconds": 2.5,
+      "look_s": 3
     }
   ],
   "events": [
@@ -56,6 +62,17 @@
     {
       "event": "praised",
       "expression": "glad"
+    },
+    {
+      "event": "mail_arrived",
+      "detail": "knock",
+      "expression": "knock",
+      "skips_pause": true
+    },
+    {
+      "event": "mail_repeated",
+      "detail": "knock",
+      "expression": "knock"
     }
   ],
   "moods": [

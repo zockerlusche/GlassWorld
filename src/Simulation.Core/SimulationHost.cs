@@ -157,6 +157,7 @@ public sealed class SimulationHost
         var actions = content.Actions.WithTruth(types);
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
+        var heightUnitMm = 100;
         Weather.WeatherSystem? weather = null;
         string? climate = null;
         var seaLevel = 0;
@@ -187,6 +188,7 @@ public sealed class SimulationHost
             // Tides (B2-5 R15): the level follows from the tick; with amplitude 0 no layer exists and walking
             // reads the base grid as before.
             var tides = new Tides(preset.Tides);
+            heightUnitMm = preset.Grid.HeightUnitMm;
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
             {
                 // D1105 H3b: the plant a hanging thing grows on (for climbing towards it).
@@ -453,6 +455,12 @@ public sealed class SimulationHost
         {
             // AK1a: a picked fruit ages from the pick, the same in a loaded world.
             map.LeftPlace += durability.LeftPlace;
+
+            // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
+            durability.QualityOf = inventions.QualityOfBuilt;
+            durability.MakerOf = typeId => inventions.Builds.FirstOrDefault(b => string.Equals(b.TypeId, typeId, StringComparison.Ordinal))?.InhabitantId ?? inventions.Invention(typeId)?.InhabitantId;
+            durability.Report = inhabitants.Report;
+            inhabitants.Reported += durability.Observe;
         }
 
         // B2700: a burning thing's heat level for processing - put together with it, or within the action's partner reach.
@@ -540,6 +548,12 @@ public sealed class SimulationHost
 
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
         inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+
+        // A1498 (B2828): nobody lies down in the water - the map knows where dry ground is.
+        if (map is not null)
+        {
+            inhabitants.DryGroundNear = map.DryGroundNear;
+        }
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;
@@ -634,6 +648,17 @@ public sealed class SimulationHost
         // Out of the hash while nothing burns.
         world.Add(fire);
 
+        // A1578 (B4b K5): digging into the island's underground; after the inhabitants, so a dig ends and applies in one tick.
+        DiggingSystem? digging = null;
+        if (content.Digging is { } diggingData && map is not null)
+        {
+            digging = new DiggingSystem(diggingData, objects, map, heightUnitMm, world.Seed,
+                id => inhabitants.TryGet(id, out var who) ? (who.Position, who.Held is { } held && objects.TryGet(held, out var thing) ? thing.TypeId : null) : null,
+                inhabitants.Report);
+            inhabitants.Reported += digging.Observe;
+            world.Add(digging);
+        }
+
         // B5-11 (R29/R30): rain wets, wet cools, the sun warms where no shade falls - islands only (weather and map).
         BodySystem? body = null;
         if (content.Body is { } bodyData && map is not null && weather is not null)
@@ -701,6 +726,11 @@ public sealed class SimulationHost
 
         // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
         world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(dialogue).Add(lookEpoch);
+
+        // A1778 (B2814): every failed action becomes an open question - collected from the events, asked at the end of the
+        // tick by the last system, so nothing waits across a save.
+        inhabitants.Reported += decisions.ObserveFailure;
+        world.Add(new FailureQuestionsSystem(decisions));
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -712,6 +742,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Processes = processes,
             Fire = fire,
+            Digging = digging,
             Aging = agingSystem,
             FamilyView = new Family.FirstGenerationView(inhabitants, world.Calendar.TicksPerDay),
             Forgetting = forgetting,
@@ -1062,6 +1093,9 @@ public sealed class SimulationHost
 
     /// <summary>Processing of things put together (B2687 K2); null without processing rules.</summary>
     public ProcessSystem? Processes { get; private init; }
+
+    /// <summary>Digging into the underground (A1578, B4b K5); null without the data or on a world without a map.</summary>
+    public DiggingSystem? Digging { get; private init; }
 
     /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
     public FireSystem Fire { get; private init; } = null!;

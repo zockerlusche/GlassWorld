@@ -8,9 +8,21 @@
   "required": ["contract_version", "classes"],
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
-    "classes": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/MaterialClass" } }
+    "classes": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/MaterialClass" } },
+    "use_actions": { "description": "A1576 (plan D1008 H2): actions whose end counts as one use of their target thing (use_permille of its class). Omitted = nothing wears by use.", "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+    "quality": { "description": "A1576 (H2): how a made thing's quality tier (build quality, A1376) stretches its life - permille of the plain life (1500 = half again as long). A tier without an entry, or a thing without quality: 1000.", "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/QualityLife" } },
+    "end_event_if": { "description": "A1576 (H2): the end event of a class (spoiled, broke) is reported only for a thing with this TRUE property (made by someone) or one an inhabitant holds; nature's own things end in silence. Omitted = only held things.", "$ref": "common.schema.json#/$defs/VocabId" }
   },
   "$defs": {
+    "QualityLife": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "life_permille"],
+      "properties": {
+        "tier": { "description": "Quality tier id (content/build/settings.json quality tiers).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "life_permille": { "type": "integer", "minimum": 100, "maximum": 10000 }
+      }
+    },
     "MaterialClass": {
       "type": "object",
       "additionalProperties": false,
@@ -23,7 +35,9 @@
         "wet_permille": { "description": "Extra ageing per wet nature takt, in permille of the takt (2000 = a wet takt ages three times as fast). Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
         "frost_permille": { "description": "Extra ageing per frost takt. Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
         "heat_permille": { "description": "Extra ageing per hot takt. Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 20000 },
-        "wet_frost_permille": { "description": "Extra ageing per takt of frost on something wet (cracks). Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 100000 }
+        "wet_frost_permille": { "description": "Extra ageing per takt of frost on something wet (cracks). Omitted = 0.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "use_permille": { "description": "A1576 (H2): wear per use, in permille of its life (100 = ten uses wear it out); a class without base_hours wears by use only (fired clay, glass). Omitted = use does not wear it.", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "end_event": { "description": "A1576 (H2): the event when such a thing ends (vocabulary event: spoiled, broke); see end_event_if. Omitted = it ends in silence.", "$ref": "common.schema.json#/$defs/VocabId" }
       }
     }
   }
