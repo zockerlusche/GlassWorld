@@ -48,8 +48,11 @@ Das Spiel hält alles neben sich, damit ein Blick in seinen Ordner alles zeigt:
 | `daten\` | deine Welten (`worlds\`), Einstellungen, die Sammlung der erzeugten Dinge (`collection\`), Diagnoseberichte (`diagnostics\`) |
 | `log\` | das Protokoll des Spiels (`godot.log`), die Protokolle der KI (`ki\`) und je Welt die Lauf-Spur (`welten\`) |
 
+- In den Einstellungen unter „Spiel“ öffnen die Knöpfe **Datenordner** und **Protokollordner**
+  den jeweiligen Ordner.
 - Darf das Spiel in seinen eigenen Ordner nicht schreiben (zum Beispiel unter `C:\Programme`),
-  legt es `daten\` in `Dokumente\GlassWorld` an.
+  legt es `daten\` in `Dokumente\GlassWorld` an, die Protokolle dann in
+  `Dokumente\GlassWorld\log\`.
 - Willst du das Spiel verschieben, nimm den ganzen Ordner mit: Dann wandern deine Welten mit.
 - Löschst du den Ordner, sind auch deine Welten weg. Sichere vorher `daten\worlds\`, wenn du sie
   behalten willst.
@@ -62,7 +65,7 @@ Das Spiel hält alles neben sich, damit ein Blick in seinen Ordner alles zeigt:
 |---|---|
 | Windows zeigt „Der Computer wurde durch Windows geschützt“. | Das Spiel ist nicht signiert. „Weitere Informationen“ und dann „Trotzdem ausführen“ wählen. |
 | Das Spiel startet, aber deine Welten fehlen. | Liegt der Ordner `daten\` noch neben dem Spiel? Nach dem Verschieben ohne ihn beginnt das Spiel leer. Sonst in `Dokumente\GlassWorld` nachsehen. |
-| Das Bild ruckelt. | In den Einstellungen unter „Grafik“ eine niedrigere Qualität oder eine kleinere Fenstergröße wählen. Andere Programme schließen, die die Grafikkarte nutzen. |
+| Das Bild ruckelt. | In den Einstellungen unter „Grafik“ eine niedrigere Qualität wählen (gilt ab dem nächsten Laden einer Welt) oder eine kleinere Fenstergröße (gilt sofort, mit „Behalten?“). Andere Programme schließen, die die Grafikkarte nutzen. |
 | Der Virenscanner meldet das Spiel oder seine KI. | Den Ordner des Spiels im Virenscanner erlauben. Das Spiel lädt nur aus den offiziellen Quellen, mit Prüfsumme. |
 
 Der Selbstcheck beim Start nennt die Ursache. Hier steht, was du tun kannst.

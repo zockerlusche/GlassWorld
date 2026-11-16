@@ -49,8 +49,9 @@ The game keeps everything next to itself, so one look into its folder shows it a
 | `daten\` | your worlds (`worlds\`), settings, the collection of made things (`collection\`), diagnostics reports (`diagnostics\`) |
 | `log\` | the game's log (`godot.log`), the AI's logs (`ki\`) and each world's run trace (`welten\`) |
 
+- In the settings under "Game", the buttons **Data folder** and **Log folder** open the folder.
 - If the game may not write into its own folder (for example under `C:\Program Files`), it puts
-  `daten\` into `Documents\GlassWorld`.
+  `daten\` into `Documents\GlassWorld` and the logs into `Documents\GlassWorld\log\`.
 - To move the game, take the whole folder: your worlds move with it.
 - Deleting the folder deletes your worlds too. Back up `daten\worlds\` first if you want to keep them.
 
@@ -62,7 +63,7 @@ The game keeps everything next to itself, so one look into its folder shows it a
 |---|---|
 | Windows says "Windows protected your PC". | The game is not signed. Choose "More info", then "Run anyway". |
 | The game starts, but your worlds are missing. | Is the folder `daten\` still next to the game? Moved without it, the game starts empty. Otherwise look in `Documents\GlassWorld`. |
-| The picture stutters. | In the settings under "Graphics", choose a lower quality or a smaller window. Close other programs that use the graphics card. |
+| The picture stutters. | In the settings under "Graphics", choose a lower quality (it takes effect when a world is loaded next) or a smaller window (at once, with "Keep?"). Close other programs that use the graphics card. |
 | The virus scanner reports the game or its AI. | Allow the game's folder in the virus scanner. The game only downloads from the official sources, with a checksum. |
 
 The self-check at start names the cause. Here is what you can do.
