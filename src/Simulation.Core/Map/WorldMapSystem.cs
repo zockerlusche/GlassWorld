@@ -52,6 +52,13 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         {
             objects.Spawned += ObstacleTouched;
             objects.Removed += ObstacleTouched;
+
+            // Review GW1 #515: a change between two obstacle types with other radii keeps the count.
+            objects.TypeChanged += (before, after) =>
+            {
+                ObstacleTouched(before);
+                ObstacleTouched(after);
+            };
         }
     }
 
@@ -247,6 +254,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     private readonly Dictionary<int, List<(Position Centre, double RadiusM)>> _circles = [];
     private bool _obstaclesDirty = true;
     private int _obstacleCount = -1;
+    private long _obstacleSignature;
     private double _widestObstacleM;
 
     // A destination this close to an obstacle's centre is the obstacle itself (positions are the same doubles).
@@ -270,23 +278,35 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             return null;
         }
 
-        // Counted every time as well: a change of type or a restored world fires no event.
+        // A signature over every obstacle as well - where it stands and whether someone holds it: a move fires no
+        // event (a young tree picked up goes with its holder), so the cells must never lag behind the objects, or a
+        // loaded world (which builds them fresh) would walk other ways than the one that ran on.
         var count = 0;
+        var signature = 17L;
         foreach (var ofType in _objects.ByType)
         {
-            if (ObstacleRadiusCm.TryGetValue(ofType.TypeId, out var radius) && radius > 0)
+            if (!ObstacleRadiusCm.TryGetValue(ofType.TypeId, out var radius) || radius <= 0)
             {
-                count += ofType.Objects.Count;
+                continue;
+            }
+
+            foreach (var thing in ofType.Objects)
+            {
+                count++;
+                var held = _objects.HeldBy(thing.Id) is null ? 0L : 1L;
+                signature = unchecked((signature * 1_000_003) + (BitConverter.DoubleToInt64Bits(thing.Position.X) * 31)
+                    + BitConverter.DoubleToInt64Bits(thing.Position.Z) + held);
             }
         }
 
-        if (!_obstaclesDirty && count == _obstacleCount)
+        if (!_obstaclesDirty && count == _obstacleCount && signature == _obstacleSignature)
         {
             return _obstacles;
         }
 
         _obstaclesDirty = false;
         _obstacleCount = count;
+        _obstacleSignature = signature;
         _circles.Clear();
         _widestObstacleM = 0;
         _paths.Clear();
@@ -304,7 +324,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             var r = radiusCm / 100.0;
             foreach (var thing in ofType.Objects)
             {
-                if (CellOf(thing.Position) is not { } at)
+                // What someone holds blocks nothing (it goes where its holder goes).
+                if (_objects.HeldBy(thing.Id) is not null || CellOf(thing.Position) is not { } at)
                 {
                     continue;
                 }

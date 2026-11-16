@@ -78,7 +78,8 @@ public sealed class ObstacleTests
         // Review GW1 #515: a rock niche clears 1.3 m (radius + body), pick_up reaches 1.0 m, and nothing at the start of an
         // action measures the distance again - the walk's arrival decides. A thing lying by the rock is walked to and
         // reached; a thing at the rock's very centre is reached from in front of it, at the rock's surface.
-        var host = Island();
+        // A silent decider: no answer to an open question takes the place of the pick-up set here.
+        var host = Island(new SilentPort());
         var map = host.Map!;
         var niche = host.Objects.All.First(o => o.TypeId == "rock_niche" && Approach(map, o) is not null);
         var radius = map.ObstacleRadiusCm["rock_niche"] / 100.0;
@@ -93,8 +94,14 @@ public sealed class ObstacleTests
 
         inhabitant.Activity = new Activity("pick_up", stone.Id, stone.Position, null);
         double? startedAt = null;
+        var seen = new List<string>();
         host.Inhabitants.Reported += e =>
         {
+            if (e.InhabitantId == inhabitant.Id && seen.Count < 12)
+            {
+                seen.Add($"{e.Kind} {e.Action} {e.TargetId} {e.Detail}");
+            }
+
             if (e.Kind == InhabitantsSystem.ActionStarted && e.TargetId == stone.Id)
             {
                 startedAt ??= Distance(inhabitant.Position, stone.Position);
@@ -105,9 +112,9 @@ public sealed class ObstacleTests
             host.World.Run(1);
         }
 
-        Assert.NotNull(startedAt);
+        Assert.True(startedAt is not null, "never started: " + string.Join("; ", seen));
         var surface = offset < 0.01 ? radius : 0;
-        Assert.True(startedAt.Value - surface <= reach + 1e-6, $"offset {offset}: the pick-up started {startedAt:0.00} m from the stone");
+        Assert.True(startedAt!.Value - surface <= reach + 1e-6, $"offset {offset}: the pick-up started {startedAt:0.00} m from the stone");
         Assert.True(Distance(inhabitant.Position, niche.Position) >= radius, "and the walker stands outside the rock");
     }
 
@@ -126,9 +133,41 @@ public sealed class ObstacleTests
         Assert.True(Length(from, straight.Waypoints) < Length(from, around.Waypoints), "without the tree the way is shorter");
     }
 
-    private static SimulationHost Island()
+    [Fact]
+    public void AChangeOfTypeChangesTheObstacle()
     {
-        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        // Review GW1 #515: a tree that becomes a rock keeps the number of obstacles - the type change alone rebuilds them.
+        var host = Island();
+        var map = host.Map!;
+        var (tree, _, _) = CrossingOf(host, map);
+        var before = map.Obstacles()!.Count(c => c);
+        Assert.True(host.Objects.ChangeType(tree.Id, "rock_niche"));
+        Assert.True(map.Obstacles()!.Count(c => c) > before, "a rock covers more cells than a trunk");
+    }
+
+    [Fact]
+    public void AHeldTreeBlocksNothingAndAMovedOneBlocksWhereItStands()
+    {
+        // A move fires no event (a young tree picked up goes with its holder): the cells follow it anyway, or a loaded
+        // world, which builds them fresh, would walk other ways than the one that ran on (ExplorationTests save/load).
+        var host = Island();
+        var map = host.Map!;
+        var (tree, _, _) = CrossingOf(host, map);
+        var cell = CellIndex(map, tree.Position);
+        Assert.True(map.Obstacles()![cell]);
+
+        host.Objects.SetHeld(tree.Id, host.Inhabitants.All.First().Id);
+        Assert.False(map.Obstacles()![cell]);
+
+        host.Objects.SetHeld(tree.Id, null);
+        Assert.True(host.Objects.Move(tree.Id, new Position(tree.Position.X + 2, tree.Position.Z)));
+        Assert.False(map.Obstacles()![cell]);
+        Assert.True(map.Obstacles()![cell + 2]);
+    }
+
+    private static SimulationHost Island(IDecisionPort? port = null)
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, port ?? new MockDecisionPort(), "de", "start_island");
         host.World.Run(1);
         return host;
     }
@@ -223,5 +262,14 @@ public sealed class ObstacleTests
         var length = (dx * dx) + (dz * dz);
         var t = length == 0 ? 0 : Math.Clamp((((p.X - a.X) * dx) + ((p.Z - a.Z) * dz)) / length, 0, 1);
         return Distance(new Position(a.X + (t * dx), a.Z + (t * dz)), p);
+    }
+
+    private sealed class SilentPort : IDecisionPort
+    {
+        public void Send(string requestId, string requestJson)
+        {
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
     }
 }
