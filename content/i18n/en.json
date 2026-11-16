@@ -3627,6 +3627,74 @@
       "text": "Debug jumps: {back} and {forward} change the epoch"
     },
     {
+      "key": "ui.debug.jobs",
+      "text": "AI jobs: {running} running, {waiting} waiting for the night"
+    },
+    {
+      "key": "ui.debug.job",
+      "text": "  · {kind} – {name} – for {minutes} game minutes"
+    },
+    {
+      "key": "ui.debug.job_waiting",
+      "text": "  · {kind} – {name} – waiting for {minutes} game minutes"
+    },
+    {
+      "key": "ui.debug.job_kind.decide",
+      "text": "decision"
+    },
+    {
+      "key": "ui.debug.job_kind.question",
+      "text": "question"
+    },
+    {
+      "key": "ui.debug.job_kind.memory",
+      "text": "memory"
+    },
+    {
+      "key": "ui.debug.job_kind.invention",
+      "text": "invention"
+    },
+    {
+      "key": "ui.debug.job_kind.build_plan",
+      "text": "building plan"
+    },
+    {
+      "key": "ui.debug.job_kind.process",
+      "text": "process"
+    },
+    {
+      "key": "ui.debug.job_kind.dream",
+      "text": "dream"
+    },
+    {
+      "key": "ui.debug.job_kind.chronicle",
+      "text": "chronicle"
+    },
+    {
+      "key": "ui.debug.job_kind.image",
+      "text": "picture"
+    },
+    {
+      "key": "ui.debug.job_kind.sound",
+      "text": "sound"
+    },
+    {
+      "key": "ui.debug.job_kind.model3d",
+      "text": "3D model"
+    },
+    {
+      "key": "ui.debug.job_kind.review",
+      "text": "review"
+    },
+    {
+      "key": "ui.debug.job_kind.milestone",
+      "text": "milestone"
+    },
+    {
+      "key": "ui.debug.job_kind.dialogue",
+      "text": "talk"
+    },
+    {
       "key": "ui.question.settled",
       "text": "That has been settled."
     },
