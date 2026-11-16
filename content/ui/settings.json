@@ -6,12 +6,19 @@
       "rows": [
         "language",
         "player_name",
-        "data_folder"
+        "data_folder",
+        "log_folder"
       ]
     },
     {
       "id": "graphics",
-      "rows": []
+      "rows": [
+        "window_mode",
+        "resolution",
+        "vsync",
+        "max_fps",
+        "quality"
+      ]
     },
     {
       "id": "audio",

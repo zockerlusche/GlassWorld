@@ -463,8 +463,11 @@ public partial class WorldPresenter
     private static T Read<T>(string content, string folder, string file)
         where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(content, folder, file)));
 
-    /// <summary>The plan of the default quality level (content/look/quality.json).</summary>
-    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"));
+    /// <summary>A1748: the player's quality level (settings 'Grafik'), null = the data's default; read when a world is built.</summary>
+    public static string? QualityChoice { get; set; }
+
+    /// <summary>The plan of the player's quality level, else the data's default (content/look/quality.json).</summary>
+    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"), QualityChoice);
 
     /// <summary>Reads the world-look switch (content/look/world.json).</summary>
     private static LookWorld ReadLook(string contentDirectory) => Read<LookWorld>(contentDirectory, "look", "world.json");
