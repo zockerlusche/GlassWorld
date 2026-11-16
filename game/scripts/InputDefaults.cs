@@ -18,6 +18,7 @@ public static class InputDefaults
     public static void Ensure(int timeChoices)
     {
         CameraRig.EnsureDefaultInput();
+        Ui.Components.GwDebugOverlay.EnsureDefaultInput();
         for (var i = 0; i < timeChoices; i++)
         {
             var action = ScreenModel.TimeAction(i);
@@ -48,8 +49,12 @@ public static class InputDefaults
     /// </summary>
     public static IReadOnlySet<string> FixedKeys(IEnumerable<string> layable)
     {
+        // Read live from the input map (review GW3 #564): actions made later, like the debug view's F12, count too.
         var free = layable.ToHashSet(StringComparer.Ordinal);
-        return (_defaults ?? []).Where(d => !free.Contains(d.Key)).SelectMany(d => d.Value).ToHashSet(StringComparer.Ordinal);
+        return InputMap.GetActions().Select(a => a.ToString())
+            .Where(a => a.StartsWith("gw_", StringComparison.Ordinal) && !free.Contains(a))
+            .SelectMany(KeysOf)
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     /// <summary>The default keys of these actions (in their order); an action the game does not know has none.</summary>
