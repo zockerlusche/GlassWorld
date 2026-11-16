@@ -252,8 +252,10 @@ public sealed class SimulationHost
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
 
-                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                // A1830: what a used-up thing leaves behind (a stump) goes again when it grows back there.
                 LeavesBehind = LeavesBehindOf(content),
+
+                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
                 ObstacleRadiusCm = content.Objects.TypeIds
                     .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
                     .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
