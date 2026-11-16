@@ -275,6 +275,24 @@ public sealed class RunTraceWriter : IDisposable
                 }
 
                 json.WriteEndObject();
+
+                // A1808 measuring net (review GW4 #540): moods, traits and the will to live make invariants 5, 13, 18
+                // and 19 measurable on the trace (feelings and their decay, the character fixed after birth, the will).
+                json.WriteStartObject("moods");
+                foreach (var (mood, value) in who.Moods)
+                {
+                    json.WriteNumber(mood, Math.Round(value, 3));
+                }
+
+                json.WriteEndObject();
+                json.WriteStartObject("traits");
+                foreach (var (trait, value) in who.Traits)
+                {
+                    json.WriteNumber(trait, Math.Round(value, 3));
+                }
+
+                json.WriteEndObject();
+                json.WriteNumber("will_to_live", Math.Round(who.WillToLive, 3));
                 json.WriteEndObject();
             }
 

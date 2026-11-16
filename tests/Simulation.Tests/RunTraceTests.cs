@@ -56,6 +56,13 @@ public sealed class RunTraceTests : IDisposable
         Assert.Contains(types["ai"], l => l.GetProperty("kind").GetString() == "Response" && l.TryGetProperty("option_id", out _));
         var snapshot = types["snapshot"][0];
         Assert.Equal(host.Inhabitants.All.Count(), snapshot.GetProperty("inhabitants").GetArrayLength());
+
+        // For the measuring net (A1808): moods, traits and the will to live of every inhabitant.
+        var first = snapshot.GetProperty("inhabitants")[0];
+        var who = host.Inhabitants.All.Single(i => i.Id == first.GetProperty("id").GetString());
+        Assert.Equal(who.Moods.Count, first.GetProperty("moods").EnumerateObject().Count());
+        Assert.Equal(who.Traits.Count, first.GetProperty("traits").EnumerateObject().Count());
+        Assert.InRange(first.GetProperty("will_to_live").GetDouble(), 0, 1);
         Assert.StartsWith("2/", snapshot.GetProperty("clock").GetString(), StringComparison.Ordinal);
         var perDay = host.World.Calendar.TicksPerDay;
         Assert.All(types["snapshot"], l => Assert.InRange(l.GetProperty("tick").GetInt64(), perDay, (2 * perDay) - 1));
