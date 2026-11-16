@@ -1,4 +1,5 @@
 using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Map;
 
 namespace GlassWorld.Simulation.Tests;
@@ -38,6 +39,19 @@ public sealed class WorldGeneratorTests
         var island = WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed, null, factor, pairs);
         Assert.True(island.Passed, string.Join(", ", island.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
         Assert.Equal(pairs * 2, island.Starts.Count);
+    }
+
+    [Fact]
+    public void ANewWorldTakesOverTheIslandThePreviewGenerated()
+    {
+        // A1769 (B2805): the start uses exactly the island the preview showed - same hash, not generated again; an
+        // island of another seed is refused.
+        var contentDir = Path.Combine(TestData.Root, "content");
+        var shown = WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", 77, null, 1.5, 3);
+        var host = SimulationHost.CreateGeneratedWorld(contentDir, 77, new MockDecisionPort(), "de", "start_island", options: new SimulationHostOptions { Island = shown, StartPairs = 3 });
+        Assert.Same(shown, host.Map!.Island);
+        Assert.Equal(6, host.Inhabitants.All.Count());
+        Assert.Throws<InvalidDataException>(() => SimulationHost.CreateGeneratedWorld(contentDir, 78, new MockDecisionPort(), "de", "start_island", options: new SimulationHostOptions { Island = shown }));
     }
 
     [Fact]
