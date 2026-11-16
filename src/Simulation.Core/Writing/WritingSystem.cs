@@ -121,6 +121,9 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+
+        // A1357 part 2: the write and read actions that ended in this tick (after the inhabitants).
+        ApplyPending(world.Tick);
         if (_texts.Count == 0)
         {
             return;

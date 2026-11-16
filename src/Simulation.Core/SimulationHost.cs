@@ -618,8 +618,15 @@ public sealed class SimulationHost
 
             // A1357: who can read learns in passing; an author it keeps no relationship with counts as the knowledge start.
             Skills = skillLevels,
+            Held = new HeldByInhabitants(inhabitants, objects),
             AuthorStart = new Relation(content.Knowledge.RelationshipStart.Affection, content.Knowledge.RelationshipStart.Trust, content.Knowledge.RelationshipStart.Respect),
         };
+
+        // A1357 part 2: write and read are offered where they can work, show what would be written, and end in the
+        // writing system (after the inhabitants, in the same tick).
+        inhabitants.Reported += writing.Observe;
+        decisions.OffersFor = writing.Offers;
+        decisions.WriteTopic = (asker, action) => action == writing.WriteAction ? writing.BeliefToWrite(asker) : null;
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour)
         {
             // A builder's knock calms down once it is no longer stuck (A1602).

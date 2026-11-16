@@ -364,6 +364,16 @@
     },
     {
       "kind": "action",
+      "id": "write",
+      "clip": "kneel_work"
+    },
+    {
+      "kind": "action",
+      "id": "read",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
       "id": "put_on",
       "clip": "handle"
     },
