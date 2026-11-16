@@ -219,6 +219,34 @@
       "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
     },
     {
+      "key": "ui.writing.says",
+      "text": "{thing}: {property}"
+    },
+    {
+      "key": "ui.writing.says_not",
+      "text": "{thing}: nicht {property}"
+    },
+    {
+      "key": "ui.writing.on",
+      "text": "Hier steht geschrieben: „{text}“ – von {author}, {legibility}."
+    },
+    {
+      "key": "ui.writing.legible",
+      "text": "gut lesbar"
+    },
+    {
+      "key": "ui.writing.faint",
+      "text": "verblasst"
+    },
+    {
+      "key": "ui.writing.hard",
+      "text": "kaum noch lesbar"
+    },
+    {
+      "key": "ui.writing.unknown",
+      "text": "Zeichen, die niemand deuten kann"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Erinnerungen an {name}"
     },
