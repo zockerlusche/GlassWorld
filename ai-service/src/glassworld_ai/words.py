@@ -74,6 +74,24 @@ def subject_name(subject: Any, settings: dict[str, Any]) -> str:
 # D1017 G1: what a fading belief (sure: false) says in every prompt that lists beliefs.
 UNSURE = "you think so, but are no longer sure"
 
+# Words for knowledge sources that came after a prompt version was released (review GW2 #579): a
+# released version stays as it was measured, so a new source is named here once, for every version
+# whose own [settings.source_words] lacks it. A version that has the source keeps its own words.
+SHARED_SOURCE_WORDS: dict[str, str] = {
+    "voice": "a voice from outside said so",  # B6 R20, A1536: the player's tip
+}
+
+
+def source_words(settings: dict[str, Any]) -> dict[str, str]:
+    """The version's source words over the shared ones (a version's own words win)."""
+    raw: object = settings.get("source_words")
+    own = (
+        {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
+        if isinstance(raw, dict)
+        else {}
+    )
+    return SHARED_SOURCE_WORDS | own
+
 
 def unsure(entry: Any) -> bool:
     """D1017 G1 (GW1 D1077): a fading belief comes with sure: false; absent means sure."""
@@ -82,7 +100,8 @@ def unsure(entry: Any) -> bool:
 
 def knowledge_line(entry: Any, settings: dict[str, Any]) -> str:
     """One belief with its source: what, sure how much, from where (and from whom)."""
-    sources = table(settings, "source_words")
+    table(settings, "source_words")  # the version must have the table (raises without it)
+    sources = source_words(settings)
     belief = "is" if entry.value else "is not"
     source = plain_id(entry.source)
     how = sources.get(source, source)
