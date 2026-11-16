@@ -489,7 +489,8 @@ public partial class Main : Node3D
     /// <summary>
     /// A run like a player's (B2768): creates the world in the world list exactly as the menu's "new world" does
     /// (saved at once and after every game day, learning log beside it) and enters it; with <c>--run-s</c> it runs
-    /// at the fastest speed of the data for that many real seconds and then quits saved, as closing the window does.
+    /// at the fastest speed of the data (or the one of <c>--speed=</c>, A1588) for that many real seconds, prints the frame
+    /// rate of the run (<c>RUN_FPS</c>) and then quits saved, as closing the window does.
     /// </summary>
     private void StartNewWorldRun(NewWorldChoice choice)
     {
@@ -534,17 +535,42 @@ public partial class Main : Node3D
 
     private async Task RunThenQuitAsync(double seconds)
     {
-        var fastest = ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings).Max(c => c.Speed);
-        _world.Speed = fastest;
-        GD.Print($"RUN_START speed={fastest.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+        // A1588 (B7 M1): --speed= picks one of the data's time choices for the run, else the fastest as before.
+        var choices = ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings);
+        var speed = _speedArgument is { } chosen && choices.Any(c => c.Speed == chosen) ? chosen : choices.Max(c => c.Speed);
+        _world.Speed = speed;
+        GD.Print($"RUN_START speed={speed.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
+
+        // The frame times after a short settling (the first seconds load the world's looks), for RUN_FPS.
+        var settle = Time.GetTicksMsec() + (ulong)(Math.Min(15, seconds / 4) * 1000);
+        var frames = new List<double>();
+        var last = Time.GetTicksUsec();
         while (Time.GetTicksMsec() < until && _world is not null && !_quitting)
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            var now = Time.GetTicksUsec();
+            if (Time.GetTicksMsec() >= settle && now > last)
+            {
+                frames.Add((now - last) / 1000.0);
+            }
+
+            last = now;
         }
 
         GD.Print($"RUN_END tick={_world?.Host?.World.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"}");
+        GD.Print(RunFpsLine(speed, frames));
         SaveAndQuit();
+    }
+
+    /// <summary>A1588: mean frame rate, nearest-rank p95 and longest frame of a run (after its settling).</summary>
+    private static string RunFpsLine(double speed, List<double> frames)
+    {
+        var sorted = frames.Order().ToList();
+        var mean = frames.Count > 0 ? 1000.0 * frames.Count / frames.Sum() : 0;
+        var p95 = sorted.Count > 0 ? sorted[Math.Max(0, (int)Math.Ceiling(0.95 * sorted.Count) - 1)] : 0;
+        var max = sorted.Count > 0 ? sorted[^1] : 0;
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"RUN_FPS speed={speed} frames={frames.Count} mean_fps={mean:0.0} p95_ms={p95:0.00} max_ms={max:0.00}");
     }
 
     /// <summary>Builds presenter, audio and screen around a world; returns whether spatial audio is ready.</summary>
