@@ -40,6 +40,7 @@ public partial class Main : Node3D
     private const string LookAtArgument = "--look-at=";
     private const string NewWorldArgument = "--new-world=";
     private const string RunSecondsArgument = "--run-s=";
+    private const string FilmFireArgument = "--film-fire"; // A1543: check runs only - a burning fire beside the first inhabitant
     private const string SpeedArgument = "--speed=";
 
     // A1749 (Marcel W2271): the speed a world starts with, from the command line only (the menu has no such option).
@@ -56,6 +57,7 @@ public partial class Main : Node3D
     // fastest speed before it quits saved (0 = until the window is closed).
     private NewWorldChoice? _newWorld;
     private double _runS;
+    private bool _filmFire;
     private bool _quitting;
     private bool _tour;
     private double _tourRunS;
@@ -302,6 +304,11 @@ public partial class Main : Node3D
             if (arg.StartsWith(NewWorldArgument, StringComparison.Ordinal))
             {
                 _newWorld = ParseNewWorld(arg[NewWorldArgument.Length..]);
+            }
+
+            if (arg == FilmFireArgument)
+            {
+                _filmFire = true;
             }
 
             if (arg.StartsWith(RunSecondsArgument, StringComparison.Ordinal)
@@ -553,6 +560,15 @@ public partial class Main : Node3D
             GD.PushError("NEW_WORLD_FAIL the world did not start");
             GetTree().Quit(1);
             return;
+        }
+
+        if (_filmFire && _world.Host.Inhabitants.All.FirstOrDefault() is { } near)
+        {
+            // A1543 (check runs only, hearing sample): a burning fire one and a half metres from the first inhabitant,
+            // which the camera follows - so the film has a fire to hear. The game itself never does this.
+            var fire = _world.Host.Objects.Spawn("fire", new Simulation.Objects.Position(near.Position.X + 1.5, near.Position.Z));
+            _world.ChooseFigure(near.Id);
+            GD.Print($"FILM_FIRE {fire.Id} beside {near.Id}");
         }
 
         if (_runS > 0)
