@@ -87,6 +87,16 @@
       "group": "using"
     },
     {
+      "action": "write",
+      "sound": "action.use",
+      "group": "using"
+    },
+    {
+      "action": "read",
+      "sound": "action.use",
+      "group": "using"
+    },
+    {
       "action": "put_on",
       "sound": "action.use",
       "group": "using"

@@ -1464,7 +1464,8 @@ public sealed partial class DecisionsSystem : IWorldSystem
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick)
-                    && Fits(asker, _actions.Timing(action), target.Id) && OffersOn?.Invoke(action, target) != false:
+                    && Fits(asker, _actions.Timing(action), target.Id) && OffersOn?.Invoke(action, target) != false
+                    && OffersFor?.Invoke(asker, action, target) != false:
                     if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
                     {
                         // A1379: fuel only for a burning thing that takes fuel (the data of its type).
@@ -1652,6 +1653,15 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// </summary>
     public Func<string, WorldObject, bool>? OffersOn { get; set; }
 
+    /// <summary>
+    /// A1357 part 2: whether an action is offered to this asker on a thing by what the asker can do there (write only on a
+    /// carrier it can write on, read only a text it can read); null = no such rule.
+    /// </summary>
+    public Func<Inhabitant, string, WorldObject, bool>? OffersFor { get; set; }
+
+    /// <summary>A1357 part 2: what a write option would put down, shown as its topic (like teaching); null = none.</summary>
+    public Func<Inhabitant, string, (string TypeId, string PropertyId, bool Value)?>? WriteTopic { get; set; }
+
     /// <summary>D1105 H2: how high a thing hangs above the ground in centimetres (0 = on it); null = all on the ground.</summary>
     public Func<string, int>? AboveCm { get; set; }
 
@@ -1779,6 +1789,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// </summary>
     private OptionTopic? TopicOf(Inhabitant asker, string action, string? targetId)
     {
+        // A1357 part 2: a write option names what would be written (the writer's own belief, never the truth).
+        if (targetId is not null && WriteTopic?.Invoke(asker, action) is { } written)
+        {
+            return new OptionTopic { ObjectType = written.TypeId, Name = InventedName?.Invoke(written.TypeId), Property = written.PropertyId, Value = written.Value };
+        }
+
         if (Knowledge is not { } knowledge
             || targetId is null
             || _actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None) != VocabularyEntryTarget.Inhabitant

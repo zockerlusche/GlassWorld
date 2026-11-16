@@ -1027,6 +1027,14 @@
       "text": "Take off"
     },
     {
+      "key": "vocab.action.write",
+      "text": "write"
+    },
+    {
+      "key": "vocab.action.read",
+      "text": "read"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -2247,6 +2255,14 @@
       "text": "Message knocks again"
     },
     {
+      "key": "vocab.event.text_written",
+      "text": "Wrote something down"
+    },
+    {
+      "key": "vocab.event.text_read",
+      "text": "Read some writing"
+    },
+    {
       "key": "vocab.event.writing_found",
       "text": "Writing found again"
     },
@@ -3213,6 +3229,18 @@
     {
       "key": "msg.selfcheck.learn_by_day.hint",
       "text": "Switched on, the inhabitants talk new things over with the AI during the day as well - it then uses computing power while you play. Switched off, everything happens in the computing night and the inhabitants learn more slowly."
+    },
+    {
+      "key": "ui.settings.ai_by_day",
+      "text": "AI by day"
+    },
+    {
+      "key": "ui.settings.ai_by_day_switch",
+      "text": "The AI thinks along by day too"
+    },
+    {
+      "key": "ui.settings.ai_by_day_hint",
+      "text": "Off: no AI computes by day, the inhabitants live by their habits. All thinking, inventing and dreaming happens at night, in the computing night. Good for weaker computers. Applies to this world."
     },
     {
       "key": "ui.settings.learn_by_day",

@@ -750,7 +750,9 @@ public partial class Main : Node3D
             setup is null ? null : () => setup.DiagnosticsAsync(),
             DiagnosticsFolder(),
             _world?.Host is null ? null : () => _world?.Host?.Decisions.LearnByDay == true,
-            _world?.Host is null ? null : SetLearnByDay);
+            _world?.Host is null ? null : SetLearnByDay,
+            _world?.Host is null ? null : () => _world?.Host?.NightQueue.NightOnly != true,
+            _world?.Host is null ? null : SetAiByDay);
         show(window);
     }
 
@@ -878,6 +880,13 @@ public partial class Main : Node3D
         _world?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Decisions.DecisionsSystem.SetLearnByDay, null)
         {
             Text = on ? Simulation.Decisions.DecisionsSystem.LearnByDayOn : Simulation.Decisions.DecisionsSystem.LearnByDayOff,
+        });
+
+    /// <summary>A1568 (B2757): the AI by day on (day mode ai) or off (night_only: a day without AI) - the logged command.</summary>
+    private void SetAiByDay(bool on) =>
+        _world?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Night.NightQueueSystem.DayModeCommand, null)
+        {
+            Text = on ? Simulation.Night.NightQueueSystem.DayModeAi : Simulation.Night.NightQueueSystem.DayModeNightOnly,
         });
 
     private void SaveSettings()
