@@ -10,6 +10,20 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class Hand(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    movable_property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    max_move_m: float = Field(..., gt=0.0, le=200.0)
+    free_radius_m: float = Field(..., ge=0.0, le=5.0)
+
+
 class GiftRules(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -42,6 +56,10 @@ class GiftRules(BaseModel):
         description="A need below this value counts as pressing: an action that ends while nothing in sight seems to help counts as a futile attempt (placeholder, Marcel's value).",
         ge=0.0,
         le=1.0,
+    )
+    hand: Hand | None = Field(
+        None,
+        description="B6 R22 (A1539): the player's hand moves a thing - only things with the movable property, at most max_move_m from where they lie, onto a place with no other thing within free_radius_m and no inhabitant within min_distance_to_inhabitant_m. Inhabitants are never moved. The cost is the favour intervention 'move'. Placeholders (TL). Absent = no hand.",
     )
     missing_radius_m: float = Field(
         ...,
