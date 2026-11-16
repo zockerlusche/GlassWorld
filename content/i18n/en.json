@@ -219,6 +219,34 @@
       "text": "Ground: {ground} - walking is slower ({percent} %)"
     },
     {
+      "key": "ui.writing.says",
+      "text": "{thing}: {property}"
+    },
+    {
+      "key": "ui.writing.says_not",
+      "text": "{thing}: not {property}"
+    },
+    {
+      "key": "ui.writing.on",
+      "text": "Written here: “{text}” – by {author}, {legibility}."
+    },
+    {
+      "key": "ui.writing.legible",
+      "text": "easy to read"
+    },
+    {
+      "key": "ui.writing.faint",
+      "text": "faded"
+    },
+    {
+      "key": "ui.writing.hard",
+      "text": "hardly readable"
+    },
+    {
+      "key": "ui.writing.unknown",
+      "text": "signs nobody can make out"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Memories of {name}"
     },
@@ -1025,6 +1053,14 @@
     {
       "key": "vocab.action.take_off",
       "text": "Take off"
+    },
+    {
+      "key": "vocab.action.write",
+      "text": "write"
+    },
+    {
+      "key": "vocab.action.read",
+      "text": "read"
     },
     {
       "key": "vocab.action.use",
@@ -2247,6 +2283,14 @@
       "text": "Message knocks again"
     },
     {
+      "key": "vocab.event.text_written",
+      "text": "Wrote something down"
+    },
+    {
+      "key": "vocab.event.text_read",
+      "text": "Read some writing"
+    },
+    {
       "key": "vocab.event.writing_found",
       "text": "Writing found again"
     },
@@ -2409,6 +2453,10 @@
     {
       "key": "ui.top.menu_tooltip",
       "text": "Save, load, settings, quit (Esc)"
+    },
+    {
+      "key": "msg.hint.answers_at_night",
+      "text": "A day without AI: the inhabitants notice you and answer at night."
     },
     {
       "key": "msg.hint.autosaved",
@@ -3213,6 +3261,18 @@
     {
       "key": "msg.selfcheck.learn_by_day.hint",
       "text": "Switched on, the inhabitants talk new things over with the AI during the day as well - it then uses computing power while you play. Switched off, everything happens in the computing night and the inhabitants learn more slowly."
+    },
+    {
+      "key": "ui.settings.ai_by_day",
+      "text": "AI by day"
+    },
+    {
+      "key": "ui.settings.ai_by_day_switch",
+      "text": "The AI thinks along by day too"
+    },
+    {
+      "key": "ui.settings.ai_by_day_hint",
+      "text": "Off: no AI computes by day, the inhabitants live by their habits. All thinking, inventing and dreaming happens at night, in the computing night. Good for weaker computers. Applies to this world."
     },
     {
       "key": "ui.settings.learn_by_day",

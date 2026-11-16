@@ -13,6 +13,8 @@ namespace GlassWorld.Game.Ui.Screens;
 public partial class GameScreen
 {
     private GwWindow? _thingWindow;
+    private Label? _writingHover; // A1356: what is written, near the pointer
+    private ulong _writingHoverAt;
 
     /// <summary>The thing a click at a point on the ground means (within the data's radius), or null.</summary>
     private string? ThingAt(Vector3 point)
@@ -65,6 +67,12 @@ public partial class GameScreen
             window.Content.AddChild(Line(TextFill.Fill(Tr("ui.thing.invented_by"), new Dictionary<string, string> { ["name"] = NameOfId(inventor) })));
         }
 
+        // A1356 (B8-11): what is written on it, in the player's language, by whom and how legible.
+        if (WritingLine(objectId) is { } written)
+        {
+            window.Content.AddChild(Line(written));
+        }
+
         if (info.Ground is { } ground)
         {
             window.Content.AddChild(Line(GroundLine(ground)));
@@ -86,6 +94,56 @@ public partial class GameScreen
         _thingWindow = window;
         ShowWindow(window);
         return window;
+    }
+
+    /// <summary>A1356: the line that says what is written on a thing, or null when nothing is.</summary>
+    private string? WritingLine(string objectId)
+    {
+        if (_presenter?.Host is not { } host || host.Writing.On(objectId) is not { } text || _presenter.WritingLookData is not { } look)
+        {
+            return null;
+        }
+
+        var says = WritingLook.Says(text.KnowledgeRef, key => Tr(key), ThingName) ?? Tr("ui.writing.unknown");
+        return TextFill.Fill(Tr("ui.writing.on"), new Dictionary<string, string>
+        {
+            ["text"] = says,
+            ["author"] = NameOfId(text.AuthorId),
+            ["legibility"] = Tr(WritingLook.LegibilityKey(text.Legibility, look.FaintBelow, look.HardBelow)),
+        });
+    }
+
+    /// <summary>
+    /// A1356 (B8-11): when the pointer rests over a written thing, a small line near it says what is written (checked a
+    /// few times a second, not every motion).
+    /// </summary>
+    private void HoverWriting(Vector2 position)
+    {
+        var now = Time.GetTicksMsec();
+        if (now - _writingHoverAt < 150)
+        {
+            return;
+        }
+
+        _writingHoverAt = now;
+        var line = WorldPoint(position) is { } ground && ThingAt(ground) is { } thing ? WritingLine(thing) : null;
+        if (_writingHover is null)
+        {
+            if (line is null || _style is null)
+            {
+                return;
+            }
+
+            _writingHover = new Label { Name = "WritingHover", AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, ThemeTypeVariation = UiTheme.SmallLabel, MouseFilter = Control.MouseFilterEnum.Ignore };
+            AddChild(_writingHover);
+        }
+
+        _writingHover.Visible = line is not null;
+        if (line is not null)
+        {
+            _writingHover.Text = line;
+            _writingHover.Position = position + new Vector2(16, 16);
+        }
     }
 
     /// <summary>One belief in words: the property, 'not' when it believes the opposite, and where it has it from.</summary>

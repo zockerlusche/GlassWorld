@@ -161,7 +161,7 @@ public static partial class WorldGenerator
         var objects = new List<IslandObject>();
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         DrinkSpots(preset, map, objects, Stream(attemptSeed, "worldgen/drink"));
-        Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
+        Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"), Stream(attemptSeed, "worldgen/outcrops"));
         var supply = preset.Start.Supply;
         var feasible = SupplyFeasible(supply, content.Spawns, catalog, map, objects);
 
@@ -1099,17 +1099,32 @@ public static partial class WorldGenerator
     /// are its dry walkable cells; a water biome (stream, lake, swamp) uses its banks, and if it has
     /// none, its shallow water (reed in the swamp, clay at the stream).
     /// </summary>
-    private static void Spawn(SpawnTable spawns, WorldMap map, List<IslandObject> objects, Pcg32 rng)
+    private static void Spawn(SpawnTable spawns, WorldMap map, List<IslandObject> objects, Pcg32 rng, Pcg32 outcrops)
     {
         var byBiome = SpawnCells(map);
         var taken = new HashSet<(int, int)>(objects.Select(o => (o.X, o.Z)));
 
-        // W1936: what grows on a plant comes after all plants, each in data order.
-        foreach (var rule in spawns.Spawns.Where(r => r.GrowsOn is null).Concat(spawns.Spawns.Where(r => r.GrowsOn is not null)))
+        // W1936: what grows on a plant comes after all plants, each in data order. A1578 (B2827): outcrops (rules with
+        // min_ore_permille) come last with their own random stream, so adding one moves nothing else on the island.
+        var main = spawns.Spawns.Where(r => r.MinOrePermille is null).ToList();
+        var ordered = main.Where(r => r.GrowsOn is null).Concat(main.Where(r => r.GrowsOn is not null)).Select(r => (Rule: r, Draw: rng))
+            .Concat(spawns.Spawns.Where(r => r.MinOrePermille is not null).Select(r => (Rule: r, Draw: outcrops)));
+        foreach (var (rule, draw) in ordered)
         {
             if (!byBiome.TryGetValue(rule.Biome, out var biomeCells) || biomeCells.Count == 0)
             {
                 continue;
+            }
+
+            // A1578 (B2827): an outcrop rule only takes cells whose underground holds enough ore (none without an underground).
+            if (rule.MinOrePermille is { } least)
+            {
+                var underground = map.Underground;
+                biomeCells = underground is null ? [] : [.. biomeCells.Where(c => underground.Cell(c.X, c.Z).OrePermille >= least)];
+                if (biomeCells.Count == 0)
+                {
+                    continue;
+                }
             }
 
             // A fruit's centres are the cells of its plants (cluster around one plant, within its reach).
@@ -1126,11 +1141,11 @@ public static partial class WorldGenerator
             var placed = 0;
             for (var guard = 0; placed < target && guard < target * 20; guard++)
             {
-                var (cx, cz) = cells[rng.NextInt(0, cells.Count)];
-                var size = rng.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
+                var (cx, cz) = cells[draw.NextInt(0, cells.Count)];
+                var size = draw.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
                 for (var k = 0; k < size && placed < target; k++)
                 {
-                    int x = cx + rng.NextInt(-scatter, scatter + 1), z = cz + rng.NextInt(-scatter, scatter + 1);
+                    int x = cx + draw.NextInt(-scatter, scatter + 1), z = cz + draw.NextInt(-scatter, scatter + 1);
                     if (!map.Contains(x, z) || taken.Contains((x, z)))
                     {
                         continue;

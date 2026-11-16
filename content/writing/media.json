@@ -78,7 +78,7 @@
       "carrier": { "surface": "object", "properties": ["crafted"], "biomes": [] }
     }
   ],
-  "write": { "ability": "writing", "min_level": 0.1 },
+  "write": { "ability": "writing", "min_level": 0.1, "action": "write", "min_confidence": 0.6 },
   "found": { "after_days": 30 },
-  "read": { "ability": "reading", "min_level": 0.1, "min_legibility": 0.15, "curiosity_trait": "curiosity", "curiosity_min": 0.5 }
+  "read": { "action": "read", "ability": "reading", "min_level": 0.1, "min_legibility": 0.15, "curiosity_trait": "curiosity", "curiosity_min": 0.5, "author_weight_floor": 0.5 }
 }

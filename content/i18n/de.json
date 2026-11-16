@@ -219,6 +219,34 @@
       "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
     },
     {
+      "key": "ui.writing.says",
+      "text": "{thing}: {property}"
+    },
+    {
+      "key": "ui.writing.says_not",
+      "text": "{thing}: nicht {property}"
+    },
+    {
+      "key": "ui.writing.on",
+      "text": "Hier steht geschrieben: „{text}“ – von {author}, {legibility}."
+    },
+    {
+      "key": "ui.writing.legible",
+      "text": "gut lesbar"
+    },
+    {
+      "key": "ui.writing.faint",
+      "text": "verblasst"
+    },
+    {
+      "key": "ui.writing.hard",
+      "text": "kaum noch lesbar"
+    },
+    {
+      "key": "ui.writing.unknown",
+      "text": "Zeichen, die niemand deuten kann"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Erinnerungen an {name}"
     },
@@ -1025,6 +1053,14 @@
     {
       "key": "vocab.action.take_off",
       "text": "Ablegen"
+    },
+    {
+      "key": "vocab.action.write",
+      "text": "schreiben"
+    },
+    {
+      "key": "vocab.action.read",
+      "text": "lesen"
     },
     {
       "key": "vocab.action.use",
@@ -2247,6 +2283,14 @@
       "text": "Nachricht klopft erneut"
     },
     {
+      "key": "vocab.event.text_written",
+      "text": "Etwas aufgeschrieben"
+    },
+    {
+      "key": "vocab.event.text_read",
+      "text": "Geschriebenes gelesen"
+    },
+    {
       "key": "vocab.event.writing_found",
       "text": "Geschriebenes wiedergefunden"
     },
@@ -2409,6 +2453,10 @@
     {
       "key": "ui.top.menu_tooltip",
       "text": "Speichern, Laden, Einstellungen, Beenden (Esc)"
+    },
+    {
+      "key": "msg.hint.answers_at_night",
+      "text": "Heute ohne KI: Die Bewohner bemerken dich und antworten in der Nacht."
     },
     {
       "key": "msg.hint.autosaved",
@@ -3213,6 +3261,18 @@
     {
       "key": "msg.selfcheck.learn_by_day.hint",
       "text": "Eingeschaltet besprechen die Bewohner Neues schon tagsüber mit der KI – sie nutzt dann während des Spiels Rechenleistung. Ausgeschaltet geschieht alles in der Rechennacht; die Bewohner lernen dann langsamer."
+    },
+    {
+      "key": "ui.settings.ai_by_day",
+      "text": "KI am Tag"
+    },
+    {
+      "key": "ui.settings.ai_by_day_switch",
+      "text": "KI denkt auch tagsüber mit"
+    },
+    {
+      "key": "ui.settings.ai_by_day_hint",
+      "text": "Aus: Tagsüber rechnet keine KI, die Bewohner leben nach ihren Gewohnheiten. Alles Nachdenken, Erfinden und Träumen passiert nachts in der Rechennacht. Gut für schwächere Rechner. Gilt für diese Welt."
     },
     {
       "key": "ui.settings.learn_by_day",

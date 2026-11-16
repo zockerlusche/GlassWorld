@@ -385,7 +385,7 @@
       ],
       "shape": "stone",
       "colors": [
-        "rock_dark",
+        "ore_rust",
         "pyrite"
       ],
       "size_m": 0.7,
