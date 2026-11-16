@@ -215,6 +215,65 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void TooCloseToAFireAnInhabitantStepsBackAtOnceAndKnowsItIsHot()
+    {
+        // A1731 (B2716 1): a reflex from the world, without AI - step back, flinch, know it is hot; nothing shown hurt.
+        var (host, inhabitant) = Island();
+        var reflex = Content.Value.Body!.Reflex!;
+        var flinched = new List<WorldEvent>();
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == BodySystem.Flinched && e.InhabitantId == inhabitant.Id)
+            {
+                flinched.Add(e);
+            }
+        };
+
+        inhabitant.Activity = new Activity("idle", null, inhabitant.Position, 100_000_000); // stands still: only the reflex moves it
+        var fire = host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 0.2, inhabitant.Position.Z));
+        host.World.Step();
+
+        var e = Assert.Single(flinched);
+        Assert.Equal(fire.Id, e.TargetId);
+        var distance = Math.Sqrt(Math.Pow(inhabitant.Position.X - fire.Position.X, 2) + Math.Pow(inhabitant.Position.Z - fire.Position.Z, 2));
+        Assert.True(distance >= (reflex.StepBackCm / 100.0) - 0.05, $"stepped back to {distance:0.00} m");
+        Assert.True(inhabitant.Beliefs.TryGet("fire", reflex.Property ?? "hot", out var hot) && hot.Value, "it knows at once that the fire is hot");
+    }
+
+    [Fact]
+    public void ASleeperAndOneWhoseActionIsOnTheFireDoNotFlinch()
+    {
+        // Review GW3 #573: no flinch in sleep, and none at the fire one went to on purpose (no arrive-flinch-return loop).
+        var (host, inhabitant) = Island();
+        var flinches = 0;
+        host.Inhabitants.Reported += e => flinches += e.Kind == BodySystem.Flinched ? 1 : 0;
+        var fire = host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 0.2, inhabitant.Position.Z));
+        var at = inhabitant.Position;
+
+        inhabitant.Activity = new Activity("sleep", null, at, 100_000_000);
+        host.World.Step();
+        Assert.Equal(0, flinches);
+        Assert.Equal(at, inhabitant.Position);
+
+        inhabitant.Activity = new Activity("inspect", fire.Id, at, 100_000_000);
+        host.World.Step();
+        Assert.Equal(0, flinches);
+        Assert.Equal(at, inhabitant.Position);
+    }
+
+    [Fact]
+    public void BeyondTheReflexRadiusNobodyFlinches()
+    {
+        var (host, inhabitant) = Island();
+        var flinches = 0;
+        host.Inhabitants.Reported += e => flinches += e.Kind == BodySystem.Flinched ? 1 : 0;
+        inhabitant.Activity = new Activity("idle", null, inhabitant.Position, 100_000_000); // stands still: only the reflex moves it
+        host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 1.0, inhabitant.Position.Z));
+        host.World.Step();
+        Assert.Equal(0, flinches);
+    }
+
+    [Fact]
     public void InTheRainAnInhabitantFindsOutThatARockNicheKeepsItDry()
     {
         var (host, inhabitant) = Island();
