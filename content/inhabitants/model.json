@@ -59,7 +59,7 @@
   "diary": { "capacity": 200, "left_out_actions": ["idle"] },
   "comfort_zone": {
     "need": "warmth",
-    "min_tenth_c": 120,
+    "min_tenth_c": 80,
     "max_tenth_c": 260,
     "band_tenth_c": 30, "individual_shift_tenth_c": 20,
     "cold_loss_per_hour_per_degree": 0.0001,

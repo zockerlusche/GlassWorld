@@ -551,6 +551,18 @@
       "text": "Hinweise bleiben, bis ich sie schließe"
     },
     {
+      "key": "ui.settings.data_folder",
+      "text": "Datenordner"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "Hier liegen die Welten, Einstellungen und Protokolle dieses Spiels."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Öffnen"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },

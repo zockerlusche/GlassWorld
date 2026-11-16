@@ -5,7 +5,8 @@
       "id": "game",
       "rows": [
         "language",
-        "player_name"
+        "player_name",
+        "data_folder"
       ]
     },
     {
