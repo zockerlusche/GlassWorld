@@ -2663,6 +2663,10 @@
       "text": "Abgerutscht"
     },
     {
+      "key": "vocab.event.flinched",
+      "text": "Zurückgezuckt"
+    },
+    {
       "key": "vocab.event.out_of_reach",
       "text": "Nicht erreichbar"
     },

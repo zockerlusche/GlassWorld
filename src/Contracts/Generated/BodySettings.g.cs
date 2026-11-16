@@ -279,6 +279,13 @@ namespace GlassWorld.Contracts
         public Climbing? Climbing { get; set; } = default!;
 
         /// <summary>
+        /// A1731 (B2716 1): a reflex from the world, without AI - an inhabitant closer than radius_cm to something that gives off heat (a burning fire, a spark) steps back at once to step_back_cm from it, reports flinched (for the gesture), feels fear by the data and knows at once that the thing is hot (the experience of the warmth, without waiting). Gentle: no injury is shown (B2466). Absent = no reflex. Placeholder values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reflex")]
+        public Reflex? Reflex { get; set; } = default!;
+
+        /// <summary>
         /// A1744 (B2790 b): whoever is under a shelter (wetness.shelter_property within shelter_radius_cm) while precipitation falls there (in_precipitation) or while it feels one of at_levels (comfort levels) weighs what leads out of the shelter by leaving_factor_permille - a thing, a person or a walk outside; what stays inside keeps its weight. A weight, never a ban. Absent = no difference.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -412,6 +419,27 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("fright_delta")]
         public double? FrightDelta { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Reflex
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cm")]
+        public int RadiusCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("step_back_cm")]
+        public int StepBackCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fear")]
+        public double? Fear { get; set; } = default!;
+
+        /// <summary>
+        /// The property the inhabitant learns from it; omitted = hot.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string? Property { get; set; } = default!;
 
     }
 
