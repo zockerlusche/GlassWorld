@@ -924,7 +924,10 @@ public partial class WorldPresenter
         }
 
         // Seats (W1688) are taken from the objects only when they changed.
-        if (_objectsView?.Refresh(objects) != false || _seats is null)
+        // A1823 (B2736): fires look as strong as they burn, embers lie low - every tick, after the objects are placed.
+        var redrawn = _objectsView?.Refresh(objects) != false;
+        _objectsView?.UpdateGlows(id => _host?.Fire is { } fire ? (fire.StrengthPermille(id), fire.IsEmbers(id)) : null);
+        if (redrawn || _seats is null)
         {
             _seats = SeatChoice.Seats(_figuresLook!.Sitting, snapshot.Objects);
         }

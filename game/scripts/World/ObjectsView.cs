@@ -38,6 +38,8 @@ public partial class ObjectsView : Node3D
     private readonly Dictionary<string, CrownLayer> _crowns = new(StringComparer.Ordinal);
     private FigureCrownFade? _fade;
     private readonly Dictionary<string, (ObjectGlow Glow, Color Color)> _glows = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Color> _emberColors = new(StringComparer.Ordinal); // A1823
+    private readonly Dictionary<string, List<GlassWorld.Presentation.World.ObjectPlacement>> _glowPlaced = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<OmniLight3D>> _lights = new(StringComparer.Ordinal);
     private readonly List<(OmniLight3D Light, float Energy, float Flicker, float Hz, float Phase)> _flicker = [];
     private int _maxLights;
@@ -93,6 +95,10 @@ public partial class ObjectsView : Node3D
             if (glow is not null)
             {
                 view._glows[look.VisualId] = (glow, colors.TryGetValue(glow.LightColor, out var light) ? light : throw new InvalidDataException($"Object look {look.VisualId}: glow light_color '{glow.LightColor}' is not in the palette."));
+                if (glow.EmbersLightColor is { } ember)
+                {
+                    view._emberColors[look.VisualId] = colors.TryGetValue(ember, out var low) ? low : throw new InvalidDataException($"Object look {look.VisualId}: glow embers_light_color '{ember}' is not in the palette.");
+                }
             }
 
             if (hullOutline && data.Outline && data.OutlineWidthM > 0)
@@ -298,6 +304,7 @@ public partial class ObjectsView : Node3D
             if (_glows.TryGetValue(id, out var glow))
             {
                 lightsLeft -= PlaceLights(id, glow.Glow, glow.Color, multi, placed, lightsLeft);
+                _glowPlaced[id] = placed;
             }
 
             layer.Visible = placed.Count > 0;
@@ -347,6 +354,61 @@ public partial class ObjectsView : Node3D
         }
 
         return lights.Count;
+    }
+
+    /// <summary>
+    /// A1823 (B2736): a glowing thing (a fire) is drawn as big and its light as strong as the core says it burns now; as
+    /// embers it lies low with its own light colour. Called each tick; only the glowing looks are touched.
+    /// </summary>
+    public void UpdateGlows(Func<string, (int StrengthPermille, bool Embers)?> state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (_glowPlaced.Count == 0)
+        {
+            return;
+        }
+
+        _flicker.Clear();
+        foreach (var (id, placed) in _glowPlaced)
+        {
+            if (!_glows.TryGetValue(id, out var glow) || !_layers.TryGetValue(id, out var layer) || layer.Multimesh.InstanceCount != placed.Count)
+            {
+                // Review GW4 #572: a layer not drawn from these places keeps its lights wavering at their own energy.
+                foreach (var kept in _lights.GetValueOrDefault(id) ?? [])
+                {
+                    if (_glows.TryGetValue(id, out var own))
+                    {
+                        _flicker.Add((kept, (float)own.Glow.LightEnergy, (float)own.Glow.Flicker, (float)own.Glow.FlickerHz, Phase(kept.Name)));
+                    }
+                }
+
+                continue;
+            }
+
+            var lights = _lights.GetValueOrDefault(id) ?? [];
+            for (var i = 0; i < placed.Count; i++)
+            {
+                var p = placed[i];
+                var now = state(p.ObjectId);
+                var shown = GlassWorld.Presentation.World.FireLook.Shown(now?.StrengthPermille ?? 1000, now?.Embers ?? false, glow.Glow);
+                var (ax, ay, az) = p.Axes();
+                var s = (float)shown.Scale;
+                var basis = new Basis(new Vector3((float)ax.X, (float)ax.Y, (float)ax.Z) * s, new Vector3((float)ay.X, (float)ay.Y, (float)ay.Z) * s, new Vector3((float)az.X, (float)az.Y, (float)az.Z) * s);
+                var at = new Transform3D(basis, new Vector3((float)p.X, (float)p.Y, (float)p.Z));
+                layer.Multimesh.SetInstanceTransform(i, at);
+                if (i < lights.Count)
+                {
+                    var light = lights[i];
+                    var scale = at.Basis.Y.Length();
+                    light.Position = at.Origin + (Vector3.Up * (float)glow.Glow.LightHeightM * scale);
+                    light.OmniRange = (float)glow.Glow.LightRangeM * scale;
+                    light.LightColor = shown.Embers && _emberColors.TryGetValue(id, out var ember) ? ember : glow.Color;
+                    var energy = (float)(glow.Glow.LightEnergy * shown.Light);
+                    light.LightEnergy = energy;
+                    _flicker.Add((light, energy, (float)glow.Glow.Flicker * (shown.Embers ? (float)(glow.Glow.EmbersFlicker ?? 1.0) : 1f), (float)glow.Glow.FlickerHz, Phase(p.ObjectId)));
+                }
+            }
+        }
     }
 
     /// <summary>A fixed phase in [0, 2π) from an object id (FNV-1a; not string.GetHashCode, which changes per run).</summary>

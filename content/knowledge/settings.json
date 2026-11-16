@@ -139,6 +139,17 @@
       { "trigger": "unknown_object", "question": "what_is" }
     ]
   },
+  "material_ideas": {
+    "actions": ["inspect", "pick_up", "use", "combine"],
+    "properties": ["building_material", "splittable", "fibrous", "sharp", "hard"],
+    "chance": 0.25,
+    "chance_by_trait": [
+      { "trait": "curiosity", "curve": [[0.2, 0.5], [0.55, 1.0], [0.9, 1.6]] },
+      { "trait": "drive", "curve": [[0.2, 0.6], [0.55, 1.0], [0.9, 1.4]] }
+    ],
+    "max_per_day": 1,
+    "text": "What could I make from {type}?"
+  },
   "review": {
     "enabled": true,
     "job_priority": 10,

@@ -250,6 +250,36 @@ class ObjectGlow(BaseModel):
         ge=0.0,
         le=0.5,
     )
+    min_scale: float | None = Field(
+        None,
+        description="A1823 (B2736): the size (and light) of the glowing thing at its weakest - it grows with the core's strength to full size; absent = always full.",
+        ge=0.05,
+        le=1.0,
+    )
+    embers_scale: float | None = Field(
+        None,
+        description='A1823: the size of the thing while it lies as embers (no flame); absent = min_scale.',
+        ge=0.05,
+        le=1.0,
+    )
+    embers_light_color: str | None = Field(
+        None,
+        description='A1823: palette colour of the light while it lies as embers; absent = light_color.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    embers_flicker: float | None = Field(
+        None,
+        description='A1823 (review GW4 #572): share of the flicker while it lies as embers (calmer); absent = as a flame.',
+        ge=0.0,
+        le=1.0,
+    )
+    embers_energy: float | None = Field(
+        None,
+        description="A1823: share of light_energy while it lies as embers (0..1); absent = the strength's share.",
+        ge=0.0,
+        le=1.0,
+    )
     flicker_hz: float = Field(
         ...,
         description='How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).',

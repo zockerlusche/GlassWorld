@@ -156,13 +156,46 @@ public sealed class ObstacleTests
         var cell = CellIndex(map, tree.Position);
         Assert.True(map.Obstacles()![cell]);
 
+        // A move fires no event: the cells follow by the next tick (A1813: checked once per tick).
         host.Objects.SetHeld(tree.Id, host.Inhabitants.All.First().Id);
+        host.World.Step();
         Assert.False(map.Obstacles()![cell]);
 
         host.Objects.SetHeld(tree.Id, null);
         Assert.True(host.Objects.Move(tree.Id, new Position(tree.Position.X + 2, tree.Position.Z)));
+        host.World.Step();
         Assert.False(map.Obstacles()![cell]);
         Assert.True(map.Obstacles()![cell + 2]);
+    }
+
+    [Fact]
+    public void APocketClosedInByTrunksIsAnAreaOfItsOwnAndTheTrunksStayReachable()
+    {
+        // A1813 (review GW1 #515): the walkable areas know the obstacles - nobody starts a search into a closed pocket.
+        var host = Island();
+        var map = host.Map!;
+        var obstacles = map.Obstacles()!;
+        var free = Enumerable.Range(0, map.Map.WidthCells * map.Map.DepthCells)
+            .Select(i => (X: i % map.Map.WidthCells, Z: i / map.Map.WidthCells))
+            .First(c => Enumerable.Range(-3, 7).All(dz => Enumerable.Range(-3, 7).All(dx =>
+                map.Map.Contains(c.X + dx, c.Z + dz) && map.Map.Cell(c.X + dx, c.Z + dz) is { Water: WaterKind.None } cell
+                && cell.WalkCost != MapCell.Blocked && !obstacles[CellIndex(map, c.X + dx, c.Z + dz)])));
+        var inside = map.CentreOf(free.X, free.Z);
+        var outside = map.CentreOf(free.X + 3, free.Z);
+        Assert.True(map.Connected(inside, outside));
+
+        var ring = new List<WorldObject>();
+        foreach (var (dx, dz) in new[] { (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1) })
+        {
+            ring.Add(host.Objects.Spawn("young_tree", map.CentreOf(free.X + dx, free.Z + dz)));
+        }
+
+        Assert.False(map.Connected(inside, outside), "the pocket is closed");
+        Assert.NotEqual(map.AreaOf(free.X, free.Z), map.AreaOf(free.X + 3, free.Z));
+        Assert.All(ring, tree => Assert.True(map.Connected(outside, tree.Position) && map.Connected(inside, tree.Position), "a trunk borders both"));
+
+        host.Objects.Remove(ring[0].Id);
+        Assert.True(map.Connected(inside, outside), "open again");
     }
 
     private static SimulationHost Island(IDecisionPort? port = null)
