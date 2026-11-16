@@ -98,7 +98,9 @@ public static partial class WorldGenerator
     /// null = the preset's grid. Everything else stays the preset's - noise, coast and rules scale with the area.
     /// </param>
     /// <exception cref="ArgumentException">Unknown preset, or a grid size that is not a multiple of the preset's chunk size.</exception>
-    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed, int? gridCells = null)
+    /// <param name="resourceFactor">A1770 (B2805 'Einfach'): factor on every spawn rule's density and upper limit (poor/normal/rich).</param>
+    /// <param name="startPairs">A1770 (B2805): pairs of start places; null = the preset's.</param>
+    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed, int? gridCells = null, double resourceFactor = 1.0, int? startPairs = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -107,13 +109,14 @@ public static partial class WorldGenerator
             throw new ArgumentException($"unknown world preset '{presetId}'", nameof(presetId));
         }
 
-        preset = Sized(preset, gridCells);
+        preset = Paired(Sized(preset, gridCells), startPairs);
+        var spawns = Rich(content.Spawns, resourceFactor);
 
         GeneratedIsland? last = null;
         for (var attempt = 1; attempt <= preset.Start.MaxAttempts; attempt++)
         {
             var attemptSeed = attempt == 1 ? seed : Mix(seed ^ Mix((ulong)attempt));
-            last = Attempt(content, catalog, preset, seed, attemptSeed, attempt);
+            last = Attempt(content, spawns, catalog, preset, seed, attemptSeed, attempt);
             if (last.Passed)
             {
                 return last;
@@ -146,7 +149,44 @@ public static partial class WorldGenerator
         return copy;
     }
 
-    private static GeneratedIsland Attempt(WorldGenContent content, ObjectCatalog catalog, WorldPreset preset, ulong seed, ulong attemptSeed, int attempt)
+    /// <summary>A1770: the preset with another number of start pairs (a copy), or the preset itself.</summary>
+    public static WorldPreset Paired(WorldPreset preset, int? startPairs)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (startPairs is not { } pairs || pairs == preset.Start.Pairs)
+        {
+            return preset;
+        }
+
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
+        copy.Start.Pairs = Math.Max(1, pairs);
+        return copy;
+    }
+
+    /// <summary>
+    /// A1770 (B2805 'Einfach', resources poor/normal/rich): the spawn table with every rule's density and upper limit times the
+    /// factor (a copy; at least one where the data has one). The start supplies and the mandatory checks stay as they are,
+    /// so a poor island still gives every start what it needs (B2808).
+    /// </summary>
+    public static SpawnTable Rich(SpawnTable spawns, double factor)
+    {
+        ArgumentNullException.ThrowIfNull(spawns);
+        if (Math.Abs(factor - 1.0) < 1e-9)
+        {
+            return spawns;
+        }
+
+        var copy = System.Text.Json.JsonSerializer.Deserialize<SpawnTable>(System.Text.Json.JsonSerializer.Serialize(spawns))!;
+        foreach (var rule in copy.Spawns)
+        {
+            rule.Per1000Cells = rule.Per1000Cells > 0 ? Math.Max(1, (int)Math.Round(rule.Per1000Cells * factor)) : 0;
+            rule.MaxTotal = rule.MaxTotal > 0 ? Math.Max(1, (int)Math.Round(rule.MaxTotal * factor)) : 0;
+        }
+
+        return copy;
+    }
+
+    private static GeneratedIsland Attempt(WorldGenContent content, SpawnTable spawns, ObjectCatalog catalog, WorldPreset preset, ulong seed, ulong attemptSeed, int attempt)
     {
         var grid = preset.Grid;
         int w = grid.WidthCells, d = grid.DepthCells;
@@ -195,19 +235,19 @@ public static partial class WorldGenerator
         var objects = new List<IslandObject>();
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         DrinkSpots(preset, map, objects, Stream(attemptSeed, "worldgen/drink"));
-        Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"), Stream(attemptSeed, "worldgen/outcrops"));
+        Spawn(spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"), Stream(attemptSeed, "worldgen/outcrops"));
         var supply = preset.Start.Supply;
-        var feasible = SupplyFeasible(supply, content.Spawns, catalog, map, objects);
+        var feasible = SupplyFeasible(supply, spawns, catalog, map, objects);
 
         // Close to the springs first (TL #19722): the mandatory resources within the smaller radius.
         var near = supply.PreferRadiusCells is { } prefer
-            ? SupplyFeasible(new StartSupply { RadiusCells = prefer, Resources = [.. supply.Resources.Where(r => r.Mandatory == true)] }, content.Spawns, catalog, map, objects)
+            ? SupplyFeasible(new StartSupply { RadiusCells = prefer, Resources = [.. supply.Resources.Where(r => r.Mandatory == true)] }, spawns, catalog, map, objects)
             : null;
         var starts = Starts(preset, map, feasible, near, content.StartSeparationCm, Stream(attemptSeed, "worldgen/start"));
-        StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
-        QuietStarts(preset, catalog, content.Spawns.Spawns.Where(r => r.GrowsOn is not null).Select(r => r.GrowsOn!.ObjectType).ToHashSet(StringComparer.Ordinal), objects, starts, Stream(attemptSeed, "worldgen/quiet"));
+        StartSupply(preset.Start.Supply, spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
+        QuietStarts(preset, catalog, spawns.Spawns.Where(r => r.GrowsOn is not null).Select(r => r.GrowsOn!.ObjectType).ToHashSet(StringComparer.Ordinal), objects, starts, Stream(attemptSeed, "worldgen/quiet"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
-        var check = Check(content.Spawns, catalog, map, objects, starts);
+        var check = Check(spawns, catalog, map, objects, starts);
         var present = new bool[biomeIds.Count];
         foreach (var b in biomeOf)
         {

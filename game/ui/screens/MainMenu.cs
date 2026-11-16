@@ -275,6 +275,10 @@ public partial class MainMenu : CanvasLayer
         var copy = new Button { Text = "ui.common.copy" };
         var size = Options(data.Options.Sizes.Select(s => s.Id), "ui.new_world.size.", data.Options.DefaultSize);
         var climate = Options(data.Options.Climates.Select(c => c.Id), "ui.new_world.climate.", data.Options.DefaultClimate);
+
+        // A1770 (B2805 'Einfach'): how much grows and lies on the island, and how many pairs start; from the data.
+        var resources = Options((data.Options.Resources ?? []).Select(r => r.Id), "ui.new_world.resources.", data.Options.DefaultResources ?? "normal");
+        var pairs = Options((data.Options.StartPairs ?? []).Select(p => "pairs_" + p.ToString(CultureInfo.InvariantCulture)), "ui.new_world.start_pairs.", "pairs_" + (data.Options.DefaultStartPairs ?? 2).ToString(CultureInfo.InvariantCulture));
         var favor = new OptionButton();
         foreach (var option in data.Favor.StartOptions)
         {
@@ -335,6 +339,16 @@ public partial class MainMenu : CanvasLayer
         Row(window, "ui.new_world.seed", seed);
         Row(window, "ui.new_world.size", size);
         Row(window, "ui.new_world.climate", climate);
+        if (resources.ItemCount > 0)
+        {
+            Row(window, "ui.new_world.resources", resources);
+        }
+
+        if (pairs.ItemCount > 0)
+        {
+            Row(window, "ui.new_world.start_pairs", pairs);
+        }
+
         Row(window, "ui.new_world.start_favor", favor);
         window.Content.AddChild(problem);
         window.AddAction("ui.common.cancel").Pressed += window.Close;
@@ -356,7 +370,9 @@ public partial class MainMenu : CanvasLayer
                 seedValue ?? NewWorldModel.DrawSeed(DateTimeOffset.UtcNow),
                 size.GetItemMetadata(size.Selected).AsString(),
                 climate.GetItemMetadata(climate.Selected).AsString(),
-                favor.GetItemMetadata(favor.Selected).AsInt32());
+                favor.GetItemMetadata(favor.Selected).AsInt32(),
+                resources.ItemCount > 0 ? resources.GetItemMetadata(resources.Selected).AsString() : null,
+                pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null);
             window.Close();
             create(choice);
         };

@@ -11,4 +11,7 @@ namespace GlassWorld.Simulation.State;
 /// <param name="GridCells">The island's grid of that size, cells per side; null = the preset's grid.</param>
 /// <param name="Climate">Climate option id; null = the preset's climate.</param>
 /// <param name="StartFavor">Start favour; null = the data's default.</param>
-public sealed record WorldSpec(string? Size = null, int? GridCells = null, string? Climate = null, int? StartFavor = null);
+/// <param name="Resources">A1770: resources option id (poor/normal/rich); null = not chosen.</param>
+/// <param name="ResourceFactor">A1770: that option's factor on spawn density and limits; null = 1.</param>
+/// <param name="StartPairs">A1770: pairs of inhabitants the world started with; null = the preset's pairs.</param>
+public sealed record WorldSpec(string? Size = null, int? GridCells = null, string? Climate = null, int? StartFavor = null, string? Resources = null, double? ResourceFactor = null, int? StartPairs = null);
