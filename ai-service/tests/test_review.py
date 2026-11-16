@@ -277,3 +277,41 @@ def test_v3_name_forms_german_and_its_own_name(summary: str, refused: str | None
     from glassworld_ai.review import made_up_name
 
     assert made_up_name(summary, {"Joro"}) == refused
+
+
+TEMPLATE_V4 = load_prompt(REPO / "prompts", "review/night", 4)
+
+
+def test_v4_judges_every_noun_of_an_idea_thought_v3_only_things_of_the_world() -> None:
+    """A1582 (R26/R29, the 'Kaffee' case of A1797): an idea can only be of what the inhabitant
+    knows. v4 leaves out a thought naming anything it does not know - also a thing that is not of
+    this world (a bow, a coffee); v3 judged only names of things of this world. The idea stays."""
+    job = _job_with_people()
+    answer = json.loads(_answer())
+    answer.pop("kept")
+    answer["ideas"] = [
+        {
+            "grows": None,
+            "text": "Make a bow from a stick.",
+            "roots": ["Feuerstein"],
+            "thought": "Was, wenn ich aus dem Stein einen Bogen mache?",
+        }
+    ]
+    raw = json.dumps(answer, ensure_ascii=False)
+    v4, notes = parse_review(raw, job, GUARD, MOODS, TEXTS, TEMPLATE_V4.settings)
+    assert v4["ideas"][0]["thought"] is None and v4["ideas"][0]["roots"]
+    assert any("unknown: Bogen" in n for n in notes)
+    v3, _ = parse_review(raw, job, GUARD, MOODS, TEXTS, TEMPLATE_V3.settings)
+    assert v3["ideas"][0]["thought"]["text"] == "Was, wenn ich aus dem Stein einen Bogen mache?"
+
+
+def test_v4_keeps_a_thought_of_what_it_knows() -> None:
+    job = _job_with_people()
+    answer = json.loads(_answer())
+    answer.pop("kept")
+    result, notes = parse_review(
+        json.dumps(answer, ensure_ascii=False), job, GUARD, MOODS, TEXTS, TEMPLATE_V4.settings
+    )
+    thought = result["ideas"][0]["thought"]
+    assert thought["text"] == "Was, wenn ich die Haselnuss mit dem Stein öffne?"
+    assert result["dream"] is not None, notes
