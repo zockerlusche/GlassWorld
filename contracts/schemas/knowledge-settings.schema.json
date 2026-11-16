@@ -114,6 +114,10 @@
     "night_questions": {
       "$ref": "#/$defs/KnowledgeNightQuestions"
     },
+    "material_ideas": {
+      "description": "A1581 (Marcel W2243, D1212 c): by day, handling a thing of a material kind may let an idea sprout - 'what could I make from it?' - in the inhabitant's own ideas (the same store as the nightly look back; it grows there and may ripen into a wish to invent, B2687). Absent = ideas come only from the night.",
+      "$ref": "#/$defs/KnowledgeMaterialIdeas"
+    },
     "review": {
       "description": "The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.",
       "$ref": "#/$defs/KnowledgeReview"
@@ -837,6 +841,40 @@
         "idea_grow_by_trait": {
           "description": "D1086: idea_grow is multiplied by this trait factor (ideas ripen faster). Omitted = the same for all.",
           "$ref": "common.schema.json#/$defs/TraitCurve"
+        }
+      }
+    },
+    "KnowledgeMaterialIdeas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions", "properties", "chance", "max_per_day", "text"],
+      "properties": {
+        "actions": {
+          "description": "Actions on a thing after which an idea may sprout (vocabulary actions).",
+          "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        },
+        "properties": {
+          "description": "True properties that make a thing material to make something from (vocabulary properties); any one counts.",
+          "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        },
+        "chance": {
+          "description": "Chance that an idea sprouts after such an action (before the trait factors). Placeholder (TL).",
+          "type": "number", "minimum": 0, "maximum": 1
+        },
+        "chance_by_trait": {
+          "description": "Trait factors the chance is multiplied by (curiosity, drive - D1086: how often, never which).",
+          "type": "array", "maxItems": 4,
+          "items": { "$ref": "common.schema.json#/$defs/TraitCurve" }
+        },
+        "max_per_day": {
+          "description": "At most this many such ideas per inhabitant and game day.",
+          "type": "integer", "minimum": 1, "maximum": 10
+        },
+        "text": {
+          "description": "The idea's internal English text for the AI ({type} = the type id); never shown as is.",
+          "type": "string", "minLength": 1, "maxLength": 120
         }
       }
     },
