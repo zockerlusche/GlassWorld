@@ -1835,6 +1835,10 @@
       "text": "Praise"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "tip"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Other"
     },
@@ -2427,6 +2431,10 @@
       "text": "guessed"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "the voice"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "read"
     },
@@ -2457,6 +2465,14 @@
     {
       "key": "vocab.event.text_read",
       "text": "Read some writing"
+    },
+    {
+      "key": "vocab.event.voice_tested",
+      "text": "Tried a tip of the voice"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Believed the voice"
     },
     {
       "key": "vocab.event.object_moved",
