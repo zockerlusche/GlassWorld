@@ -45,6 +45,13 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// <summary>A1770 (B2805): pairs of start inhabitants (each pair its start place); null = the preset's pairs.</summary>
     public int? StartPairs { get; init; }
 
+    /// <summary>
+    /// A1769 (B2805): the island the new-world window's preview generated, taken over as it is instead of generating it
+    /// again (the start shows exactly the island the player saw) - but only when seed, preset, grid, resource factor and
+    /// pairs are this world's (review GW2 #584); otherwise, or null, the island is generated.
+    /// </summary>
+    public Map.PreviewIsland? Island { get; init; }
+
     /// <summary>A1768 (B2805): the world specification of the new-world form, kept in the save game; null = none (older saves, tests).</summary>
     public State.WorldSpec? Spec { get; init; }
 }
@@ -193,7 +200,8 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
+            var shown = options.Island is { } preview && preview.Fits(world.Seed, worldPreset, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs) ? preview.Island : null;
+            var island = savedIsland?.Island ?? shown ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
