@@ -241,6 +241,27 @@ public sealed class BodyTests
     }
 
     [Fact]
+    public void ASleeperAndOneWhoseActionIsOnTheFireDoNotFlinch()
+    {
+        // Review GW3 #573: no flinch in sleep, and none at the fire one went to on purpose (no arrive-flinch-return loop).
+        var (host, inhabitant) = Island();
+        var flinches = 0;
+        host.Inhabitants.Reported += e => flinches += e.Kind == BodySystem.Flinched ? 1 : 0;
+        var fire = host.Objects.Spawn("fire", new Position(inhabitant.Position.X + 0.2, inhabitant.Position.Z));
+        var at = inhabitant.Position;
+
+        inhabitant.Activity = new Activity("sleep", null, at, 100_000_000);
+        host.World.Step();
+        Assert.Equal(0, flinches);
+        Assert.Equal(at, inhabitant.Position);
+
+        inhabitant.Activity = new Activity("inspect", fire.Id, at, 100_000_000);
+        host.World.Step();
+        Assert.Equal(0, flinches);
+        Assert.Equal(at, inhabitant.Position);
+    }
+
+    [Fact]
     public void BeyondTheReflexRadiusNobodyFlinches()
     {
         var (host, inhabitant) = Island();

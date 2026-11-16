@@ -95,7 +95,8 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     private void Reflex(World world, Inhabitant inhabitant)
     {
-        if (_data.Reflex is not { } reflex || HeatFrom is not { } heatFrom)
+        // Review GW3 #573: a sleeper does not flinch in its sleep (a sleeping place by the fire keeps it warm).
+        if (_data.Reflex is not { } reflex || HeatFrom is not { } heatFrom || _inhabitants.IsAsleep(inhabitant))
         {
             return;
         }
@@ -103,6 +104,13 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
         var radius = reflex.RadiusCm / 100.0;
         foreach (var (thing, _) in heatFrom(inhabitant.Position))
         {
+            // Review GW3 #573: the thing its own action is on (tending the fire, warming at it) is no surprise - it walked
+            // there on purpose, and would flinch at every arrival and walk back again.
+            if (string.Equals(inhabitant.Activity?.TargetId, thing.Id, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             var (dx, dz) = (inhabitant.Position.X - thing.Position.X, inhabitant.Position.Z - thing.Position.Z);
             var distance = Math.Sqrt((dx * dx) + (dz * dz));
             if (distance >= radius)
