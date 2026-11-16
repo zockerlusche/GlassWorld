@@ -18,7 +18,8 @@ Welche KI auf deinem Rechner läuft, hängt von der Hardware-Stufe ab (README, �
 ## Schritt für Schritt
 
 1. Lade das Release-Archiv von der GitHub-Release-Seite und entpacke es in einen Ordner deiner
-   Wahl. Es wird nichts systemweit installiert.
+   Wahl, in den du schreiben darfst (zum Beispiel `C:\Spiele\GlassWorld`, nicht
+   `C:\Programme`). Es wird nichts systemweit installiert.
 2. Starte `GlassWorld.exe`.
 3. **Erster Start:** Das Spiel zeigt, was noch fehlt, mit Name, Größe, Lizenz und Zweck, und
    fragt dich, bevor etwas geladen wird:
@@ -38,7 +39,31 @@ Welche KI auf deinem Rechner läuft, hängt von der Hardware-Stufe ab (README, �
       Modellordner. Dateien mit gleichem Namen werden nie ohne Nachfrage überschrieben.
 5. Beim Start prüft das Spiel jede KI und zeigt ruhig an, ob alles bereit ist oder was fehlt.
 
+## Wo deine Daten liegen
+
+Das Spiel hält alles neben sich, damit ein Blick in seinen Ordner alles zeigt:
+
+| Ordner | Was darin liegt |
+|---|---|
+| `daten\` | deine Welten (`worlds\`), Einstellungen, die Sammlung der erzeugten Dinge (`collection\`), Diagnoseberichte (`diagnostics\`) |
+| `log\` | das Protokoll des Spiels (`godot.log`), die Protokolle der KI (`ki\`) und je Welt die Lauf-Spur (`welten\`) |
+
+- Darf das Spiel in seinen eigenen Ordner nicht schreiben (zum Beispiel unter `C:\Programme`),
+  legt es `daten\` in `Dokumente\GlassWorld` an.
+- Willst du das Spiel verschieben, nimm den ganzen Ordner mit: Dann wandern deine Welten mit.
+- Löschst du den Ordner, sind auch deine Welten weg. Sichere vorher `daten\worlds\`, wenn du sie
+  behalten willst.
+
 ## Wenn etwas nicht geht
+
+### Allgemein
+
+| Was passiert | Was du tun kannst |
+|---|---|
+| Windows zeigt „Der Computer wurde durch Windows geschützt“. | Das Spiel ist nicht signiert. „Weitere Informationen“ und dann „Trotzdem ausführen“ wählen. |
+| Das Spiel startet, aber deine Welten fehlen. | Liegt der Ordner `daten\` noch neben dem Spiel? Nach dem Verschieben ohne ihn beginnt das Spiel leer. Sonst in `Dokumente\GlassWorld` nachsehen. |
+| Das Bild ruckelt. | In den Einstellungen unter „Grafik“ eine niedrigere Qualität oder eine kleinere Fenstergröße wählen. Andere Programme schließen, die die Grafikkarte nutzen. |
+| Der Virenscanner meldet das Spiel oder seine KI. | Den Ordner des Spiels im Virenscanner erlauben. Das Spiel lädt nur aus den offiziellen Quellen, mit Prüfsumme. |
 
 Der Selbstcheck beim Start nennt die Ursache. Hier steht, was du tun kannst.
 
@@ -74,5 +99,5 @@ nicht.
 Hilft nichts davon, erstelle im Spiel einen **Diagnosebericht** (Knopf im Einrichtungsfenster).
 Er enthält Versionen, den Selbstcheck, die Hardware-Stufe, den Zustand der Modelle und die
 letzten Fehler. Er enthält **keine** Zugangsdaten und **keine** Pfade mit deinem Benutzernamen.
-Er liegt in `%APPDATA%\Godot\app_userdata\GlassWorld\ai-service\logs\` und bleibt auf deinem
+Er liegt in `daten\diagnostics\` neben dem Spiel (oder in `Dokumente\GlassWorld\diagnostics\`) und bleibt auf deinem
 Rechner, bis du ihn selbst weitergibst, zum Beispiel in einem GitHub-Issue.
