@@ -5,12 +5,22 @@
       "id": "game",
       "rows": [
         "language",
-        "player_name"
+        "player_name",
+        "autosave",
+        "pause_on_knock",
+        "data_folder",
+        "log_folder"
       ]
     },
     {
       "id": "graphics",
-      "rows": []
+      "rows": [
+        "window_mode",
+        "resolution",
+        "vsync",
+        "max_fps",
+        "quality"
+      ]
     },
     {
       "id": "audio",
@@ -31,7 +41,12 @@
     },
     {
       "id": "controls",
-      "rows": []
+      "rows": [
+        "invert_turn_x",
+        "invert_turn_y",
+        "invert_pan_x",
+        "invert_pan_y"
+      ]
     },
     {
       "id": "accessibility",

@@ -18,7 +18,8 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="WaitForSleepersHours">B2680: the compute night begins when all sleep, at the latest this many hours after nightfall; null = at nightfall.</param>
 /// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
 /// <param name="Image">Sizes, style and priority of image jobs (content/image/generation.json; A1564); null = no picture jobs.</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null);
+/// <param name="NotBeforeMinute">A1798 (B2839): the compute night does not begin before this minute of the day, even when all sleep; null = from nightfall.</param>
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null, int? NotBeforeMinute = null);
 
 /// <summary>The picture job of a new invention (A1564, B7 R7) and its result.</summary>
 /// <param name="TypeId">Runtime type the picture belongs to.</param>
@@ -69,6 +70,8 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="HelpSinceTick">When the helper was asked (its help ends after the data's help_hours), or null.</param>
 /// <param name="InterruptedBy">A1373 (D827 R15): what took the builder away from a step it was on (a pressing need, or another
 /// action), while it is away; null while it builds or waits for material.</param>
+/// <param name="SiteOptions">A1373 (D827 R15): the places offered for the site while the decider has not chosen yet (nearest
+/// first, the site stands on the first); null once chosen, or when there was only one.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -96,7 +99,8 @@ public sealed record BuildTask(
     string? HelperPendingObjectId = null,
     string? HelperPendingType = null,
     long? HelpSinceTick = null,
-    string? InterruptedBy = null);
+    string? InterruptedBy = null,
+    IReadOnlyList<Position>? SiteOptions = null);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -158,6 +162,67 @@ public sealed partial class InventionSystem
     /// (action, target); true if the question went out. Null = never asks.
     /// </summary>
     public Func<World, string, string, IReadOnlyList<(string Action, string? TargetId)>, bool>? Escalate { get; set; }
+
+    /// <summary>A1373 (D827 R15): free places for a building near a position, nearest first (set by the host from the map); null = where the builder stands.</summary>
+    public Func<Position, BuildSite, IReadOnlyList<Position>>? FindSites { get; set; }
+
+    /// <summary>A1373: asks the decider where to build (inhabitant, invention type); false = not asked now (set by the host).</summary>
+    public Func<World, string, string, bool>? AskSite { get; set; }
+
+    /// <summary>A1373: the decider options of a build site question, one per place in data order.</summary>
+    public IReadOnlyList<(string Action, string? TargetId)> SiteOptionsOf(string inhabitantId, string typeId) =>
+        _builds.TryGetValue(typeId, out var task) && task.InhabitantId == inhabitantId && task.SiteOptions is { } places && Build.Settings.Site is { } site
+            ? [.. places.Select(_ => (site.Action, (string?)null))]
+            : [];
+
+    /// <summary>
+    /// A1373: the places of a build site question, in data order - where, how far from the builder, and the builder's own
+    /// name for a thing it knows near the place (never a type id; none when it knows none there).
+    /// </summary>
+    public IReadOnlyList<BuildPlace> SitePlacesOf(string inhabitantId, string typeId)
+    {
+        if (!_builds.TryGetValue(typeId, out var task) || task.InhabitantId != inhabitantId || task.SiteOptions is not { } places
+            || Build.Settings.Site is not { } site || !_inhabitants.TryGet(inhabitantId, out var builder))
+        {
+            return [];
+        }
+
+        var near = new List<WorldObject>();
+        return [.. places.Select(place =>
+        {
+            near.Clear();
+            _objects.Within(place, site.NearM, near);
+            var known = near
+                .Where(o => builder.Beliefs.About(o.TypeId).Any())
+                .OrderBy(o => Square(o.Position.X - place.X) + Square(o.Position.Z - place.Z))
+                .ThenBy(o => o.Id, StringComparer.Ordinal)
+                .Select(o => _inhabitants.TypeLabelOf(builder, o.TypeId))
+                .FirstOrDefault(label => label is not null);
+            return new BuildPlace
+            {
+                X = place.X,
+                Z = place.Z,
+                DistanceM = Math.Round(Math.Sqrt(Square(place.X - builder.Position.X) + Square(place.Z - builder.Position.Z))),
+                Near = known,
+            };
+        })];
+    }
+
+    /// <summary>
+    /// A1373: the decider chose a place (index in data order): the site moves there while nothing of the thing stands
+    /// yet; the offer ends either way.
+    /// </summary>
+    public void SiteAnswered(string inhabitantId, string typeId, int index)
+    {
+        if (!_builds.TryGetValue(typeId, out var task) || task.InhabitantId != inhabitantId || task.SiteOptions is not { } places)
+        {
+            return;
+        }
+
+        _builds[typeId] = task.BuiltObjectId is null && index >= 0 && index < places.Count
+            ? task with { SiteX = places[index].X, SiteZ = places[index].Z, SiteOptions = null }
+            : task with { SiteOptions = null };
+    }
 
     /// <summary>Whether a question about this building is open (inhabitant, invention type); set by the host.</summary>
     public Func<string, string, bool>? EscalationOpen { get; set; }
@@ -308,16 +373,28 @@ public sealed partial class InventionSystem
             return;
         }
 
-        // The site is where the inventor stands now (rounded to 10 cm, the same in every run).
+        // The site is where the inventor stands now (rounded to 10 cm, the same in every run) - or, with the data's site
+        // block (A1373, D827 R15), the nearest free place the core finds; with more than one, the decider is asked to
+        // choose among them, and the nearest stands until it answers.
         var at = _inhabitants.Get(task.InhabitantId).Position;
+        var sites = Build.Settings.Site is { } site && FindSites is { } find
+            ? [.. find(at, site).Take(site.Candidates).Select(p => new Position(Math.Round(p.X, 1, MidpointRounding.AwayFromZero), Math.Round(p.Z, 1, MidpointRounding.AwayFromZero)))]
+            : new List<Position>();
+        var first = sites.Count > 0 ? sites[0] : new Position(Math.Round(at.X, 1, MidpointRounding.AwayFromZero), Math.Round(at.Z, 1, MidpointRounding.AwayFromZero));
         _builds[task.TypeId] = task with
         {
             RequestId = null,
             PlanJson = JsonSerializer.Serialize(plan, RecordJson),
-            SiteX = Math.Round(at.X, 1, MidpointRounding.AwayFromZero),
-            SiteZ = Math.Round(at.Z, 1, MidpointRounding.AwayFromZero),
+            SiteX = first.X,
+            SiteZ = first.Z,
+            SiteOptions = sites.Count > 1 ? sites : null,
         };
         _inhabitants.Report(new WorldEvent(BuildPlanned, world.Tick, task.InhabitantId, null, task.TypeId));
+        if (sites.Count > 1 && AskSite?.Invoke(world, task.InhabitantId, task.TypeId) != true)
+        {
+            // Nobody to ask now (no decider, or over the step's limit): the nearest place stays.
+            _builds[task.TypeId] = _builds[task.TypeId] with { SiteOptions = null };
+        }
     }
 
     private void RetryPlan(World world, BuildTask task, bool retryable)
@@ -1126,6 +1203,25 @@ public sealed partial class InventionSystem
     }
 
     /// <summary>
+    /// A1798 (B2839): minutes after nightfall at which the clock reaches the data's not_before_minute - the compute night
+    /// waits for it even when all sleep and at the latest-start limit. 0 without the data, or when that minute lies more
+    /// than 12 hours after nightfall (it has passed already: a night that falls after it).
+    /// </summary>
+    private int NotBeforeSince(World world, int since)
+    {
+        if (Build.NotBeforeMinute is not { } notBefore)
+        {
+            return 0;
+        }
+
+        var day = world.Calendar.Settings.HoursPerDay * 60;
+        var time = world.Calendar.At(world.Tick);
+        var nightfall = ((time.Hour * 60) + time.Minute - since + day) % day;
+        var wait = ((notBefore - nightfall) % day + day) % day;
+        return wait > day / 2 ? 0 : wait;
+    }
+
+    /// <summary>
     /// Tells the AI service when the compute night begins and ends (only a signal; nothing in the world depends on it).
     /// B2680: it begins when every inhabitant sleeps, at the latest the data's hours after nightfall - not at nightfall,
     /// while inhabitants are still awake and need decisions; it ends with the night phase as before.
@@ -1139,9 +1235,8 @@ public sealed partial class InventionSystem
             && (_night == true
                 || Build.WaitForSleepersHours is not { } wait
                 || !world.Calendar.NightBeganInWorld(world.Tick)
-                || _inhabitants.All.All(_inhabitants.IsAsleep)
                 || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
-                || since >= wait * 60);
+                || (since >= NotBeforeSince(world, since) && (since >= wait * 60 || _inhabitants.All.All(_inhabitants.IsAsleep))));
         if (_night == night)
         {
             return;
@@ -1184,6 +1279,16 @@ public sealed partial class InventionSystem
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
                 .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
+
+            // The offered places only while the decider has not chosen, so buildings without keep their hashes (A1373).
+            if (b.SiteOptions is { } offered)
+            {
+                hasher.Write("site_options").Write(offered.Count);
+                foreach (var place in offered)
+                {
+                    hasher.Write(place.X).Write(place.Z);
+                }
+            }
 
             // An interruption only while there is one, so buildings without keep their hashes (A1373).
             if (b.InterruptedBy is { } interrupted)

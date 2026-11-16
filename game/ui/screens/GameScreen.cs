@@ -92,6 +92,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, GwValueBar> _cardBars = new(StringComparer.Ordinal);
     private GwPortrait? _cardPortrait;
     private Label? _cardTrying;
+    private Label? _cardGround;
     private string? _cardTopQuestionId;
     private Label? _cardTopQuestion;
     private Label? _cardTopReason;
@@ -123,6 +124,7 @@ public partial class GameScreen : CanvasLayer
     private bool _worldHeld;
     private bool _menuPaused;
     private double _speedBeforeNight = 1;
+    private bool _nightPassed;
     private bool _cameraHeldBeforeNight;
     private long? _nightfallTick;
     private PanelContainer? _topBar;
@@ -140,6 +142,9 @@ public partial class GameScreen : CanvasLayer
     private readonly HashSet<string> _askedHelp = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<(string Key, IReadOnlyList<HelpCard>? Cards, string? Problem)> _helpAnswers = new();
     private string? _placing;
+
+    // A1749: a knock pauses the world (settings 'Spiel').
+    private bool _pauseOnKnock;
     private ClickGate? _click;
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
@@ -706,6 +711,12 @@ public partial class GameScreen : CanvasLayer
             foreach (var knock in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
             {
                 KnockAt(knock.InhabitantId);
+
+                // A1749 (settings 'Spiel'): the player wants to be stopped by a knock - the world pauses, the knock stays.
+                if (_pauseOnKnock && _presenter.Speed != 0 && !_worldHeld)
+                {
+                    _presenter.Speed = 0;
+                }
             }
         }
 
@@ -867,6 +878,12 @@ public partial class GameScreen : CanvasLayer
         else
         {
             _presenter?.ClickedGround();
+
+            // A1791 (Marcel W2242): a thing near the click says what it is, who made it and who knows what about it.
+            if (WorldPoint(position) is { } ground && ThingAt(ground) is { } thing)
+            {
+                OpenThing(thing);
+            }
         }
     }
 
@@ -903,6 +920,7 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
+        _pauseOnKnock = settings.PauseOnKnock;
         _worldTheme = UiTheme.BuildWorld(style);
         _windowTheme = UiTheme.BuildWindowOnWorld(style);
         ApplyWorldTheme();
@@ -2331,7 +2349,7 @@ public partial class GameScreen : CanvasLayer
         if (hold == _worldHeld)
         {
             // Nothing else may start the world while it is held (a check run, a late button event).
-            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            if (hold && _presenter.Speed != 0 && !_menuPaused && _night?.PassesNight != true)
             {
                 _presenter.Speed = 0;
             }
@@ -2357,10 +2375,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         _presenter.CameraHeld = _cameraHeldBeforeNight;
-        if (!_menuPaused && _presenter.Speed == 0)
+        // After a passed night (A1798) the world runs at the scene's speed, not 0: the player's speed comes back too.
+        if (!_menuPaused && (_presenter.Speed == 0 || _nightPassed))
         {
             _presenter.Speed = _speedBeforeNight;
         }
+
+        _nightPassed = false;
 
         foreach (var control in _restingUi.Where(IsInstanceValid))
         {
@@ -2425,6 +2446,12 @@ public partial class GameScreen : CanvasLayer
         var sceneDelta = NightDelta(delta);
         _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
         HoldWorld(_night.HoldsWorld);
+        if (_night.PassesNight && !_menuPaused)
+        {
+            // A1798: the rest of the night passes behind the shade at the fastest speed; dawn fades the morning in.
+            _presenter.Speed = ScreenModel.TimeChoices(_presenter.Host.World.Calendar.Settings).Max(c => c.Speed);
+            _nightPassed = true;
+        }
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -3298,6 +3325,8 @@ public partial class GameScreen : CanvasLayer
         about.AddChild(doing);
         _cardTrying = new Label { Name = "CardTrying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, Visible = false };
         about.AddChild(_cardTrying);
+        _cardGround = new Label { Name = "CardGround", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        about.AddChild(_cardGround);
 
         // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
         var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
@@ -3495,6 +3524,16 @@ public partial class GameScreen : CanvasLayer
             if (trying)
             {
                 _cardTrying.Text = TrFor("ui.card.trying", _feed?.SexOf(inhabitantId));
+            }
+        }
+
+        if (_cardGround is not null)
+        {
+            var ground = CardGroundLine(inhabitantId);
+            _cardGround.Visible = ground.Length > 0;
+            if (_cardGround.Text != ground)
+            {
+                _cardGround.Text = ground;
             }
         }
     }
@@ -3820,7 +3859,13 @@ public partial class GameScreen : CanvasLayer
         string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : NameOfId(id);
         return rows.ToDictionary(
             r => r.Id,
-            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant)
+                ? InhabitantActivity.WithCarrying(
+                    InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf),
+                    InhabitantActivity.CarriedType(inhabitant, index) is { } carried ? ThingName(carried) : null, // A1784: what it carries
+                    key => Tr(key),
+                    smallThing: !TranslationServer.GetLocale().StartsWith("de", StringComparison.OrdinalIgnoreCase))
+                : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }
 

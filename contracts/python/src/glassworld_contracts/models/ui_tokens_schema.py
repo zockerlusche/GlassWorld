@@ -94,6 +94,12 @@ class UiWindowTokens(BaseModel):
         ge=8,
         le=200,
     )
+    thing_pick_m: float = Field(
+        ...,
+        description='A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).',
+        ge=0.1,
+        le=10.0,
+    )
     side_panel_width: int = Field(
         ...,
         description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',
@@ -472,6 +478,36 @@ class UiLogCategory(BaseModel):
     highlight: bool
 
 
+type FpsChoice = Annotated[int, Field(..., ge=0, le=1000)]
+
+
+type Resolution = Annotated[
+    str, Field(..., pattern='^[1-9][0-9]{2,4}x[1-9][0-9]{2,4}$')
+]
+
+
+class UiGraphics(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    fps_choices: list[FpsChoice] = Field(
+        ...,
+        description='Frame rate limits the player can choose; 0 = no limit.',
+        min_length=1,
+    )
+    resolutions: list[Resolution] = Field(
+        ...,
+        description="Window sizes 'WIDTHxHEIGHT' offered in window mode (only those that fit the screen are shown).",
+        min_length=1,
+    )
+    keep_seconds: float = Field(
+        ...,
+        description="Seconds the question 'Behalten?' waits after a change of window mode or size; without an answer it falls back.",
+        ge=3.0,
+        le=60.0,
+    )
+
+
 class UiPortraitStates(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -630,6 +666,12 @@ class Zones(BaseModel):
     favor_bar_width: int = Field(
         ..., description='Width of the favour bar top right.', ge=60, le=1200
     )
+    season_bar_width: int = Field(
+        ...,
+        description="A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+        ge=16,
+        le=400,
+    )
     middle_share: float = Field(
         ...,
         description='Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).',
@@ -757,3 +799,4 @@ class UiTokens(BaseModel):
         description='One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).',
     )
     portrait_states: UiPortraitStates
+    graphics: UiGraphics

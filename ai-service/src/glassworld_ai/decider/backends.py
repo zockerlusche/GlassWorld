@@ -25,10 +25,10 @@ from glassworld_ai.decider.output import (
 from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem, wrong_language
 from glassworld_ai.grounding import (
     checks_nouns,
+    judged_things,
     request_words,
     settings_words,
     unknown_nouns,
-    world_things,
 )
 from glassworld_ai.llm.ollama import (
     ChatMessage,
@@ -177,7 +177,7 @@ class OllamaDecider:
                 settings_words(settings, "general_words", locale),
             )
             unknown = unknown_nouns(
-                choice.thought, words, heads=True, only=world_things(self._texts, locale)
+                choice.thought, words, heads=True, only=judged_things(settings, self._texts, locale)
             )
             if unknown:
                 return replace(choice, thought=None), (

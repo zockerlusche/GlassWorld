@@ -82,6 +82,46 @@ public sealed class DialogueTests : IDisposable
         Assert.Equal("inh-000002", port.Dialogue[1].Payload.Dialogue!.Speakers.First().Inhabitant.Id);
     }
 
+    [Fact]
+    public void OverTheHoursBudgetForDayRequestsTheTwoTalkWithoutWords()
+    {
+        // A1587 (B7 R24): at the fastest speed one day request per game hour; the decider has used it.
+        var (host, port) = World();
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = host.World.Calendar.Settings.FastForwardFactors.Max() });
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetFollowed, "inh-000001"));
+        host.World.Step();
+        Assert.Equal(1, host.Budget.PerHour);
+        host.Budget.Note(host.World.Tick);
+
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Empty(port.Dialogue);
+
+        // An hour later there is room again, and the talk counts.
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Single(port.Dialogue);
+        Assert.False(host.Budget.HasRoom(host.World.Tick));
+    }
+
+    [Fact]
+    public void AtTheFastestSpeedOnlyTheFollowedOnesTalkHasWords()
+    {
+        // A1587 S3 (B2804): at the fastest speed the AI is for the followed inhabitant (and the player). A fast AI leaves
+        // the hour's budget open, so only the rank decides here.
+        var (host, port) = World();
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetSpeed, null) { Amount = host.World.Calendar.Settings.FastForwardFactors.Max() });
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetAiRate, null) { Amount = 100 });
+        host.World.Step();
+        Assert.True(host.Budget.HasRoom(host.World.Tick));
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Empty(port.Dialogue);
+
+        host.Decisions.Submit(new PlayerCommand(AiPace.SetFollowed, "inh-000002"));
+        host.World.Step();
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Single(port.Dialogue);
+    }
+
     [Theory]
     [InlineData("idle", "inh-000002")]
     [InlineData("talk_to", "obj-000001")]
@@ -182,6 +222,27 @@ public sealed class DialogueTests : IDisposable
         port.Answer(job, Turns(job, ("inh-000001", "Hallo!"), ("inh-000002", "Hallo!")));
         host.World.Step();
         Assert.Empty(said);
+    }
+
+    [Fact]
+    public void AReplayOfATalkDroppedForLatenessWritesTheSameJobLog()
+    {
+        // B4b night run 15./16.11. (REPLAY_DIFF tick=242): the core's own 'too late' line went back in as a message, found
+        // no open talk and fell to the inventions as a contract violation - a line the live run never had.
+        var (host, port) = World();
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Single(port.Dialogue);
+        var ticks = (int)Math.Ceiling(Settings.AnswerWithinHours * host.World.Calendar.Settings.TicksPerHour) + 5;
+        host.World.Run(ticks);
+
+        var replay = SimulationHost.CreateEmpty(ContentDirectory, 21, new SilentDecisionPort(), "de", new ReplayJobPort(host.Inventions.Log));
+        Name(replay);
+        Talk(replay, "inh-000001", "inh-000002");
+        replay.World.Run(ticks);
+
+        static string Line(DecisionLogEntry e) => $"{e.Kind} {e.RequestId} {e.Tick} {e.Note}";
+        Assert.Equal(host.Inventions.Log.Entries.Select(Line), replay.Inventions.Log.Entries.Select(Line));
+        Assert.Contains(replay.Inventions.Log.Entries, e => e.Note == DialogueSystem.TooLate);
     }
 
     [Fact]

@@ -17,6 +17,7 @@
     "max_requests_per_step": { "description": "At most this many requests go to the decider in one step (tick), whatever raised them: new questions, questions that waited (held back) and questions sent again after an error or after loading a save. What is over waits with its question mark and goes out in the next steps, in the order it would have gone. The places of a step are taken in this order: questions due to be sent again (after an error or a load), then questions that waited, then new ones - so while the AI service keeps failing, retries can fill a step and the others wait longer. Bounds the one step in which many questions fall due together - all held-back questions at the end of choice_protection_hours, every open question after loading a save. Omitted = no limit (as before).", "type": "integer", "minimum": 1, "maximum": 1000 },
     "unknown_inhabitant_max_asks": { "description": "How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.", "type": "integer", "minimum": 0, "maximum": 1000 },
     "leisure": { "$ref": "#/$defs/LeisureSettings" },
+    "throughput": { "$ref": "#/$defs/ThroughputSettings" },
     "failures": {
       "description": "A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.",
       "$ref": "#/$defs/Failures"
@@ -37,6 +38,33 @@
     }
   },
   "$defs": {
+    "ThroughputSettings": {
+      "description": "A1587 (B7 R24, R26, R28; B2804, D1161): how much the AI may be asked by day, by the game's speed and the measured time of one AI job (both logged player commands, so a replay asks the same). Per game hour at most floor(day_share x real seconds of a game hour at the speed / seconds per job) requests go out, at least min_per_hour; a question over it keeps its question mark and goes out later (R25), a talk stays without words, a free moment is not asked. What the player raises (noticed_player) is never held back by it. Omitted = no such limit (as before).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["day_share", "fallback_job_ms", "min_per_hour", "answer_within_minutes"],
+      "properties": {
+        "day_share": { "description": "Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).", "type": "number", "minimum": 0.05, "maximum": 1 },
+        "fallback_job_ms": { "description": "Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).", "type": "integer", "minimum": 100, "maximum": 600000 },
+        "min_per_hour": { "description": "At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "answer_within_minutes": { "description": "Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.", "type": "integer", "minimum": 1, "maximum": 1440 },
+        "levels_by_speed": {
+          "description": "A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["speed", "up_to_level"],
+            "properties": {
+              "speed": { "description": "Speed factor from which the entry holds (1 = normal).", "type": "integer", "minimum": 1, "maximum": 1000 },
+              "up_to_level": { "description": "Highest rank that still goes to the AI (1-4).", "type": "integer", "minimum": 1, "maximum": 4 }
+            }
+          }
+        },
+        "near_followed_m": { "description": "Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.", "type": "number", "minimum": 0, "maximum": 1000 },
+        "first_kinds": { "description": "Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.", "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 64 } }
+      }
+    },
     "LeisureSettings": {
       "description": "Trigger leisure (B2663, D333 v7 boredom -> wish, B2610): an awake inhabitant with no open question, none of whose pressing needs (those with a neglect threshold in the inhabitant model: hunger, thirst, sleep ...) is below needs_at_least - fun, company and purpose do not count, low fun is what makes it bored - whose mood is at least mood_at_least, asks the decider at most every every_hours game hours what to do now; the options are the core's, the choice and the thought the AI's. By day, with or without learning by day: nothing new is learned. Omitted = no leisure questions.",
       "type": "object",
@@ -47,6 +75,17 @@
         "mood": { "description": "A mood that must be at least mood_at_least (e.g. boredom); omitted = any free moment counts.", "$ref": "common.schema.json#/$defs/VocabId" },
         "mood_at_least": { "type": "number", "minimum": 0, "maximum": 1 },
         "every_hours": { "description": "Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.", "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+        "when_idle": {
+          "description": "A1794 (D1212, TL #27680): one who stands idle (the routine's idle action) is asked again after these game minutes instead of every_hours - three idle actions in a row (3 x 15 min) are a free moment, not hours of standing about. Omitted = every_hours only.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "every_minutes"],
+          "properties": {
+            "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+            "every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 }
+          }
+        },
+        "not_offered": { "description": "A1794 (D1212): actions a free moment does not offer - leisure is for doing something; standing idle stays the routine's fallback. Omitted = all the needs suggest.", "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
         "every_hours_by_trait": { "description": "D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.", "$ref": "common.schema.json#/$defs/TraitCurve" },
         "needs_at_least_by_trait": { "description": "D1086: needs_at_least is multiplied by this trait factor (a lower factor = a free moment already with less strength). Omitted = the same for all.", "$ref": "common.schema.json#/$defs/TraitCurve" }
       }

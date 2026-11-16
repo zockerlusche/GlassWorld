@@ -40,6 +40,10 @@ public partial class Main : Node3D
     private const string LookAtArgument = "--look-at=";
     private const string NewWorldArgument = "--new-world=";
     private const string RunSecondsArgument = "--run-s=";
+    private const string SpeedArgument = "--speed=";
+
+    // A1749 (Marcel W2271): the speed a world starts with, from the command line only (the menu has no such option).
+    private double? _speedArgument;
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
 
@@ -114,10 +118,16 @@ public partial class Main : Node3D
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
         _library = new WorldLibrary(GameData.At("worlds"));
+        ArchiveGoneWorldLogs(_library.Root);
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
-            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion);
+            var quality = ContractSerializer.Deserialize<LookQuality>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "look", "quality.json")));
+            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion)
+            {
+                QualityLevels = [.. quality.Levels.Select(l => l.Id)],
+                QualityDefault = quality.DefaultLevel,
+            };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
@@ -286,6 +296,12 @@ public partial class Main : Node3D
                 _runS = runS;
             }
 
+            if (arg.StartsWith(SpeedArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[SpeedArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var speedArg) && speedArg >= 0)
+            {
+                _speedArgument = speedArg;
+            }
+
             if (arg == DebugArgument)
             {
                 _debugCommands = true;
@@ -314,6 +330,16 @@ public partial class Main : Node3D
         }
         _screen?.ApplySettings(settings, _style);
         WorldAudio.ApplyVolumes(_mix, settings.BusVolumesDb);
+
+        // A1748: the graphics - window, V-Sync, frame rate now; the quality level when the next world is built.
+        DisplaySettings.Apply(settings);
+        WorldPresenter.QualityChoice = settings.Quality;
+
+        // A1749: when the world saves itself.
+        WorldPresenter.AutoSaveMode = settings.AutoSave;
+
+        // A1749 (B2825): the mouse axes of the camera.
+        GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
     }
 
     /// <summary>
@@ -589,6 +615,14 @@ public partial class Main : Node3D
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
             _world.Faulted += (_, _) => _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
             _screen.PauseRequested += OpenPause;
+
+            // A1749 (Marcel W2270/W2271): a world always starts at normal speed - only the command line may choose another
+            // (--speed=N, one of the time choices), e.g. for long runs with a window.
+            if (_speedArgument is { } speed && ScreenModel.TimeChoices(host.World.Calendar.Settings).Any(c => c.Speed == speed))
+            {
+                _world.Speed = speed;
+                GD.Print($"START_SPEED {speed.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            }
         }
 
         return spatialReady;
@@ -657,9 +691,16 @@ public partial class Main : Node3D
         window.Changed += settings =>
         {
             // Applied at once (also audible for volumes); written when the window closes or the game quits.
+            var before = _settings;
             _settings = settings.Clamp(_limits);
             _settingsDirty = true;
             ApplySettings(_settings);
+
+            // A1748: a new window mode or size asks 'Behalten?' and falls back without an answer (D957 v4 section 10).
+            if (DisplayChoices.NeedsKeep(before, _settings))
+            {
+                AskKeep(window, before);
+            }
 
             // UI and text size change the logical screen; fit the window again after the change.
             Callable.From(() =>
@@ -683,8 +724,98 @@ public partial class Main : Node3D
         show(window);
     }
 
+    /// <summary>
+    /// A1748 (D957 v4 section 10): after a change of window mode or size, 'Behalten?' with the seconds left; 'Behalten' keeps
+    /// it, 'Zurück' or no answer within the data's seconds puts the window part of <paramref name="before"/> back.
+    /// </summary>
+    private void AskKeep(SettingsWindow settingsWindow, PlayerSettings before)
+    {
+        if (_style is null || _limits is null)
+        {
+            return;
+        }
+
+        var countdown = new KeepCountdown(_style.Tokens.Graphics.KeepSeconds);
+        var ask = new GwWindow { Name = "KeepDisplay" };
+        ask.Setup("ui.settings.keep.title", _style);
+        var line = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = AutoTranslateModeEnum.Disabled };
+        void Show() => line.Text = TextFill.Fill(Tr("ui.settings.keep.text"), new Dictionary<string, string> { ["seconds"] = countdown.SecondsLeft.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        Show();
+        ask.Content.AddChild(line);
+        var done = false;
+        void FallBack()
+        {
+            if (done)
+            {
+                return;
+            }
+
+            done = true;
+            _settings = DisplayChoices.FallBack(_settings, before).Clamp(_limits);
+            ApplySettings(_settings);
+            if (IsInstanceValid(settingsWindow))
+            {
+                settingsWindow.Show(_settings);
+            }
+
+            ask.Close();
+        }
+
+        ask.AddAction("ui.settings.keep.back").Pressed += FallBack;
+        ask.AddAction("ui.settings.keep.keep").Pressed += () =>
+        {
+            done = true;
+            ask.Close();
+        };
+        var timer = new Godot.Timer { WaitTime = 0.25, Autostart = true };
+        timer.Timeout += () =>
+        {
+            if (done)
+            {
+                timer.QueueFree();
+                return;
+            }
+
+            if (countdown.Tick(timer.WaitTime))
+            {
+                FallBack();
+                return;
+            }
+
+            Show();
+        };
+        ask.AddChild(timer);
+        if (_screen is not null)
+        {
+            _screen.ShowWindow(ask, modal: true);
+        }
+        else
+        {
+            _menu?.ShowWindow(ask);
+        }
+    }
+
     /// <summary>Where the player's copies of diagnostics reports lie (W1703): the game's own folder, which it can open.</summary>
     private static string DiagnosticsFolder() => GameData.At("diagnostics");
+
+    /// <summary>
+    /// A1787 part 2 (Marcel W2246): the logs of worlds that are gone (a world folder removed by hand) move to the log
+    /// folder's archive - never deleted. A failure here is no reason not to start: it is tried again next time.
+    /// </summary>
+    private static void ArchiveGoneWorldLogs(string worldsRoot)
+    {
+        try
+        {
+            foreach (var moved in WorldLogArchive.ArchiveOrphans(worldsRoot, GameData.Logs, DateTimeOffset.Now))
+            {
+                GD.Print($"WORLD_LOGS_ARCHIVED {moved}");
+            }
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"WORLD_LOGS_ARCHIVE_FAILED {e.GetType().Name}: {e.Message}");
+        }
+    }
 
     /// <summary>
     /// Once per world (W1703 rule 2): if an AI needs the player, one calm hint that points to the settings.

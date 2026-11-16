@@ -65,7 +65,7 @@
       "$ref": "#/$defs/StuckBuilding"
     },
     "occasion": {
-      "description": "Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
+      "description": "Why the core asks, when it is not something new or a stuck building (B2663): 'leisure' (the inhabitant is awake, no need presses and it is bored), 'intention' (its morning intention, offered in such a free moment), 'action_failed' (an action failed, A1778) or 'build_site' (where to build, A1373; review GW2 #526). A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
       "$ref": "common.schema.json#/$defs/VocabId"
     },
     "intention": {
@@ -233,6 +233,10 @@
         "topic": {
           "description": "For actions that pass knowledge on to the target inhabitant (show, teach, warn; B4a R4, D625): WHAT the asker would pass on. This is the asker's own belief that the core would pass, never the world's truth. Optional (absent = the action passes nothing on, or an older core).",
           "$ref": "#/$defs/OptionTopic"
+        },
+        "place": {
+          "description": "Only for occasion 'build_site' (A1373, D827 R15): the place this option would build at - where, how far from the builder, and the name the builder knows for a thing near it (its own name, never a type id; absent when it knows none there). Absent otherwise.",
+          "$ref": "#/$defs/BuildPlace"
         }
       }
     },
@@ -514,6 +518,41 @@
         "z": {
           "description": "Where it failed (m), rounded to 0.1.",
           "type": "number"
+        }
+      }
+    },
+    "BuildPlace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "z",
+        "distance_m"
+      ],
+      "properties": {
+        "x": {
+          "description": "Where (m), rounded to 0.1.",
+          "type": "number"
+        },
+        "z": {
+          "description": "Where (m), rounded to 0.1.",
+          "type": "number"
+        },
+        "distance_m": {
+          "description": "How far from the builder (m), rounded to whole metres.",
+          "type": "number",
+          "minimum": 0
+        },
+        "near": {
+          "description": "The name the builder knows for a thing near the place, or absent.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/LocalizedName"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

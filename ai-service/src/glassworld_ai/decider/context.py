@@ -112,6 +112,7 @@ def build_values(
         "objects": "",
         "options": "\n".join(
             _option_line(request, vocab, o, called, locale if template.version >= 4 else None)
+            + _place(o, settings, locale)
             for o in request.options
         ),
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
@@ -219,6 +220,20 @@ def _occasion(request: DecisionRequest, settings: dict[str, Any]) -> str:
         thought = intention.thought.text if intention.thought is not None else None
         said = f'"{thought}"' if thought else _humanize(_id(intention.action))
         line = line.replace("$intention", said)
+    if "$failed_action" in line:
+        # v16 (A1778, B2814): what failed and why in plain words - never what would work (PR2).
+        failure: Any = getattr(request, "failure", None)
+        if failure is None:
+            return ""
+        reasons: object = settings.get("failure_reasons")
+        known = cast(dict[str, object], reasons) if isinstance(reasons, dict) else {}
+        reason = str(known.get(failure.reason) or _humanize(failure.reason))
+        target = f" the {_humanize(failure.target_type)}" if failure.target_type else ""
+        line = (
+            line.replace("$failed_action", _humanize(_id(failure.action)))
+            .replace("$failed_target", target)
+            .replace("$failed_reason", reason)
+        )
     return f"{table['heading']}\n{line}\n\n"
 
 
@@ -330,6 +345,16 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
     felt = inhabitant.felt_temperature_c
     if felt is not None:
         lines.append(f"- You feel {_word(_bands(settings, 'felt_words'), float(felt))}.")
+    # v16 (A1793, Marcel 15a 'Waten bei Kaelte'): the core sends wet and in_water; earlier
+    # versions never said them. Words from the data ([settings.body_lines]); no line = not shown.
+    body_raw: object = settings.get("body_lines")
+    body_lines = cast(dict[str, str], body_raw) if isinstance(body_raw, dict) else {}
+    env: Any = request.environment
+    depth = _id(env.in_water) if getattr(env, "in_water", None) is not None else "none"
+    if depth != "none" and f"in_water_{depth}" in body_lines:
+        lines.append(f"- {body_lines[f'in_water_{depth}']}")
+    if getattr(env, "wet", None) is True and "wet" in body_lines:
+        lines.append(f"- {body_lines['wet']}")
     slots_raw: object = settings.get("slot_names", {})
     slots = cast(dict[str, str], slots_raw) if isinstance(slots_raw, dict) else {}
     if inhabitant.worn == []:  # sent and empty: wears nothing (absent = unknown, no line)
@@ -418,6 +443,21 @@ def _option_line(
     together = f" with {', '.join(partners)}" if partners else ""
     about = _topic(getattr(option, "topic", None), called, locale) if locale else ""
     return f"- {option_id}: {action} -> {what}{together}{about}"
+
+
+def _place(option: Any, settings: dict[str, Any], locale: str) -> str:
+    """v17 (A1373, D827 R15): a build_site option's place - how far, and near what the builder
+    knows (its own name); words from the data ([settings.place]), nothing about which is better."""
+    words: object = settings.get("place")
+    place: Any = getattr(option, "place", None)
+    if place is None or not isinstance(words, dict):
+        return ""
+    table = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
+    near: object = getattr(place.near, locale, None) if place.near is not None else None
+    line = table["near"] if near else table["distance"]
+    # Review GW3 #539: the name sits in quotes of the line - quotes of its own would double them.
+    name = str(near or "").replace('"', "").strip()
+    return line.replace("$distance", f"{place.distance_m:.0f}").replace("$near", name)
 
 
 def _topic(topic: Any, called: Callable[[str], str | None] | None, locale: str) -> str:

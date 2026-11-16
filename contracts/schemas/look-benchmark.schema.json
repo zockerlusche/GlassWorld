@@ -81,6 +81,10 @@
       "items": {
         "$ref": "#/$defs/BenchmarkPass"
       }
+    },
+    "late_game": {
+      "description": "B2810 (Marcel W2197): the late game scenario, run with --bench-scenario=late - every crowd figure carries a thing, placed things lie around the crowd (stores, tools, material), fires burn and the weather changes within each pass. Seed-fixed like the crowd. Omitted = only the start scenario.",
+      "$ref": "#/$defs/BenchmarkLateGame"
     }
   },
   "$defs": {
@@ -266,6 +270,85 @@
         "epoch": {
           "description": "Optional: look epoch shown; without it the epoch of the world.",
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "BenchmarkLateGame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "held_types",
+        "placed_count",
+        "placed_radius_m",
+        "placed_types",
+        "fires",
+        "fire_type",
+        "weather_cycle",
+        "weather_change_s"
+      ],
+      "properties": {
+        "held_types": {
+          "description": "Object types the crowd figures carry, one each in turn (catalog ids).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "placed_count": {
+          "description": "Things laid around the crowd centre, on land.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "placed_radius_m": {
+          "description": "Radius around the crowd centre the placed things and fires lie in.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "placed_types": {
+          "description": "Object types of the placed things, in turn (catalog ids).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        "fires": {
+          "description": "Burning fires among the placed things.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "fire_type": {
+          "description": "Object type of a fire (catalog id).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "weather_cycle": {
+          "description": "Weathers shown in turn within each pass (each needs a look, content/look/weather.json).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          }
+        },
+        "weather_change_s": {
+          "description": "Real seconds between two weathers of the cycle.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3600
         }
       }
     }

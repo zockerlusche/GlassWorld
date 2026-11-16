@@ -93,6 +93,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
     public bool LearnByDay { get; internal set; }
 
     /// <summary>
+    /// A1587 (B7 R24, R28): the day requests per game hour the data allow at the game's speed, shared with the talks;
+    /// null = no limit (tests, as before). Also sets the service's time budget of a request by the speed.
+    /// </summary>
+    public AiBudget? Budget { get; init; }
+
+    /// <summary>
     /// Whether the compute night can answer questions of a trigger at all: it guesses about object types, so
     /// only a trigger whose questions are about a type qualifies (checked when the world is assembled).
     /// </summary>
@@ -172,6 +178,18 @@ public sealed partial class DecisionsSystem : IWorldSystem
 
     /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
     public const string BuildStuck = "build_stuck";
+
+    /// <summary>Question kind and occasion: where to build an approved invention (A1373, D827 R15).</summary>
+    public const string BuildSite = "build_site";
+
+    /// <summary>A1373: the options of a build site question (one per place, data order) for (inhabitant, invention type); set by the host.</summary>
+    public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? SiteOptions { get; set; }
+
+    /// <summary>A1373: the places of those options, in the same order; set by the host.</summary>
+    public Func<string, string, IReadOnlyList<BuildPlace>>? SitePlaces { get; set; }
+
+    /// <summary>A1373: the answer - (inhabitant, invention type, index of the chosen place in data order); set by the host.</summary>
+    public Action<string, string, int>? SiteAnswered { get; set; }
 
     /// <summary>A1373 step 2 (set by the host): the options of a stuck building (inhabitant, invention type), fresh each time a request is built.</summary>
     public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? StuckOptions { get; set; }
@@ -505,6 +523,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
                 break;
             }
 
+            // Over the game hour's budget (A1587) it stays due as well; what the player raised still goes.
+            if (!HasBudget(world, due.InhabitantId, due.Kind))
+            {
+                continue;
+            }
+
             Resend(world, due);
         }
 
@@ -514,12 +538,19 @@ public sealed partial class DecisionsSystem : IWorldSystem
         {
             // A1487: questions that were held back go out once their inhabitant is free again, oldest first
             // (each one sent keeps the next back in turn).
-            foreach (var held in _open.Values.Where(q => q.RequestId.Length == 0 && !WaitsForNight(q.Kind)).ToList())
+            // A1587 S3 (R23): the higher rank first (the followed inhabitant, then what is new), each rank oldest first.
+            foreach (var held in _open.Values.Where(q => q.RequestId.Length == 0 && !WaitsForNight(q.Kind)).OrderBy(q => RankOf(q.InhabitantId, q.Kind)).ToList())
             {
                 // Over the step's limit the rest waits on as it is, in the same order, for the next step.
                 if (!MaySend(world))
                 {
                     break;
+                }
+
+                // Over the game hour's budget (A1587) a question keeps its question mark and waits on (R25).
+                if (!HasBudget(world, held.InhabitantId, held.Kind))
+                {
+                    continue;
                 }
 
                 AskHeld(world, held);
@@ -621,17 +652,28 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// any question without a subject; the AI chooses and thinks. Before this, once everything in reach was known,
     /// nobody asked any more and the days went silent.
     /// </summary>
+    // A1794: what a free moment leaves out of its options - set by Send for every leisure request, also one held back and
+    // sent later or sent again (review GW3 #531).
+    private ICollection<string>? _notOffered;
+
     private void AskAtLeisure(World world, LeisureSettings leisure)
     {
         foreach (var inhabitant in _inhabitants.Ordered)
         {
             // D1086 (B2728): drive makes free moments come more often and with less strength - how often, never what.
             var every = (long)(leisure.EveryHours / Math.Max(0.01, TraitFactor.Of(leisure.EveryHoursByTrait, inhabitant.Traits)) * world.Calendar.Settings.TicksPerHour);
+
+            // A1794 (D1212): one who stands idle is asked again sooner - three idle actions are a free moment, not hours.
+            if (leisure.WhenIdle is { } idle && inhabitant.Activity?.Action == idle.Action)
+            {
+                every = Math.Min(every, Math.Max(1, (long)idle.EveryMinutes * world.Calendar.Settings.TicksPerHour / 60));
+            }
+
             var needsAtLeast = leisure.NeedsAtLeast * TraitFactor.Of(leisure.NeedsAtLeastByTrait, inhabitant.Traits);
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
             if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
-                || inhabitant.Planned is not null || HeldBack(world, inhabitant, Leisure)
+                || inhabitant.Planned is not null || HeldBack(world, inhabitant, Leisure) || !HasBudget(world, inhabitant.Id, Leisure)
                 || (inhabitant.Activity is { } doing && !_actions.Timing(doing.Action).Offered)
                 || (_lastAsked.TryGetValue(inhabitant.Id + "|" + LeisureSubject, out var last) && world.Tick - last < every)
                 || (leisure.Mood is { } moodId && (!inhabitant.Moods.TryGetValue(moodId, out var mood) || mood < (leisure.MoodAtLeast ?? 0))))
@@ -1138,7 +1180,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
         // held back (A1487) opens the same way and is asked once its inhabitant is free again (AskHeld).
         // Over the step's limit (max_requests_per_step) a question waits the same way and goes out in a
         // later step as one that was held back.
-        var held = !WaitsForNight(kind) && (HeldBack(world, inhabitant, kind) || !MaySend(world));
+        var held = !WaitsForNight(kind) && (HeldBack(world, inhabitant, kind) || !MaySend(world) || !HasBudget(world, inhabitant.Id, kind));
         var question = held || WaitsForNight(kind)
             ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
             : Send(world, inhabitant, questionId, kind, subject, target);
@@ -1171,6 +1213,26 @@ public sealed partial class DecisionsSystem : IWorldSystem
         return _sentTick != world.Tick || _sentInStep < most;
     }
 
+    /// <summary>
+    /// A1587 (B7 R23, R24, R26): whether a request of this inhabitant and kind may go now - its rank is allowed at the
+    /// game's speed and the hour's budget has room. What the player raised (being noticed) always goes; without a
+    /// budget everything does.
+    /// </summary>
+    private bool HasBudget(World world, string inhabitantId, string kind)
+    {
+        if (Budget is null)
+        {
+            return true;
+        }
+
+        var rank = RankOf(inhabitantId, kind);
+        return rank <= AiBudget.RankPlayer || (Budget.Allows(rank) && Budget.HasRoom(world.Tick));
+    }
+
+    /// <summary>The rank of a day request (A1587 S3); every request ranks alike without a budget.</summary>
+    private int RankOf(string inhabitantId, string kind) =>
+        Budget?.RankOf(inhabitantId, kind, id => _inhabitants.TryGet(id, out var who) ? who.Position : null) ?? AiBudget.RankOther;
+
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         if (_sentTick != world.Tick)
@@ -1180,6 +1242,11 @@ public sealed partial class DecisionsSystem : IWorldSystem
         }
 
         _sentInStep++;
+        if (kind != NoticedPlayer)
+        {
+            Budget?.Note(world.Tick);
+        }
+
         var probe = world.Probe;
         probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
@@ -1194,13 +1261,31 @@ public sealed partial class DecisionsSystem : IWorldSystem
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? Shuffled(stuck(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
-            : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
+            : kind == BuildSite && SiteOptions is { } sites
+            ? Shuffled(sites(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
+            : BuildOptionsFor(kind, inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
         if (kind == BuildStuck)
         {
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
+        }
+
+        // A1373: where to build - each option carries its place (how far, near what the builder knows), never a value (PR2).
+        if (kind == BuildSite && SitePlaces?.Invoke(inhabitant.Id, subject) is { } places)
+        {
+            request.Occasion = BuildSite;
+            // The places follow the options through the same shuffle (review GW2 #526): Shuffled cuts to MaxOptions first and
+            // then shuffles exactly options.Count items with this seed, so shuffling their positions alike gives each sent
+            // option its place - the same coupling InDataOrder undoes (D1025). A changed Shuffled must change both.
+            var order = Enumerable.Range(0, options.Count).ToList();
+            Shuffle(order, OrderSeed(world.Seed, questionId));
+            var sentOptions = request.Options.ToList();
+            for (var sent = 0; sent < sentOptions.Count && sent < order.Count; sent++)
+            {
+                sentOptions[sent].Place = order[sent] < places.Count ? places[order[sent]] : null;
+            }
         }
 
         // A1778: a failed action says what failed and why (never what would work, PR2).
@@ -1263,7 +1348,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
     public bool AskBuildStuck(World world, string inhabitantId, string typeId)
     {
         ArgumentNullException.ThrowIfNull(world);
-        if (!MaySend(world) || StuckOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true)
+        if (!MaySend(world) || !HasBudget(world, inhabitantId, BuildStuck) || StuckOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true)
         {
             return false;
         }
@@ -1274,6 +1359,28 @@ public sealed partial class DecisionsSystem : IWorldSystem
         var question = Send(world, inhabitant, questionId, BuildStuck, typeId, null);
         AddOpen(question);
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
+        return true;
+    }
+
+    /// <summary>
+    /// A1373 (D827 R15): asks the decider where to build an approved invention, with the places the core found
+    /// (<see cref="SiteOptions"/>, <see cref="SitePlaces"/>). Within the step's limit like any day decision; false if
+    /// it did not go out now. Answered, the choice moves the site (<see cref="SiteAnswered"/>) - no walk.
+    /// </summary>
+    public bool AskBuildSite(World world, string inhabitantId, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        // A1587 S2 (review GW2 #526): the hour's budget holds for where to build as for a stuck building; without room the nearest place stays.
+        if (!MaySend(world) || !HasBudget(world, inhabitantId, BuildSite) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
+        {
+            return false;
+        }
+
+        _counter++;
+        var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
+        var question = Send(world, _inhabitants.Get(inhabitantId), questionId, BuildSite, typeId, null);
+        AddOpen(question);
+        _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitantId, null, question.Id));
         return true;
     }
 
@@ -1289,6 +1396,20 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
+    /// <summary>The options of a question of this kind: a free moment leaves out the data's not_offered (A1794).</summary>
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptionsFor(string kind, Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
+    {
+        _notOffered = kind == Leisure ? _settings.Leisure?.NotOffered : null;
+        try
+        {
+            return BuildOptions(asker, target, tick, others, things, orderSeed, out partners);
+        }
+        finally
+        {
+            _notOffered = null;
+        }
+    }
+
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
@@ -1302,6 +1423,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
+            // A1794 (D1212): a free moment does not offer what the data leave out (standing idle).
+            if (_notOffered?.Contains(action) == true)
+            {
+                continue;
+            }
+
             // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
             var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 
@@ -1540,7 +1667,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
             RequestId = requestId,
             Tick = world.Tick,
             Seed = seed,
-            DeadlineMs = _settings.DeadlineMs,
+            DeadlineMs = Budget?.DeadlineMs(_settings.DeadlineMs) ?? _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
             Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
             Environment = new EnvironmentState
@@ -1706,6 +1833,31 @@ public sealed partial class DecisionsSystem : IWorldSystem
 
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
+
+        // A1373: a chosen build site is a choice of the mind - it moves the site, nobody walks for it.
+        if (question.Kind == BuildSite)
+        {
+            var order = Enumerable.Range(0, question.Options.Count).ToList();
+            Shuffle(order, OrderSeed(world.Seed, question.Id));
+            var sent = question.Options.ToList().FindIndex(o => o.OptionId == response.OptionId);
+            if (sent < 0 || sent >= order.Count)
+            {
+                // Review GW2 #526: an option the question did not have moves nothing - closed, the nearest place stays.
+                Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.UnknownOption));
+                Close(world, question, "question_failed", ReplayNotes.UnknownOption);
+                return;
+            }
+
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
+            Close(world, question, "question_answered");
+            SiteAnswered?.Invoke(question.InhabitantId, question.Subject, order[sent]);
+            if (response.Thought is { } siteThought && _guard.Check(siteThought.Text).Allowed)
+            {
+                _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = siteThought.Text });
+            }
+
+            return;
+        }
         // A stuck building's options are the core's own (asking another for help passes no knowledge, A1376).
         if (question.Kind != BuildStuck && resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
         {

@@ -1598,12 +1598,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep; and after the
-            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %).
+            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %) - only a
+            // sleep that began by day is a nap: the night's sleep is not cut at dawn (A1798's earlier sunrise showed it).
             var sleptTicks = timingNow.DurationTicks - activity.RemainingTicks.Value;
             if (IsAsleep(inhabitant) && sleptTicks >= timingNow.WakeAfterTicks
                 && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
                 && ((inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
-                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour))))
+                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour)
+                    && world.Calendar.MinutesSinceNightfall(Math.Max(0, world.Tick - sleptTicks)) is null)))
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
                 inhabitant.Activity = null;
@@ -1617,6 +1619,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             // B2778 (A1711): the night's sleep lasts until morning - the day wakes it (or a pressing need).
             remaining = 1;
+        }
+
+        if (remaining <= 0 && KeepsSheltering(world, inhabitant, activity, target))
+        {
+            // A1793 (D1192 #7): taking shelter lasts while the rain or the cold lasts - one action, not short pieces.
+            remaining = timingNow.DurationTicks;
         }
 
         if (remaining > 0)
@@ -2114,6 +2122,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>
+    /// A1790: how far short of a route's last point the walker may stop - so that it is still within reach of the
+    /// destination. The last point is the destination itself (the full reach), or a point in front of a trunk or a rock
+    /// the walk goes to (less by how far that point lies from it).
+    /// </summary>
+    private static double LastStop(IReadOnlyList<Position> route, Position destination, double reach) =>
+        route.Count > 0 ? Math.Max(0, reach - Distance(route[^1], destination)) : reach;
+
+    /// <summary>
     /// Walks along the route to the destination (B2 R10): the route is searched once when the walk starts
     /// and kept in the activity (saved and hashed, so a loaded game walks on identically); speed follows
     /// the ground (shallow water, slopes). No route: the action is cancelled with the reason.
@@ -2143,7 +2159,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
-        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
         if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
         {
             if (kept)
@@ -2153,7 +2169,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     return false;
                 }
 
-                (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+                (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
             }
 
             if (!routes.Connected(from, position))

@@ -37,6 +37,8 @@ public partial class WorldPresenter
     private Contracts.LookFocus? _focusLook;
     private Color _focusColor = Colors.White;
     private MeshInstance3D? _focusRing;
+    // A1796: calm place marks at things just built, one per thing (the camera stays where it is).
+    private readonly Dictionary<string, MeshInstance3D> _marks = new(StringComparer.Ordinal);
     private GrassView? _grassView;
     private AmbientFaunaView? _faunaView;
     private Presentation.Audio.HourTime? _livingAt;
@@ -55,6 +57,8 @@ public partial class WorldPresenter
     private Func<double, double, double> _ground = (_, _) => 0;
     private double _seaLevelM = double.NegativeInfinity;
     private float _cellM = 1;
+    private long _bareSeen = -1; // A1385: the core's BareVersion last shown
+    private Color _bareColor = Colors.Tan;
     private readonly List<int> _groups = [];
     private readonly Dictionary<int, List<Node3D>> _groupMembers = [];
     private int? _observedGroup;
@@ -77,6 +81,28 @@ public partial class WorldPresenter
 
     /// <summary>Island mode: objects drawn now (0 in placeholder mode).</summary>
     public int ObjectsDrawn => _objectsView?.Drawn ?? 0;
+
+    /// <summary>
+    /// A1791 (review GW3 #527): how far a click may lie from a thing to mean it, or null when it cannot be picked - a type
+    /// the island does not draw (sea water, shape none) or a thing carried in a hand (drawn by the figure). A drawn
+    /// invention reaches to half its shown extent, at least <paramref name="leastM"/>.
+    /// </summary>
+    public double? PickRadius(GlassWorld.Simulation.Objects.WorldObject thing, double leastM, IReadOnlySet<string> carried)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        ArgumentNullException.ThrowIfNull(carried);
+        if (carried.Contains(thing.Id))
+        {
+            return null;
+        }
+
+        if (_inventionsView?.ShownExtent(thing.Id) is > 0 and var extent)
+        {
+            return Math.Max(leastM, extent / 2);
+        }
+
+        return _objectsView is { } view && view.Looks.For(thing.TypeId).Shape == GlassWorld.Contracts.ObjectLookShape.None ? null : leastM;
+    }
 
     /// <summary>
     /// Mesh and material of an object type as the world draws it (for the dream images of the night scene,
@@ -257,6 +283,51 @@ public partial class WorldPresenter
             return true;
         }
 
+        MeshInstance3D? ring = null;
+        ring = Ring(objectId, thing.Position.X, thing.Position.Z, look, look.Seconds, () =>
+        {
+            if (_focusRing == ring)
+            {
+                _focusRing = null;
+            }
+        });
+        _focusRing = ring;
+        return true;
+    }
+
+    /// <summary>
+    /// A1796 (D1114, Marcel 15a): an event of the look's mark kinds leaves the calm ring at its thing, where it is, for
+    /// the look's mark seconds - the camera stays. False when the event is no such kind or its thing is not in the world.
+    /// </summary>
+    public bool MarkThing(Simulation.Inhabitants.WorldEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (_host is null || _focusLook is not { MarkEvents: { } kinds } look || !kinds.Contains(e.Kind)
+            || e.TargetId is not { Length: > 0 } id || !_host.Objects.TryGet(id, out var thing))
+        {
+            return false;
+        }
+
+        if (_marks.Remove(id, out var old) && IsInstanceValid(old))
+        {
+            old.QueueFree();
+        }
+
+        MeshInstance3D? mark = null;
+        mark = Ring(id, thing.Position.X, thing.Position.Z, look, look.MarkSeconds ?? look.Seconds, () =>
+        {
+            if (_marks.TryGetValue(id, out var now) && now == mark)
+            {
+                _marks.Remove(id);
+            }
+        });
+        _marks[id] = mark;
+        return true;
+    }
+
+    /// <summary>The calm ring on the ground around a thing, fading over <paramref name="seconds"/>; <paramref name="gone"/> runs when it is gone.</summary>
+    private MeshInstance3D Ring(string objectId, double x, double z, Contracts.LookFocus look, double seconds, Action gone)
+    {
         var radius = (float)InventionLooks.FocusRadiusM(_inventionsView?.ShownExtent(objectId) ?? 0, look.RadiusM, look.MarginM);
         var material = new StandardMaterial3D
         {
@@ -264,8 +335,7 @@ public partial class WorldPresenter
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             AlbedoColor = _focusColor,
         };
-        var (x, z) = (thing.Position.X, thing.Position.Z);
-        _focusRing = new MeshInstance3D
+        var ring = new MeshInstance3D
         {
             Name = "FocusRing",
             Mesh = new TorusMesh { InnerRadius = Math.Max(0.01f, radius - (float)look.WidthM), OuterRadius = radius },
@@ -273,23 +343,35 @@ public partial class WorldPresenter
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Position = new Vector3((float)x, (float)_ground(x, z) + 0.05f, (float)z),
         };
-        AddChild(_focusRing);
-        var ring = _focusRing;
+        AddChild(ring);
         var fade = CreateTween();
-        fade.TweenProperty(material, "albedo_color:a", 0f, look.Seconds);
+        fade.TweenProperty(material, "albedo_color:a", 0f, seconds);
         fade.TweenCallback(Callable.From(() =>
         {
-            if (ring == _focusRing)
-            {
-                _focusRing = null;
-            }
-
             if (IsInstanceValid(ring))
             {
+                gone();
                 ring.QueueFree();
             }
         }));
-        return true;
+        return ring;
+    }
+
+    /// <summary>
+    /// A1385 (A1380 N2): overused field cells show bare ground; rebuilt only when the core's BareVersion moved (review
+    /// GW3 #533), so a world without overuse costs nothing here.
+    /// </summary>
+    private void ShowBareGround()
+    {
+        if (_host?.Map is not { Overuse: { } overuse } map || _islandView is null || _nature?.Data.Bare is not { } bare || map.BareVersion == _bareSeen)
+        {
+            return;
+        }
+
+        _bareSeen = map.BareVersion;
+        var width = (int)Math.Ceiling(map.Map.WidthCells * _cellM / overuse.CellM);
+        var depth = (int)Math.Ceiling(map.Map.DepthCells * _cellM / overuse.CellM);
+        _islandView.ShowBare(BareGround.Mask(width, depth, map.BareCells), width, depth, overuse.CellM, _bareColor, bare.Strength);
     }
 
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
@@ -400,8 +482,11 @@ public partial class WorldPresenter
     private static T Read<T>(string content, string folder, string file)
         where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(content, folder, file)));
 
-    /// <summary>The plan of the default quality level (content/look/quality.json).</summary>
-    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"));
+    /// <summary>A1748: the player's quality level (settings 'Grafik'), null = the data's default; read when a world is built.</summary>
+    public static string? QualityChoice { get; set; }
+
+    /// <summary>The plan of the player's quality level, else the data's default (content/look/quality.json).</summary>
+    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"), QualityChoice);
 
     /// <summary>Reads the world-look switch (content/look/world.json).</summary>
     private static LookWorld ReadLook(string contentDirectory) => Read<LookWorld>(contentDirectory, "look", "world.json");
@@ -415,6 +500,7 @@ public partial class WorldPresenter
         _look = ReadLook(content);
         var preset = host.Content.WorldGen.Presets[map.Island.PresetId];
         _islandView = IslandView.Create(map, preset, content);
+        _bareSeen = -1; // A1385 (review GW4 #541): each world counts BareVersion from 0 - a new ground shows its bare cells anew
         AddChild(_islandView);
         var terrain = _islandView.Look!;
         var ground = map.Map;
@@ -427,6 +513,11 @@ public partial class WorldPresenter
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
+        if (_nature.Data.Bare is { } bareLook && palette.Colors.FirstOrDefault(c => c.Id == bareLook.Color) is { } bareColor)
+        {
+            _bareColor = Color.FromHtml(bareColor.Color);
+        }
+
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
 
         // The default quality level (B2-7 R30; which level a hardware tier uses is decided in B7).
@@ -779,6 +870,8 @@ public partial class WorldPresenter
             // The player's view of the core (R25), asked where the snapshot is taken.
             _cover?.Take(exploration, snapshot.ExploredVersion);
         }
+
+        ShowBareGround();
 
         // Inventions with a building plan are drawn from it (A1375): their objects are not the object view's.
         // A world without a building plan (most of the time) costs nothing here.

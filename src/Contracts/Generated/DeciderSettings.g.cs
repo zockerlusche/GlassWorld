@@ -13,6 +13,60 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// A1587 (B7 R24, R26, R28; B2804, D1161): how much the AI may be asked by day, by the game's speed and the measured time of one AI job (both logged player commands, so a replay asks the same). Per game hour at most floor(day_share x real seconds of a game hour at the speed / seconds per job) requests go out, at least min_per_hour; a question over it keeps its question mark and goes out later (R25), a talk stays without words, a free moment is not asked. What the player raises (noticed_player) is never held back by it. Omitted = no such limit (as before).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ThroughputSettings
+    {
+
+        /// <summary>
+        /// Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("day_share")]
+        public double DayShare { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fallback_job_ms")]
+        public int FallbackJobMs { get; set; } = default!;
+
+        /// <summary>
+        /// At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_per_hour")]
+        public int MinPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("answer_within_minutes")]
+        public int AnswerWithinMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("levels_by_speed")]
+        public System.Collections.Generic.ICollection<Levels_by_speed>? LevelsBySpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("near_followed_m")]
+        public double? NearFollowedM { get; set; } = default!;
+
+        /// <summary>
+        /// Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("first_kinds")]
+        public System.Collections.Generic.ICollection<string>? FirstKinds { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Trigger leisure (B2663, D333 v7 boredom -&gt; wish, B2610): an awake inhabitant with no open question, none of whose pressing needs (those with a neglect threshold in the inhabitant model: hunger, thirst, sleep ...) is below needs_at_least - fun, company and purpose do not count, low fun is what makes it bored - whose mood is at least mood_at_least, asks the decider at most every every_hours game hours what to do now; the options are the core's, the choice and the thought the AI's. By day, with or without learning by day: nothing new is learned. Omitted = no leisure questions.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -41,6 +95,20 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("every_hours")]
         public double EveryHours { get; set; } = default!;
+
+        /// <summary>
+        /// A1794 (D1212, TL #27680): one who stands idle (the routine's idle action) is asked again after these game minutes instead of every_hours - three idle actions in a row (3 x 15 min) are a free moment, not hours of standing about. Omitted = every_hours only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("when_idle")]
+        public WhenIdle? WhenIdle { get; set; } = default!;
+
+        /// <summary>
+        /// A1794 (D1212): actions a free moment does not offer - leisure is for doing something; standing idle stays the routine's fallback. Omitted = all the needs suggest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("not_offered")]
+        public System.Collections.Generic.ICollection<string>? NotOffered { get; set; } = default!;
 
         /// <summary>
         /// D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.
@@ -195,6 +263,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("leisure")]
         public LeisureSettings? Leisure { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("throughput")]
+        public ThroughputSettings? Throughput { get; set; } = default!;
+
         /// <summary>
         /// A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.
         /// </summary>
@@ -207,6 +279,36 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("fallback_environment")]
         public FallbackEnvironment FallbackEnvironment { get; set; } = new FallbackEnvironment();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Levels_by_speed
+    {
+
+        /// <summary>
+        /// Speed factor from which the entry holds (1 = normal).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speed")]
+        public int Speed { get; set; } = default!;
+
+        /// <summary>
+        /// Highest rank that still goes to the AI (1-4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("up_to_level")]
+        public int UpToLevel { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WhenIdle
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("every_minutes")]
+        public int EveryMinutes { get; set; } = default!;
 
     }
 

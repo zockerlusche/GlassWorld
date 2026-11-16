@@ -20,12 +20,13 @@
   "allowed": [
     { "path": "content/objects/start-catalog.json", "word": "needle", "status": "ok", "owner": "GW4", "reason": "the needles of a conifer tree, nature" },
     { "path": "game/scripts/World/IslandScene.Benchmark.cs", "word": "bench", "status": "ok", "owner": "GW1", "reason": "--bench options and BENCH log lines of the benchmark" },
+    { "path": "game/scripts/World/IslandScene.cs", "word": "bench", "status": "ok", "owner": "GW2", "reason": "--bench-scenario option of the benchmark (A1775)" },
     { "path": "prompts/help/suggest.v1.toml", "word": "bridge", "status": "ok", "owner": "GW2", "reason": "'bridges the gap', a verb" },
     { "path": "prompts/conversation/reply.v7.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "'Hause' (zu Hause, at home) in the grounding check's general words - not rendered" },
-    { "path": "prompts/decider/decide.v15.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/decider/decide.v17.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
     { "path": "prompts/review/night.v3.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
-    { "path": "prompts/dialogue/talk.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
+    { "path": "prompts/dialogue/talk.v2.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
 
 
 

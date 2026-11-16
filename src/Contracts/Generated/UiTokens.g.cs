@@ -80,6 +80,12 @@ namespace GlassWorld.Contracts
         public int PickRadiusPx { get; set; } = default!;
 
         /// <summary>
+        /// A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thing_pick_m")]
+        public double ThingPickM { get; set; } = default!;
+
+        /// <summary>
         /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]
@@ -507,6 +513,33 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A1748 (D957 v4 section 10): the choices of the settings tab 'Grafik' - frame rate limits, window sizes - and how long a change that rebuilds the window waits for 'Behalten?' before it falls back.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiGraphics
+    {
+
+        /// <summary>
+        /// Frame rate limits the player can choose; 0 = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fps_choices")]
+        public System.Collections.Generic.ICollection<int> FpsChoices { get; set; } = new System.Collections.ObjectModel.Collection<int>();
+
+        /// <summary>
+        /// Window sizes 'WIDTHxHEIGHT' offered in window mode (only those that fit the screen are shown).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("resolutions")]
+        public System.Collections.Generic.ICollection<string> Resolutions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Seconds the question 'Behalten?' waits after a change of window mode or size; without an answer it falls back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("keep_seconds")]
+        public double KeepSeconds { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A1752 (B2792, Marcel W2166/W2167): the states of a portrait in the inhabitants corner - knock, worry, aha, question - told apart by shape and motion, never by colour alone; at most one shows, the most important (knock &gt; worry &gt; aha &gt; question). Calm: only the knock moves, and with reduced motion it stands still.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -680,6 +713,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("portrait_states")]
         public UiPortraitStates PortraitStates { get; set; } = new UiPortraitStates();
+
+        [System.Text.Json.Serialization.JsonPropertyName("graphics")]
+        public UiGraphics Graphics { get; set; } = new UiGraphics();
 
     }
 
@@ -1021,6 +1057,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("favor_bar_width")]
         public int FavorBarWidth { get; set; } = default!;
+
+        /// <summary>
+        /// A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("season_bar_width")]
+        public int SeasonBarWidth { get; set; } = default!;
 
         /// <summary>
         /// Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).

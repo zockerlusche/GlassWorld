@@ -198,6 +198,9 @@ public sealed class SimulationHost
                     .ToDictionary(g => g.Key, g => (g.First().GrowsOn!.ObjectType, g.First().GrowsOn!.WithinCells), StringComparer.Ordinal),
 
                 // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
+                // A1380 N2: overuse of field cells (nature data).
+                Overuse = content.Nature?.Overuse,
+
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
                     .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
@@ -211,6 +214,12 @@ public sealed class SimulationHost
                         },
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
+
+                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                ObstacleRadiusCm = content.Objects.TypeIds
+                    .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
+                    .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
+                BodyRadiusM = (content.Gaits.Data.Spacing?.MinSeparationM ?? 0) / 2,
                 Tides = tides,
                 TideWalk = tides.Active
                     ? new TideWalkLayer(
@@ -256,6 +265,7 @@ public sealed class SimulationHost
         {
             nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
             map.Grown = nature.Grown;
+            map.GrowthBetween = nature.GrowthBetween;
             world.Add(nature);
         }
 
@@ -343,6 +353,11 @@ public sealed class SimulationHost
                 milestonesRef?.TechLevel ?? content.Inventions.Settings.TechLevel),
         };
         CheckNightTriggers(settings, content.Knowledge);
+
+        // A1587 (B2804, D1161): the game's speed, the followed inhabitant and the AI's job time (logged commands) and
+        // the day requests they allow per game hour (data: decider throughput), shared by the decider and the talks.
+        var pace = new AiPace(world.Calendar.Settings.FastForwardFactors);
+        var budget = new AiBudget(settings.Throughput, pace, world.Calendar);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, content.Inventions.Guard, displayLocale)
         {
             WeatherSource = weather,
@@ -351,6 +366,7 @@ public sealed class SimulationHost
             // A1487: questions wait for the night only where the night can answer them (a job port).
             NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
             ValidateRequests = options.ValidateRequests,
+            Budget = budget,
         };
         inhabitants.QuestionOpen = decisions.IsAskingAbout;
 
@@ -543,11 +559,23 @@ public sealed class SimulationHost
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
         inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
 
+        // A1373 (D827 R15): where to build - the map finds free places, the decider chooses among them.
+        if (map is not null)
+        {
+            inventions.FindSites = map.FreeSites;
+        }
+
+        inventions.AskSite = decisions.AskBuildSite;
+        decisions.SiteOptions = inventions.SiteOptionsOf;
+        decisions.SitePlaces = inventions.SitePlacesOf;
+        decisions.SiteAnswered = inventions.SiteAnswered;
+
         // A1498 (B2828): nobody lies down in the water - the map knows where dry ground is.
         if (map is not null)
         {
             inhabitants.DryGroundNear = map.DryGroundNear;
         }
+
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;
@@ -617,6 +645,7 @@ public sealed class SimulationHost
         {
             ValidateRequests = options.ValidateRequests,
             PerceivedTypes = decisions.PerceivedTypes,
+            Budget = budget,
             // D1119 §5: by day in night_only a talk has no words (it belongs to its moment, it is not queued).
             Quiet = () => nightQueue.HoldsNow,
         };
@@ -624,7 +653,7 @@ public sealed class SimulationHost
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.
         // Exploration right after the inhabitants: who has moved in a tick looks around in the same tick.
-        world.Add(objects).Add(decisions).Add(inhabitants);
+        world.Add(objects).Add(budget).Add(decisions).Add(inhabitants);
         if (exploration is not null)
         {
             world.Add(exploration);
@@ -663,6 +692,11 @@ public sealed class SimulationHost
                 CloudPermille = w => bodyWeather.Read(w).CloudPermille,
                 WindAt = bodyWeather.WindAt,
                 HeatFrom = fire.HeatFrom,
+
+                // A1793: a cell with water wets who stands in it - a sea cell only while the tide covers it (review GW2
+                // #518: the flats the ebb leaves dry do not wet; the same rule as the tide's walk layer).
+                InWater = at => map.CellOf(at) is { } at2 && map.Map.Cell(at2.X, at2.Z) is { Water: not WaterKind.None } water
+                    && (water.Water != WaterKind.Salt || map.Tides is not { Active: true } tides || water.WaterDepth + tides.LevelUnitsAt(world.Tick) > 0),
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
@@ -679,6 +713,7 @@ public sealed class SimulationHost
 
             inhabitants.ShelteredAt = body.Sheltered;
             inhabitants.StaySheltered = bodyData.StaySheltered;
+            inhabitants.ShelterProperty = bodyData.Wetness.ShelterProperty;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
@@ -751,7 +786,8 @@ public sealed class SimulationHost
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
-            Pace = new AiPace(world.Calendar.Settings.FastForwardFactors),
+            Pace = pace,
+            Budget = budget,
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
@@ -1048,7 +1084,7 @@ public sealed class SimulationHost
             .OrderBy(r => r.Tick)];
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions, Body) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };
 
     /// <summary>
     /// Cloud cover and exploring (B2-6 R14): the cells every inhabitant has seen and the player's view, the
@@ -1073,6 +1109,9 @@ public sealed class SimulationHost
 
     /// <summary>The game's speed, whom the camera follows and how long an AI job takes, from logged commands (A1587, B2804).</summary>
     public AiPace Pace { get; private init; } = null!;
+
+    /// <summary>How many day requests may go to the AI per game hour (A1587; data: decider throughput).</summary>
+    public AiBudget Budget { get; private init; } = null!;
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;

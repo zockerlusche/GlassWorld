@@ -19,6 +19,81 @@ class FallbackEnvironment(BaseModel):
     weather: list[common_schema.VocabId] = Field(..., max_length=4, min_length=1)
 
 
+class LevelsBySpeedItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    speed: int = Field(
+        ...,
+        description='Speed factor from which the entry holds (1 = normal).',
+        ge=1,
+        le=1000,
+    )
+    up_to_level: int = Field(
+        ..., description='Highest rank that still goes to the AI (1-4).', ge=1, le=4
+    )
+
+
+type FirstKind = Annotated[str, Field(..., max_length=64, min_length=1)]
+
+
+class ThroughputSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    day_share: float = Field(
+        ...,
+        description="Share of the real time the AI may be busy with day requests (the rest for talks with the player, the night's work and slack).",
+        ge=0.05,
+        le=1.0,
+    )
+    fallback_job_ms: int = Field(
+        ...,
+        description='Milliseconds one AI job is taken to need while the service has not measured yet (no set_ai_rate).',
+        ge=100,
+        le=600000,
+    )
+    min_per_hour: int = Field(
+        ...,
+        description='At least this many requests per game hour whatever the speed, so the followed inhabitant still thinks and talks at the fastest speed (B2804).',
+        ge=0,
+        le=1000,
+    )
+    answer_within_minutes: int = Field(
+        ...,
+        description="Game minutes a decision may take (R28): the request's deadline_ms is the real time of these minutes at the current speed, at most deadline_ms; the service does not begin what cannot finish in time.",
+        ge=1,
+        le=1440,
+    )
+    levels_by_speed: list[LevelsBySpeedItem] | None = Field(
+        None,
+        description="A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.",
+    )
+    near_followed_m: float | None = Field(
+        None,
+        description='Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.',
+        ge=0.0,
+        le=1000.0,
+    )
+    first_kinds: list[FirstKind] | None = Field(
+        None,
+        description='Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.',
+    )
+
+
+class WhenIdle(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    every_minutes: int = Field(..., ge=1, le=1440)
+
+
 class LeisureSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -38,6 +113,15 @@ class LeisureSettings(BaseModel):
         description="Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.",
         gt=0.0,
         le=240.0,
+    )
+    when_idle: WhenIdle | None = Field(
+        None,
+        description="A1794 (D1212, TL #27680): one who stands idle (the routine's idle action) is asked again after these game minutes instead of every_hours - three idle actions in a row (3 x 15 min) are a free moment, not hours of standing about. Omitted = every_hours only.",
+    )
+    not_offered: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1794 (D1212): actions a free moment does not offer - leisure is for doing something; standing idle stays the routine's fallback. Omitted = all the needs suggest.",
+        max_length=16,
     )
     every_hours_by_trait: common_schema.TraitCurve | None = Field(
         None,
@@ -178,6 +262,7 @@ class DeciderSettings(BaseModel):
         le=1000,
     )
     leisure: LeisureSettings | None = None
+    throughput: ThroughputSettings | None = None
     failures: Failures | None = Field(
         None,
         description='A1778 (B2814, Marcel W2204): an action that fails at the core - whatever the reason (too far, too high, too smooth, no step, the listener asleep, ...) - becomes an open question with its question mark: the situation (action, kind of target, reason code, place) goes to the decider with the usual options (trigger action_failed), and the action rests on that target for rest_hours. Once per action, kind of target and reason within ask_again_after_hours. Omitted = a failure asks nothing.',

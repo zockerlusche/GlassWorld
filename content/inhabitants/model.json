@@ -28,7 +28,7 @@
     { "id": "joy", "baseline": 0.4, "return_per_hour": 0.02 },
     { "id": "sadness", "baseline": 0.1, "return_per_hour": 0.02 },
     { "id": "fear", "baseline": 0.05, "return_per_hour": 0.05 },
-    { "id": "frustration", "baseline": 0.05, "return_per_hour": 0.03 },
+    { "id": "frustration", "baseline": 0.05, "return_per_hour": 0.05 },
     { "id": "boredom", "baseline": 0.1, "return_per_hour": 0.02 },
     { "id": "anger", "baseline": 0.0, "return_per_hour": 0.06 },
     { "id": "love", "baseline": 0.0, "return_per_hour": 0.005 },
@@ -38,14 +38,14 @@
   ],
   "mood_drivers": [
     { "need": "hunger", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },
-    { "need": "hunger", "below": 0.3, "mood": "frustration", "delta_per_hour": 0.05 },
+    { "need": "hunger", "below": 0.3, "mood": "frustration", "delta_per_hour": 0.07 },
     { "need": "thirst", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },
-    { "need": "sleep", "below": 0.2, "mood": "frustration", "delta_per_hour": 0.05 },
+    { "need": "sleep", "below": 0.2, "mood": "frustration", "delta_per_hour": 0.07 },
     { "need": "fun", "below": 0.3, "mood": "boredom", "delta_per_hour": 0.05 },
     { "need": "company", "below": 0.3, "mood": "sadness", "delta_per_hour": 0.04 },
     { "sensation": "near_fire", "mood": "fear", "delta_per_hour": 0.2 },
-    { "sensation": "too_cold", "mood": "frustration", "delta_per_hour": 0.05 },
-    { "sensation": "too_warm", "mood": "frustration", "delta_per_hour": 0.05 }
+    { "sensation": "too_cold", "mood": "frustration", "delta_per_hour": 0.02 },
+    { "sensation": "too_warm", "mood": "frustration", "delta_per_hour": 0.02 }
   ],
   "will_to_live": {
     "start": 0.8,
@@ -59,7 +59,7 @@
   "diary": { "capacity": 200, "left_out_actions": ["idle"] },
   "comfort_zone": {
     "need": "warmth",
-    "min_tenth_c": 120,
+    "min_tenth_c": 80,
     "max_tenth_c": 260,
     "band_tenth_c": 30, "individual_shift_tenth_c": 20,
     "cold_loss_per_hour_per_degree": 0.0001,

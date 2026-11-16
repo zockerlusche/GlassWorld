@@ -389,6 +389,11 @@
     },
     {
       "kind": "action",
+      "id": "build_here",
+      "clip": "kneel_work"
+    },
+    {
+      "kind": "action",
       "id": "ask_for_help",
       "clip": "talk"
     },

@@ -61,6 +61,40 @@ public partial class Main
                 // Each event on another awake inhabitant: a moment's calm pause would hide the next one on the same figure.
                 var awake = snapshot.Inhabitants.Where(i => !_world.LiesNow(i.Id)).ToList();
                 var who = awake.Count == 0 ? null : awake[(number - 1) % awake.Count];
+                if (spec == "day")
+                {
+                    // Check runs (A1383/A1796): a new test world starts before dawn - run fast to the late morning, then go on.
+                    var fastest = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
+                    var began = Time.GetTicksMsec();
+                    while (_world.Host.World.Calendar.At(_world.Host.World.Tick).Hour is < 10 or > 15 && (Time.GetTicksMsec() - began) / 1000.0 < 600)
+                    {
+                        _world.Speed = fastest;
+                        await Frames(5);
+                    }
+
+                    _world.Speed = 1;
+                    GD.Print($"EXPRESS_SHOT_DAY hour={_world.Host.World.Calendar.At(_world.Host.World.Tick).Hour}");
+                    continue;
+                }
+
+                if (spec is "wet" or "up")
+                {
+                    // A1385: wait (fast) until someone awake is soaked (rain, wading) or up in a tree, then follow that one.
+                    var quick = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
+                    var since = Time.GetTicksMsec();
+                    who = null;
+                    while (who is null && (Time.GetTicksMsec() - since) / 1000.0 < 600)
+                    {
+                        _world.Speed = quick;
+                        await Frames(5);
+                        who = _world.Host.Snapshot().Inhabitants.FirstOrDefault(i => !_world.LiesNow(i.Id)
+                            && (spec == "wet" ? i.WetPermille >= 600 : i.ClimbedCm > 0));
+                    }
+
+                    _world.Speed = 1;
+                    GD.Print($"EXPRESS_SHOT_{spec.ToUpperInvariant()} {(who is null ? "nobody" : $"{who.Name ?? who.Id} wet={who.WetPermille} up={who.ClimbedCm}")}");
+                }
+
                 if (spec == "held")
                 {
                     // A1785: wait (fast) until someone awake carries a thing, then follow that one.
@@ -86,7 +120,15 @@ public partial class Main
 
                 // Let the calm pause of earlier moments run out, so the event shows (a knock skips it anyway).
                 await ToSignal(GetTree().CreateTimer(1.5), SceneTreeTimer.SignalName.Timeout);
-                var shown = _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
+                if (spec == "mark")
+                {
+                    // A1796: the calm place mark a thing just built gets - laid at the thing nearest the followed figure.
+                    var near = _world.Host.Snapshot().Objects.OrderBy(o => Math.Pow(o.Position.X - who.Position.X, 2) + Math.Pow(o.Position.Z - who.Position.Z, 2)).FirstOrDefault();
+                    var marked = near is not null && _world.MarkThing(new Simulation.Inhabitants.WorldEvent(Simulation.Inventions.InventionSystem.Built, _world.Host.World.Tick, who.Id, null, near.Id));
+                    GD.Print($"EXPRESS_SHOT_MARK {(marked ? near!.Id + " " + near.TypeId : "none")}");
+                }
+
+                var shown = spec == "mark" ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
                 GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {who.Name ?? who.Id} shown={shown ?? "-"}");
                 var waited = 0.0;
                 foreach (var at in ExpressShotTimes)

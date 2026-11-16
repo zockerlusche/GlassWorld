@@ -4,4 +4,5 @@ shader_type spatial;
 render_mode diffuse_lambert, specular_disabled, cull_back;
 stencil_mode write, compare_always, 2;
 
+#define BARE_GROUND // A1385: overused field cells show bare ground (only the island's ground)
 #include "res://shaders/warm_comic.gdshaderinc"

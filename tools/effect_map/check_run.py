@@ -33,8 +33,8 @@ def load(relative: str) -> Json:
     return cast(Json, json.loads((CONTENT / relative).read_text(encoding="utf-8")))
 
 
-def snapshots(folder: Path) -> Iterator[Json]:
-    """Every snapshot line of the trace in day order (a broken line is skipped)."""
+def trace_lines(folder: Path) -> Iterator[Json]:
+    """Every line of the trace in day order (a broken line is skipped)."""
     folder = folder / "trace" if (folder / "trace").is_dir() else folder
     files = sorted((int(m.group(1)), p) for p in folder.iterdir() if (m := DAY_FILE.match(p.name)))
     for _, path in files:
@@ -42,11 +42,14 @@ def snapshots(folder: Path) -> Iterator[Json]:
         with opener(path, "rt", encoding="utf-8") as handle:
             for raw in handle:
                 try:
-                    line = cast(Json, json.loads(raw))
+                    yield cast(Json, json.loads(raw))
                 except json.JSONDecodeError:
                     continue
-                if line.get("t") == "snapshot":
-                    yield line
+
+
+def snapshots(folder: Path) -> Iterator[Json]:
+    """Every snapshot line of the trace in day order (a broken line is skipped)."""
+    return (line for line in trace_lines(folder) if line.get("t") == "snapshot")
 
 
 class Run:
@@ -169,10 +172,12 @@ def check_trace(run: Run, expectation: Json, model: Json) -> tuple[bool, str]:
 def check_data(expectation: Json, model: Json) -> tuple[bool, str]:
     if expectation["kind"] == "mood_driver_lift_per_day":
         moods = {str(m["id"]): m for m in cast(list[Json], model["moods"])}
+        # B2839: drivers by these sensations may stay below the return (alone they make no lasting mood).
+        exempt = {str(s) for s in cast(list[str], expectation.get("exempt_sensations", []))}
         weak: list[str] = []
         for driver in cast(list[Json], model["mood_drivers"]):
             mood = moods.get(str(driver["mood"]))
-            if mood is None:
+            if mood is None or str(driver.get("sensation")) in exempt:
                 continue
             lift = (float(driver["delta_per_hour"]) - float(mood["return_per_hour"])) * 24
             if float(driver["delta_per_hour"]) > 0 and lift < float(expectation["min_lift"]):

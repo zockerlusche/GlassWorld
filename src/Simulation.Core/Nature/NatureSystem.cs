@@ -127,6 +127,22 @@ public sealed class NatureSystem : IWorldSystem, IOptionalWorldState
         return GrowthAt(group, now) - GrowthAt(group, goneSince) >= regrowTicks * 1000;
     }
 
+    /// <summary>
+    /// A1380 N2: the growth of <paramref name="typeId"/>'s group from <paramref name="from"/> to <paramref name="to"/> in
+    /// permille-ticks (1000 a tick by the clock) - the same integer sums as <see cref="Grown"/>, whenever it is asked.
+    /// </summary>
+    public long GrowthBetween(string typeId, long from, long to)
+    {
+        if (to <= from)
+        {
+            return 0;
+        }
+
+        return !_groupOfType.TryGetValue(typeId, out var group) || !_growth.ContainsKey(group)
+            ? (to - from) * 1000
+            : GrowthAt(group, to) - GrowthAt(group, from);
+    }
+
     /// <summary>R51: what the island went through from <paramref name="since"/> to <paramref name="now"/>, in whole takts.</summary>
     public NatureInfluencesSince InfluencesSince(long since, long now)
     {

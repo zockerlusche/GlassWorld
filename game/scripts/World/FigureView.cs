@@ -43,6 +43,7 @@ public partial class FigureView : Node3D
     private bool _standsIdle;
     private bool _lying;
     private ShaderMaterial? _paint;
+    private double _wetShown = 1.0;
     private string _topColor = "#ffffff";
     private string? _wornShown;
 
@@ -229,7 +230,9 @@ public partial class FigureView : Node3D
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var figures = _shared.Figures;
-        var to = new Point3(inhabitant.Position.X, _ground(inhabitant.Position.X, inhabitant.Position.Z), inhabitant.Position.Z);
+        // A1385 (D1105 H3b): up in a tree the figure is drawn at the height it climbed (the core's ClimbedCm).
+        var up = (inhabitant.ClimbedCm ?? 0) / 100.0;
+        var to = new Point3(inhabitant.Position.X, _ground(inhabitant.Position.X, inhabitant.Position.Z) + up, inhabitant.Position.Z);
         if (place)
         {
             _motion.Place(to);
@@ -280,6 +283,14 @@ public partial class FigureView : Node3D
 
         // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
         var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
+        // A1385 (B5-8): wet clothes and hair look darker, in steps of the wetness (BodySystem).
+        var wetShade = GlassWorld.Presentation.World.BareGround.WetShade(figures.WetShade, inhabitant.WetPermille);
+        if (wetShade != _wetShown && _paint is not null)
+        {
+            _paint.SetShaderParameter("wet_shade", (float)wetShade);
+            _wetShown = wetShade;
+        }
+
         if (worn != _wornShown && _paint is not null)
         {
             _paint.SetShaderParameter("region_top", Color.FromHtml(worn ?? _topColor));

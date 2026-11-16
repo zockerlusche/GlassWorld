@@ -750,6 +750,13 @@ namespace GlassWorld.Contracts
         public double WalkMinStepM { get; set; } = default!;
 
         /// <summary>
+        /// A1385 (B5-8): how dark the clothes and hair of a fully wet figure look (1 = as dry); between dry and fully wet in steps of the wetness. Skin and eyes stay. Omitted = wetness does not show. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wet_shade")]
+        public double? WetShade { get; set; } = default!;
+
+        /// <summary>
         /// How fast a figure turns towards where it walks, in degrees per real second.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("turn_rate_deg_s")]

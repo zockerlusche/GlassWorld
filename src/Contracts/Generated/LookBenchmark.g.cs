@@ -181,6 +181,60 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BenchmarkLateGame
+    {
+
+        /// <summary>
+        /// Object types the crowd figures carry, one each in turn (catalog ids).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("held_types")]
+        public System.Collections.Generic.ICollection<string> HeldTypes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Things laid around the crowd centre, on land.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("placed_count")]
+        public int PlacedCount { get; set; } = default!;
+
+        /// <summary>
+        /// Radius around the crowd centre the placed things and fires lie in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("placed_radius_m")]
+        public double PlacedRadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Object types of the placed things, in turn (catalog ids).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("placed_types")]
+        public System.Collections.Generic.ICollection<string> PlacedTypes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Burning fires among the placed things.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fires")]
+        public int Fires { get; set; } = default!;
+
+        /// <summary>
+        /// Object type of a fire (catalog id).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fire_type")]
+        public string FireType { get; set; } = default!;
+
+        /// <summary>
+        /// Weathers shown in turn within each pass (each needs a look, content/look/weather.json).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weather_cycle")]
+        public System.Collections.Generic.ICollection<string> WeatherCycle { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Real seconds between two weathers of the cycle.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weather_change_s")]
+        public double WeatherChangeS { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/look/benchmark.json: the FPS benchmark of the island scene (B2-7, acceptance 5, R30). A fixed world, a crowd of placeholder figures for the presentation only (never in the core or the state hash), a camera path and one pass per look (day phase, season, weather). Presentation only.
     /// </summary>
@@ -248,6 +302,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("passes")]
         public System.Collections.Generic.ICollection<BenchmarkPass> Passes { get; set; } = new System.Collections.ObjectModel.Collection<BenchmarkPass>();
+
+        /// <summary>
+        /// B2810 (Marcel W2197): the late game scenario, run with --bench-scenario=late - every crowd figure carries a thing, placed things lie around the crowd (stores, tools, material), fires burn and the weather changes within each pass. Seed-fixed like the crowd. Omitted = only the start scenario.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("late_game")]
+        public BenchmarkLateGame? LateGame { get; set; } = default!;
 
     }
 }

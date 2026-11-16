@@ -676,6 +676,12 @@ class LookFigures(BaseModel):
         gt=0.0,
         le=5.0,
     )
+    wet_shade: float | None = Field(
+        None,
+        description='A1385 (B5-8): how dark the clothes and hair of a fully wet figure look (1 = as dry); between dry and fully wet in steps of the wetness. Skin and eyes stay. Omitted = wetness does not show. Placeholder value (TL).',
+        ge=0.3,
+        le=1.0,
+    )
     turn_rate_deg_s: float = Field(
         ...,
         description='How fast a figure turns towards where it walks, in degrees per real second.',
