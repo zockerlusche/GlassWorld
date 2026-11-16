@@ -122,7 +122,8 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
             // Away from the thing as a unit vector, turned by an eighth each try (only + * and sqrt: the same on every platform).
             var (ux, uz) = distance < 1e-6 ? (1.0, 0.0) : (dx / distance, dz / distance);
             var eighth = Math.Sqrt(0.5);
-            for (var k = 0; k < 8; k++)
+            var stepped = false;
+            for (var k = 0; k < 8 && !stepped; k++)
             {
                 var to = new Position(thing.Position.X + (ux * back), thing.Position.Z + (uz * back));
                 (ux, uz) = ((ux * eighth) - (uz * eighth), (ux * eighth) + (uz * eighth));
@@ -134,8 +135,14 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
                         inhabitant.Activity = walking with { Route = null };
                     }
 
-                    break;
+                    stepped = true;
                 }
+            }
+
+            // Review GW3 #573: with no way back there is no reflex at all - else it would flinch (and fear) every tick.
+            if (!stepped)
+            {
+                return;
             }
 
             if (reflex.Fear is > 0 and var fear && inhabitant.Moods.TryGetValue("fear", out var now))
