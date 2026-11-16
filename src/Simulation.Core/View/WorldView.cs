@@ -75,6 +75,13 @@ public sealed record InhabitantSnapshot(
 
     /// <summary>How warm it feels now (A1730, vocabulary comfort_level: cold .. hot), or null without comfort data - for the look (A1729).</summary>
     public string? ComfortLevel { get; init; }
+
+    /// <summary>
+    /// How long a need of it has been below its neglect line, in game hours (Inhabitant.NeglectTicks; A1752, GW1 #27065):
+    /// the portrait's worry mark reads it against its own threshold. A read-only copy for the presentation, not part of
+    /// the state hash.
+    /// </summary>
+    public double NeglectHours { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -155,6 +162,7 @@ public static class WorldView
                 Worn = i.Worn,
                 // A1730 (review GW4): fresh per tick, not from the felt cache of the inhabitant loop (#435), and once per tick (#467).
                 ComfortLevel = inhabitants.ComfortLevelForView(world, i),
+                NeglectHours = (double)i.NeglectTicks / world.Calendar.Settings.TicksPerHour,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

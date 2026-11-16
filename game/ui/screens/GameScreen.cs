@@ -123,6 +123,7 @@ public partial class GameScreen : CanvasLayer
     private bool _worldHeld;
     private bool _menuPaused;
     private double _speedBeforeNight = 1;
+    private bool _nightPassed;
     private bool _cameraHeldBeforeNight;
     private long? _nightfallTick;
     private PanelContainer? _topBar;
@@ -679,6 +680,14 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
+
+            // A1752: an inhabitant's own aha (invented, built, a new word) marks its portrait.
+            if (_presenter.Host is { } ahaHost)
+            {
+                _aha ??= new AhaMarks(_style.Tokens.PortraitStates, ahaHost.World.Calendar.Settings.TicksPerHour);
+                _aha.Take(events);
+            }
+
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
@@ -1582,7 +1591,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
@@ -2323,7 +2332,7 @@ public partial class GameScreen : CanvasLayer
         if (hold == _worldHeld)
         {
             // Nothing else may start the world while it is held (a check run, a late button event).
-            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            if (hold && _presenter.Speed != 0 && !_menuPaused && _night?.PassesNight != true)
             {
                 _presenter.Speed = 0;
             }
@@ -2349,10 +2358,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         _presenter.CameraHeld = _cameraHeldBeforeNight;
-        if (!_menuPaused && _presenter.Speed == 0)
+        // After a passed night (A1798) the world runs at the scene's speed, not 0: the player's speed comes back too.
+        if (!_menuPaused && (_presenter.Speed == 0 || _nightPassed))
         {
             _presenter.Speed = _speedBeforeNight;
         }
+
+        _nightPassed = false;
 
         foreach (var control in _restingUi.Where(IsInstanceValid))
         {
@@ -2417,6 +2429,12 @@ public partial class GameScreen : CanvasLayer
         var sceneDelta = NightDelta(delta);
         _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
         HoldWorld(_night.HoldsWorld);
+        if (_night.PassesNight && !_menuPaused)
+        {
+            // A1798: the rest of the night passes behind the shade at the fastest speed; dawn fades the morning in.
+            _presenter.Speed = ScreenModel.TimeChoices(_presenter.Host.World.Calendar.Settings).Max(c => c.Speed);
+            _nightPassed = true;
+        }
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -3465,7 +3483,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The head's values: portrait, what it does, a first try.</summary>
     private void RefreshCardHead(InhabitantCard card, string inhabitantId)
     {
-        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row) ? PortraitState.Question : PortraitState.None, selected: false);
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
         if (_cardActionIcon is not null)
@@ -3773,7 +3791,8 @@ public partial class GameScreen : CanvasLayer
         // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
         // has looked at since leaves only the effect open; the questions panel still lists every open question.
         mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
-        mark.Visible = row.PuzzlingQuestions > 0;
+        // Never over a figure lying asleep (review GW5 #510, like the feeling symbols in #499 and the dots, D1112 #8).
+        mark.Visible = row.PuzzlingQuestions > 0 && _presenter?.LiesNow(row.Id) != true;
     }
 
     private string? PickAt(Vector2 screen)

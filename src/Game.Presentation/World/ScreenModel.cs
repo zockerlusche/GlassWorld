@@ -182,5 +182,5 @@ public static class ScreenModel
         => freeRightEdge - (2 * safeMargin) >= cardMinWidth ? freeRightEdge : areaWidth;
 
     /// <summary>Question marks over a head: one per open question, at most three (B2487: several at once).</summary>
-    public static string QuestionMarks(int openQuestions) => new('?', Math.Clamp(openQuestions, 0, 3));
+    public static string QuestionMarks(int openQuestions) => openQuestions > 0 ? "?" : string.Empty;
 }

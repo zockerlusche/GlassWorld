@@ -96,6 +96,9 @@ public sealed class WorldObjects : IWorldSystem
     /// <summary>Told when an object leaves the world (used up, eaten, spoiled).</summary>
     public event Action<WorldObject>? Removed;
 
+    /// <summary>Told when an object gets another type (processed, B2687 K2): before and after; it never left the world.</summary>
+    public event Action<WorldObject, WorldObject>? TypeChanged;
+
     /// <summary>Creates an object of a known type.</summary>
     public WorldObject Spawn(string typeId, Position position)
     {
@@ -190,10 +193,15 @@ public sealed class WorldObjects : IWorldSystem
             return false;
         }
 
-        Remove(id);
+        // The same thing with another type: sorted among its new type, never removed - whoever holds or wears it keeps it, and
+        // what follows a thing over time (its age) goes on (GW2 #492: before, it left and came back, and a loaded world differed).
+        var ofType = OfType(obj.TypeId);
+        ofType.RemoveAt(Place(ofType, id));
+        _ordered.RemoveAt(Place(_ordered, id));
         var changed = obj with { TypeId = typeId };
-        _objects.Add(id, changed);
+        _objects[id] = changed;
         Index(changed);
+        TypeChanged?.Invoke(obj, changed);
         return true;
     }
 

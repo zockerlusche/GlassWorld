@@ -18,7 +18,8 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="WaitForSleepersHours">B2680: the compute night begins when all sleep, at the latest this many hours after nightfall; null = at nightfall.</param>
 /// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
 /// <param name="Image">Sizes, style and priority of image jobs (content/image/generation.json; A1564); null = no picture jobs.</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null);
+/// <param name="NotBeforeMinute">A1798 (B2839): the compute night does not begin before this minute of the day, even when all sleep; null = from nightfall.</param>
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null, int? NotBeforeMinute = null);
 
 /// <summary>The picture job of a new invention (A1564, B7 R7) and its result.</summary>
 /// <param name="TypeId">Runtime type the picture belongs to.</param>
@@ -1202,6 +1203,25 @@ public sealed partial class InventionSystem
     }
 
     /// <summary>
+    /// A1798 (B2839): minutes after nightfall at which the clock reaches the data's not_before_minute - the compute night
+    /// waits for it even when all sleep and at the latest-start limit. 0 without the data, or when that minute lies more
+    /// than 12 hours after nightfall (it has passed already: a night that falls after it).
+    /// </summary>
+    private int NotBeforeSince(World world, int since)
+    {
+        if (Build.NotBeforeMinute is not { } notBefore)
+        {
+            return 0;
+        }
+
+        var day = world.Calendar.Settings.HoursPerDay * 60;
+        var time = world.Calendar.At(world.Tick);
+        var nightfall = ((time.Hour * 60) + time.Minute - since + day) % day;
+        var wait = ((notBefore - nightfall) % day + day) % day;
+        return wait > day / 2 ? 0 : wait;
+    }
+
+    /// <summary>
     /// Tells the AI service when the compute night begins and ends (only a signal; nothing in the world depends on it).
     /// B2680: it begins when every inhabitant sleeps, at the latest the data's hours after nightfall - not at nightfall,
     /// while inhabitants are still awake and need decisions; it ends with the night phase as before.
@@ -1215,9 +1235,8 @@ public sealed partial class InventionSystem
             && (_night == true
                 || Build.WaitForSleepersHours is not { } wait
                 || !world.Calendar.NightBeganInWorld(world.Tick)
-                || _inhabitants.All.All(_inhabitants.IsAsleep)
                 || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
-                || since >= wait * 60);
+                || (since >= NotBeforeSince(world, since) && (since >= wait * 60 || _inhabitants.All.All(_inhabitants.IsAsleep))));
         if (_night == night)
         {
             return;

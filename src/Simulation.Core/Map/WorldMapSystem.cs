@@ -327,6 +327,57 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     }
 
     /// <summary>
+    /// A1498 (B2828): the nearest dry ground to a position within a distance - the position itself when its cell is dry
+    /// land, else the centre of the nearest dry cell that can be walked on in the same walkable area (ties by cell). Shallow
+    /// water belongs to the area of its banks, so the dry cell is one the walker can reach - never across deep water (review
+    /// GW3 #507). Null when there is none within the distance, the position lies outside the map, or it stands on ground
+    /// nobody can walk (area 0): then it sleeps where it stands, and no walk can fail and be tried again tick after tick.
+    /// </summary>
+    public Position? DryGroundNear(Position at, double withinM)
+    {
+        if (CellOf(at) is not { } here)
+        {
+            return null;
+        }
+
+        if (Map.Cell(here.X, here.Z).Water == WaterKind.None)
+        {
+            return at;
+        }
+
+        var area = AreaOf(here.X, here.Z);
+        if (area == 0)
+        {
+            return null;
+        }
+
+        var cells = (int)Math.Ceiling(withinM * 100 / CellSizeCm);
+        Position? best = null;
+        var bestDistance = double.MaxValue;
+        for (var z = here.Z - cells; z <= here.Z + cells; z++)
+        {
+            for (var x = here.X - cells; x <= here.X + cells; x++)
+            {
+                if (!Map.Contains(x, z) || Map.Cell(x, z).Water != WaterKind.None || Map.Cell(x, z).WalkCost == MapCell.Blocked
+                    || AreaOf(x, z) != area)
+                {
+                    continue;
+                }
+
+                var centre = CentreOf(x, z);
+                var distance = Math.Sqrt(((centre.X - at.X) * (centre.X - at.X)) + ((centre.Z - at.Z) * (centre.Z - at.Z)));
+                if (distance <= withinM && distance < bestDistance)
+                {
+                    best = centre;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
     /// A1373 (D827 R15): free places for a building near a position, nearest first (cell centres; ties by cell): dry
     /// land that can be walked on, in the same walkable area as the position (reachable on foot), with no thing within
     /// the data's clearance, and at least min_spacing_m apart. At most the data's number; empty without the objects.

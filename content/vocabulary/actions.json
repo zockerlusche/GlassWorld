@@ -52,6 +52,7 @@
     { "id": "name_person", "reserved": true, "spoken": true, "description": "Give another inhabitant a name.", "target": "inhabitant" },
     { "id": "perform_custom", "reserved": true, "description": "Do what one does the same way at the same time as before.", "target": "none" },
     { "id": "found_settlement", "reserved": true, "description": "Stay at a new place for good with others.", "target": "none" },
-    { "id": "sail", "reserved": true, "description": "Travel to a far shore.", "target": "none" }
+    { "id": "sail", "reserved": true, "description": "Travel to a far shore.", "target": "none" },
+    { "id": "dig", "description": "Dig into the ground where you stand.", "target": "none" }
   ]
 }
