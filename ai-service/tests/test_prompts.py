@@ -18,6 +18,7 @@ from glassworld_ai.decider.context import build_values
 from glassworld_ai.prompts import PromptError, load_prompt
 from glassworld_ai.texts import TextCatalog
 from glassworld_ai.vocabulary import Vocabulary
+from glassworld_ai.words import source_words
 from glassworld_contracts import DecisionRequest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -219,7 +220,8 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "question/ask.v5",
     ):
         settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
-        words = settings["settings"]["source_words"]
+        # Review GW2 #579: a source that came after the release is named once in the shared words.
+        words = source_words(settings["settings"])
         assert sources <= set(words), (name, sorted(sources - set(words)))
 
 
@@ -705,3 +707,26 @@ def test_v17_says_where_one_could_build_without_saying_which_place_is_better() -
     assert "better" not in user.split("## Right now")[1].split("## Possible")[0]
     plain = _render(_leisure(), version=17).split("=== user ===")[1]
     assert plain == _render(_leisure(), version=16).split("=== user ===")[1]
+
+
+def test_a_source_after_the_release_is_named_by_the_shared_words_a_version_keeps_its_own() -> None:
+    """Review GW2 #579: the player's voice (A1536) came after decide v17 was released - the
+    released version stays as measured and still names the source in words, not as a raw id."""
+    import tomllib
+
+    from glassworld_ai.words import knowledge_line
+
+    v17 = tomllib.loads((PROMPTS / "decider/decide.v17.toml").read_text(encoding="utf-8"))
+    assert "voice" not in v17["settings"]["source_words"]  # the released file is untouched
+
+    class _Subject:
+        kind, id = "type", "red_berry"
+
+    class _Entry:
+        subject, property, value, confidence = _Subject(), "edible", True, 0.3
+        source, told_by, sure = "voice", None, None
+
+    line = knowledge_line(_Entry(), v17["settings"])
+    assert "a voice from outside said so" in line and "; voice)" not in line
+    own = {"source_words": {"voice": "the voice told you"}, "subject_kinds": {"type": "thing"}}
+    assert "the voice told you" in knowledge_line(_Entry(), own)

@@ -43,6 +43,7 @@ from glassworld_ai.words import (
     humanize,
     own_names,
     plain_id,
+    source_words,
     unsure,
     vocab_line,
     word,
@@ -285,10 +286,9 @@ def parse_guard(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
 def _knowledge_text(payload: Any, settings: dict[str, Any], locale: str = "en") -> str:
     """v6 (A1582, R8): what the inhabitant believes about the things it sees - its own beliefs
     with where they come from, never the truth (GW1 #372). Empty without the setting."""
-    words = settings.get("source_words")
-    if not isinstance(words, dict):
+    if not isinstance(settings.get("source_words"), dict):
         return ""
-    sources = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
+    sources = source_words(settings)
     lines = []
     for entry in getattr(payload.inhabitant, "knowledge", None) or []:
         if plain_id(entry.subject.kind) != "type":
