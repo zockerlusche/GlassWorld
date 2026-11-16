@@ -1,0 +1,36 @@
+{
+  "contract_version": "0.2",
+  "action": "dig",
+  "step_cm": 25,
+  "pit_type": "pit",
+  "well_type": "waterhole",
+  "tool_property": "digs",
+  "layers": [
+    {
+      "until_cm": 50,
+      "by_soil": {
+        "sand": "sand",
+        "loam": "earth",
+        "clay": "clay",
+        "stone": "fieldstone"
+      },
+      "material": "earth",
+      "by_hand": true,
+      "not_by_hand_on": [
+        "stone"
+      ]
+    },
+    {
+      "until_cm": 150,
+      "material": "clay"
+    },
+    {
+      "until_cm": 100000,
+      "material": "fieldstone",
+      "ore_possible": true
+    }
+  ],
+  "ore": {
+    "type": "ore_chunk"
+  }
+}

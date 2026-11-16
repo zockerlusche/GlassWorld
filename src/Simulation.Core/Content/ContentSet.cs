@@ -133,6 +133,9 @@ public sealed class ContentSet
     /// <summary>How long things last by material class (content/durability/settings.json, D711 section 5); null without the file.</summary>
     public DurabilitySettings? Durability { get; init; }
 
+    /// <summary>A1578 (B4b K5): digging into the island's underground (content/world/digging.json), or null.</summary>
+    public DiggingSettings? Digging { get; init; }
+
     /// <summary>Rain, drying and sun on the body (B5-11, D1084); null = only the air is felt.</summary>
     public BodySettings? Body { get; init; }
 
@@ -331,6 +334,7 @@ public sealed class ContentSet
                 : null,
             Body = LoadBody(contentDirectory, vocabularies),
             Aging = LoadAging(contentDirectory, vocabularies),
+            Digging = LoadDigging(contentDirectory, objects, vocabularies, worldGen.Presets.Values.SelectMany(p => p.Underground.SoilRules.Select(r => r.Soil).Append(p.Underground.FallbackSoil)).ToHashSet(StringComparer.Ordinal)),
             Durability = File.Exists(Path.Combine(contentDirectory, "durability", "settings.json"))
                 ? ContractSerializer.Deserialize<DurabilitySettings>(File.ReadAllText(Path.Combine(contentDirectory, "durability", "settings.json")))
                 : null,
@@ -1060,4 +1064,45 @@ public sealed class ContentSet
         vocabularies.TryGetValue(kind, out var vocabulary)
             ? vocabulary
             : throw new InvalidDataException($"Vocabulary '{kind}' is missing.");
+
+    /// <summary>A1578: the digging data, checked against the catalog and the vocabularies; null without the file.</summary>
+    private static DiggingSettings? LoadDigging(string contentDirectory, ObjectCatalog catalog, Dictionary<VocabularyKind, Vocabulary> vocabularies, HashSet<string> soils)
+    {
+        var path = Path.Combine(contentDirectory, "world", "digging.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var data = ContractSerializer.Deserialize<DiggingSettings>(File.ReadAllText(path));
+        var types = new[] { data.PitType, data.WellType, data.Ore?.Type }
+            .Concat(data.Layers.Select(l => l.Material))
+            .Concat(data.Layers.SelectMany(l => l.BySoil?.Values ?? []))
+            .OfType<string>()
+            .Where(type => !catalog.Contains(type))
+            .ToList();
+        if (types.Count > 0)
+        {
+            throw new InvalidDataException($"Digging names unknown object types [{string.Join(", ", types.Distinct(StringComparer.Ordinal))}].");
+        }
+
+        if (!Ids(vocabularies, VocabularyKind.Action).Contains(data.Action) || !Ids(vocabularies, VocabularyKind.Property).Contains(data.ToolProperty))
+        {
+            throw new InvalidDataException($"Digging: action '{data.Action}' or tool property '{data.ToolProperty}' is not in the vocabulary.");
+        }
+
+        // Review GW4 #506: a soil the underground never has would fall back to the layer's material in silence.
+        var unknownSoils = data.Layers.SelectMany(l => (l.BySoil?.Keys ?? []).Concat(l.NotByHandOn ?? [])).Where(s => !soils.Contains(s)).Distinct(StringComparer.Ordinal).ToList();
+        if (unknownSoils.Count > 0)
+        {
+            throw new InvalidDataException($"Digging names soils no world preset has [{string.Join(", ", unknownSoils)}].");
+        }
+
+        if (data.Layers.Zip(data.Layers.Skip(1)).Any(p => p.Second.UntilCm <= p.First.UntilCm))
+        {
+            throw new InvalidDataException("Digging: layers must go deeper from top to bottom.");
+        }
+
+        return data;
+    }
 }

@@ -326,6 +326,57 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         return cost == MapCell.Blocked ? 0.25 : Math.Min(1.0, 1000.0 / Math.Max(1, cost));
     }
 
+    /// <summary>
+    /// A1498 (B2828): the nearest dry ground to a position within a distance - the position itself when its cell is dry
+    /// land, else the centre of the nearest dry cell that can be walked on in the same walkable area (ties by cell). Shallow
+    /// water belongs to the area of its banks, so the dry cell is one the walker can reach - never across deep water (review
+    /// GW3 #507). Null when there is none within the distance, the position lies outside the map, or it stands on ground
+    /// nobody can walk (area 0): then it sleeps where it stands, and no walk can fail and be tried again tick after tick.
+    /// </summary>
+    public Position? DryGroundNear(Position at, double withinM)
+    {
+        if (CellOf(at) is not { } here)
+        {
+            return null;
+        }
+
+        if (Map.Cell(here.X, here.Z).Water == WaterKind.None)
+        {
+            return at;
+        }
+
+        var area = AreaOf(here.X, here.Z);
+        if (area == 0)
+        {
+            return null;
+        }
+
+        var cells = (int)Math.Ceiling(withinM * 100 / CellSizeCm);
+        Position? best = null;
+        var bestDistance = double.MaxValue;
+        for (var z = here.Z - cells; z <= here.Z + cells; z++)
+        {
+            for (var x = here.X - cells; x <= here.X + cells; x++)
+            {
+                if (!Map.Contains(x, z) || Map.Cell(x, z).Water != WaterKind.None || Map.Cell(x, z).WalkCost == MapCell.Blocked
+                    || AreaOf(x, z) != area)
+                {
+                    continue;
+                }
+
+                var centre = CentreOf(x, z);
+                var distance = Math.Sqrt(((centre.X - at.X) * (centre.X - at.X)) + ((centre.Z - at.Z) * (centre.Z - at.Z)));
+                if (distance <= withinM && distance < bestDistance)
+                {
+                    best = centre;
+                    bestDistance = distance;
+                }
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>World position (metres, origin at the map corner) of the centre of cell (x, z).</summary>
     public Position CentreOf(int x, int z) => new((x + 0.5) * CellSizeCm / 100.0, (z + 0.5) * CellSizeCm / 100.0);
 

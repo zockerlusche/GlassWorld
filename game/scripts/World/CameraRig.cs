@@ -112,14 +112,17 @@ public partial class CameraRig : Node3D
     /// <summary>Follows the figure with this id (its position is read every frame), at the follow distance or <paramref name="distanceM"/>.</summary>
     public void FollowFigure(string id, double? distanceM = null)
     {
+        // A1803 (Marcel W2245): each sentence in the chat starts a talk, and the talk chooses its figure; when the
+        // camera already follows that figure, the player's zoom stays instead of jumping back to the follow distance.
+        var same = Model.Following && _followedId == id;
         _followedId = id;
         if (FindFigure is { } find)
         {
-            Model.Follow(() => find(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM);
+            Model.Follow(() => find(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM, keepZoom: same);
             return;
         }
 
-        Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First(), distanceM);
+        Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First(), distanceM, keepZoom: same);
     }
 
     /// <inheritdoc/>

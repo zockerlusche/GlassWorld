@@ -30,7 +30,10 @@ PROJECT = ROOT / "src" / "Simulation.Headless"
 
 
 def worlds_folder() -> Path:
-    """The game's world list (user://worlds of the Godot project GlassWorld)."""
+    """The game's world list: GLASSWORLD_DATA/worlds when set (A1787: an exported game keeps its
+    data in daten/ next to itself, the start script names it), else user://worlds of the project."""
+    if data := os.environ.get("GLASSWORLD_DATA"):
+        return Path(data) / "worlds"
     appdata = os.environ.get("APPDATA")
     if appdata:
         return Path(appdata) / "Godot" / "app_userdata" / "GlassWorld" / "worlds"
