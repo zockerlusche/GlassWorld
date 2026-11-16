@@ -163,6 +163,10 @@
       "description": "An inhabitant who can read read a text in passing and learned what it says (B8 R15, A1357; target = the carrier, Detail = the knowledge ref)."
     },
     {
+      "id": "object_moved",
+      "description": "The player's hand moved a thing (B6 R22, A1539; target = the thing, Detail = its type). Inhabitants may notice it."
+    },
+    {
       "id": "writing_found",
       "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
     },

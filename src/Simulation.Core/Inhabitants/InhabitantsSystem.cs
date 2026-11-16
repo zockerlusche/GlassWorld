@@ -2598,9 +2598,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>
-    /// Learning names on a first meeting (W1698, data: knowledge.naming): the listener learns the asker's
-    /// name; the asker learns the listener's unless the listener is busy with an urgent need (a need below
-    /// busy_need_below). One name_learned event per learner.
+    /// Learning names on a first meeting (W1698, data: knowledge.naming): each side learns the other's name unless
+    /// the one who would tell it is busy with an urgent need - one rule for both, the levels are data
+    /// (A1532, D763 F2: the listener by busy_need_below, the asker by asker_busy_need_below, omitted = never busy).
+    /// One name_learned event per learner.
     /// </summary>
     private void Introduce(World world, Inhabitant asker, Inhabitant listener, string action)
     {
@@ -2609,8 +2610,13 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             return;
         }
 
-        Learn(world, listener, asker, action);
-        if (!listener.Needs.Values.Any(v => v < naming.BusyNeedBelow))
+        static bool Busy(Inhabitant teller, double? below) => below is { } level && teller.Needs.Values.Any(v => v < level);
+        if (!Busy(asker, naming.AskerBusyNeedBelow))
+        {
+            Learn(world, listener, asker, action);
+        }
+
+        if (!Busy(listener, naming.BusyNeedBelow))
         {
             Learn(world, asker, listener, action);
         }

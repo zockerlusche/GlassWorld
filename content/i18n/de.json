@@ -467,6 +467,46 @@
       "text": "Gemäßigt"
     },
     {
+      "key": "ui.new_world.climate.cool",
+      "text": "Kühl"
+    },
+    {
+      "key": "ui.new_world.resources",
+      "text": "Rohstoffe"
+    },
+    {
+      "key": "ui.new_world.resources.poor",
+      "text": "Karg"
+    },
+    {
+      "key": "ui.new_world.resources.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.new_world.resources.rich",
+      "text": "Reich"
+    },
+    {
+      "key": "ui.new_world.start_pairs",
+      "text": "Bewohner zu Beginn"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_1",
+      "text": "2 (ein Paar)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_2",
+      "text": "4 (zwei Paare)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_3",
+      "text": "6 (drei Paare)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_4",
+      "text": "8 (vier Paare)"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -1459,6 +1499,22 @@
       "text": "Am Körper tragbar"
     },
     {
+      "key": "msg.command.too_far",
+      "text": "So weit reicht die Hand nicht."
+    },
+    {
+      "key": "msg.command.unreachable",
+      "text": "Dorthin kommt niemand."
+    },
+    {
+      "key": "msg.command.place_taken",
+      "text": "Dort ist kein Platz frei."
+    },
+    {
+      "key": "msg.command.not_movable",
+      "text": "Das laesst sich nicht verschieben."
+    },
+    {
       "key": "vocab.property.portable",
       "text": "Tragbar"
     },
@@ -2401,6 +2457,10 @@
     {
       "key": "vocab.event.text_read",
       "text": "Geschriebenes gelesen"
+    },
+    {
+      "key": "vocab.event.object_moved",
+      "text": "Die Hand hat etwas verschoben"
     },
     {
       "key": "vocab.event.writing_found",

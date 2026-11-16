@@ -48,6 +48,34 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 64
+    },
+    "resources": {
+      "description": "A1770 (B2805 'Einfach'): how much grows and lies on the island - a factor on every spawn rule's density and upper limit (start supplies stay guaranteed). Missing = normal (1.0).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ResourceOption"
+      }
+    },
+    "default_resources": {
+      "description": "A1770: id of the preselected resources option.",
+      "type": "string"
+    },
+    "start_pairs": {
+      "description": "A1770 (B2805): how many pairs of inhabitants a new world starts with (each pair gets its start place).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+      }
+    },
+    "default_start_pairs": {
+      "description": "A1770: the preselected number of start pairs.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
     }
   },
   "$defs": {
@@ -79,6 +107,27 @@
       "properties": {
         "id": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "ResourceOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "factor"
+      ],
+      "properties": {
+        "id": {
+          "description": "Option id (text key ui.new_world.resources.<id>).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "factor": {
+          "description": "Factor on spawn density and upper limits (1.0 = the data as written).",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 3.0
         }
       }
     }

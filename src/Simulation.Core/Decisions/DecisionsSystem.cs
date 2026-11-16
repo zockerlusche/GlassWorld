@@ -51,6 +51,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>What the player says to an inhabitant (send_text, B6 R13).</summary>
     public string? Text { get; init; }
+
+    /// <summary>The thing a command is about (move_object, B6 R22).</summary>
+    public string? ObjectId { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>

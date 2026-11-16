@@ -10,7 +10,9 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Size">Size option id.</param>
 /// <param name="Climate">Climate option id.</param>
 /// <param name="StartFavor">Start favour, one of the start options of content/player/favor.json.</param>
-public sealed record NewWorldChoice(string Name, ulong Seed, string Size, string Climate, int StartFavor);
+/// <param name="Resources">A1770: resources option id (poor/normal/rich), or null = the data's default.</param>
+/// <param name="StartPairs">A1770: pairs of inhabitants at the start, or null = the preset's pairs.</param>
+public sealed record NewWorldChoice(string Name, ulong Seed, string Size, string Climate, int StartFavor, string? Resources = null, int? StartPairs = null);
 
 /// <summary>
 /// Checks of the "new world" form without Godot: the name is a player input with a length limit from
