@@ -114,6 +114,7 @@ public partial class Main : Node3D
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
         _library = new WorldLibrary(GameData.At("worlds"));
+        ArchiveGoneWorldLogs(_library.Root);
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
@@ -685,6 +686,25 @@ public partial class Main : Node3D
 
     /// <summary>Where the player's copies of diagnostics reports lie (W1703): the game's own folder, which it can open.</summary>
     private static string DiagnosticsFolder() => GameData.At("diagnostics");
+
+    /// <summary>
+    /// A1787 part 2 (Marcel W2246): the logs of worlds that are gone (a world folder removed by hand) move to the log
+    /// folder's archive - never deleted. A failure here is no reason not to start: it is tried again next time.
+    /// </summary>
+    private static void ArchiveGoneWorldLogs(string worldsRoot)
+    {
+        try
+        {
+            foreach (var moved in WorldLogArchive.ArchiveOrphans(worldsRoot, GameData.Logs, DateTimeOffset.Now))
+            {
+                GD.Print($"WORLD_LOGS_ARCHIVED {moved}");
+            }
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"WORLD_LOGS_ARCHIVE_FAILED {e.GetType().Name}: {e.Message}");
+        }
+    }
 
     /// <summary>
     /// Once per world (W1703 rule 2): if an AI needs the player, one calm hint that points to the settings.
