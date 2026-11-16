@@ -27,6 +27,19 @@ def test_an_existing_world_is_never_overwritten(tmp_path: Path) -> None:
     assert run.free_folder(tmp_path, "Probe") == tmp_path / "probe-3"
 
 
+def test_the_runner_is_started_directly_when_built(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """TL #27953: the built runner dll is found (newest target framework), so the quick run
+    skips the ~15 s of 'dotnet run'; without a build there is none."""
+    monkeypatch.setattr(run, "PROJECT", tmp_path)
+    assert run.runner_dll() is None
+    dll = tmp_path / "bin" / "Release" / "net10.0" / "GlassWorld.Simulation.Headless.dll"
+    dll.parent.mkdir(parents=True)
+    dll.write_bytes(b"")
+    assert run.runner_dll() == dll
+
+
 def test_the_worlds_go_where_the_game_keeps_its_data(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

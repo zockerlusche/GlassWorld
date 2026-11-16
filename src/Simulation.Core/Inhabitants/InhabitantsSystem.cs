@@ -145,6 +145,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     // The inhabitants by id for the look-up and in id order for every pass of a tick, hash and save.
     private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _gaveWay = new(StringComparer.Ordinal); // A1795: who gave way this tick (view only)
     private readonly List<Inhabitant> _ordered = [];
 
     // A1710: thoughts that came while their inhabitant slept, shown when it wakes (presentation, not state).
@@ -662,6 +663,17 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return inhabitant.Activity is { RemainingTicks: null } activity ? _gaits.GaitFor(inhabitant, activity.Action) : null;
     }
 
+    /// <summary>
+    /// A1795 (Marcel W2242): whether the inhabitant stepped back this tick to give way on a narrow path (W1726). The
+    /// figure keeps facing the way it goes only then; any other walk backwards turns it round. A view of this tick,
+    /// not state: not saved, not hashed.
+    /// </summary>
+    public bool GaveWay(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _gaveWay.Contains(inhabitant.Id);
+    }
+
     /// <summary>Step part (<see cref="IStepProbe"/>): being together, first meetings and bonds of the tick.</summary>
     public const string PartMeeting = "inhabitants/meeting";
 
@@ -695,6 +707,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _zs = new double[_ordered.Count];
         }
 
+        _gaveWay.Clear();
         for (var i = 0; i < _ordered.Count; i++)
         {
             var at = _ordered[i].Position;
@@ -829,6 +842,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             && Walkable(from, back) && PathClear(mover, from, back))
         {
             mover.Position = back;
+            _gaveWay.Add(mover.Id);
             return;
         }
 

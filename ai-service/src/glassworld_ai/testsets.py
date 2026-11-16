@@ -151,10 +151,15 @@ async def run_cases(
     runs: int,
     talker: Conversationalist | None = None,
     guard: TextGuard | None = None,
+    duty: float = 1.0,
 ) -> list[RunResult]:
+    """`duty` < 1 (A1824): after each call the model rests, so it computes only that share of the
+    time - the load the game's day budget allows (throughput.day_share) instead of nonstop."""
     results: list[RunResult] = []
     for run in range(runs):
         for case in testset.cases:
+            if results and duty < 1:
+                await asyncio.sleep(results[-1].latency_ms / 1000 * (1 / duty - 1))
             if case.kind == "conversation":
                 if talker is None:
                     raise ValueError(f"case {case.id} needs a conversation backend")
@@ -342,7 +347,12 @@ async def _main(args: argparse.Namespace) -> int:
         started = time.perf_counter()
         b9 = args.kind == "b9"
         results = await run_cases(
-            decider, testset, args.runs, talker if b9 else None, guard if b9 else None
+            decider,
+            testset,
+            args.runs,
+            talker if b9 else None,
+            guard if b9 else None,
+            duty=min(1.0, max(0.01, float(args.duty))),
         )
         wall = time.perf_counter() - started
         await client.unload(timeout=30)
@@ -370,6 +380,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--decider-version", type=int, default=None, help="prompt version")
     parser.add_argument("--min-valid", type=float, default=0.95, help="A15: 1.0")
+    parser.add_argument(
+        "--duty",
+        type=float,
+        default=1.0,
+        help="A1824: share of the time the model computes (load generator for the benchmark)",
+    )
     return asyncio.run(_main(parser.parse_args(argv)))
 
 

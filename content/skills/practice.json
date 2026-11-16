@@ -7,6 +7,16 @@
       "gain": 0.01
     },
     {
+      "action": "write",
+      "skill": "writing",
+      "gain": 0.01
+    },
+    {
+      "action": "read",
+      "skill": "reading",
+      "gain": 0.01
+    },
+    {
       "action": "pick_up",
       "skill": "gathering",
       "gain": 0.005

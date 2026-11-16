@@ -17,6 +17,9 @@ It writes `report.md` for an AMW document. A window on the screen: only as an AM
 
 Arguments for the scene go after `--` (e.g. `-- --bench-seconds=5` for a dry run). Any such
 argument is shown in the report and makes every pass invalid: the acceptance run has none.
+`--scenario late` measures the late game of the data (B2810, A1775: `late_game` in benchmark.json)
+and `--passes day,night` only those passes; both are choices of the run, named in the report and
+checked against the game's log, not extra arguments.
 The output folder must be outside the repository; an earlier run's folder or report is kept
 under a new name (rule PR4).
 Exit code 0: every pass measured and within marks and budget. 3: measured, but a mark or the budget
@@ -247,6 +250,12 @@ def read_vram(path: Path) -> tuple[int | None, int | None, int, int, float]:
     return baseline, (max(run) if run else None), len(run), errors, covered
 
 
+LATE_NOTE = (
+    " (Spätspiel B2810: jede Figur trägt ein Ding, Dinge und Feuer liegen um die Menge,"
+    " das Wetter wechselt im Durchgang)"
+)
+
+
 def judge(
     out: Path,
     resolution: str,
@@ -255,6 +264,7 @@ def judge(
     marks: Marks,
     code: int | None,
     extra: list[str] | None = None,
+    scenario: str = "start",
 ) -> PassResult:
     """One pass judged from its CSV, its log and its memory samples."""
     result = PassResult(resolution, mode, name)
@@ -288,6 +298,9 @@ def judge(
     judge_setup(result, start, done, log_line(out / f"bench_{stem}.log", "BENCH_ENV"), marks)
     # The size of the BENCH_PASS line: BENCH_START is printed right after the mode switch is asked.
     result.size = done.get("size", "?")
+    if start and start.get("scenario", "start") != scenario:
+        # A1775: the game must say it ran the scenario that was asked for (an older build: start).
+        result.invalid.append(f"Szenario {start.get('scenario', 'start')} statt {scenario}")
     if not start or not done:
         result.invalid.append("Log ohne BENCH_START/BENCH_PASS")
     else:
@@ -342,6 +355,9 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         + (", ".join(dict.fromkeys(r.build for r in results if r.build != "?")) or "?")
         + "; "
         + (", ".join(dict.fromkeys(r.driver for r in results if r.driver != "?")) or "?"),
+        f"- **Szenario:** {meta.get('scenario', 'start')}"
+        + (LATE_NOTE if meta.get("scenario") == "late" else "")
+        + f" · Durchgänge: {', '.join(meta.get('passes') or [])}",
         "- **Zusätzliche Szenen-Argumente:** "
         + (" ".join(meta.get("extra") or []) or ("keine" if "extra" in meta else "nicht bekannt")),
         f"- **Szene laut Daten:** Seed {marks.seed}, Qualität {marks.quality}, Aufwärmzeit "
@@ -597,11 +613,19 @@ class ProcessGroup:
 
 
 def run_pass(
-    bash: str, binary: Path, resolution: str, mode: str, name: str, out: Path, extra: list[str]
+    bash: str,
+    binary: Path,
+    resolution: str,
+    mode: str,
+    name: str,
+    out: Path,
+    extra: list[str],
+    scenario: str = "start",
 ) -> int:
     """One benchmark.sh call for one pass, with memory samples before and during; its exit code."""
     command = [bash, str(ROOT / "tools/benchmark.sh"), str(binary), resolution, str(out)]
     command += (["--fullscreen"] if mode == "fullscreen" else []) + extra
+    command += [] if scenario == "start" else [f"--bench-scenario={scenario}"]
     sampler = Sampler(out / f"vram_{resolution}_{name}.csv")
     group = ProcessGroup()
     try:
@@ -643,6 +667,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evaluate-only", action="store_true", help="judge again what is there")
     parser.add_argument("--bash", default=None, help="bash to run benchmark.sh with")
     parser.add_argument("--note", default="", help="which build is measured (required for a run)")
+    parser.add_argument(
+        "--scenario",
+        choices=["start", "late"],
+        default="start",
+        help="start = today's benchmark; late = the late game of the data (B2810)",
+    )
+    parser.add_argument(
+        "--passes", default="", help="comma list of pass ids (default: all of the data)"
+    )
     parser.add_argument("extra", nargs="*", help="after --: arguments for the scene")
     options = parser.parse_args(argv)
     out = options.out.resolve()
@@ -651,6 +684,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"BENCH_MEASURE_FAIL: {problem}", file=sys.stderr)
         return EXIT_FAILED
     marks = load_marks()
+    wanted = [p for p in str(options.passes).split(",") if p]
+    if unknown := [p for p in wanted if p not in marks.passes]:
+        print(f"BENCH_MEASURE_FAIL: unknown passes {', '.join(unknown)}", file=sys.stderr)
+        return EXIT_FAILED
     meta_file = out / "run.json"
     meta: dict[str, Any]
     entries = parse_entries(options.resolutions) or []
@@ -675,10 +712,14 @@ def main(argv: list[str] | None = None) -> int:
             "card": card(),
             "entries": entries,
             "extra": options.extra,
+            "scenario": options.scenario,
+            "passes": [p for p in marks.passes if not wanted or p in wanted],
             "exit": codes,
         }
-        for resolution, mode, name in [(r, m, n) for r, m in entries for n in marks.passes]:
-            code = run_pass(bash, binary, resolution, mode, name, out, options.extra)
+        for resolution, mode, name in [(r, m, n) for r, m in entries for n in meta["passes"]]:
+            code = run_pass(
+                bash, binary, resolution, mode, name, out, options.extra, options.scenario
+            )
             codes[f"{resolution}_{name}"] = code
             meta_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
             if code == 124:
@@ -687,12 +728,21 @@ def main(argv: list[str] | None = None) -> int:
                 print("BENCH_MEASURE_FAIL: a pass ran over its time, stopping", file=sys.stderr)
                 break
     known: dict[str, int] = meta.get("exit", {})
+    scenario = str(meta.get("scenario", "start"))
+    passes = [str(p) for p in meta.get("passes") or marks.passes]
     results = [
         judge(
-            out, resolution, mode, name, marks, known.get(f"{resolution}_{name}"), meta.get("extra")
+            out,
+            resolution,
+            mode,
+            name,
+            marks,
+            known.get(f"{resolution}_{name}"),
+            meta.get("extra"),
+            scenario,
         )
         for resolution, mode in entries
-        for name in marks.passes
+        for name in passes
     ]
     target = out / "report.md"
     if target.exists():

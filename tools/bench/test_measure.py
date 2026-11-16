@@ -367,7 +367,14 @@ def test_no_further_pass_is_started_after_one_ran_over_its_time(
     started: list[str] = []
 
     def fake(
-        bash: str, exe: Path, res: str, mode: str, name: str, out: Path, extra: list[str]
+        bash: str,
+        exe: Path,
+        res: str,
+        mode: str,
+        name: str,
+        out: Path,
+        extra: list[str],
+        scenario: str = "start",
     ) -> int:
         started.append(f"{res}_{name}")
         return 124
@@ -414,3 +421,67 @@ def test_without_a_share_in_the_data_any_share_is_accepted(tmp_path: Path) -> No
     _pass(tmp_path, "day", GOOD, revealed="120")
     r = BM.judge(tmp_path, RES, "window", "day", old, 0)
     assert r.revealed == "120" and r.verdict == "erfüllt", r.invalid
+
+
+def test_the_late_scenario_and_a_choice_of_passes_are_choices_of_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A1775 (B2810): --scenario late and --passes are named in the report and passed to the game,
+    not extra scene arguments; a pass whose game log says another scenario is invalid."""
+    binary = tmp_path / "GlassWorld.exe"
+    binary.write_text("x", encoding="utf-8")
+    calls: list[tuple[str, str]] = []
+
+    def fake(
+        bash: str,
+        exe: Path,
+        res: str,
+        mode: str,
+        name: str,
+        out: Path,
+        extra: list[str],
+        scenario: str = "start",
+    ) -> int:
+        calls.append((name, scenario))
+        return 0
+
+    monkeypatch.setattr(BM, "run_pass", fake)
+    monkeypatch.setattr(BM, "card", lambda: "Karte, 1.0")
+    out = tmp_path / "run"
+    BM.main(
+        [
+            "--screen-queue",
+            "--binary",
+            str(binary),
+            "--out",
+            str(out),
+            "--note",
+            "test",
+            "--resolutions",
+            "1920x1080",
+            "--scenario",
+            "late",
+            "--passes",
+            "day,night",
+        ]
+    )
+    assert calls == [("day", "late"), ("night", "late")]
+    report = (out / "report.md").read_text(encoding="utf-8")
+    assert "**Szenario:** late" in report and "Durchgänge: day, night" in report
+    assert "zusätzliche Szenen-Argumente" not in report
+    assert (
+        BM.main(
+            [
+                "--screen-queue",
+                "--binary",
+                str(binary),
+                "--out",
+                str(tmp_path / "x"),
+                "--note",
+                "t",
+                "--passes",
+                "fog",
+            ]
+        )
+        == BM.EXIT_FAILED
+    )
