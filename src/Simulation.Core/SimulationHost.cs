@@ -692,6 +692,11 @@ public sealed class SimulationHost
                 CloudPermille = w => bodyWeather.Read(w).CloudPermille,
                 WindAt = bodyWeather.WindAt,
                 HeatFrom = fire.HeatFrom,
+
+                // A1793: a cell with water wets who stands in it - a sea cell only while the tide covers it (review GW2
+                // #518: the flats the ebb leaves dry do not wet; the same rule as the tide's walk layer).
+                InWater = at => map.CellOf(at) is { } at2 && map.Map.Cell(at2.X, at2.Z) is { Water: not WaterKind.None } water
+                    && (water.Water != WaterKind.Salt || map.Tides is not { Active: true } tides || water.WaterDepth + tides.LevelUnitsAt(world.Tick) > 0),
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);
