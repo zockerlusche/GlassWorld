@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A burning fire crackles (A1543 step 2, D1237): the recorded crackle that lay unused plays as a spatial loop at the nearest burning things, as loud as the core says it burns, embers quietly (`sound_map.json` `burning`).
 - The debug view (F12) shows what the AI is working on (A1801, Marcel W2243): how many jobs run and how many wait for the compute night, and for each its kind, the inhabitant it is about and how long it has been open in game minutes - read from the core's job log and night queue.
 - Oven, furnace and metal by properties (A1579, B4b K6, plan D1228, TL #28137): a burning thing's heat rises by data (`processes/rules.json` `heat_raise`) - a thing that `encloses_fire` within 1.5 m (the neighbouring cell, diagonal too) gives strong heat, with one that `draws_air` too melting heat; both come only from inventions (new base functions `enclose_fire`, `blow_air` - named as functions, not things). The rule `smelt_ore` melts an ore-bearing thing with charcoal at melting heat into something `metallic` and `malleable`. No rule names a thing.
 - Settings 'Steuerung': keys can be laid anew (A1815, A1749 rest) - camera and time actions under the fold 'Tasten belegen'; click a key, press the new one (Esc cancels). A chosen key replaces the action's keys, mouse buttons and the wheel stay; keys laid twice are named in words below. Escape stays the menu's key. 'Standard wiederherstellen' brings the defaults back.

@@ -35,6 +35,8 @@ public partial class WorldAudio : Node3D
     private double _clock;
     private AmbienceDirector? _ambience;
     private readonly AudioStreamPlayer[] _ambiencePlayers = new AudioStreamPlayer[2];
+    private readonly List<AudioStreamPlayer3D> _fires = []; // A1543: loops at the nearest burning things
+    private double _firesAt = -1;
     private readonly (double From, double To, double Start, double Length)[] _ambienceFades = new (double, double, double, double)[2];
     private int _ambienceActive;
     private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
@@ -163,6 +165,14 @@ public partial class WorldAudio : Node3D
             AddChild(_ambiencePlayers[i]);
         }
 
+        // A1543 (D1237): burning things crackle - a few loops on the effects bus, placed at the nearest fires.
+        for (var i = 0; i < (RetroAudio.Library!.Map.Burning?.Most ?? 0); i++)
+        {
+            var fire = new AudioStreamPlayer3D { Name = "Fire" + i, Bus = BusName(MixBusId.Effects), AttenuationModel = AudioStreamPlayer3D.AttenuationModelEnum.Disabled, VolumeDb = -80 };
+            AddChild(fire);
+            _fires.Add(fire);
+        }
+
         _glass = new AudioStreamPlayer { Name = "Glass", Bus = BusName(MixBusId.Effects) };
         AddChild(_glass);
         return true;
@@ -187,6 +197,7 @@ public partial class WorldAudio : Node3D
 
         PlayAnimals(listener);
         PlayAmbience(listener);
+        PlayFires(listener);
         var events = _feed.NewEvents();
         if (events.Count == 0)
         {
@@ -318,6 +329,56 @@ public partial class WorldAudio : Node3D
             player.Stream = LoopStream(sound);
             player.Play();
             _ambienceFades[_ambienceActive] = (0, 1, _clock, step.FadeS);
+        }
+    }
+
+    /// <summary>
+    /// A1543 (D1237): the nearest burning things crackle, as loud as they burn and as near as they are (effects bus,
+    /// its distance curve); embers quietly. The burning things are looked up four times a second, the volume every frame.
+    /// </summary>
+    private void PlayFires(Position listener)
+    {
+        if (_fires.Count == 0 || _host?.Fire is not { } fire || RetroAudio.Library?.Map.Burning is not { } data || Off(MixBusId.Effects))
+        {
+            return;
+        }
+
+        if (_clock - _firesAt >= 0.25)
+        {
+            _firesAt = _clock;
+            var nearest = fire.Capture()
+                .Select(b => _host.Objects.TryGet(b.Id, out var thing) ? thing : null)
+                .OfType<GlassWorld.Simulation.Objects.WorldObject>()
+                .OrderBy(t => SoundDirector.Distance(t.Position, listener)).ThenBy(t => t.Id, StringComparer.Ordinal)
+                .Take(_fires.Count)
+                .ToList();
+            for (var i = 0; i < _fires.Count; i++)
+            {
+                var player = _fires[i];
+                if (i >= nearest.Count)
+                {
+                    player.Stop();
+                    player.SetMeta("fire", string.Empty);
+                    continue;
+                }
+
+                var thing = nearest[i];
+                player.Position = At(thing.Position);
+                player.SetMeta("fire", thing.Id);
+                if (!player.Playing)
+                {
+                    player.Stream = LoopStream(data.Sound);
+                    player.Play();
+                }
+            }
+        }
+
+        foreach (var player in _fires.Where(p => p.Playing))
+        {
+            var id = player.GetMeta("fire", string.Empty).AsString();
+            var distance = SoundDirector.Distance(new Position(player.Position.X, player.Position.Z), listener);
+            var gain = FireSound.Gain(_mixer!.Gain(MixBusId.Effects, distance, Zoom), fire.StrengthPermille(id), fire.IsEmbers(id), data.EmbersGain);
+            player.VolumeDb = (float)SoundMixer.ToDb(gain);
         }
     }
 
