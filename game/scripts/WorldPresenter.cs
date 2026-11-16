@@ -535,7 +535,11 @@ public partial class WorldPresenter : Node3D
 
     private IDecisionPort CreatePort(string contentDirectory)
     {
-        if (!string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal))
+        // A1421 (B10-S2): a release carries the service next to the game (embedded Python); then the AI is live unless
+        // GLASSWORLD_AI says otherwise. Without a package only GLASSWORLD_AI=live starts it (development, test packages).
+        var mode = System.Environment.GetEnvironmentVariable("GLASSWORLD_AI");
+        var package = OS.HasFeature("editor") ? null : LocalAiService.PackagedService(Path.GetDirectoryName(OS.GetExecutablePath()) ?? string.Empty);
+        if (package is null ? !string.Equals(mode, "live", StringComparison.Ordinal) : string.Equals(mode, "mock", StringComparison.Ordinal))
         {
             return MockDecisionPort.FromContent(contentDirectory);
         }
@@ -547,7 +551,22 @@ public partial class WorldPresenter : Node3D
         var repository = LocalAiService.RepositoryRoot(ContentLocator.Variant is null ? contentDirectory : ContentLocator.RealContentDirectory(), System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         try
         {
-            _service = LocalAiService.Start(repository, GameData.At("ai-service"), Path.Combine(GameData.Logs, "ki"));
+            if (package is not null)
+            {
+                // The game looks for the made sounds and pictures where the packaged service writes them.
+                foreach (var (name, folder) in LocalAiService.PackagedFolders(GameData.At("ai-service")))
+                {
+                    System.Environment.SetEnvironmentVariable(name, folder);
+                }
+
+                _service = LocalAiService.StartPackaged(package, GameData.At("ai-service"), Path.Combine(GameData.Logs, "ki"));
+                GD.Print($"AI_SERVICE packaged {package}");
+            }
+            else
+            {
+                _service = LocalAiService.Start(repository, GameData.At("ai-service"), Path.Combine(GameData.Logs, "ki"));
+            }
+
             if (_service.StaleKilled is { } stale)
             {
                 GD.Print($"AI_SERVICE ended leftover service from an earlier session (pid {stale})");

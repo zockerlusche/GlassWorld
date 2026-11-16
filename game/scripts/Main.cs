@@ -601,7 +601,7 @@ public partial class Main : Node3D
             _audio.Hearing = _world.Hearing;
         }
 
-        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
+        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, System.Environment.GetEnvironmentVariable("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
         var spatialReady = _audio.Setup(host, host.World.Seed, soundFolder);
         if (_mix is not null)
         {
@@ -990,7 +990,7 @@ public partial class Main : Node3D
         try
         {
             _collection ??= new GlassWorld.Presentation.World.MadeObjectStore(GameData.At("collection"));
-            var pictures = OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
+            var pictures = System.Environment.GetEnvironmentVariable("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
                 ? System.IO.Path.GetFullPath(images)
                 : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(soundFolder) ?? string.Empty, "images");
             var world = GlassWorld.Presentation.World.MadeObjectStore.WorldOf(_meta?.Id ?? "world", host.World.Seed);
