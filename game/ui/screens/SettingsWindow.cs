@@ -261,7 +261,7 @@ public partial class SettingsWindow : GwWindow
                 break;
 
             case "resolution":
-                var screen = DisplayServer.ScreenGetSize();
+                var screen = DisplayServer.ScreenGetSize(DisplayServer.WindowGetCurrentScreen()); // the screen the window is on (review GW3 #530)
                 Row("ui.settings.resolution", Choice(
                     [(null, "ui.settings.resolution.start"), .. DisplayChoices.Fitting(limits.Tokens.Graphics.Resolutions, screen.X, screen.Y).Select(r => ((string?)r, r))],
                     s => s.Resolution, v => _settings with { Resolution = v }), "ui.settings.resolution.desc");
