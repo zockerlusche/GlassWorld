@@ -46,13 +46,14 @@ The game keeps everything next to itself, so one look into its folder shows it a
 
 | Folder | What is in it |
 |---|---|
-| `daten\` | your worlds (`worlds\`), settings, the collection of made things (`collection\`), diagnostics reports (`diagnostics\`) |
+| `daten\` | your worlds (`worlds\`), settings, the collection of made things (`collection\`), diagnostics reports (`diagnostics\`), the AI models and Ollama (`ai-service\`, several GB) |
 | `log\` | the game's log (`godot.log`), the AI's logs (`ki\`) and each world's run trace (`welten\`) |
 
 - In the settings under "Game", the buttons **Data folder** and **Log folder** open the folder.
 - If the game may not write into its own folder (for example under `C:\Program Files`), it puts
   `daten\` into `Documents\GlassWorld` and the logs into `Documents\GlassWorld\log\`.
 - To move the game, take the whole folder: your worlds move with it.
+- Backing up the folder backs up the AI models too (several GB).
 - Deleting the folder deletes your worlds too. Back up `daten\worlds\` first if you want to keep them.
 
 ## When something does not work

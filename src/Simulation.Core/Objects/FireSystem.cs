@@ -438,8 +438,31 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         // B2736: embers still give their heat level (cooking, kindling again), not the flame's.
-        var level = IsEmbers(thing.Id) && Settings?.Course is { } course ? course.EmbersHeatLevel : typeLevel;
+        var embers = IsEmbers(thing.Id);
+        var level = embers && Settings?.Course is { } course ? course.EmbersHeatLevel : typeLevel;
+        var at = IndexOf(levels, level);
+        if (!embers && HeatRaise is { Count: > 0 } raises)
+        {
+            // A1579 (B4b K6): an enclosing hollow near the fire makes it an oven, air drawn through it a furnace (data).
+            foreach (var raise in raises)
+            {
+                if (IndexOf(levels, raise.RaisesTo) is { } raised && (at is null || raised > at) && HasNear(thing, raise))
+                {
+                    at = raised;
+                }
+            }
+        }
 
+        return at;
+    }
+
+    /// <summary>A1579: the heat raises of the process data (an oven, a furnace by properties); null = none.</summary>
+    public IReadOnlyList<Contracts.HeatRaise>? HeatRaise { get; init; }
+
+    private readonly List<WorldObject> _raiseNear = [];
+
+    private static int? IndexOf(IReadOnlyList<string> levels, string level)
+    {
         for (var i = 0; i < levels.Count; i++)
         {
             if (string.Equals(levels[i], level, StringComparison.Ordinal))
@@ -449,6 +472,32 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         return null;
+    }
+
+    /// <summary>Whether things within the raise's reach of a burning thing have all its properties together (the thing itself not counted).</summary>
+    private bool HasNear(WorldObject fire, Contracts.HeatRaise raise)
+    {
+        _raiseNear.Clear();
+        _objects.Within(fire.Position, raise.ReachM, _raiseNear);
+        foreach (var property in raise.PropertiesNear)
+        {
+            var found = false;
+            foreach (var near in _raiseNear)
+            {
+                if (near.Id != fire.Id && _objects.Catalog.Contains(near.TypeId) && _objects.Catalog.HasProperty(near.TypeId, property))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>The highest heat level of burning things within <paramref name="reachM"/> of a place (B2700), or null.</summary>
