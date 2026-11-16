@@ -88,6 +88,26 @@ public sealed partial class BuildingTests : IDisposable
     }
 
     [Fact]
+    public void MaterialInSomeoneElsesHandIsNoMaterialTheBuildingWaitsInsteadOfCancellingEveryTick()
+    {
+        // A1727 (D1124: 591 build_step cancels): the only step material sits in another's hand - the builder does not
+        // go for it; once it is put down, the building goes on.
+        var (host, port, _) = Invented(29);
+        var events = Record(host);
+        var stepMaterial = host.Objects.All.Single(o => o.TypeId == NearbyTypes[^1]);
+        host.Objects.SetHeld(stepMaterial.Id, "inh-elsewhere");
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().StepsDone == 1, 3000);
+
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour * 2);
+        Assert.Null(host.Inventions.Builds.Single().PendingObjectId);
+        Assert.DoesNotContain(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.TargetId == stepMaterial.Id);
+
+        host.Objects.SetHeld(stepMaterial.Id, null);
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+    }
+
+    [Fact]
     public void WithoutMaterialForLongTheBuilderNeedsHelpOnceAndThenGivesUp()
     {
         // A1373 (D827 R15, R17): looking by itself first, then needs_help with the material's properties (never its
