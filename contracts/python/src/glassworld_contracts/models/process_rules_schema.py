@@ -84,6 +84,30 @@ class Physics(BaseModel):
     )
 
 
+class HeatRaise(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    properties_near: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties that things within reach must have together (one thing or several).',
+        max_length=4,
+        min_length=1,
+    )
+    reach_m: float = Field(
+        ...,
+        description='How far from the burning thing they may stand (metres). Placeholder (TL).',
+        gt=0.0,
+        le=10.0,
+    )
+    raises_to: str = Field(
+        ...,
+        description='The heat level it then gives (vocabulary heat_levels).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class ProcessRules(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -102,4 +126,9 @@ class ProcessRules(BaseModel):
     physics: Physics | None = Field(
         None,
         description="Ground rules of physics for the judge of unknown tries (A1554, F5297 = A, B2616, D711): one place for all physics. The service checks every judgement against them and rules impossible tries out without a model call; the prompt reads the examples from here. Optional; absent = the prompt's own table (judge v1/v2).",
+    )
+    heat_raise: list[HeatRaise] | None = Field(
+        None,
+        description="A1579 (B4b K6, D1228): a burning thing's heat level rises when things with all these properties stand within reach - an enclosing hollow makes a fire an oven, air drawn through it a furnace. No rule names a thing (D827 R5). The highest matching entry wins; embers keep their own level. Optional; absent = a fire gives only its own level.",
+        max_length=16,
     )

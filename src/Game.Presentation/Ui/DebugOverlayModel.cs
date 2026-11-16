@@ -22,6 +22,7 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Biome">Biome id under the mouse pointer, or null (no map, pointer off the map).</param>
 /// <param name="EpochKeys">Key names for the epoch step back and forward while debug jumps are on, else null.</param>
 /// <param name="Knowledge">A1402: the chosen inhabitant's name and beliefs with their origin, newest first; null without one.</param>
+/// <param name="Jobs">A1801: the AI's open jobs (kind, inhabitant's name, age in game minutes, waiting for the night); null = not read.</param>
 public sealed record DebugOverlayData(
     ulong Seed,
     string? WorldHash,
@@ -34,7 +35,8 @@ public sealed record DebugOverlayData(
     int Figures,
     string? Biome,
     (string Back, string Forward)? EpochKeys = null,
-    (string Name, int Count, IReadOnlyList<DebugBelief> Beliefs)? Knowledge = null);
+    (string Name, int Count, IReadOnlyList<DebugBelief> Beliefs)? Knowledge = null,
+    IReadOnlyList<(string Kind, string? Name, long Minutes, bool Waiting)>? Jobs = null);
 
 /// <summary>One belief in the debug view (A1402, B4a-S7): what, whether, from where, how sure.</summary>
 /// <param name="TypeId">The thing's type.</param>
@@ -96,7 +98,26 @@ public static class DebugOverlayModel
             snapshot.Inhabitants.Count,
             underMouse is { } p ? BiomeAt(host.Map, p.X, p.Z) : null,
             host.Options.DebugCommands ? epochKeys : null,
-            KnowledgeOf(host, snapshot, chosen));
+            KnowledgeOf(host, snapshot, chosen),
+            JobsOf(host, snapshot));
+    }
+
+    /// <summary>A1801 (Marcel W2243): the AI's open jobs - running ones, then the ones waiting for the night - with age in game minutes.</summary>
+    private static IReadOnlyList<(string Kind, string? Name, long Minutes, bool Waiting)> JobsOf(SimulationHost host, WorldSnapshot snapshot)
+    {
+        string? NameOf(string? id) => id is null ? null : snapshot.Inhabitants.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.Ordinal))?.Name ?? id;
+        var perMinute = Math.Max(1.0, host.World.Calendar.Settings.TicksPerHour / 60.0);
+        // Review GW2 #567: read anew only when the logs or the night queue changed (counts), not on every refresh.
+        var key = (host.Inventions.Log.Entries.Count, host.Decisions.Log.Entries.Count, host.NightQueue?.Held.Count ?? 0);
+        if (_jobsKey != key || _jobs is null || !JobsHost.TryGetTarget(out var seen) || !ReferenceEquals(seen, host))
+        {
+            _jobsKey = key;
+            JobsHost.SetTarget(host);
+            _jobs = AiJobs.Open(host.Inventions.Log.Entries, host.NightQueue?.Held ?? [], host.Decisions.Log.Entries);
+        }
+
+        return [.. _jobs
+            .Select(j => (j.Kind, NameOf(j.InhabitantId), (long)Math.Max(0, (host.World.Tick - j.Tick) / perMinute), j.Waiting))];
     }
 
     /// <summary>A1402 (B4a-S7): the chosen inhabitant's beliefs with their origin, newest first (read only).</summary>
@@ -154,6 +175,20 @@ public static class DebugOverlayModel
             lines.Add(Line("ui.debug.jumps", ("back", keys.Back), ("forward", keys.Forward)));
         }
 
+        if (data.Jobs is { } jobs)
+        {
+            // A1801 (Marcel W2243): what the AI works on now, and what waits for the night.
+            lines.Add(Line("ui.debug.jobs", ("running", jobs.Count(j => !j.Waiting).ToString(CultureInfo.InvariantCulture)), ("waiting", jobs.Count(j => j.Waiting).ToString(CultureInfo.InvariantCulture))));
+            foreach (var job in jobs.Take(MaxJobs))
+            {
+                lines.Add(Line(
+                    job.Waiting ? "ui.debug.job_waiting" : "ui.debug.job",
+                    ("kind", translate("ui.debug.job_kind." + job.Kind) is var text && text != "ui.debug.job_kind." + job.Kind ? text : job.Kind),
+                    ("name", job.Name ?? None),
+                    ("minutes", job.Minutes.ToString(CultureInfo.InvariantCulture))));
+            }
+        }
+
         if (data.Knowledge is { } knowledge)
         {
             // A1402 (B4a-S7): what the chosen inhabitant believes, and from where - experienced, heard from someone, seen.
@@ -173,6 +208,14 @@ public static class DebugOverlayModel
 
         return lines;
     }
+
+    // A1801: the open jobs last read, the world they were read from and its log sizes then (another world reads anew).
+    private static readonly WeakReference<SimulationHost> JobsHost = new(null!);
+    private static (int, int, int) _jobsKey;
+    private static IReadOnlyList<AiJob>? _jobs;
+
+    /// <summary>A1801: at most this many job lines (the rest is in the count).</summary>
+    public const int MaxJobs = 8;
 
     /// <summary>Biome id of the map cell under a ground point (metres), or null without a map or outside it.</summary>
     public static string? BiomeAt(WorldMapSystem? map, double x, double z) =>

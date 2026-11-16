@@ -88,6 +88,44 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void AnEnclosingHollowMakesAFireAnOvenAndDrawnAirAFurnaceWhereOreSmelts()
+    {
+        // A1579 (B4b K6, D1228): no rule names a thing - a fire gives flame; a thing that encloses fire within reach raises
+        // it to strong heat, one that draws air too to melting heat; there ore with charcoal smelts to something metallic.
+        var (host, _, _) = World(port: null, silent: true);
+        var table = Content.Value.Processes!;
+        var fire = host.Objects.Spawn("fire", new Position(1, 0));
+        host.World.Run(1);
+        Assert.Equal(table.HeatIndex("flame"), host.Fire.HeatLevelOf(fire, table.HeatLevels));
+
+        host.Types.Register("test_oven", ["encloses_fire", "building_material"]);
+        host.Objects.Spawn("test_oven", new Position(1.5, 0));
+        Assert.Equal(table.HeatIndex("strong_heat"), host.Fire.HeatLevelOf(fire, table.HeatLevels));
+
+        // Air drawn through it: melting heat. Out of reach it adds nothing.
+        host.Types.Register("test_bellows", ["draws_air", "portable"]);
+        var far = host.Objects.Spawn("test_bellows", new Position(9, 0));
+        Assert.Equal(table.HeatIndex("strong_heat"), host.Fire.HeatLevelOf(fire, table.HeatLevels));
+        host.Objects.Remove(far.Id);
+        host.Objects.Spawn("test_bellows", new Position(0.5, 0));
+        var melting = host.Fire.HeatLevelOf(fire, table.HeatLevels);
+        Assert.Equal(table.HeatIndex("melting_heat"), melting);
+
+        // Ore and charcoal at melting heat: smelt_ore - the ore becomes metallic and malleable, the charcoal is used up.
+        host.Types.Register("test_charcoal", ["smoulders", "portable"]);
+        var truth = new List<System.Collections.Frozen.FrozenSet<string>> { host.Types.TrueProperties("ore_chunk"), host.Types.TrueProperties("test_charcoal") };
+        // A world that has reached smelting (the tech gate is the world's, not this rule's - R12).
+        const int Reached = 99;
+        var match = table.Match(truth, Reached, melting);
+        Assert.Equal("smelt_ore", match?.Rule.Id);
+        Assert.Contains("metallic", match!.Rule.Result.AddProperties);
+        Assert.Contains("ore_bearing", match.Rule.Result.RemoveProperties);
+
+        // Without the drawn air there is no melting heat, so the ore does not smelt.
+        Assert.Null(table.Match(truth, Reached, table.HeatIndex("strong_heat")));
+    }
+
+    [Fact]
     public void ANutHeldToTheFireIsRoastedAndCountsAsMade()
     {
         // B2700: the fire gives its heat level (open_fire); roast_food needs embers, so it applies to the nut.

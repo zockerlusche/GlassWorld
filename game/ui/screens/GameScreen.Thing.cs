@@ -90,7 +90,6 @@ public partial class GameScreen
             window.Content.AddChild(Line(TextFill.Fill(Tr("ui.thing.knows"), new Dictionary<string, string> { ["name"] = NameOfId(knower.InhabitantId), ["facts"] = facts })));
         }
 
-        window.AddAction("ui.common.close").Pressed += window.Close;
         _thingWindow = window;
         ShowWindow(window);
         return window;

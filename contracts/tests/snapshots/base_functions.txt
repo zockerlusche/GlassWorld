@@ -25,3 +25,9 @@ closure | Closure
 worn | Worn on the body.
 worn | Am Körper getragen
 worn | Worn on the body
+enclose_fire | A hollow with firm walls that keeps heat inside.
+enclose_fire | Hitze halten
+enclose_fire | Keep heat in
+blow_air | Moves air by hand or by its shape.
+blow_air | Luft zuführen
+blow_air | Blow air

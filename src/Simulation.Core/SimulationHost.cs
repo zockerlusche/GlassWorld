@@ -483,6 +483,7 @@ public sealed class SimulationHost
             Settings = map is null ? null : content.Fire,
             Nature = nature,
             WindAt = weather is null ? null : weather.WindAt,
+            HeatRaise = content.Processes?.HeatRaise is { Count: > 0 } raise ? [.. raise] : null,
         };
         inhabitants.HeatAt = fire.HeatAt;
 
@@ -799,6 +800,14 @@ public sealed class SimulationHost
 
         // The chronicle's night right after the chronicle; out of the hash while it has told nothing.
         world.Add(chronicle).Add(chronicleNight).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(dialogue).Add(lookEpoch);
+
+        // A1581 (Marcel W2243): material handled by day may let an idea sprout, in the inhabitant's own ideas.
+        if (content.Knowledge.MaterialIdeas is { } materialData && content.Knowledge.Review is { } review)
+        {
+            var materialIdeas = new MaterialIdeasSystem(materialData, review, inhabitants, objects);
+            inhabitants.Reported += materialIdeas.Observe;
+            world.Add(materialIdeas);
+        }
 
         // A1778 (B2814): every failed action becomes an open question - collected from the events, asked at the end of the
         // tick by the last system, so nothing waits across a save.

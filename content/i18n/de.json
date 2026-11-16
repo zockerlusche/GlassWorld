@@ -839,6 +839,14 @@
       "text": "Schnell (zweite Stufe)"
     },
     {
+      "key": "ui.card.favourite_tooltip",
+      "text": "Lieblinge stehen in der Ecke oben, und du hörst eher von ihnen."
+    },
+    {
+      "key": "ui.memory.export_tooltip",
+      "text": "Speichert die Erinnerungen als Seite zum Lesen und als Text in den Datenordner."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },
@@ -1369,6 +1377,14 @@
     {
       "key": "vocab.base_function.closure",
       "text": "Verschluss"
+    },
+    {
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Hitze halten"
+    },
+    {
+      "key": "vocab.base_function.blow_air",
+      "text": "Luft zuführen"
     },
     {
       "key": "vocab.property.braidable",
@@ -3619,6 +3635,74 @@
       "text": "Debug-Sprünge: {back} und {forward} wechseln die Epoche"
     },
     {
+      "key": "ui.debug.jobs",
+      "text": "KI-Aufträge: {running} laufen, {waiting} warten auf die Nacht"
+    },
+    {
+      "key": "ui.debug.job",
+      "text": "  · {kind} – {name} – seit {minutes} Spielminuten"
+    },
+    {
+      "key": "ui.debug.job_waiting",
+      "text": "  · {kind} – {name} – wartet seit {minutes} Spielminuten"
+    },
+    {
+      "key": "ui.debug.job_kind.decide",
+      "text": "Entscheidung"
+    },
+    {
+      "key": "ui.debug.job_kind.question",
+      "text": "Frage"
+    },
+    {
+      "key": "ui.debug.job_kind.memory",
+      "text": "Erinnerung"
+    },
+    {
+      "key": "ui.debug.job_kind.invention",
+      "text": "Erfindung"
+    },
+    {
+      "key": "ui.debug.job_kind.build_plan",
+      "text": "Bauplan"
+    },
+    {
+      "key": "ui.debug.job_kind.process",
+      "text": "Verarbeiten"
+    },
+    {
+      "key": "ui.debug.job_kind.dream",
+      "text": "Traum"
+    },
+    {
+      "key": "ui.debug.job_kind.chronicle",
+      "text": "Chronik"
+    },
+    {
+      "key": "ui.debug.job_kind.image",
+      "text": "Bild"
+    },
+    {
+      "key": "ui.debug.job_kind.sound",
+      "text": "Klang"
+    },
+    {
+      "key": "ui.debug.job_kind.model3d",
+      "text": "3D-Modell"
+    },
+    {
+      "key": "ui.debug.job_kind.review",
+      "text": "Rückblick"
+    },
+    {
+      "key": "ui.debug.job_kind.milestone",
+      "text": "Meilenstein"
+    },
+    {
+      "key": "ui.debug.job_kind.dialogue",
+      "text": "Gespräch"
+    },
+    {
       "key": "ui.question.settled",
       "text": "Das hat sich erledigt."
     },
@@ -4257,6 +4341,18 @@
     {
       "key": "vocab.property.dug",
       "text": "gegraben"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Umschließend"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Luftführend"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallisch"
     },
     {
       "key": "vocab.event.dug",

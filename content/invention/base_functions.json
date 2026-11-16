@@ -51,6 +51,20 @@
       "grants_properties": [
         "wearable"
       ]
+    },
+    {
+      "id": "enclose_fire",
+      "description": "A hollow with firm walls that keeps heat inside.",
+      "grants_properties": [
+        "encloses_fire"
+      ]
+    },
+    {
+      "id": "blow_air",
+      "description": "Moves air by hand or by its shape.",
+      "grants_properties": [
+        "draws_air"
+      ]
     }
   ]
 }
