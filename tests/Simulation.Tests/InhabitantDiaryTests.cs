@@ -140,6 +140,14 @@ public sealed class InhabitantDiaryTests : IDisposable
         host.World.Run(Content.Value.Calendar.Settings.TicksPerHour * 12);
         Assert.NotEmpty(host.Diary.All);
 
+        // Saved when no decider answer is on its way (as LookEpochTests): a loaded world's port never gets an answer the
+        // running one still receives. With free moments every 3 h and after 45 min idle (A1794) one is often in flight.
+        for (var i = 0; i < 200 && host.Decisions.Open.Any(q => q.RequestId.Length > 0 && q.RetryAtTick is null); i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.DoesNotContain(host.Decisions.Open, q => q.RequestId.Length > 0 && q.RetryAtTick is null);
         var path = Path.Combine(_directory, "diary.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
         var loaded = Restore(SaveGameStore.Load(path));

@@ -652,12 +652,23 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// any question without a subject; the AI chooses and thinks. Before this, once everything in reach was known,
     /// nobody asked any more and the days went silent.
     /// </summary>
+    // A1794: what a free moment leaves out of its options - set by Send for every leisure request, also one held back and
+    // sent later or sent again (review GW3 #531).
+    private ICollection<string>? _notOffered;
+
     private void AskAtLeisure(World world, LeisureSettings leisure)
     {
         foreach (var inhabitant in _inhabitants.Ordered)
         {
             // D1086 (B2728): drive makes free moments come more often and with less strength - how often, never what.
             var every = (long)(leisure.EveryHours / Math.Max(0.01, TraitFactor.Of(leisure.EveryHoursByTrait, inhabitant.Traits)) * world.Calendar.Settings.TicksPerHour);
+
+            // A1794 (D1212): one who stands idle is asked again sooner - three idle actions are a free moment, not hours.
+            if (leisure.WhenIdle is { } idle && inhabitant.Activity?.Action == idle.Action)
+            {
+                every = Math.Min(every, Math.Max(1, (long)idle.EveryMinutes * world.Calendar.Settings.TicksPerHour / 60));
+            }
+
             var needsAtLeast = leisure.NeedsAtLeast * TraitFactor.Of(leisure.NeedsAtLeastByTrait, inhabitant.Traits);
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
@@ -1252,7 +1263,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
             ? Shuffled(stuck(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
             : kind == BuildSite && SiteOptions is { } sites
             ? Shuffled(sites(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
-            : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
+            : BuildOptionsFor(kind, inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
@@ -1385,6 +1396,20 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
+    /// <summary>The options of a question of this kind: a free moment leaves out the data's not_offered (A1794).</summary>
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptionsFor(string kind, Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
+    {
+        _notOffered = kind == Leisure ? _settings.Leisure?.NotOffered : null;
+        try
+        {
+            return BuildOptions(asker, target, tick, others, things, orderSeed, out partners);
+        }
+        finally
+        {
+            _notOffered = null;
+        }
+    }
+
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
@@ -1398,6 +1423,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
+            // A1794 (D1212): a free moment does not offer what the data leave out (standing idle).
+            if (_notOffered?.Contains(action) == true)
+            {
+                continue;
+            }
+
             // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
             var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 

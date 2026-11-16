@@ -25,7 +25,9 @@
   },
   "leisure": {
     "needs_at_least": 0.3,
-    "every_hours": 6,
+    "every_hours": 3,
+    "when_idle": { "action": "idle", "every_minutes": 45 },
+    "not_offered": ["idle"],
     "every_hours_by_trait": { "trait": "drive", "curve": [[0.2, 0.75], [0.55, 1.0], [0.9, 1.5]] },
     "needs_at_least_by_trait": { "trait": "drive", "curve": [[0.2, 1.15], [0.55, 1.0], [0.9, 0.85]] }
   },
