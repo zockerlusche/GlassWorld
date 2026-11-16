@@ -43,6 +43,27 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("answer_within_minutes")]
         public int AnswerWithinMinutes { get; set; } = default!;
 
+        /// <summary>
+        /// A1587 S3 (B7 R23, R26; B2804): up to which rank a day request may go to the AI at a speed (the entry with the highest speed not above the game's). Ranks: 1 what the player raises (always), 2 the inhabitant the camera follows and those near it, 3 what is new or pressing (first_kinds), 4 everything else. Omitted = every rank at every speed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("levels_by_speed")]
+        public System.Collections.Generic.ICollection<Levels_by_speed>? LevelsBySpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Inhabitants within this many metres of the followed one share its rank 2 (B2804: talks of the followed one at the fastest speed). Omitted = only the followed one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("near_followed_m")]
+        public double? NearFollowedM { get; set; } = default!;
+
+        /// <summary>
+        /// Question kinds of rank 3 (R23: new or pressing - something unknown for the first time, a stuck building). Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("first_kinds")]
+        public System.Collections.Generic.ICollection<string>? FirstKinds { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -244,6 +265,24 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("fallback_environment")]
         public FallbackEnvironment FallbackEnvironment { get; set; } = new FallbackEnvironment();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Levels_by_speed
+    {
+
+        /// <summary>
+        /// Speed factor from which the entry holds (1 = normal).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speed")]
+        public int Speed { get; set; } = default!;
+
+        /// <summary>
+        /// Highest rank that still goes to the AI (1-4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("up_to_level")]
+        public int UpToLevel { get; set; } = default!;
 
     }
 

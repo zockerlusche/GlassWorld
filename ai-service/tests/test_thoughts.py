@@ -200,3 +200,31 @@ def test_v10_has_no_noun_check(settings: Settings) -> None:
     )
     app, _ = _decider(settings, answer, version=10)
     assert post(app, "/decide", REQUEST).json()["thought"]["text"] == "Ich mache Feuer."
+
+
+# --- v16 (A1797, Marcel W2243): no prior knowledge - every noun is judged ------------------------
+
+
+@pytest.mark.parametrize(
+    ("thought", "shown15", "shown16"),
+    [
+        ("So regnerisch, ich mache mir einen Kaffee.", True, False),  # W2243: from elsewhere
+        ("Eine Bank wäre schön.", True, False),  # nothing here is a bench
+        ("Ich wünsche mir ein Gespräch.", True, True),  # a general word stays
+        ("Hast du was Neues gefunden?", True, True),  # a general word (more of them in v16)
+        ("Ob der Apfelbaum wohl trägt?", True, True),  # an apple tree in sight
+        ("Ob hier irgendwo Pilze wachsen?", False, False),  # as in v11
+    ],
+)
+def test_v16_a_thought_naming_a_thing_from_elsewhere_is_left_out(
+    settings: Settings, thought: str, shown15: bool, shown16: bool
+) -> None:
+    answer = json.dumps(
+        {"rationale": "x", "option_id": "o1", "expression": None, "thought": thought}
+    )
+    for version, shown in ((15, shown15), (16, shown16)):
+        app, _ = _decider(settings, answer, version=version)
+        body = post(app, "/decide", REQUEST).json()
+        assert body["option_id"] == "o1"  # the action runs either way (B2644)
+        said = body["thought"]["text"] if body["thought"] else None
+        assert (said == thought) is shown, (version, thought)

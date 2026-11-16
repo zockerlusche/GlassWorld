@@ -560,7 +560,7 @@
     },
     {
       "key": "ui.settings.data_folder.desc",
-      "text": "Hier liegen die Welten, Einstellungen und Protokolle dieses Spiels."
+      "text": "Hier liegen die Welten und Einstellungen dieses Spiels."
     },
     {
       "key": "ui.settings.data_folder.open",
@@ -657,6 +657,50 @@
     {
       "key": "ui.settings.keep.back",
       "text": "Zurück"
+    },
+    {
+      "key": "ui.settings.log_folder",
+      "text": "Protokollordner"
+    },
+    {
+      "key": "ui.settings.log_folder.desc",
+      "text": "Hier schreibt das Spiel mit, was in den Welten und bei der KI geschieht. Hilfreich, wenn du einen Fehler meldest."
+    },
+    {
+      "key": "ui.settings.log_folder.open",
+      "text": "Öffnen"
+    },
+    {
+      "key": "ui.settings.invert_turn_x",
+      "text": "Drehen umkehren"
+    },
+    {
+      "key": "ui.settings.invert_turn_x.desc",
+      "text": "Mit gehaltener rechter Maustaste dreht sich die Sicht in die andere Richtung."
+    },
+    {
+      "key": "ui.settings.invert_turn_y",
+      "text": "Neigen umkehren"
+    },
+    {
+      "key": "ui.settings.invert_turn_y.desc",
+      "text": "Mit gehaltener rechter Maustaste neigt sich die Sicht nach oben und unten andersherum."
+    },
+    {
+      "key": "ui.settings.invert_pan_x",
+      "text": "Verschieben waagerecht umkehren"
+    },
+    {
+      "key": "ui.settings.invert_pan_x.desc",
+      "text": "Beim Ziehen mit der Maus wandert die Insel nach links und rechts andersherum."
+    },
+    {
+      "key": "ui.settings.invert_pan_y",
+      "text": "Verschieben senkrecht umkehren"
+    },
+    {
+      "key": "ui.settings.invert_pan_y.desc",
+      "text": "Beim Ziehen mit der Maus wandert die Insel nach oben und unten andersherum."
     },
     {
       "key": "ui.settings.language",
