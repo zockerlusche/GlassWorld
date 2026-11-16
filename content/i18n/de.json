@@ -759,6 +759,82 @@
       "text": "Klopft ein Bewohner an die Scheibe, hält die Welt an, bis du weitermachst."
     },
     {
+      "key": "ui.settings.keys",
+      "text": "Tasten belegen"
+    },
+    {
+      "key": "ui.settings.key.desc",
+      "text": "Klicke auf die Taste und drücke dann die neue. Esc bricht ab. Maustasten und das Mausrad bleiben."
+    },
+    {
+      "key": "ui.settings.key.press",
+      "text": "Taste drücken …"
+    },
+    {
+      "key": "ui.settings.key.tooltip",
+      "text": "Klicken, dann die neue Taste drücken"
+    },
+    {
+      "key": "ui.settings.key.conflict",
+      "text": "Doppelt belegt: {key} – {actions}"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_forward",
+      "text": "Sicht nach vorn"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_back",
+      "text": "Sicht zurück"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_left",
+      "text": "Sicht nach links"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_right",
+      "text": "Sicht nach rechts"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_left",
+      "text": "Links drehen"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_right",
+      "text": "Rechts drehen"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_in",
+      "text": "Heranzoomen"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_out",
+      "text": "Herauszoomen"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_reset",
+      "text": "Zurück zur Startansicht"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_leave",
+      "text": "Bewohner nicht mehr folgen"
+    },
+    {
+      "key": "ui.settings.key.gw_time_pause",
+      "text": "Pause"
+    },
+    {
+      "key": "ui.settings.key.gw_time_normal",
+      "text": "Normales Tempo"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_1",
+      "text": "Schnell (erste Stufe)"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_2",
+      "text": "Schnell (zweite Stufe)"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },

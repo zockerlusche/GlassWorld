@@ -50,7 +50,8 @@ public sealed class SettingsLayoutTests
                     Assert.Contains("ui.settings." + row, keys);
                 }
 
-                Assert.Contains("ui.settings." + row + ".desc", keys);
+                // A1815: the key rows (key.<action>) share one description.
+                Assert.Contains(GlassWorld.Presentation.Ui.KeyBindings.ActionOfRow(row) is null ? "ui.settings." + row + ".desc" : "ui.settings.key.desc", keys);
             }
         }
 
