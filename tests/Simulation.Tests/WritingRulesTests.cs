@@ -219,6 +219,79 @@ public sealed class WritingRulesTests : IDisposable
     }
 
     [Fact]
+    public void AWriterWritesItsSurestBeliefOnACarrierAndAnotherReadsItOnPurpose()
+    {
+        // A1357 part 2 (spec 33 section 9a, criterion 5 of the spec's open points): one who can write puts its surest own
+        // belief on a thing; one who can read reads it on purpose (curiosity does not matter) and learns it as 'read'.
+        var (host, writer, reader) = Placeholder();
+        var write = host.Content.Writing.Write;
+        var read = host.Content.Writing.Read;
+        host.SkillLevels.Restore([new SkillGain(writer.Id, write.Ability, 0.5), new SkillGain(reader.Id, read.Ability, 0.5)]);
+        writer.Beliefs.Set("water", "drinkable", true, 0.9, KnowledgeSources.Experienced);
+        writer.Beliefs.Set("water", "edible", false, 0.7, KnowledgeSources.Experienced);
+        reader.Traits[read.CuriosityTrait] = 0.0;
+        var stone = host.Objects.Spawn("fieldstone", writer.Position);
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind is WritingSystem.TextWritten or WritingSystem.TextRead)
+            {
+                events.Add(e);
+            }
+        };
+
+        Assert.True(host.Writing.Offers(writer, write.Action!, stone));
+        Assert.False(host.Writing.Offers(reader, write.Action!, stone)); // it cannot write
+        writer.Activity = new Activity(write.Action!, stone.Id, stone.Position, null);
+        writer.Planned = null;
+        for (var i = 0; i < 200 && host.Writing.On(stone.Id) is null; i++)
+        {
+            host.World.Step();
+        }
+
+        var text = host.Writing.On(stone.Id);
+        Assert.NotNull(text);
+        Assert.Equal(("belief:water|drinkable|true", writer.Id), (text!.KnowledgeRef, text.AuthorId));
+        Assert.True(text.Legibility > 0 && text.Legibility <= 0.5, $"legibility {text.Legibility}"); // carrier's best x skill 0.5
+        Assert.Contains(events, e => e.Kind == WritingSystem.TextWritten && e.InhabitantId == writer.Id && e.TargetId == stone.Id);
+
+        // The stone carries a text now: nobody writes on it again; the next text nearby would say the next surest thing
+        // (review GW3 #549: not the same sentence on every stone).
+        Assert.False(host.Writing.Offers(writer, write.Action!, stone));
+        Assert.Equal(("water", "edible", false), host.Writing.BeliefToWrite(writer));
+        Assert.True(host.Writing.Offers(reader, read.Action!, stone));
+        reader.Position = stone.Position;
+        reader.Activity = new Activity(read.Action!, stone.Id, stone.Position, null);
+        reader.Planned = null;
+        for (var i = 0; i < 100 && !events.Any(e => e.Kind == WritingSystem.TextRead && e.InhabitantId == reader.Id); i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.True(reader.Beliefs.TryGet("water", "drinkable", out var learned));
+        Assert.Equal((true, KnowledgeSources.Read, writer.Id), (learned.Value, learned.Source, learned.ToldBy));
+        Assert.False(host.Writing.Offers(reader, read.Action!, stone)); // read once
+    }
+
+    [Fact]
+    public void WithoutTheSkillsNeitherWriteNorReadIsOffered()
+    {
+        // R14: nobody starts with reading or writing - the decider is never offered either.
+        var (host, one, _) = Placeholder();
+        one.Beliefs.Set("water", "drinkable", true, 0.9, KnowledgeSources.Experienced);
+        var stone = host.Objects.Spawn("fieldstone", one.Position);
+        var written = host.Objects.Spawn("fieldstone", one.Position);
+        host.Writing.Place(new WrittenText(written.Id, "carving_stone", "belief:water|drinkable|true", "inh-000099", 0, 0.8));
+        Assert.False(host.Writing.Offers(one, host.Content.Writing.Write.Action!, stone));
+        Assert.False(host.Writing.Offers(one, host.Content.Writing.Read.Action!, written));
+
+        // A belief it only read is not what it writes.
+        host.SkillLevels.Restore([new SkillGain(one.Id, host.Content.Writing.Write.Ability, 0.5)]);
+        one.Beliefs.Set("water", "drinkable", true, 0.95, KnowledgeSources.Read);
+        Assert.Null(host.Writing.BeliefToWrite(one));
+    }
+
+    [Fact]
     public void AnOldTextIsFoundOnceAYoungOneIsOnlySeen()
     {
         var (host, finder, other) = Placeholder();
