@@ -38,6 +38,12 @@ class ObjectParams(BaseModel):
         ge=0,
         le=2000,
     )
+    leaves_behind: str | None = Field(
+        None,
+        description='A1830: the object type that stays at its place when a process uses this thing up (a felled tree leaves its stump); it goes again when the thing grows back there. Omitted = nothing stays.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     obstacle_radius_cm: int | None = Field(
         None,
         description='Radius of the solid part on the ground that nobody walks through (a trunk, a rock), in centimetres (A1790): the path search goes around the cells it covers, and a walk to the thing itself ends in front of it. Omitted or 0 = no obstacle. Placeholder values.',

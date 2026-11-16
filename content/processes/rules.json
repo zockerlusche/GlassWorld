@@ -46,10 +46,54 @@
     },
     "never_if": {
       "melt": [
-        "burnable"
+        "burnable",
+        "rooted"
+      ],
+      "heat": [
+        "rooted"
+      ],
+      "soak": [
+        "rooted"
+      ],
+      "dry": [
+        "rooted"
+      ],
+      "grind": [
+        "rooted"
+      ],
+      "mix": [
+        "rooted"
+      ],
+      "strike": [
+        "rooted"
+      ],
+      "cut": [
+        "rooted"
+      ],
+      "split": [
+        "rooted"
+      ],
+      "bind": [
+        "rooted"
+      ],
+      "braid": [
+        "rooted"
+      ],
+      "shape": [
+        "rooted"
+      ],
+      "fire": [
+        "rooted"
+      ],
+      "char": [
+        "rooted"
+      ],
+      "fell": [
+        "portable"
       ]
     },
     "may_add": {
+      "fell": [],
       "heat": [
         "hot",
         "cooked"
@@ -108,6 +152,7 @@
       ]
     },
     "may_remove": {
+      "fell": [],
       "heat": [],
       "dry": [
         "malleable"
@@ -160,6 +205,38 @@
     { "properties_near": ["encloses_fire", "draws_air"], "reach_m": 1.5, "raises_to": "melting_heat" }
   ],
   "rules": [
+    {
+      "id": "fell_tree",
+      "process": "fell",
+      "inputs": [
+        {
+          "properties_all": [
+            "rooted",
+            "burnable",
+            "splittable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard",
+          "sharp"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 120,
+      "tech_level": "shaping",
+      "result": {
+        "add_properties": [],
+        "remove_properties": [],
+        "produces": "felled_trunk",
+        "consumes": [
+          0
+        ]
+      }
+    },
     {
       "id": "split_hard_stone",
       "was": ["split_hard_stone_to_edge"],

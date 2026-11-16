@@ -377,6 +377,9 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// </summary>
     public IReadOnlyDictionary<string, int> ObstacleRadiusCm { get; init; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
+    /// <summary>A1830: per type, what it leaves behind when used up (catalog leaves_behind) - gone again when it grows back.</summary>
+    public IReadOnlyDictionary<string, string> LeavesBehind { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>
     /// A1790: how far (metres) a walker's middle keeps from the edge of an obstacle where a walk to it ends - half
     /// the smallest distance between two inhabitants (gaits spacing), set by the host.
@@ -894,6 +897,27 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     }
 
     /// <summary>
+    /// A1830: a thing that grows back where it was used up takes the place of what it left behind there (a tree its
+    /// stump): the remains of its type (catalog leaves_behind) in its cell go, the first by id.
+    /// </summary>
+    private void ClearRemains(Occurrence place)
+    {
+        if (_objects is null || !LeavesBehind.TryGetValue(place.TypeId, out var remains))
+        {
+            return;
+        }
+
+        var left = _objects.All
+            .Where(o => o.TypeId == remains && CellOf(o.Position) == (place.X, place.Z))
+            .OrderBy(o => o.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (left is not null)
+        {
+            _objects.Remove(left.Id);
+        }
+    }
+
+    /// <summary>
     /// A1373 (D827 R15): free places for a building near a position, nearest first (cell centres; ties by cell): dry
     /// land that can be walked on, in the same walkable area as the position (reachable on foot), with no thing within
     /// the data's clearance, and at least min_spacing_m apart. At most the data's number; empty without the objects.
@@ -1014,6 +1038,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 : Grown?.Invoke(place.TypeId, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId])
                     ?? world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
             {
+                ClearRemains(place);
                 var grown = _objects.Spawn(place.TypeId, CentreOf(place.X, place.Z));
                 _occurrences[i] = place with { ObjectId = grown.Id, GoneSinceTick = null };
                 _growing.Remove(place.ObjectId);

@@ -31,6 +31,10 @@
       "description": "Cut something with a sharp edge."
     },
     {
+      "id": "fell",
+      "description": "Cut down something that grows in the ground (A1830)."
+    },
+    {
       "id": "split",
       "description": "Break something apart along its grain or layers."
     },

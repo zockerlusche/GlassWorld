@@ -93,6 +93,9 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Properties every made thing has (content/invention/settings.json implied_properties: crafted, B2700).</summary>
     public IReadOnlyList<string> Implied { get; init; } = [];
 
+    /// <summary>A1830: per type, what stays at its place when a process uses a thing of it up (catalog leaves_behind).</summary>
+    public IReadOnlyDictionary<string, string> LeavesBehind { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>The world's one job log (shared with the inventions).</summary>
     public DecisionLog Log { get; }
 
@@ -306,8 +309,15 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
 
         foreach (var index in consumed.Order())
         {
-            _objects.Remove(things[index].Id);
+            var used = things[index];
+            _objects.Remove(used.Id);
             changed = true;
+
+            // A1830: what stays in the ground (a felled tree leaves its stump), at the thing's place.
+            if (LeavesBehind.TryGetValue(used.TypeId, out var remains) && _types.Contains(remains))
+            {
+                _objects.Spawn(remains, used.Position);
+            }
         }
 
         if (result.Produces is { } produces && _types.Contains(produces))
