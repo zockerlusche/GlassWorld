@@ -67,7 +67,7 @@ public sealed class GestureCadenceTests
     [Fact]
     public void AGestureRisesHoldsLowersAndRestsWithoutJumps()
     {
-        foreach (var gesture in Figures().Gestures!)
+        foreach (var gesture in Figures().Gestures!.Where(g => g.Steady != true))
         {
             var cycle = GestureCadence.CycleS(gesture);
             Assert.InRange(cycle, 1, 30);

@@ -7,8 +7,8 @@
       "schema": "vocabulary"
     },
     {
-      "pattern": "world/digging.json",
-      "schema": "digging-settings"
+      "pattern": "look/carried.json",
+      "schema": "look-carried"
     },
     {
       "pattern": "world/time.json",
@@ -345,6 +345,10 @@
     {
       "pattern": "learning/log.json",
       "schema": "learning-log-settings"
+    },
+    {
+      "pattern": "world/digging.json",
+      "schema": "digging-settings"
     },
     {
       "pattern": "fauna/ambient.json",

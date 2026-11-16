@@ -548,6 +548,12 @@ public sealed class SimulationHost
 
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
         inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+
+        // A1498 (B2828): nobody lies down in the water - the map knows where dry ground is.
+        if (map is not null)
+        {
+            inhabitants.DryGroundNear = map.DryGroundNear;
+        }
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;

@@ -232,6 +232,10 @@
           "minimum": 0,
           "maximum": 10
         },
+        "steady": {
+          "description": "A1785: once risen the gesture holds as long as it is shown (carrying) - no lowering, no rest; missing = it cycles.",
+          "type": "boolean"
+        },
         "hold_s": {
           "description": "Real seconds the hand stays at the head (mouth).",
           "type": "number",
