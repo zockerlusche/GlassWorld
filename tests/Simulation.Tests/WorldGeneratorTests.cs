@@ -11,6 +11,36 @@ public sealed class WorldGeneratorTests
         WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed);
 
     [Fact]
+    public void TheResourceFactorScalesDensityAndLimitsButKeepsAtLeastOne()
+    {
+        // A1770 (B2805 'Einfach'): poor/normal/rich multiply every spawn rule; a rule never drops to nothing.
+        var content = Content.Value.WorldGen;
+        var poor = WorldGenerator.Rich(content.Spawns, 0.6);
+        var rich = WorldGenerator.Rich(content.Spawns, 1.5);
+        Assert.Same(content.Spawns, WorldGenerator.Rich(content.Spawns, 1.0));
+        for (var i = 0; i < content.Spawns.Spawns.Count; i++)
+        {
+            var rule = content.Spawns.Spawns.ElementAt(i);
+            Assert.True(poor.Spawns.ElementAt(i).MaxTotal <= rule.MaxTotal && rich.Spawns.ElementAt(i).MaxTotal >= rule.MaxTotal);
+            Assert.True(rule.MaxTotal == 0 || poor.Spawns.ElementAt(i).MaxTotal >= 1);
+        }
+    }
+
+    [Theory]
+    [InlineData(0.6, 1, 11UL)]
+    [InlineData(0.6, 4, 12UL)]
+    [InlineData(1.5, 1, 13UL)]
+    [InlineData(1.5, 4, 14UL)]
+    [InlineData(1.0, 3, 15UL)]
+    public void EverySimpleChoiceBuildsAnIslandThatPasses(double factor, int pairs, ulong seed)
+    {
+        // A1770 (B2805, B2808): every combination of the 'Einfach' controls builds a valid island with its starts.
+        var island = WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed, null, factor, pairs);
+        Assert.True(island.Passed, string.Join(", ", island.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
+        Assert.Equal(pairs * 2, island.Starts.Count);
+    }
+
+    [Fact]
     public void SameSeedGivesTheSameWorldTwice()
     {
         Assert.Equal(Generate(42).Hash(), Generate(42).Hash());
