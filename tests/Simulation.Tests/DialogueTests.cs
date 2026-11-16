@@ -205,6 +205,27 @@ public sealed class DialogueTests : IDisposable
     }
 
     [Fact]
+    public void AReplayOfATalkDroppedForLatenessWritesTheSameJobLog()
+    {
+        // B4b night run 15./16.11. (REPLAY_DIFF tick=242): the core's own 'too late' line went back in as a message, found
+        // no open talk and fell to the inventions as a contract violation - a line the live run never had.
+        var (host, port) = World();
+        Talk(host, "inh-000001", "inh-000002");
+        Assert.Single(port.Dialogue);
+        var ticks = (int)Math.Ceiling(Settings.AnswerWithinHours * host.World.Calendar.Settings.TicksPerHour) + 5;
+        host.World.Run(ticks);
+
+        var replay = SimulationHost.CreateEmpty(ContentDirectory, 21, new SilentDecisionPort(), "de", new ReplayJobPort(host.Inventions.Log));
+        Name(replay);
+        Talk(replay, "inh-000001", "inh-000002");
+        replay.World.Run(ticks);
+
+        static string Line(DecisionLogEntry e) => $"{e.Kind} {e.RequestId} {e.Tick} {e.Note}";
+        Assert.Equal(host.Inventions.Log.Entries.Select(Line), replay.Inventions.Log.Entries.Select(Line));
+        Assert.Contains(replay.Inventions.Log.Entries, e => e.Note == DialogueSystem.TooLate);
+    }
+
+    [Fact]
     public void ATalkChangesNothingInTheWorldButTheEvents()
     {
         var (host, port) = World();
