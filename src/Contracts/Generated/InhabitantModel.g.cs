@@ -449,6 +449,13 @@ namespace GlassWorld.Contracts
         public WakeRested? WakeRested { get; set; } = default!;
 
         /// <summary>
+        /// A1498 (B2828, Marcel 15a: one lay in the stream): nobody lies down in the water - one who would sleep on a wet cell (sea, stream, pond, swamp) walks to the nearest dry ground within this distance first. Omitted = it sleeps where it stands, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dry_ground_within_m")]
+        public double? DryGroundWithinM { get; set; } = default!;
+
+        /// <summary>
         /// B2778 (A1711): a sleep that would end while it is still night (before sunrise) lasts until the morning - one who lay down at bedtime wakes with the day, not at 3 a.m., and does not get tired again by noon. A pressing need still wakes it. Omitted = false (the action's duration).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -667,6 +674,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("at")]
         public double At { get; set; } = default!;
+
+        /// <summary>
+        /// A1498 (B2828): by day a sleep ends after this many game hours at most, rested or not - a nap is not the afternoon. Omitted = only the need ends it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_nap_hours")]
+        public double? MaxNapHours { get; set; } = default!;
 
     }
 

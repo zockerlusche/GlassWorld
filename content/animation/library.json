@@ -662,6 +662,11 @@
       "kind": "action",
       "id": "sail",
       "clip": "family_not_yet_made"
+    },
+    {
+      "kind": "action",
+      "id": "dig",
+      "clip": "kneel_work"
     }
   ],
   "gaits": [

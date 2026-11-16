@@ -3083,6 +3083,18 @@
       "text": "Help and gifts"
     },
     {
+      "key": "ui.corner.knocking",
+      "text": "Knocking at the glass"
+    },
+    {
+      "key": "ui.corner.worry",
+      "text": "Something has been missing for a long time"
+    },
+    {
+      "key": "ui.corner.aha",
+      "text": "Just managed something - click, and the star goes"
+    },
+    {
       "key": "ui.corner.brooding",
       "text": "Puzzling over a question"
     },
@@ -3833,6 +3845,54 @@
     {
       "key": "vocab.event.arrival",
       "text": "Arrived"
+    },
+    {
+      "key": "vocab.action.dig",
+      "text": "dig"
+    },
+    {
+      "key": "vocab.property.digs",
+      "text": "bites into the ground"
+    },
+    {
+      "key": "vocab.property.ore_bearing",
+      "text": "ore-bearing"
+    },
+    {
+      "key": "vocab.property.dug",
+      "text": "dug"
+    },
+    {
+      "key": "vocab.event.dug",
+      "text": "Dug"
+    },
+    {
+      "key": "vocab.event.dig_failed",
+      "text": "Digging did not work"
+    },
+    {
+      "key": "vocab.event.well_dug",
+      "text": "Water in the hole"
+    },
+    {
+      "key": "vocab.object.pit",
+      "text": "pit"
+    },
+    {
+      "key": "vocab.object.waterhole",
+      "text": "waterhole"
+    },
+    {
+      "key": "vocab.object.earth",
+      "text": "earth"
+    },
+    {
+      "key": "vocab.object.sand",
+      "text": "sand"
+    },
+    {
+      "key": "vocab.object.ore_chunk",
+      "text": "ore lump"
     }
   ]
 }

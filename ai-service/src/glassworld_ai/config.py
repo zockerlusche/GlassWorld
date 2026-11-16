@@ -152,6 +152,10 @@ class Settings(BaseSettings):
     content_dir: Path
     schemas_dir: Path
     log_dir: Path
+    log_max_mb: float = Field(
+        default=20, gt=0, le=10_000, description="A call log rolls to a part beyond this size."
+    )
+    log_keep: int = Field(default=4, ge=1, le=100, description="Rolled parts kept per call log.")
     lock_dir: Path
     sound_output_dir: Path = Field(description="Made sounds; the game copies them into the world.")
     model3d_image_dir: Path = Field(description="Pictures of image jobs (input of 3D jobs).")

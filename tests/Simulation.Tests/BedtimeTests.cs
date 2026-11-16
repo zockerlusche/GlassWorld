@@ -150,6 +150,45 @@ public sealed class BedtimeTests
     }
 
     [Fact]
+    public void ByDayANapEndsAfterTheDataHoursEvenIfNotRested()
+    {
+        // A1498 (B2828, Marcel 15a: Kira slept six hours of the afternoon): a nap by day ends after max_nap_hours.
+        var rested = Content.InhabitantModel.Togetherness!.WakeRested!;
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de");
+        var napper = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(napper);
+        var calendar = host.World.Calendar;
+        var noon = FirstNightTick(calendar) - (7 * calendar.Settings.TicksPerHour);
+        host.World.Run(noon - host.World.Tick);
+        foreach (var need in napper.Needs.Keys.ToList())
+        {
+            napper.Needs[need] = 1.0;
+        }
+
+        // Very tired, but not below the line that wakes for another need: only the nap's hours end it.
+        napper.Needs[rested.Need] = 0.3;
+        napper.Activity = new Activity("sleep", null, napper.Position, null);
+        napper.Planned = null;
+        long? wokeAt = null;
+        double? atWaking = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == napper.Id && e.Detail == InhabitantsSystem.WokenRested)
+            {
+                wokeAt ??= e.Tick;
+                atWaking ??= napper.Needs[rested.Need];
+            }
+        };
+        var started = host.World.Tick;
+        host.World.Run(4 * calendar.Settings.TicksPerHour);
+
+        Assert.NotNull(wokeAt);
+        var hours = (double)(wokeAt!.Value - started) / calendar.Settings.TicksPerHour;
+        Assert.InRange(hours, rested.MaxNapHours!.Value - 0.1, rested.MaxNapHours.Value + 0.1);
+        Assert.True(atWaking < rested.At, $"woken by the nap's hours, not rested: {atWaking:0.000}");
+    }
+
+    [Fact]
     public void TheServiceHearsNightWhenAllSleepOrAtTheLimitNotAtNightfall()
     {
         var port = new PhasePort();
