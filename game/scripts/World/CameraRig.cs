@@ -75,6 +75,9 @@ public partial class CameraRig : Node3D
     /// <summary>Picture runs: the rig neither reads input nor moves the camera (the run places it).</summary>
     public bool Held { get; set; }
 
+    /// <summary>A1749 (B2825): the mouse axes from the settings; the default turns nothing round.</summary>
+    public static GlassWorld.Presentation.Ui.MouseAxes Axes { get; set; } = new();
+
     /// <summary>The camera logic (tested in Game.Presentation).</summary>
     public CameraModel Model { get; private set; } = null!;
 
@@ -213,7 +216,8 @@ public partial class CameraRig : Node3D
                 }
                 else
                 {
-                    Model.Drag(motion.Relative.X, motion.Relative.Y);
+                    var (dx, dy) = Axes.Turn(motion.Relative.X, motion.Relative.Y);
+                    Model.Drag(dx, dy);
                     _pointer = motion.Position;
                 }
             }
@@ -314,7 +318,7 @@ public partial class CameraRig : Node3D
         var (fx, fy, aspect) = Ndc(_pointer);
         var (tx, ty, _) = Ndc(screen);
         _pointer = screen;
-        if (Model.Grab((fx, fy), (tx, ty), aspect))
+        if (Model.Grab((fx, fy), Axes.PanTo((fx, fy), (tx, ty)), aspect))
         {
             Panned?.Invoke();
         }
