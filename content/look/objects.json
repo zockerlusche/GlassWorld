@@ -803,6 +803,7 @@
         "embers_scale": 0.35,
         "embers_light_color": "ember",
         "embers_energy": 0.25,
+        "embers_flicker": 0.4,
         "light_color": "flame",
         "light_energy": 2.5,
         "light_range_m": 7.0,

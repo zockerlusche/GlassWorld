@@ -373,6 +373,15 @@ public partial class ObjectsView : Node3D
         {
             if (!_glows.TryGetValue(id, out var glow) || !_layers.TryGetValue(id, out var layer) || layer.Multimesh.InstanceCount != placed.Count)
             {
+                // Review GW4 #572: a layer not drawn from these places keeps its lights wavering at their own energy.
+                foreach (var kept in _lights.GetValueOrDefault(id) ?? [])
+                {
+                    if (_glows.TryGetValue(id, out var own))
+                    {
+                        _flicker.Add((kept, (float)own.Glow.LightEnergy, (float)own.Glow.Flicker, (float)own.Glow.FlickerHz, Phase(kept.Name)));
+                    }
+                }
+
                 continue;
             }
 
@@ -396,7 +405,7 @@ public partial class ObjectsView : Node3D
                     light.LightColor = shown.Embers && _emberColors.TryGetValue(id, out var ember) ? ember : glow.Color;
                     var energy = (float)(glow.Glow.LightEnergy * shown.Light);
                     light.LightEnergy = energy;
-                    _flicker.Add((light, energy, (float)glow.Glow.Flicker * (shown.Embers ? 0.4f : 1f), (float)glow.Glow.FlickerHz, Phase(p.ObjectId)));
+                    _flicker.Add((light, energy, (float)glow.Glow.Flicker * (shown.Embers ? (float)(glow.Glow.EmbersFlicker ?? 1.0) : 1f), (float)glow.Glow.FlickerHz, Phase(p.ObjectId)));
                 }
             }
         }

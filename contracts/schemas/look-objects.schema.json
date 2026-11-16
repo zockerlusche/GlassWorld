@@ -558,6 +558,12 @@
           "description": "A1823: palette colour of the light while it lies as embers; absent = light_color.",
           "$ref": "common.schema.json#/$defs/VocabId"
         },
+        "embers_flicker": {
+          "description": "A1823 (review GW4 #572): share of the flicker while it lies as embers (calmer); absent = as a flame.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "embers_energy": {
           "description": "A1823: share of light_energy while it lies as embers (0..1); absent = the strength's share.",
           "type": "number",

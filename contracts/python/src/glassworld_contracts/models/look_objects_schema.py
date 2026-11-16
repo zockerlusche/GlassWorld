@@ -268,6 +268,12 @@ class ObjectGlow(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    embers_flicker: float | None = Field(
+        None,
+        description='A1823 (review GW4 #572): share of the flicker while it lies as embers (calmer); absent = as a flame.',
+        ge=0.0,
+        le=1.0,
+    )
     embers_energy: float | None = Field(
         None,
         description="A1823: share of light_energy while it lies as embers (0..1); absent = the strength's share.",

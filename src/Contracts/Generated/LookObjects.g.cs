@@ -556,6 +556,13 @@ namespace GlassWorld.Contracts
         public string? EmbersLightColor { get; set; } = default!;
 
         /// <summary>
+        /// A1823 (review GW4 #572): share of the flicker while it lies as embers (calmer); absent = as a flame.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("embers_flicker")]
+        public double? EmbersFlicker { get; set; } = default!;
+
+        /// <summary>
         /// A1823: share of light_energy while it lies as embers (0..1); absent = the strength's share.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
