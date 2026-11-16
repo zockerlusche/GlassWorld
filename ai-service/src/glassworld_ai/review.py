@@ -38,10 +38,10 @@ from jsonschema import Draft202012Validator
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.grounding import (
     checks_nouns,
+    judged_things,
     request_words,
     settings_words,
     unknown_nouns,
-    world_things,
 )
 from glassworld_ai.jobs import JobOutcome
 from glassworld_ai.llm.jobcall import (
@@ -414,7 +414,7 @@ class Shown:
             s["id"] for s in day_things(job).values()
         }
         self._words: set[str] | None = None
-        self._world: set[str] = set()
+        self._world: set[str] | None = set()
         if checks_nouns(settings, self._locale):
             self._words = request_words(
                 job.model_dump(mode="json"),
@@ -422,7 +422,7 @@ class Shown:
                 self._locale,
                 settings_words(settings, "general_words", self._locale),
             )
-            self._world = world_things(texts, self._locale)
+            self._world = judged_things(settings, texts, self._locale)
 
     def problem(self, text: str) -> str | None:
         if not self._guard.check(text).allowed:
