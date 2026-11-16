@@ -59,5 +59,6 @@
     "daylight_share": 0.85,
     "sea_margin_cells": 10,
     "cells_per_frame": 400
-  }
+  },
+  "bare": { "color": "ground", "strength": 0.8 }
 }

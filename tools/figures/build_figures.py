@@ -138,6 +138,27 @@ def capsule(a, b, ra, rb, segments=14, steps=8, cap_steps=4):
     return loft(rings, segments)
 
 
+# A1802: brow poses as blend shapes - the whole brow up (its inner end a little more:
+# surprise, worry), or its inner end down (anger, frustration). Fractions of the head radius.
+BROWS = {
+    "neutral": (0.0, 0.0),
+    "raise": (0.06, 0.02),
+    "frown": (-0.015, -0.05),
+}
+
+
+def brow_shape(at, side, r, brow="neutral"):
+    """One brow: a flat ellipsoid, lifted and tilted by its pose (same vertices in every pose)."""
+    bm = ellipsoid(at, r * 0.12, r * 0.035, r * 0.03, 8, 6)
+    lift, inner = BROWS[brow]
+    outward = LEFT * side
+    for vert in bm.verts:
+        # t is -1 at the inner end (towards the nose), +1 at the outer end
+        t = max(-1.0, min(1.0, (vert.co - at).dot(outward) / (r * 0.12)))
+        vert.co = vert.co + UP * (r * (lift + inner * (1 - t) / 2))
+    return bm
+
+
 def ellipsoid(centre, rx, ry, rz, u=20, v=14, right=LEFT, fwd=FWD, up=UP):
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, radius=1.0)
@@ -473,7 +494,7 @@ def mitten(palm, d, hw, ht, hl, bone, curl=MITTEN_CURL, steps=8, cap_steps=3):
     return [Part(plate, SKIN, bone), Part(thumb, SKIN, bone)]
 
 
-def build_body(rig, spec, expression="neutral", blink=False):
+def build_body(rig, spec, expression="neutral", blink=False, brow="neutral"):
     parts = []
     hips_z = rig.h("DEF-hips").z
     sh = spec
@@ -511,8 +532,8 @@ def build_body(rig, spec, expression="neutral", blink=False):
         eye = centre + FWD * (r * 0.9) + LEFT * (side * r * 0.34) + UP * (r * 0.02)
         eye_height = r * (0.012 if blink else 0.115)
         parts.append(Part(ellipsoid(eye, r * 0.085, r * 0.05, eye_height, 10, 8), EYES, "DEF-head"))
-        brow = centre + FWD * (r * 0.87) + LEFT * (side * r * 0.34) + UP * (r * 0.27)
-        parts.append(Part(ellipsoid(brow, r * 0.12, r * 0.035, r * 0.03, 8, 6), HAIR, "DEF-head"))
+        brow_at = centre + FWD * (r * 0.87) + LEFT * (side * r * 0.34) + UP * (r * 0.27)
+        parts.append(Part(brow_shape(brow_at, side, r, brow), HAIR, "DEF-head"))
         ear = centre + LEFT * (side * r * 0.96) + UP * (r * 0.0)
         parts.append(Part(ellipsoid(ear, r * 0.07, r * 0.11, r * 0.15, 8, 6), SKIN, "DEF-head"))
     parts.append(
@@ -1007,13 +1028,16 @@ def shape_variants(spec, forms):
 
 
 def add_shape_keys(body, rig, spec, forms):
-    """Blend shapes of the body: shapes and forms, mouth expressions and blink."""
-    variants = [((name, s), "neutral", False) for name, s in shape_variants(spec, forms)]
-    variants += [((f"mouth_{m}", spec), m, False) for m in MOUTHS if m != "neutral"]
-    variants.append((("blink", spec), "neutral", True))
+    """Blend shapes of the body: shapes and forms, mouth expressions, blink and brows."""
+    variants = [((name, s), "neutral", False, "neutral") for name, s in shape_variants(spec, forms)]
+    variants += [((f"mouth_{m}", spec), m, False, "neutral") for m in MOUTHS if m != "neutral"]
+    variants.append((("blink", spec), "neutral", True, "neutral"))
+    # A1802 (GW3 #27958): brows for the face by mood -
+    # raised (surprise, worry), frowning (anger, frustration).
+    variants += [((f"brow_{b}", spec), "neutral", False, b) for b in BROWS if b != "neutral"]
     body.shape_key_add(name="Basis", from_mix=False)
-    for (name, variant_spec), expression, blink in variants:
-        parts, _, _ = build_body(rig, variant_spec, expression, blink)
+    for (name, variant_spec), expression, blink, brow in variants:
+        parts, _, _ = build_body(rig, variant_spec, expression, blink, brow)
         coords = []
         for part in parts:
             part.bm.verts.ensure_lookup_table()

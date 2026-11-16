@@ -257,6 +257,24 @@ class FallParticles(BaseModel):
     )
 
 
+class NatureBare(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    color: str = Field(
+        ...,
+        description='Palette colour id of bare ground.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    strength: float = Field(
+        ...,
+        description='How far the ground turns to that colour in the middle of a bare cell (0..1); the edges blend.',
+        ge=0.0,
+        le=1.0,
+    )
+
+
 class LookNature(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -270,3 +288,4 @@ class LookNature(BaseModel):
     grass: NatureGrass
     leaf_fall: FallParticles
     cover: NatureCover
+    bare: NatureBare | None = None

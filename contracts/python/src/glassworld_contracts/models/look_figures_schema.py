@@ -676,17 +676,17 @@ class LookFigures(BaseModel):
         gt=0.0,
         le=5.0,
     )
+    wet_shade: float | None = Field(
+        None,
+        description='A1385 (B5-8): how dark the clothes and hair of a fully wet figure look (1 = as dry); between dry and fully wet in steps of the wetness. Skin and eyes stay. Omitted = wetness does not show. Placeholder value (TL).',
+        ge=0.3,
+        le=1.0,
+    )
     turn_rate_deg_s: float = Field(
         ...,
         description='How fast a figure turns towards where it walks, in degrees per real second.',
         gt=0.0,
         le=3600.0,
-    )
-    turn_back_after_steps: int | None = Field(
-        None,
-        description='A walking figure whose step points backwards (more than 90 degrees from its facing, e.g. when it gives way on a narrow path, W1726) turns round only from this many such steps in a row; a step forward in between resets the count, a first step after standing turns at once. Absent = 1 (every step turns the figure).',
-        ge=1,
-        le=1000,
     )
     gait_time_scale: GaitTimeScale = Field(
         ...,

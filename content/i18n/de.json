@@ -1027,6 +1027,14 @@
       "text": "Ablegen"
     },
     {
+      "key": "vocab.action.write",
+      "text": "schreiben"
+    },
+    {
+      "key": "vocab.action.read",
+      "text": "lesen"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Benutzen"
     },
@@ -2245,6 +2253,14 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Nachricht klopft erneut"
+    },
+    {
+      "key": "vocab.event.text_written",
+      "text": "Etwas aufgeschrieben"
+    },
+    {
+      "key": "vocab.event.text_read",
+      "text": "Geschriebenes gelesen"
     },
     {
       "key": "vocab.event.writing_found",

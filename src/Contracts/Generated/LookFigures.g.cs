@@ -750,17 +750,17 @@ namespace GlassWorld.Contracts
         public double WalkMinStepM { get; set; } = default!;
 
         /// <summary>
+        /// A1385 (B5-8): how dark the clothes and hair of a fully wet figure look (1 = as dry); between dry and fully wet in steps of the wetness. Skin and eyes stay. Omitted = wetness does not show. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wet_shade")]
+        public double? WetShade { get; set; } = default!;
+
+        /// <summary>
         /// How fast a figure turns towards where it walks, in degrees per real second.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("turn_rate_deg_s")]
         public double TurnRateDegS { get; set; } = default!;
-
-        /// <summary>
-        /// A walking figure whose step points backwards (more than 90 degrees from its facing, e.g. when it gives way on a narrow path, W1726) turns round only from this many such steps in a row; a step forward in between resets the count, a first step after standing turns at once. Absent = 1 (every step turns the figure).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("turn_back_after_steps")]
-        public int? TurnBackAfterSteps { get; set; } = default!;
 
         /// <summary>
         /// Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).
