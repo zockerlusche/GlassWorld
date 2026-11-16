@@ -61,10 +61,9 @@ public sealed class AiPaceTests : IDisposable
     }
 
     [Fact]
-    public void TheCommandsTakeEffectAtTheNextTickAndDoNotChangeTheHash()
+    public void TheCommandsTakeEffectAtTheNextTick()
     {
         var host = Host();
-        var plain = Host();
         var someone = host.Inhabitants.All.First().Id;
         var fast = Content.Value.Calendar.Settings.FastForwardFactors.Max();
         host.Decisions.Submit(Speed(fast));
@@ -73,8 +72,19 @@ public sealed class AiPaceTests : IDisposable
         Assert.Equal(1, host.Pace.Speed);
 
         host.World.Step();
-        plain.World.Step();
         Assert.Equal((fast, someone, 1500), (host.Pace.Speed, host.Pace.FollowedId, host.Pace.JobMs));
+    }
+
+    [Fact]
+    public void TheValuesThemselvesAreNoWorldState()
+    {
+        // Who the camera follows changes nothing by itself (it ranks requests in step 3): the hash stays. Speed and
+        // job time pace the AI (AiBudgetTests), so their effects are in the world, not the values.
+        var host = Host();
+        var plain = Host();
+        host.Decisions.Submit(Followed(host.Inhabitants.All.First().Id));
+        host.World.Step();
+        plain.World.Step();
         Assert.Equal(plain.World.StateHash(), host.World.StateHash());
     }
 

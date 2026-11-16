@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class LookFocus(BaseModel):
     model_config = ConfigDict(
@@ -34,6 +36,17 @@ class LookFocus(BaseModel):
         description='Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    mark_events: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1796 (D1114, Marcel 15a): events whose thing (the event's target, if it is in the world) gets the same calm ring where it is, without moving the camera - so one finds a thing just built. Omitted = none.",
+        max_length=16,
+    )
+    mark_seconds: float | None = Field(
+        None,
+        description='A1796: how long such a place mark takes to fade (real seconds); omitted = seconds. Placeholder value (TL).',
+        gt=0.0,
+        le=120.0,
     )
 
 

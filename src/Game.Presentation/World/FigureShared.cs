@@ -46,6 +46,12 @@ public sealed class FigureShared
     /// <summary>A1732 (B2716): the expression layer's data (look expressions), or null = no expressions.</summary>
     public LookExpressions? Expressions { get; init; }
 
+    /// <summary>A1785: how carried things sit in the hands (look/carried.json), or null.</summary>
+    public LookCarried? Carried { get; init; }
+
+    /// <summary>A1785: the TRUE properties of an object type, for the carried pose.</summary>
+    public Func<string, IReadOnlySet<string>>? PropertiesOf { get; init; }
+
     /// <summary>Whether the figures get the ink outline of the quality level (<see cref="QualityPlan.HullOutline"/>; the figure look data can still switch it off).</summary>
     public bool HullOutline { get; init; } = true;
 

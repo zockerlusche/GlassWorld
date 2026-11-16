@@ -389,7 +389,13 @@ public sealed class TideTests : IDisposable
         // No layer at all: routes and speed are those of the map system without tides (the code before B2-5).
         Assert.Null(a.Map!.TideWalk);
         Assert.Equal(new TideReading(0, 0, 0, 745, false), a.Snapshot().Tide);
-        var plain = new WorldMapSystem(a.Map.Island, a.Map.CellSizeCm) { NodeBudget = a.Map.NodeBudget };
+        // The same obstacles (A1790): they come from the objects, not from the tides.
+        var plain = new WorldMapSystem(a.Map.Island, a.Map.CellSizeCm, a.Objects, new Dictionary<string, long>(StringComparer.Ordinal))
+        {
+            NodeBudget = a.Map.NodeBudget,
+            ObstacleRadiusCm = a.Map.ObstacleRadiusCm,
+            BodyRadiusM = a.Map.BodyRadiusM,
+        };
         var starts = a.Map.Island.Starts;
         var w = a.Map.Map.WidthCells;
         var shore = Enumerable.Range(0, w * a.Map.Map.DepthCells)

@@ -231,6 +231,11 @@
     {
       "action": "sail",
       "sound": null
+    },
+    {
+      "action": "dig",
+      "sound": "action.build_step",
+      "group": "building"
     }
   ],
   "surfaces": [
