@@ -99,6 +99,24 @@ public sealed class NamingTests : IDisposable
     }
 
     [Fact]
+    public void WithAnAskerLevelInTheDataABusyAskerIsLearnedByNobodyTheSameRuleBothWays()
+    {
+        // A1532 (D763 F2): one rule for both sides - which side may be too busy to tell its name is data.
+        var knowledge = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "knowledge", "settings.json")));
+        knowledge.Naming!.AskerBusyNeedBelow = Naming.BusyNeedBelow;
+        var (world, inhabitants, events) = Meeting(knowledge);
+        var asker = inhabitants.Get("inh-000001");
+        var other = inhabitants.Get("inh-000002");
+        asker.Needs[asker.Needs.Keys.First()] = Naming.BusyNeedBelow / 4;
+
+        Introduce(world, asker, other);
+
+        Assert.DoesNotContain(asker.Id, other.KnownNames);
+        Assert.Contains(other.Id, asker.KnownNames);
+        Assert.Equal(asker.Id, Assert.Single(events, e => e.Kind == InhabitantsSystem.NameLearned).InhabitantId);
+    }
+
+    [Fact]
     public void NamesAndKnownNamesSurviveSaveAndLoad()
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 11, new MockDecisionPort(), "de");
@@ -218,13 +236,13 @@ public sealed class NamingTests : IDisposable
     private static SimulationHostFactory Factory() => new(ContentSet.Load(ContentDirectory), Settings, new MockDecisionPort(), "de");
 
     /// <summary>A and b near each other (b idles), the other two far away.</summary>
-    private static (World World, InhabitantsSystem Inhabitants, List<WorldEvent> Events) Meeting()
+    private static (World World, InhabitantsSystem Inhabitants, List<WorldEvent> Events) Meeting(KnowledgeSettings? knowledge = null)
     {
         var world = new World(3, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
         var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
-            Knowledge = Content.Knowledge,
+            Knowledge = knowledge ?? Content.Knowledge,
             Names = Content.InhabitantNames,
         };
         world.Add(objects).Add(inhabitants);

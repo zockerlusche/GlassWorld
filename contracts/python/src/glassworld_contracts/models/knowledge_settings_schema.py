@@ -205,6 +205,12 @@ class KnowledgeNaming(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    asker_busy_need_below: float | None = Field(
+        None,
+        description="A1532 (D763 F2, PR2): the same rule for the one who introduces itself - the other learns its name only while none of the asker's needs is below this level. The core applies one rule to both sides; which side may be too busy is data. Omitted = the asker always tells its name (as before).",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class KnowledgeGuess(BaseModel):

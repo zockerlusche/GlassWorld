@@ -493,6 +493,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("busy_need_below")]
         public double BusyNeedBelow { get; set; } = default!;
 
+        /// <summary>
+        /// A1532 (D763 F2, PR2): the same rule for the one who introduces itself - the other learns its name only while none of the asker's needs is below this level. The core applies one rule to both sides; which side may be too busy is data. Omitted = the asker always tells its name (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("asker_busy_need_below")]
+        public double? AskerBusyNeedBelow { get; set; } = default!;
+
     }
 
     /// <summary>
