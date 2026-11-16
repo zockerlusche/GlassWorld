@@ -5,10 +5,10 @@
   "days_per_season": 7,
   "twilight_minutes": 45,
   "seasons": [
-    { "id": "spring", "sunrise_minute": 360, "sunset_minute": 1140 },
-    { "id": "summer", "sunrise_minute": 300, "sunset_minute": 1260 },
-    { "id": "autumn", "sunrise_minute": 390, "sunset_minute": 1110 },
-    { "id": "winter", "sunrise_minute": 480, "sunset_minute": 1020 }
+    { "id": "spring", "sunrise_minute": 330, "sunset_minute": 1245 },
+    { "id": "summer", "sunrise_minute": 300, "sunset_minute": 1290 },
+    { "id": "autumn", "sunrise_minute": 360, "sunset_minute": 1200 },
+    { "id": "winter", "sunrise_minute": 390, "sunset_minute": 1170 }
   ],
   "normal_real_seconds_per_day": 1200,
   "fast_forward_factors": [4, 16],

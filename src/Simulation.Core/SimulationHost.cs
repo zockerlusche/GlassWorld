@@ -211,6 +211,12 @@ public sealed class SimulationHost
                         },
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
+
+                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                ObstacleRadiusCm = content.Objects.TypeIds
+                    .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
+                    .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
+                BodyRadiusM = (content.Gaits.Data.Spacing?.MinSeparationM ?? 0) / 2,
                 Tides = tides,
                 TideWalk = tides.Active
                     ? new TideWalkLayer(
@@ -542,6 +548,12 @@ public sealed class SimulationHost
 
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
         inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+
+        // A1498 (B2828): nobody lies down in the water - the map knows where dry ground is.
+        if (map is not null)
+        {
+            inhabitants.DryGroundNear = map.DryGroundNear;
+        }
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;
@@ -673,6 +685,7 @@ public sealed class SimulationHost
 
             inhabitants.ShelteredAt = body.Sheltered;
             inhabitants.StaySheltered = bodyData.StaySheltered;
+            inhabitants.ShelterProperty = bodyData.Wetness.ShelterProperty;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;

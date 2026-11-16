@@ -109,6 +109,10 @@ class LookNight(BaseModel):
         ge=0.0,
         le=12.0,
     )
+    pass_night: bool | None = Field(
+        None,
+        description="A1798 (Marcel W2243, B2680 'the scene ends when the service is done or in the morning'): once the service is done, the scene lets the rest of the night pass behind the shade at the fastest speed and the morning fades in at dawn - instead of showing the same night again. Omitted = false: the scene fades in as soon as the service is done.",
+    )
     min_scene_s: float = Field(
         ...,
         description='The dream scene stays at least this long (real seconds), also when the service has nothing to do - short, but without a jolt.',

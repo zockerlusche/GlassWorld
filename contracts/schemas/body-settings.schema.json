@@ -48,7 +48,10 @@
       "properties": {
         "leaving_factor_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
         "in_precipitation": { "type": "boolean" },
-        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "holds_action": { "description": "A1793 (D1192 #7): this action on a thing under a shelter, done under the shelter, does not end while the rain or the cold of in_precipitation/at_levels lasts there, or while the need of hold_while is still below its line - one action instead of short pieces (no new start, no repetition count, one diary line). Absent = it ends after its duration as any action.", "$ref": "common.schema.json#/$defs/VocabId" },
+        "hold_while": { "description": "A need the shelter is taken for and its line: while the need is below it, the shelter holds too (feeling cool is not yet cold). Placeholder value.", "type": "object", "additionalProperties": false, "required": ["need", "below"], "properties": { "need": { "$ref": "common.schema.json#/$defs/VocabId" }, "below": { "type": "number", "minimum": 0, "maximum": 1 } } },
+        "hold_while_needs_above": { "description": "It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "others_warmth": {
@@ -125,7 +128,8 @@
         "wet_from_permille": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "From this wetness on an inhabitant counts as wet in its request to the AI (environment.wet). Omitted = 1." },
         "cool_tenth_c": { "type": "integer", "minimum": 0, "maximum": 300, "description": "How much colder it feels when fully wet, in tenths of a degree (linear with the wetness)." },
         "shelter_property": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The TRUE property of things that keep the rain off whoever stands at them." },
-        "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." }
+        "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." },
+        "shelter_still_air_tenth_c": { "type": "integer", "minimum": 0, "maximum": 200, "description": "How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference." }
       }
     },
     "BodyDryingBand": {

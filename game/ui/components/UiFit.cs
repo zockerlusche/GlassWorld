@@ -145,12 +145,19 @@ public static class UiFit
     /// (A1762, Marcel W2183: the time block jittered). Call it after each new text; only a new number of digits or
     /// letters changes the width.
     /// </summary>
-    public static void SteadyDigits(Label label)
+    public static void SteadyDigits(Label label, string? widestSample = null)
     {
         ArgumentNullException.ThrowIfNull(label);
         var widest = WidestDigit(label);
         var steady = new string([.. label.Text.Select(c => char.IsAsciiDigit(c) ? widest : c)]);
-        label.CustomMinimumSize = new Vector2(Width(label, steady), label.CustomMinimumSize.Y);
+        var width = Width(label, steady);
+        if (widestSample is not null)
+        {
+            // A1800: a value whose digit count changes (the temperature: 9, 10, -3) keeps the room of its widest form.
+            width = Math.Max(width, Width(label, new string([.. widestSample.Select(c => char.IsAsciiDigit(c) ? widest : c)])));
+        }
+
+        label.CustomMinimumSize = new Vector2(width, label.CustomMinimumSize.Y);
     }
 
     /// <summary>
