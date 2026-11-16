@@ -667,4 +667,5 @@ def test_v16_says_when_the_person_is_wet_or_stands_in_water() -> None:
     assert "- You stand knee-deep in something wet." in v16 and "- You are wet." in v16
     assert "You are wet." not in _render(request, version=15)
     dry = _render(_leisure(None), version=16).split("=== user ===")[1]
-    assert "You are wet." not in dry and "deep in" not in dry.split("## Your body")[1].split("##")[0]
+    body = dry.split("## Your body")[1].split("##")[0]
+    assert "You are wet." not in dry and "deep in" not in body
