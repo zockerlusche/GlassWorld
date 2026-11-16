@@ -110,6 +110,115 @@ public sealed class WritingRulesTests : IDisposable
     }
 
     [Fact]
+    public void ReadingInPassingTeachesWhatTheTextSaysWithSourceRead()
+    {
+        // A1357 (spec 33 section 9a, criterion 'Lesen erzeugt Herkunft gelesen'): a reader who can read and is curious
+        // learns the written belief - source 'read', as sure as legibility x respect for the author (at least the floor).
+        var (host, reader, other) = Placeholder();
+        var rules = host.Content.Writing.Read;
+        reader.Traits[rules.CuriosityTrait] = 1.0;
+        other.Traits[rules.CuriosityTrait] = 1.0;
+        host.SkillLevels.Restore([new SkillGain(reader.Id, rules.Ability, 0.5)]);
+        Assert.False(reader.Beliefs.TryGet("water", "drinkable", out _));
+        var read = new List<WorldEvent>();
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == WritingSystem.TextRead)
+            {
+                read.Add(e);
+            }
+        };
+
+        var stone = host.Objects.Spawn("fieldstone", reader.Position);
+        host.Writing.Place(new WrittenText(stone.Id, "carving_stone", "belief:water|drinkable|false", "inh-000099", host.World.Tick, 0.8));
+        host.World.Run(2);
+
+        // It believes what was written - even though water is drinkable: wrong stays wrong (the text, not the truth).
+        Assert.True(reader.Beliefs.TryGet("water", "drinkable", out var belief));
+        Assert.Equal((false, KnowledgeSources.Read, "inh-000099"), (belief.Value, belief.Source, belief.ToldBy));
+        var floor = rules.AuthorWeightFloor!.Value;
+        Assert.InRange(belief.Confidence, (0.8 * floor) - 1e-4, 0.8); // the carving wears a hair in the ticks before
+        var e = Assert.Single(read, x => x.InhabitantId == reader.Id);
+        Assert.Equal((stone.Id, "belief:water|drinkable|false"), (e.TargetId, e.Detail));
+
+        // Once read is read: standing by it longer teaches nothing again.
+        host.World.Run(50);
+        Assert.Single(read, x => x.InhabitantId == reader.Id);
+    }
+
+    [Fact]
+    public void WithoutTheReadingSkillNothingIsLearned()
+    {
+        // A1357 (criterion 'ohne Faehigkeit kein Lernen'): nobody starts with reading - a curious inhabitant beside a
+        // text sees it, but learns nothing from it; once it can read, it reads the same text.
+        var (host, reader, _) = Placeholder();
+        var rules = host.Content.Writing.Read;
+        reader.Traits[rules.CuriosityTrait] = 1.0;
+        Assert.True(host.SkillLevels.Level(reader.Id, rules.Ability) < rules.MinLevel);
+        var stone = host.Objects.Spawn("fieldstone", reader.Position);
+        host.Writing.Place(new WrittenText(stone.Id, "carving_stone", "belief:water|drinkable|true", "inh-000099", host.World.Tick, 0.8));
+        host.World.Run(20);
+
+        Assert.Contains($"{reader.Id}|{stone.Id}", host.Writing.Seen);
+        Assert.False(reader.Beliefs.TryGet("water", "drinkable", out var none) && none.Source == KnowledgeSources.Read);
+
+        host.SkillLevels.Restore([new SkillGain(reader.Id, rules.Ability, 0.5)]);
+        host.World.Run(2);
+        Assert.True(reader.Beliefs.TryGet("water", "drinkable", out var learned));
+        Assert.Equal(KnowledgeSources.Read, learned.Source);
+    }
+
+    [Fact]
+    public void WhatTheReaderAlreadyBelievesMoreSurelyStays()
+    {
+        var (host, reader, _) = Placeholder();
+        var rules = host.Content.Writing.Read;
+        reader.Traits[rules.CuriosityTrait] = 1.0;
+        host.SkillLevels.Restore([new SkillGain(reader.Id, rules.Ability, 0.5)]);
+        reader.Beliefs.Set("water", "drinkable", true, 0.95, KnowledgeSources.Experienced);
+        var stone = host.Objects.Spawn("fieldstone", reader.Position);
+        host.Writing.Place(new WrittenText(stone.Id, "carving_stone", "belief:water|drinkable|false", "inh-000099", host.World.Tick, 0.8));
+        host.World.Run(2);
+
+        Assert.True(reader.Beliefs.TryGet("water", "drinkable", out var belief));
+        Assert.Equal((true, KnowledgeSources.Experienced), (belief.Value, belief.Source));
+    }
+
+    [Fact]
+    public void ASleeperReadsNothingAndReadsItOnceAwake()
+    {
+        // Review GW3 #543 (D1112 #8): one asleep beside a text neither reads nor learns; awake it reads it, and the read is
+        // reported even when it teaches nothing new.
+        var (host, reader, _) = Placeholder();
+        var rules = host.Content.Writing.Read;
+        reader.Traits[rules.CuriosityTrait] = 1.0;
+        host.SkillLevels.Restore([new SkillGain(reader.Id, rules.Ability, 0.5)]);
+        reader.Beliefs.Set("water", "drinkable", true, 0.99, KnowledgeSources.Experienced);
+        var read = new List<WorldEvent>();
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == WritingSystem.TextRead && e.InhabitantId == reader.Id)
+            {
+                read.Add(e);
+            }
+        };
+
+        reader.Activity = new Activity(host.Content.InhabitantModel.Togetherness!.SleepAction, null, reader.Position, 10_000);
+        host.World.Step();
+        Assert.True(host.Inhabitants.IsAsleep(reader));
+        var stone = host.Objects.Spawn("fieldstone", reader.Position);
+        host.Writing.Place(new WrittenText(stone.Id, "carving_stone", "belief:water|drinkable|true", "inh-000099", host.World.Tick, 0.8));
+        host.World.Run(5);
+        Assert.Empty(read);
+
+        reader.Activity = null;
+        host.World.Run(2);
+        var e = Assert.Single(read);
+        Assert.Equal(stone.Id, e.TargetId);
+        Assert.Equal(KnowledgeSources.Experienced, reader.Beliefs.TryGet("water", "drinkable", out var kept) ? kept.Source : null);
+    }
+
+    [Fact]
     public void AnOldTextIsFoundOnceAYoungOneIsOnlySeen()
     {
         var (host, finder, other) = Placeholder();

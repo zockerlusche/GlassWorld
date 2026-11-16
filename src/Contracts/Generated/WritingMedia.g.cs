@@ -112,6 +112,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("curiosity_min")]
         public double CuriosityMin { get; set; } = default!;
 
+        /// <summary>
+        /// A1357 (spec 33 section 9a): what is read is believed with the text's legibility times the reader's respect for the author, but at least this share of the legibility (an author it hardly knows). Placeholder value (TL). Omitted = respect alone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("author_weight_floor")]
+        public double? AuthorWeightFloor { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
