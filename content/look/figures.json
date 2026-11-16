@@ -162,6 +162,7 @@
     "max_walk_changes_per_minute": 240
   },
   "walk_min_step_m": 0.05,
+  "wet_shade": 0.72,
   "turn_rate_deg_s": 360,
   "turn_back_after_steps": 6,
   "gait_time_scale": {

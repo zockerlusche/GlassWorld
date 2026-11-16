@@ -31,6 +31,9 @@
     },
     "cover": {
       "$ref": "#/$defs/NatureCover"
+    },
+    "bare": {
+      "$ref": "#/$defs/NatureBare"
     }
   },
   "$defs": {
@@ -351,6 +354,27 @@
           "description": "Opacity of one particle (0..1; 1 = solid).",
           "type": "number",
           "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "NatureBare": {
+      "description": "A1385 (A1380 N2): how an overused field cell shows - its ground turns towards a palette colour. Omitted = bare cells do not show. Placeholder values (TL).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "strength"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id of bare ground.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "strength": {
+          "description": "How far the ground turns to that colour in the middle of a bare cell (0..1); the edges blend.",
+          "type": "number",
+          "minimum": 0,
           "maximum": 1
         }
       }

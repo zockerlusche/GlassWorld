@@ -169,6 +169,25 @@ public partial class IslandView : Node3D
     /// the palette colours they change (<see cref="SeasonSlots"/>, CUSTOM0 and CUSTOM1), and the shader
     /// moves them to the colour shown now from global parameters (<see cref="NatureLook"/>).
     /// </summary>
+    /// <summary>
+    /// A1385 (A1380 N2): shows overused field cells as bare ground - <paramref name="mask"/> one byte per field cell of
+    /// <paramref name="cellM"/> metres (rows by z), turned towards <paramref name="color"/> by <paramref name="strength"/>.
+    /// </summary>
+    public void ShowBare(byte[] mask, int width, int depth, double cellM, Color color, double strength)
+    {
+        ArgumentNullException.ThrowIfNull(mask);
+        if (width <= 0 || depth <= 0)
+        {
+            return;
+        }
+
+        var image = Image.CreateFromData(width, depth, false, Image.Format.R8, mask);
+        _groundMaterial.SetShaderParameter("bare_mask", ImageTexture.CreateFromImage(image));
+        _groundMaterial.SetShaderParameter("bare_area", new Vector4(0, 0, (float)(width * cellM), (float)(depth * cellM)));
+        _groundMaterial.SetShaderParameter("bare_color", color);
+        _groundMaterial.SetShaderParameter("bare_strength", (float)strength);
+    }
+
     public void ApplyPalette(LookPalette palette)
     {
         ArgumentNullException.ThrowIfNull(palette);

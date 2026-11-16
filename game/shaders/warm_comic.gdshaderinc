@@ -13,6 +13,16 @@ uniform vec4 region_bottom : source_color = vec4(0.35, 0.33, 0.39, 1.0);
 uniform vec4 region_shoes : source_color = vec4(0.18, 0.15, 0.14, 1.0);
 uniform vec4 region_hair : source_color = vec4(0.41, 0.15, 0.03, 1.0);
 uniform vec4 region_eyes : source_color = vec4(0.12, 0.09, 0.08, 1.0);
+// A1385 (B5-8): wet clothes and hair look darker - 1 = dry; skin and eyes stay as they are.
+uniform float wet_shade = 1.0;
+#ifdef BARE_GROUND
+// A1385 (A1380 N2): overused field cells - a mask over the island (red = how bare), its area (x0, z0, width, depth)
+// in metres, the colour of bare ground and how strongly it shows (0 = not at all).
+uniform sampler2D bare_mask : filter_linear, repeat_disable;
+uniform vec4 bare_area = vec4(0.0, 0.0, 1.0, 1.0);
+uniform vec4 bare_color : source_color = vec4(0.79, 0.64, 0.43, 1.0);
+uniform float bare_strength = 0.0;
+#endif
 // Which body parts show skin: short sleeves, shorts or a dress (upper legs in the top colour).
 // Body regions clothing may cover (F4): 0 skin, 1 top colour, 2 bottom colour.
 uniform int forearm_paint = 0;
@@ -44,22 +54,22 @@ varying float fade_alpha;
 #endif
 
 vec3 paint(int mode) {
-	return mode == 1 ? region_top.rgb : (mode == 2 ? region_bottom.rgb : region_skin.rgb);
+	return mode == 1 ? region_top.rgb * wet_shade : (mode == 2 ? region_bottom.rgb * wet_shade : region_skin.rgb);
 }
 
 vec3 region_color(float r) {
 	int i = int(round(r * 10.0));
 	if (i == 1) return region_skin.rgb;
-	if (i == 2) return region_top.rgb;
-	if (i == 3) return region_bottom.rgb;
-	if (i == 4) return region_shoes.rgb;
-	if (i == 5) return region_hair.rgb;
+	if (i == 2) return region_top.rgb * wet_shade;
+	if (i == 3) return region_bottom.rgb * wet_shade;
+	if (i == 4) return region_shoes.rgb * wet_shade;
+	if (i == 5) return region_hair.rgb * wet_shade;
 	if (i == 6) return paint(shin_paint);
 	if (i == 7) return paint(forearm_paint);
 	if (i == 8) return paint(thigh_paint);
 	if (i == 9) return region_eyes.rgb;
 	if (i == 10) return paint(lower_thigh_paint);
-	return region_top.rgb;
+	return region_top.rgb * wet_shade;
 }
 
 void vertex() {
@@ -79,6 +89,12 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = use_nature ? snowed(base_color, nature_world, nature_up) : base_color;
+#ifdef BARE_GROUND
+	if (bare_strength > 0.0) {
+		float bare = texture(bare_mask, (nature_world.xz - bare_area.xy) / bare_area.zw).r * bare_strength;
+		ALBEDO = mix(ALBEDO, bare_color.rgb, bare);
+	}
+#endif
 #ifdef FADE_ALPHA
 	ALPHA = fade_alpha;
 #endif
