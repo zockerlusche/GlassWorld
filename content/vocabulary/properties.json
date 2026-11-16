@@ -169,6 +169,18 @@
     {
       "id": "dug",
       "description": "A hole in the ground."
+    },
+    {
+      "id": "encloses_fire",
+      "description": "A hollow of firm stuff with an opening."
+    },
+    {
+      "id": "draws_air",
+      "description": "Lets air through or pushes it."
+    },
+    {
+      "id": "metallic",
+      "description": "Shines and rings bright when struck."
     }
   ]
 }

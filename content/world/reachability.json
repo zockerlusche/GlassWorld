@@ -36,6 +36,10 @@
     { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
 
     { "gap": "tech:processing", "reason": "Its only rule is melt_sand_with_ash (see there)." },
-    { "gap": "tech:smelting", "reason": "Follows processing; its only rule is melt_at_melting_heat (see there)." }
+    { "gap": "tech:smelting", "reason": "Follows processing; its rules are melt_at_melting_heat and smelt_ore (see there)." },
+    { "gap": "process:smelt_ore", "reason": "A1579: needs heat level melting_heat (a fire with encloses_fire and draws_air near, both only from inventions) and charcoal (char_wood)." },
+    { "gap": "property:encloses_fire", "reason": "A1579: only an invention with the base function oven has it (like wearable); the analysis does not model inventions." },
+    { "gap": "property:draws_air", "reason": "A1579: only an invention with the base function bellows has it (like wearable)." },
+    { "gap": "property:metallic", "reason": "A1579: only made by smelt_ore (see there)." }
   ]
 }

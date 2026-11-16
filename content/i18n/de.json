@@ -1291,6 +1291,14 @@
       "text": "Verschluss"
     },
     {
+      "key": "vocab.base_function.oven",
+      "text": "Ofen"
+    },
+    {
+      "key": "vocab.base_function.bellows",
+      "text": "Luftzug"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },
@@ -4177,6 +4185,18 @@
     {
       "key": "vocab.property.dug",
       "text": "gegraben"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Umschließend"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Luftführend"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallisch"
     },
     {
       "key": "vocab.event.dug",

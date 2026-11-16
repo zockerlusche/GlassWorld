@@ -155,6 +155,10 @@
       ]
     }
   },
+  "heat_raise": [
+    { "properties_near": ["encloses_fire"], "reach_m": 1.0, "raises_to": "strong_heat" },
+    { "properties_near": ["encloses_fire", "draws_air"], "reach_m": 1.0, "raises_to": "melting_heat" }
+  ],
   "rules": [
     {
       "id": "split_hard_stone",
@@ -850,6 +854,42 @@
         ],
         "remove_properties": [
           "braidable"
+        ],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "smelt_ore",
+      "process": "melt",
+      "inputs": [
+        {
+          "properties_all": [
+            "ore_bearing"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "smoulders"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "melting_heat",
+      "duration_ticks": 360,
+      "tech_level": "smelting",
+      "result": {
+        "add_properties": [
+          "metallic",
+          "malleable",
+          "hot"
+        ],
+        "remove_properties": [
+          "ore_bearing"
         ],
         "produces": null,
         "consumes": [

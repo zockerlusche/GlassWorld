@@ -35,6 +35,14 @@
     "physics": {
       "description": "Ground rules of physics for the judge of unknown tries (A1554, F5297 = A, B2616, D711): one place for all physics. The service checks every judgement against them and rules impossible tries out without a model call; the prompt reads the examples from here. Optional; absent = the prompt's own table (judge v1/v2).",
       "$ref": "#/$defs/Physics"
+    },
+    "heat_raise": {
+      "description": "A1579 (B4b K6, D1228): a burning thing's heat level rises when things with all these properties stand within reach - an enclosing hollow makes a fire an oven, air drawn through it a furnace. No rule names a thing (D827 R5). The highest matching entry wins; embers keep their own level. Optional; absent = a fire gives only its own level.",
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/HeatRaise"
+      }
     }
   },
   "$defs": {
@@ -165,6 +173,36 @@
               }
             }
           }
+        }
+      }
+    },
+    "HeatRaise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "properties_near",
+        "reach_m",
+        "raises_to"
+      ],
+      "properties": {
+        "properties_near": {
+          "description": "Properties that things within reach must have together (one thing or several).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "reach_m": {
+          "description": "How far from the burning thing they may stand (metres). Placeholder (TL).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "raises_to": {
+          "description": "The heat level it then gives (vocabulary heat_levels).",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     }

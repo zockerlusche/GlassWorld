@@ -25,3 +25,9 @@ closure | Closure
 worn | Worn on the body.
 worn | Am Körper getragen
 worn | Worn on the body
+oven | A hollow with firm walls that keeps heat inside.
+oven | Ofen
+oven | Oven
+bellows | Moves air by hand or by its shape.
+bellows | Luftzug
+bellows | Draught
