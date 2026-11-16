@@ -81,6 +81,7 @@ public static class LocalAiService
         {
             ["GW_AI_IMAGE_OUTPUT_DIR"] = Path.Combine(dataDirectory, "images"),
             ["GW_AI_SOUND_OUTPUT_DIR"] = Path.Combine(dataDirectory, "sounds"),
+            // The 3D jobs start from the pictures the image jobs made (B7 S9): the same folder on purpose.
             ["GW_AI_MODEL3D_IMAGE_DIR"] = Path.Combine(dataDirectory, "images"),
             ["GW_AI_MODEL3D_OUTPUT_DIR"] = Path.Combine(dataDirectory, "models"),
             ["GW_AI_OLLAMA_INSTALL_DIR"] = Path.Combine(dataDirectory, "ollama"),
