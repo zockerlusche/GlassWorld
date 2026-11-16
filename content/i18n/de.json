@@ -1291,12 +1291,12 @@
       "text": "Verschluss"
     },
     {
-      "key": "vocab.base_function.oven",
-      "text": "Ofen"
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Hitze halten"
     },
     {
-      "key": "vocab.base_function.bellows",
-      "text": "Luftzug"
+      "key": "vocab.base_function.blow_air",
+      "text": "Luft zuführen"
     },
     {
       "key": "vocab.property.braidable",

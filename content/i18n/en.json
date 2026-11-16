@@ -1291,12 +1291,12 @@
       "text": "Closure"
     },
     {
-      "key": "vocab.base_function.oven",
-      "text": "Oven"
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Keep heat in"
     },
     {
-      "key": "vocab.base_function.bellows",
-      "text": "Draught"
+      "key": "vocab.base_function.blow_air",
+      "text": "Blow air"
     },
     {
       "key": "vocab.property.braidable",
