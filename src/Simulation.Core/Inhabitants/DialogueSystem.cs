@@ -50,7 +50,7 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     public const string Refused = "turn_refused";
 
     /// <summary>The answer came after the data's hours.</summary>
-    public const string TooLate = "dialogue_too_late";
+    public const string TooLate = ReplayNotes.DialogueTooLate;
 
     /// <summary>The kind a talk has for the ranking of day requests (A1587 S3).</summary>
     public const string DialogueKind = "dialogue";
@@ -143,8 +143,8 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
-        // A job without an answer in time is dropped first: the two went on without words. The log line is
-        // replayed as a message at this tick too, and then finds no open job, like a late answer live.
+        // A job without an answer in time is dropped first: the two went on without words. The replay leaves this
+        // line out of its messages (ReplayNotes.IsCoreOnly) - the replayed core drops the job here by itself.
         var within = (long)Math.Ceiling(_settings.AnswerWithinHours * _ticksPerHour);
         foreach (var job in _jobs.Values.Where(j => world.Tick - j.Tick > within).ToList())
         {
