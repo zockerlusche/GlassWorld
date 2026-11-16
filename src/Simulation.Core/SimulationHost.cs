@@ -134,6 +134,12 @@ public sealed class SimulationHost
         return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, null, jobPort, null, options);
     }
 
+    /// <summary>A1830: the catalog's leaves_behind per type (a felled tree leaves its stump).</summary>
+    private static Dictionary<string, string> LeavesBehindOf(ContentSet content) =>
+        content.Objects.TypeIds
+            .Where(t => content.Objects.Params(t).LeavesBehind is not null)
+            .ToDictionary(t => t, t => content.Objects.Params(t).LeavesBehind!, StringComparer.Ordinal);
+
     /// <summary>Assembles the systems around a given world (new or restored) in the fixed order.</summary>
     public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale) =>
         Assemble(content, settings, world, port, displayLocale, null, null);
@@ -247,6 +253,7 @@ public sealed class SimulationHost
                 NodeBudget = preset.Pathfinding.NodeBudget,
 
                 // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                LeavesBehind = LeavesBehindOf(content),
                 ObstacleRadiusCm = content.Objects.TypeIds
                     .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
                     .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
@@ -457,6 +464,7 @@ public sealed class SimulationHost
             {
                 ValidateRequests = options.ValidateRequests,
                 Implied = [.. content.Inventions.Settings.ImpliedProperties],
+                LeavesBehind = LeavesBehindOf(content),
             }
             : null;
         if (processes is not null)

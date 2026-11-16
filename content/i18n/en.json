@@ -1463,6 +1463,10 @@
       "text": "Portable"
     },
     {
+      "key": "vocab.property.rooted",
+      "text": "Rooted"
+    },
+    {
       "key": "vocab.property.salty",
       "text": "Salty"
     },
@@ -1637,6 +1641,10 @@
     {
       "key": "vocab.process.split",
       "text": "Split"
+    },
+    {
+      "key": "vocab.process.fell",
+      "text": "Fell"
     },
     {
       "key": "vocab.process.bind",
@@ -1861,6 +1869,14 @@
     {
       "key": "vocab.object.dry_wood",
       "text": "Dry wood"
+    },
+    {
+      "key": "vocab.object.tree_stump",
+      "text": "Tree stump"
+    },
+    {
+      "key": "vocab.object.felled_trunk",
+      "text": "Felled trunk"
     },
     {
       "key": "vocab.object.dry_grass",
