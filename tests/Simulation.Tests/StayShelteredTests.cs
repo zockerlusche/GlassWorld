@@ -87,6 +87,7 @@ public sealed class StayShelteredTests
             AirAt = (_, _) => air,
             StaySheltered = stay,
             ShelteredAt = at => at.X < 10,
+            ShelterProperty = Content.Body.Wetness.ShelterProperty,
         };
         inhabitants.Sheltered = inhabitant => inhabitants.ShelteredAt!(inhabitant.Position);
         world.Add(objects).Add(inhabitants);
@@ -107,7 +108,10 @@ public sealed class StayShelteredTests
         // In the rain under the shelter it lasts.
         Assert.True(inhabitants.KeepsSheltering(world, one, use, niche));
 
-        // Not another action, not out in the open, not once it is dry and warm.
+        // Not another thing lying under the shelter (review GW1 #528: a cup in the niche), not another action, not
+        // out in the open, not once it is dry and warm.
+        var cup = objects.Spawn("fieldstone", new Position(2, 2));
+        Assert.False(inhabitants.KeepsSheltering(world, one, use with { TargetId = cup.Id }, cup));
         Assert.False(inhabitants.KeepsSheltering(world, one, use with { Action = "inspect" }, niche));
         Assert.False(inhabitants.KeepsSheltering(world, outside, use, niche));
         air = new Air(250, false);
