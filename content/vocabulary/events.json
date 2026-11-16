@@ -163,6 +163,10 @@
       "description": "An inhabitant who can read read a text in passing and learned what it says (B8 R15, A1357; target = the carrier, Detail = the knowledge ref)."
     },
     {
+      "id": "voice_believed",
+      "description": "An inhabitant took what the player's voice said about a thing as a weak belief (B6 R20, A1536; target = the type, Detail = property|value)."
+    },
+    {
       "id": "writing_found",
       "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
     },

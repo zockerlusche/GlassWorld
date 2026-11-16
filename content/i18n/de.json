@@ -1771,6 +1771,10 @@
       "text": "Lob"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "Hinweis"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Anderes"
     },
@@ -2355,6 +2359,10 @@
       "text": "vermutet"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "die Stimme"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "gelesen"
     },
@@ -2385,6 +2393,10 @@
     {
       "key": "vocab.event.text_read",
       "text": "Geschriebenes gelesen"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Hat der Stimme etwas geglaubt"
     },
     {
       "key": "vocab.event.writing_found",

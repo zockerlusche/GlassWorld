@@ -19,6 +19,10 @@
       "description": "Read it (writing, B9)."
     },
     {
+      "id": "voice",
+      "description": "The player's voice said it (B6 R20): believed by trust, awe and fear toward the player; weak."
+    },
+    {
       "id": "seen",
       "description": "Looked at it closely: only what can be seen (kind, look), never the effect."
     }

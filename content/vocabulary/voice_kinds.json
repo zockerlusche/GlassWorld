@@ -11,6 +11,10 @@
       "description": "The player praises or encourages the inhabitant (B2597)."
     },
     {
+      "id": "tip",
+      "description": "The player says what a thing is like (B6 R20, B2830): it becomes a weak belief with the source voice."
+    },
+    {
       "id": "other",
       "description": "Anything else: a question, advice, chatter."
     }
