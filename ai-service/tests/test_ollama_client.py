@@ -122,3 +122,29 @@ def test_unload_sets_keep_alive_zero_and_warm_up_loads() -> None:
     asyncio.run(scenario())
     assert bodies[0] == {"model": "qwen3.5:9b", "prompt": "", "keep_alive": "10m"}
     assert bodies[1] == {"model": "qwen3.5:9b", "keep_alive": 0}
+
+
+def test_a_seed_offset_shifts_the_seed_sent_to_the_model() -> None:
+    """R27 (D827 T1): N acceptance runs of one world sample differently; 0 changes nothing."""
+    seen: list[int] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content)["options"]["seed"])
+        return httpx.Response(200, json={"message": {"role": "assistant", "content": "{}"}})
+
+    async def scenario(offset: int) -> None:
+        http = httpx.AsyncClient(transport=httpx.MockTransport(handle))
+        client = OllamaClient("http://o.test", "m", http, keep_alive="1m", seed_offset=offset)
+        async with http:
+            await client.chat(
+                [ChatMessage("user", "u")],
+                schema=SCHEMA,
+                seed=2_147_483_000,
+                temperature=0.7,
+                num_ctx=4096,
+                timeout=5,
+            )
+
+    asyncio.run(scenario(0))
+    asyncio.run(scenario(1_000))
+    assert seen == [2_147_483_000, (2_147_483_000 + 1_000) % 2_147_483_648]
