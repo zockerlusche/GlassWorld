@@ -130,6 +130,11 @@ public partial class Main
         // '+N'; '+N' opens the window with all of them, which searches, filters and pins.
         var portraits = screen.PortraitsForShots;
         GD.Print($"UI_TOUR_FULL corner shows {portraits.Count} of {ids.Count}, +{portraits.More}");
+        // A1791 (Marcel W2242): a thing's info - name, maker, what the inhabitants know, the ground.
+        GD.Print($"UI_TOUR_FULL thing info {screen.OpenSomeThingForShots() ?? "-"}");
+        await take("29_ding_info");
+        screen.CloseThingForShots();
+
         // A1752 (B2792): each portrait state once - knock (ring pulses), worry, aha (star), question, none.
         screen.PortraitStatesForShots(true);
         await take("29_ecken_zustaende");

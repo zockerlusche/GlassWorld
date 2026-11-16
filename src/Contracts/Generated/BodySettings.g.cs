@@ -84,6 +84,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("shelter_radius_cm")]
         public int ShelterRadiusCm { get; set; } = default!;
 
+        /// <summary>
+        /// How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("shelter_still_air_tenth_c")]
+        public int? ShelterStillAirTenthC { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

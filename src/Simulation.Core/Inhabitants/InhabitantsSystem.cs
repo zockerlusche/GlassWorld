@@ -2108,6 +2108,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>
+    /// A1790: how far short of a route's last point the walker may stop - so that it is still within reach of the
+    /// destination. The last point is the destination itself (the full reach), or a point in front of a trunk or a rock
+    /// the walk goes to (less by how far that point lies from it).
+    /// </summary>
+    private static double LastStop(IReadOnlyList<Position> route, Position destination, double reach) =>
+        route.Count > 0 ? Math.Max(0, reach - Distance(route[^1], destination)) : reach;
+
+    /// <summary>
     /// Walks along the route to the destination (B2 R10): the route is searched once when the walk starts
     /// and kept in the activity (saved and hashed, so a loaded game walks on identically); speed follows
     /// the ground (shallow water, slopes). No route: the action is cancelled with the reason.
@@ -2137,7 +2145,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
-        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
         if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
         {
             if (kept)
@@ -2147,7 +2155,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     return false;
                 }
 
-                (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+                (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
             }
 
             if (!routes.Connected(from, position))

@@ -112,7 +112,8 @@ public sealed record InhabitantCard(InhabitantRow Row, IReadOnlyList<CardValue> 
 /// <param name="GameDay">Running game day since the founding, from 1 (B2759).</param>
 /// <param name="DaysPerSeason">Days of a season (<c>time.json</c>).</param>
 /// <param name="DaysPerYear">Days of a year: days of a season times the seasons.</param>
-public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time, long GameDay, int DaysPerSeason, int DaysPerYear);
+/// <param name="AirC">Air temperature on the island now in whole degrees Celsius, null without a weather system (A1800).</param>
+public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time, long GameDay, int DaysPerSeason, int DaysPerYear, int? AirC = null);
 
 /// <summary>A mailbox message as the screen shows it.</summary>
 /// <param name="Id">Message id.</param>
@@ -285,6 +286,10 @@ public sealed class WorldFeed
         return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
     }
 
+    /// <summary>An air temperature in tenths of a degree as whole degrees (rounded half away from zero), or null without weather.</summary>
+    public static int? AirOf(int? tenthC) =>
+        tenthC is { } t ? (int)Math.Round(t / 10.0, MidpointRounding.AwayFromZero) : null;
+
     /// <summary>The world clock.</summary>
     public ClockView Clock()
     {
@@ -298,7 +303,8 @@ public sealed class WorldFeed
             string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"),
             time.Day,
             settings.DaysPerSeason,
-            settings.DaysPerSeason * settings.Seasons.Count);
+            settings.DaysPerSeason * settings.Seasons.Count,
+            AirOf(Snapshot.Weather?.TemperatureTenthC));
     }
 
     /// <summary>Neutral number from an id such as <c>inh-000004</c> (the UI shows "Inhabitant 4").</summary>
