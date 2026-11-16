@@ -1371,6 +1371,14 @@
       "text": "Closure"
     },
     {
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Keep heat in"
+    },
+    {
+      "key": "vocab.base_function.blow_air",
+      "text": "Blow air"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Braidable"
     },
@@ -4257,6 +4265,18 @@
     {
       "key": "vocab.property.dug",
       "text": "dug"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Enclosing"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Air-drawing"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallic"
     },
     {
       "key": "vocab.event.dug",

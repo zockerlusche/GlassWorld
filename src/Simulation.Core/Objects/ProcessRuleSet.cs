@@ -49,6 +49,9 @@ public sealed class ProcessRuleSet
     /// <summary>The heat levels, lowest first (B2700).</summary>
     public IReadOnlyList<string> HeatLevels { get; }
 
+    /// <summary>A1579 (B4b K6): how a burning thing's heat rises by what stands near it (an oven, a furnace); empty = none.</summary>
+    public IReadOnlyList<HeatRaise> HeatRaise { get; private init; } = [];
+
     /// <summary>The process verb of a rule, or null for a rule this set does not have (D1096 #4: milestones by verb).</summary>
     public string? ProcessOf(string ruleId) => _rules.FirstOrDefault(r => string.Equals(r.Id, ruleId, StringComparison.Ordinal))?.Process;
 
@@ -148,8 +151,23 @@ public sealed class ProcessRuleSet
             }
         }
 
+        // A1579 (B4b K6): a heat raise names known properties and a heat level of the table.
+        foreach (var raise in data.HeatRaise ?? [])
+        {
+            if (raise.PropertiesNear.FirstOrDefault(p => !catalog.PropertyVocabulary.Contains(p)) is { } unknown)
+            {
+                throw new InvalidDataException($"heat_raise: unknown property '{unknown}'.");
+            }
+
+            if (!data.HeatLevels.Contains(raise.RaisesTo, StringComparer.Ordinal))
+            {
+                throw new InvalidDataException($"heat_raise: unknown heat level '{raise.RaisesTo}'.");
+            }
+        }
+
         return new ProcessRuleSet([.. data.Rules.OrderBy(r => r, Specificity.Instance)], techLevels, worldTechLevel, [.. data.HeatLevels])
         {
+            HeatRaise = [.. data.HeatRaise ?? []],
             _processes = [.. processes.Order(StringComparer.Ordinal)],
             _physics = data.Physics,
         };

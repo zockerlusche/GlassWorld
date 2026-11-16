@@ -1371,6 +1371,14 @@
       "text": "Verschluss"
     },
     {
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Hitze halten"
+    },
+    {
+      "key": "vocab.base_function.blow_air",
+      "text": "Luft zuführen"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },
@@ -4257,6 +4265,18 @@
     {
       "key": "vocab.property.dug",
       "text": "gegraben"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Umschließend"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Luftführend"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallisch"
     },
     {
       "key": "vocab.event.dug",
