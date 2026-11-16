@@ -23,6 +23,25 @@ public sealed class WorldGeneratorTests
         Assert.Equal(12, hashes.Count);
     }
 
+    [Fact]
+    public void EverySizeOfTheNewWorldFormGivesAnIslandOfItsGridThatPassesTheCheck()
+    {
+        // A1768 (B2805): the size the player chooses reaches the generator - each option of the data, on the start preset.
+        var options = Contracts.Validation.ContractSerializer.Deserialize<Contracts.WorldOptions>(
+            File.ReadAllText(Path.Combine(TestData.Root, "content", "player", "world_options.json")));
+        Assert.True(options.Sizes.Count >= 2);
+        foreach (var size in options.Sizes)
+        {
+            var island = WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", 42, size.GridCells);
+            Assert.Equal((size.GridCells, size.GridCells), (island.Map.WidthCells, island.Map.DepthCells));
+            Assert.True(island.Passed, $"{size.Id}: " + string.Join(", ", island.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
+        }
+
+        // The preset of the content stays as it is; a size that does not fit its chunks is refused.
+        Assert.Equal(192, Content.Value.WorldGen.Presets["start_island"].Grid.WidthCells);
+        Assert.Throws<ArgumentException>(() => WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", 42, 200));
+    }
+
     [Theory]
     [InlineData(1UL)]
     [InlineData(7UL)]

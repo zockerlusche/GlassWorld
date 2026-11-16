@@ -146,7 +146,8 @@ public partial class WorldPresenter : Node3D
     /// <param name="startFavor">Start favour chosen in the new-world form (null = default of the data).</param>
     /// <param name="savePath">Save game, or null for an unsaved world.</param>
     /// <param name="climate">Climate chosen in the new-world form (B5 R1, B2676); null = the preset's climate.</param>
-    public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath, string? climate = null)
+    /// <param name="spec">A1768 (B2805): every value of the new-world form, kept in the save; its grid size goes to the generator.</param>
+    public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath, string? climate = null, Simulation.State.WorldSpec? spec = null)
     {
         _contentDirectory = contentDirectory;
         var look = ReadLook(contentDirectory);
@@ -160,7 +161,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate }, StartInhabitants())
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate, GridCells = spec?.GridCells, Spec = spec }, StartInhabitants())
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {

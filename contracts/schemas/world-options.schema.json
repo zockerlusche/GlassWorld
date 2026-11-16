@@ -56,16 +56,17 @@
       "additionalProperties": false,
       "required": [
         "id",
-        "island_radius_m"
+        "grid_cells"
       ],
       "properties": {
         "id": {
           "$ref": "common.schema.json#/$defs/VocabId"
         },
-        "island_radius_m": {
-          "type": "number",
-          "minimum": 10,
-          "maximum": 10000
+        "grid_cells": {
+          "description": "A1768 (B2805): width and depth of the island's grid in cells - the generator builds the island in this area (a multiple of the preset's chunk_cells). Placeholder (TL).",
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 1024
         }
       }
     },

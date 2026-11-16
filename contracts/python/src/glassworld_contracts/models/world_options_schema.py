@@ -18,7 +18,12 @@ class SizeOption(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    island_radius_m: float = Field(..., ge=10.0, le=10000.0)
+    grid_cells: int = Field(
+        ...,
+        description="A1768 (B2805): width and depth of the island's grid in cells - the generator builds the island in this area (a multiple of the preset's chunk_cells). Placeholder (TL).",
+        ge=64,
+        le=1024,
+    )
 
 
 class ClimateOption(BaseModel):

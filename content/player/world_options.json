@@ -3,11 +3,11 @@
   "sizes": [
     {
       "id": "small",
-      "island_radius_m": 120
+      "grid_cells": 192
     },
     {
       "id": "medium",
-      "island_radius_m": 200
+      "grid_cells": 256
     }
   ],
   "climates": [

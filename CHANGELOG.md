@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The island size of the new-world form works (A1768, B2805): each size option names the island's grid (`content/player/world_options.json` `grid_cells`, small 192 as before, medium 256 - placeholder), the generator builds the island in that area. Every value of the form (size, grid, climate, start favour) is kept as the world specification in the save game (`world_spec`).
 - Settings 'Steuerung': keys can be laid anew (A1815, A1749 rest) - camera and time actions under the fold 'Tasten belegen'; click a key, press the new one (Esc cancels). A chosen key replaces the action's keys, mouse buttons and the wheel stay; keys laid twice are named in words below. Escape stays the menu's key. 'Standard wiederherstellen' brings the defaults back.
 - Ore lies at the surface where the ground holds it (A1578, B2827, Marcel W2245): no ore entrance - spawn rules take an optional `min_ore_permille` (the underground's ore share), and on rocks and hills ore chunks lie in small clusters over ore veins. Who collects them can learn there is ore here; digging deeper with a tool finds more.
 - The face lives (A1802, Marcel W2245): the mouth moves as long as a sentence takes to say (`look/figures.json` greeting `talk_per_char_s`, `talk_max_s`; before always 2 s), and the face rests by the strongest mood - a light smile, a sad or a surprised mouth (`mood_faces`), neutral while asleep. Brows need shapes in the figure model (A1436) and follow.
