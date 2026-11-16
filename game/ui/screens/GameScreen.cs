@@ -892,7 +892,21 @@ public partial class GameScreen : CanvasLayer
     {
         _presenter?.Host?.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, inhabitantId));
         OpenCard(inhabitantId);
+
+        // A1568 (reviews GW3/GW4 #558): in a day without AI the answer waits for the night - said once a game day,
+        // so the click does not look ignored.
+        if (_presenter?.Host is { NightQueue.HoldsNow: true } host)
+        {
+            var day = host.World.Tick / host.World.Calendar.TicksPerDay;
+            if (day != _nightHintDay)
+            {
+                _nightHintDay = day;
+                ShowHint(new ToastMessage("msg.hint.answers_at_night", new Dictionary<string, string>(), null));
+            }
+        }
     }
+
+    private long _nightHintDay = -1;
 
     /// <summary>Time buttons on or off (off while the pause menu is open, GW1 review #50 K3).</summary>
     public void SetTimeControlsEnabled(bool enabled)
