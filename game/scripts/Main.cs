@@ -520,7 +520,9 @@ public partial class Main : Node3D
             parts.Length > 2 ? parts[2] : string.Empty,
             favor,
             parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null,
-            parts.Length > 5 && int.TryParse(parts[5], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pairs) ? pairs : null);
+            parts.Length > 5 && parts[5].Length > 0
+                ? (int.TryParse(parts[5], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pairs) ? pairs : 0)
+                : null);
     }
 
     /// <summary>
@@ -538,24 +540,29 @@ public partial class Main : Node3D
             return;
         }
 
-        // Size and climate are options of the data (review GW3 #442): a typo fails here, clearly, not mid-start.
+        // Size, climate, resources and pairs are options of the data (review GW3 #442, #578): a typo fails here, clearly,
+        // not mid-start and not as a silent default.
         if (_menuData?.Options is { } options)
         {
             choice = choice with
             {
                 Size = choice.Size.Length > 0 ? choice.Size : options.DefaultSize,
                 Climate = choice.Climate.Length > 0 ? choice.Climate : options.DefaultClimate,
+                Resources = choice.Resources ?? options.DefaultResources,
+                StartPairs = choice.StartPairs ?? options.DefaultStartPairs,
             };
-            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate))
+            var resourcesOk = choice.Resources is null || (options.Resources?.Any(o => o.Id == choice.Resources) ?? false);
+            var pairsOk = choice.StartPairs is null || (options.StartPairs?.Contains(choice.StartPairs.Value) ?? false);
+            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate) || !resourcesOk || !pairsOk)
             {
-                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}' or climate '{choice.Climate}' is not an option of content/player/world_options.json");
+                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}', climate '{choice.Climate}', resources '{choice.Resources}' or pairs '{choice.StartPairs}' is not an option of content/player/world_options.json");
                 GetTree().Quit(1);
                 return;
             }
         }
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} save={_library.SavePath(meta.Id)}");
+        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} resources={choice.Resources} pairs={choice.StartPairs} save={_library.SavePath(meta.Id)}");
         EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         if (_world?.Host is null)
         {
