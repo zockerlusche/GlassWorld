@@ -152,6 +152,10 @@ class Settings(BaseSettings):
     content_dir: Path
     schemas_dir: Path
     log_dir: Path
+    log_max_mb: float = Field(
+        default=20, gt=0, le=10_000, description="A call log rolls to a part beyond this size."
+    )
+    log_keep: int = Field(default=4, ge=1, le=100, description="Rolled parts kept per call log.")
     sampling_seed_offset: int = Field(
         default=0,
         ge=0,

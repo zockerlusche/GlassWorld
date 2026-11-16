@@ -50,6 +50,15 @@ public partial class GameScreen
                 window.Content.AddChild(new Label { Text = MemoryDay(item.Tick), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
             }
 
+            // A1796 (D1114): a line naming a thing still in the world (built, made, found) takes the camera there.
+            if (item.Event?.TargetId is { Length: > 0 } thingId && host.Objects.TryGet(thingId, out _))
+            {
+                var line = new Button { Text = MemoryLine(item, name), Flat = true, Alignment = HorizontalAlignment.Left, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.memory.go_to_thing", MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+                line.Pressed += () => _presenter?.FocusThing(thingId);
+                window.Content.AddChild(line);
+                continue;
+            }
+
             window.Content.AddChild(new Label { Text = MemoryLine(item, name), AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
         }
 
@@ -80,7 +89,7 @@ public partial class GameScreen
         var name = MemoryName(inhabitantId);
         var items = MemoryItems(inhabitantId);
         var title = TextFill.Fill(Tr("ui.memory.title"), new Dictionary<string, string> { ["name"] = name });
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "memories");
+        var folder = GameData.At("memories");
         var stem = ChronicleExport.FileStem(title, DateTimeOffset.Now);
         var html = System.IO.Path.Combine(folder, stem + ".html");
         long DayOf(long tick) => host.World.Calendar.At(tick).Day;

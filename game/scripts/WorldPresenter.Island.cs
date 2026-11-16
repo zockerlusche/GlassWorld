@@ -37,7 +37,12 @@ public partial class WorldPresenter
     private Contracts.LookFocus? _focusLook;
     private Color _focusColor = Colors.White;
     private MeshInstance3D? _focusRing;
+    // A1796: calm place marks at things just built, one per thing (the camera stays where it is).
+    private readonly Dictionary<string, MeshInstance3D> _marks = new(StringComparer.Ordinal);
     private GrassView? _grassView;
+    private AmbientFaunaView? _faunaView;
+    private Presentation.Audio.HourTime? _livingAt;
+    private IReadOnlyList<SoundForAnimal>? _living;
     private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
@@ -74,6 +79,28 @@ public partial class WorldPresenter
 
     /// <summary>Island mode: objects drawn now (0 in placeholder mode).</summary>
     public int ObjectsDrawn => _objectsView?.Drawn ?? 0;
+
+    /// <summary>
+    /// A1791 (review GW3 #527): how far a click may lie from a thing to mean it, or null when it cannot be picked - a type
+    /// the island does not draw (sea water, shape none) or a thing carried in a hand (drawn by the figure). A drawn
+    /// invention reaches to half its shown extent, at least <paramref name="leastM"/>.
+    /// </summary>
+    public double? PickRadius(GlassWorld.Simulation.Objects.WorldObject thing, double leastM, IReadOnlySet<string> carried)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        ArgumentNullException.ThrowIfNull(carried);
+        if (carried.Contains(thing.Id))
+        {
+            return null;
+        }
+
+        if (_inventionsView?.ShownExtent(thing.Id) is > 0 and var extent)
+        {
+            return Math.Max(leastM, extent / 2);
+        }
+
+        return _objectsView is { } view && view.Looks.For(thing.TypeId).Shape == GlassWorld.Contracts.ObjectLookShape.None ? null : leastM;
+    }
 
     /// <summary>
     /// Mesh and material of an object type as the world draws it (for the dream images of the night scene,
@@ -254,6 +281,51 @@ public partial class WorldPresenter
             return true;
         }
 
+        MeshInstance3D? ring = null;
+        ring = Ring(objectId, thing.Position.X, thing.Position.Z, look, look.Seconds, () =>
+        {
+            if (_focusRing == ring)
+            {
+                _focusRing = null;
+            }
+        });
+        _focusRing = ring;
+        return true;
+    }
+
+    /// <summary>
+    /// A1796 (D1114, Marcel 15a): an event of the look's mark kinds leaves the calm ring at its thing, where it is, for
+    /// the look's mark seconds - the camera stays. False when the event is no such kind or its thing is not in the world.
+    /// </summary>
+    public bool MarkThing(Simulation.Inhabitants.WorldEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (_host is null || _focusLook is not { MarkEvents: { } kinds } look || !kinds.Contains(e.Kind)
+            || e.TargetId is not { Length: > 0 } id || !_host.Objects.TryGet(id, out var thing))
+        {
+            return false;
+        }
+
+        if (_marks.Remove(id, out var old) && IsInstanceValid(old))
+        {
+            old.QueueFree();
+        }
+
+        MeshInstance3D? mark = null;
+        mark = Ring(id, thing.Position.X, thing.Position.Z, look, look.MarkSeconds ?? look.Seconds, () =>
+        {
+            if (_marks.TryGetValue(id, out var now) && now == mark)
+            {
+                _marks.Remove(id);
+            }
+        });
+        _marks[id] = mark;
+        return true;
+    }
+
+    /// <summary>The calm ring on the ground around a thing, fading over <paramref name="seconds"/>; <paramref name="gone"/> runs when it is gone.</summary>
+    private MeshInstance3D Ring(string objectId, double x, double z, Contracts.LookFocus look, double seconds, Action gone)
+    {
         var radius = (float)InventionLooks.FocusRadiusM(_inventionsView?.ShownExtent(objectId) ?? 0, look.RadiusM, look.MarginM);
         var material = new StandardMaterial3D
         {
@@ -261,8 +333,7 @@ public partial class WorldPresenter
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             AlbedoColor = _focusColor,
         };
-        var (x, z) = (thing.Position.X, thing.Position.Z);
-        _focusRing = new MeshInstance3D
+        var ring = new MeshInstance3D
         {
             Name = "FocusRing",
             Mesh = new TorusMesh { InnerRadius = Math.Max(0.01f, radius - (float)look.WidthM), OuterRadius = radius },
@@ -270,23 +341,18 @@ public partial class WorldPresenter
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Position = new Vector3((float)x, (float)_ground(x, z) + 0.05f, (float)z),
         };
-        AddChild(_focusRing);
-        var ring = _focusRing;
+        AddChild(ring);
         var fade = CreateTween();
-        fade.TweenProperty(material, "albedo_color:a", 0f, look.Seconds);
+        fade.TweenProperty(material, "albedo_color:a", 0f, seconds);
         fade.TweenCallback(Callable.From(() =>
         {
-            if (ring == _focusRing)
-            {
-                _focusRing = null;
-            }
-
             if (IsInstanceValid(ring))
             {
+                gone();
                 ring.QueueFree();
             }
         }));
-        return true;
+        return ring;
     }
 
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
@@ -397,8 +463,11 @@ public partial class WorldPresenter
     private static T Read<T>(string content, string folder, string file)
         where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(content, folder, file)));
 
-    /// <summary>The plan of the default quality level (content/look/quality.json).</summary>
-    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"));
+    /// <summary>A1748: the player's quality level (settings 'Grafik'), null = the data's default; read when a world is built.</summary>
+    public static string? QualityChoice { get; set; }
+
+    /// <summary>The plan of the player's quality level, else the data's default (content/look/quality.json).</summary>
+    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"), QualityChoice);
 
     /// <summary>Reads the world-look switch (content/look/world.json).</summary>
     private static LookWorld ReadLook(string contentDirectory) => Read<LookWorld>(contentDirectory, "look", "world.json");
@@ -442,6 +511,16 @@ public partial class WorldPresenter
         AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
+        // A1383 (B5-6 R16, B2608): ambient animals near the camera - the ones the sound map says live here now.
+        var soundMap = Read<SoundMap>(content, "sound", "sound_map.json");
+        _faunaView = AmbientFaunaView.Create(
+            Read<FaunaAmbient>(content, "fauna", "ambient.json"),
+            host.World.Seed,
+            () => _rig is { } rig ? rig.Model.Target : null,
+            () => _host is { } h ? LivingAnimals(soundMap, h) : [],
+            (x, z) => Presentation.Ui.DebugOverlayModel.BiomeAt(_host?.Map, x, z),
+            SurfaceFor(terrain.UnitM));
+        AddChild(_faunaView);
         AddChild(_nature);
 
         // Cloud cover over what the player has not seen yet (B2-6 R25); the land a new or loaded world
@@ -463,6 +542,8 @@ public partial class WorldPresenter
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed)
         {
             Expressions = Read<LookExpressions>(content, "look", "expressions.json"),
+            Carried = Read<LookCarried>(content, "look", "carried.json"),
+            PropertiesOf = type => host.Types.Contains(type) ? host.Types.TrueProperties(type) : new HashSet<string>(),
             HullOutline = quality.HullOutline,
             ReachOf = type => looks.Knows(type) && Enum.TryParse<AnimationMappingReach>(looks.For(type).Reach, ignoreCase: true, out var reach) ? reach : null,
             // Review GW1 #459: a finished plan does not change - its colour is worked out once per type, not every frame.
@@ -564,6 +645,7 @@ public partial class WorldPresenter
         _inventionsView = null;
         _focusRing = null;
         _grassView = null;
+        _faunaView = null;
         _cover = null;
         _nature = null;
         _rig = null;
@@ -735,6 +817,11 @@ public partial class WorldPresenter
             {
                 figure.SetFrozen(_freeze.Frozen);
             }
+
+            if (_faunaView is not null)
+            {
+                _faunaView.Frozen = _freeze.Frozen;
+            }
         }
 
         if (ticks > 0)
@@ -768,6 +855,13 @@ public partial class WorldPresenter
             _inventionsView?.Refresh(InventionLooks.Shown(builds, snapshot.Objects));
             var planned = InventionLooks.DrawnTypes(builds);
             objects = planned.Count == 0 ? snapshot.Objects : [.. snapshot.Objects.Where(o => !planned.Contains(o.TypeId))];
+        }
+
+        // A1785 (B2823): a carried thing is drawn in its carrier's hands, not where the core keeps it (at the feet).
+        var carried = snapshot.Inhabitants.Select(i => i.Held).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        if (carried.Count > 0)
+        {
+            objects = [.. objects.Where(o => !carried.Contains(o.Id))];
         }
 
         // Seats (W1688) are taken from the objects only when they changed.
@@ -822,6 +916,8 @@ public partial class WorldPresenter
 
             var spec = FigureSpec.From(appearance, inhabitant.Sex, _figuresLook!, _appearanceLook!);
             var figure = FigureView.Create(inhabitant, spec, _figureShared!, (x, z) => (float)_ground(x, z), () => _seats ?? []);
+            // A1785: the carried thing has the shape and size the object view gives its type.
+            figure.ShapeOf = type => _objectsView is { } view && view.LayerOf(view.Looks.For(type).VisualId) is { } layer ? (layer.Mesh, layer.Material, view.Looks.For(type).SizeM) : null;
             figure.SetFrozen(_freeze.Frozen);
             _islandFigures[inhabitant.Id] = figure;
             node = figure;
@@ -1067,4 +1163,35 @@ public partial class WorldPresenter
             _islandFigures[other].Watch(figure.HeadAnchor, join.LookS, join.Expression);
         }
     }
+
+    /// <summary>
+    /// A1383: the sound map's animals that live at this season and time of day (the biome is checked at each home) -
+    /// worked out again only when the hour turns (review GW4 #504: not every frame).
+    /// </summary>
+    private IReadOnlyList<SoundForAnimal> LivingAnimals(SoundMap map, Simulation.SimulationHost host)
+    {
+        var now = Presentation.Audio.HourTime.Of(host.World.Now);
+        if (_livingAt != now || _living is null)
+        {
+            _livingAt = now;
+            _living = [.. map.Animals.Where(a => a.Seasons.Contains(now.Season, StringComparer.Ordinal) && a.TimesOfDay.Contains(now.TimeOfDay, StringComparer.Ordinal))];
+        }
+
+        return _living;
+    }
+
+    /// <summary>
+    /// A1383 (review GW4 #504): the height ambient animals live above - the ground, or the surface of a lake, stream or the sea
+    /// over its bed, so a fish leaps out of the water and a gull flies over the waves.
+    /// </summary>
+    private Func<double, double, double> SurfaceFor(double unitM) => (x, z) =>
+    {
+        var ground = _ground(x, z);
+        if (_host?.Map is { } map && map.CellOf(new Simulation.Objects.Position(x, z)) is { } at && map.Map.Cell(at.X, at.Z) is { Water: not Simulation.Map.WaterKind.None } cell)
+        {
+            return Math.Max(ground, (cell.Height + cell.WaterDepth) * unitM);
+        }
+
+        return Math.Max(ground, _seaLevelM);
+    };
 }

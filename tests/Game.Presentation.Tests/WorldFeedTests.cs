@@ -103,6 +103,20 @@ public sealed class WorldFeedTests
     }
 
     [Fact]
+    public void ClockShowsTheAirTemperatureInWholeDegrees()
+    {
+        // A1800 (Marcel D1192 #19): the time block shows the air temperature of the island now.
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        Assert.Equal(WorldFeed.AirOf(feed.Snapshot.Weather?.TemperatureTenthC), feed.Clock().AirC);
+        Assert.Equal(12, WorldFeed.AirOf(124));
+        Assert.Equal(-3, WorldFeed.AirOf(-26));
+        Assert.Equal(13, WorldFeed.AirOf(125));
+        Assert.Equal(-13, WorldFeed.AirOf(-125));
+        Assert.Null(WorldFeed.AirOf(null));
+    }
+
+    [Fact]
     public void SnapshotIsReusedWithinOneTick()
     {
         var host = NewWorld();

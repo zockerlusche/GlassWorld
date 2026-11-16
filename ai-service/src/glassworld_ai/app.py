@@ -116,6 +116,15 @@ from glassworld_contracts import (
 READY_LINE = "AI_SERVICE_READY port={port}"
 
 
+def _call_log(settings: Settings, name: str) -> CallLog:
+    """A capped call log in the log folder (D1192 #10)."""
+    return CallLog(
+        settings.log_dir / name,
+        max_bytes=int(settings.log_max_mb * 1_000_000),
+        keep=settings.log_keep,
+    )
+
+
 def create_app(
     settings: Settings,
     *,
@@ -1178,7 +1187,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
 
 
 def _invention_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "inventions.jsonl")
+    return _call_log(settings, "inventions.jsonl")
 
 
 def _invention_prompts(settings: Settings) -> tuple[PromptTemplate, PromptTemplate]:
@@ -1206,7 +1215,7 @@ def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -
 
 
 def _process_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "processes.jsonl")
+    return _call_log(settings, "processes.jsonl")
 
 
 def _judge_context(settings: Settings) -> JudgeContext:
@@ -1237,7 +1246,7 @@ def _ollama_processes(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
 
 
 def _dream_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "dreams.jsonl")
+    return _call_log(settings, "dreams.jsonl")
 
 
 def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDreams:
@@ -1254,7 +1263,7 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
 
 
 def _chronicle_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "chronicle.jsonl")
+    return _call_log(settings, "chronicle.jsonl")
 
 
 def _ollama_chronicles(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaChronicles:
@@ -1272,7 +1281,7 @@ def _ollama_chronicles(settings: Settings, ollama: OllamaClient, app: FastAPI) -
 
 
 def _milestone_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "milestones.jsonl")
+    return _call_log(settings, "milestones.jsonl")
 
 
 def _ollama_milestones(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaMilestones:
@@ -1290,11 +1299,11 @@ def _ollama_milestones(settings: Settings, ollama: OllamaClient, app: FastAPI) -
 
 
 def _review_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "review.jsonl")
+    return _call_log(settings, "review.jsonl")
 
 
 def _dialogue_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "dialogue.jsonl")
+    return _call_log(settings, "dialogue.jsonl")
 
 
 def _ollama_dialogues(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDialogues:
@@ -1331,7 +1340,7 @@ def _ollama_reviews(settings: Settings, ollama: OllamaClient, app: FastAPI) -> O
 
 
 def _builder_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "builder.jsonl")
+    return _call_log(settings, "builder.jsonl")
 
 
 def _ollama_builder(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaBuilder:
@@ -1348,7 +1357,7 @@ def _ollama_builder(settings: Settings, ollama: OllamaClient, app: FastAPI) -> O
 
 
 def _memory_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "memory.jsonl")
+    return _call_log(settings, "memory.jsonl")
 
 
 def _call_settings(settings: Settings) -> ModelCallSettings:
@@ -1373,7 +1382,7 @@ def _ollama_memory(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
 
 
 def _question_log(settings: Settings) -> CallLog:
-    return CallLog(settings.log_dir / "questions.jsonl")
+    return _call_log(settings, "questions.jsonl")
 
 
 def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaQuestions:
@@ -1397,7 +1406,7 @@ def _build_conversation(
     guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     expressions = {e: vocab.describe("expression", e) or e for e in vocab.ids("expression")}
-    log = CallLog(settings.log_dir / "conversation.jsonl")
+    log = _call_log(settings, "conversation.jsonl")
     if settings.decider_backend == "mock":
         return MockConversation()
     texts = TextCatalog.load(settings.content_dir / "i18n")
@@ -1432,7 +1441,7 @@ def _build_conversation(
 
 def _build_helper(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -> HelpSuggester:
     guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
-    log = CallLog(settings.log_dir / "help.jsonl")
+    log = _call_log(settings, "help.jsonl")
     if settings.decider_backend == "mock":
         return MockHelp()
     if settings.decider_backend == "replay":
@@ -1451,7 +1460,7 @@ def _build_helper(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -
 
 def _build_decider(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -> Decider:
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
-    log = CallLog(settings.log_dir / "decider.jsonl")
+    log = _call_log(settings, "decider.jsonl")
     if settings.decider_backend == "mock":
         weights = settings.content_dir / "ai" / "mock-weights.json"
         return MockDecider(MockWeights.load(weights) if weights.exists() else None)

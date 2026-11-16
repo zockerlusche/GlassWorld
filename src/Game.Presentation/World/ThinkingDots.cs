@@ -24,17 +24,14 @@ public static class ThinkingDots
     public static bool Shown(int openQuestions, bool lying = false) => openQuestions > 0 && !lying;
 
     /// <summary>
-    /// A1402 (B4a-S7, TL #19921): what stands over the head - a "?" while a question still puzzles the inhabitant (and
-    /// the data gives the mark a size), the dots while it only waits for the effect, nothing without a question or while
+    /// A1402 (B4a-S7, TL #19921), A1788: what stands over the head - the question mark while a question still puzzles the
+    /// inhabitant (the game screen draws it; the figure then shows no dots), the dots while it only waits for the effect, nothing without a question or while
     /// its figure lies asleep.
     /// </summary>
-    public static HeadMark Mark(FigureThinkingDots look, int openQuestions, int puzzlingQuestions, bool lying = false)
-    {
-        ArgumentNullException.ThrowIfNull(look);
-        return lying || (openQuestions <= 0 && puzzlingQuestions <= 0) ? HeadMark.None
-            : puzzlingQuestions > 0 && look.QuestionFontPx is > 0 ? HeadMark.Question
+    public static HeadMark Mark(int openQuestions, int puzzlingQuestions, bool lying = false) =>
+        lying || (openQuestions <= 0 && puzzlingQuestions <= 0) ? HeadMark.None
+            : puzzlingQuestions > 0 ? HeadMark.Question
             : HeadMark.Dots;
-    }
 
     /// <summary>The inhabitant's phase of the wave in [0, 1), from its id.</summary>
     public static double Phase(string inhabitantId) => AnimationChooser.Unit(inhabitantId, 0, SaltPhase);

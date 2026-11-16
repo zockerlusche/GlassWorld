@@ -88,11 +88,13 @@ public partial class FigureView : Node3D
     private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
     private readonly Label3D[] _dots = new Label3D[ThinkingDots.Count];
     private Node3D _body = null!;
+    private MeshInstance3D? _carried;
+    private string? _carriedType;
+    private FigureGesture? _carryGesture;
     private Vector3 _bodyScale = Vector3.One;
     private Vector3 _bodyRotation;
     private bool _mirrored;
     private Node3D _thinking = null!;
-    private Label3D? _question;
     private double _thinkingPhase;
     private double _seconds;
     private Func<double, double, float> _ground = (_, _) => 0f;
@@ -259,24 +261,22 @@ public partial class FigureView : Node3D
         _gestureWanted = GestureCadence.Choose(figures.Gestures, inhabitant.Action, reach);
         // A1729 (A1379 rest): how warm it feels shows when no action's gesture does (cold: arms to the body, a shiver).
         _comfortLook = GestureCadence.ForComfort(figures.Comfort, figures.Gestures, inhabitant.ComfortLevel);
+        // A1785 (B2823): what it carries sits in its hands - drawn here, not on the ground by the object view.
+        Carry(inhabitant.Held is { } held ? objects?.FirstOrDefault(o => o.Id == held)?.TypeId : null, figures);
         (_moods, _needs) = (inhabitant.Moods, inhabitant.Needs);
         _gait = inhabitant.Gait;
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
         // After the pose (D1112 #8): a figure lying asleep shows no thinking dots.
-        // A1402: a "?" while a question still puzzles it, the dots while only the effect is open (TL #19921).
-        var mark = ThinkingDots.Mark(figures.ThinkingDots, inhabitant.OpenQuestionIds.Count, inhabitant.PuzzlingQuestionIds.Count, _lying);
-        _thinking.Visible = mark != HeadMark.None;
+        // A1788: the dots only while just the effect is open; a puzzling question shows the screen's one "?" (no dots beside it).
+        var mark = ThinkingDots.Mark(inhabitant.OpenQuestionIds.Count, inhabitant.PuzzlingQuestionIds.Count, _lying);
+        _thinking.Visible = mark == HeadMark.Dots;
         foreach (var dot in _dots)
         {
             dot.Visible = mark == HeadMark.Dots;
         }
 
-        if (_question is not null)
-        {
-            _question.Visible = mark == HeadMark.Question;
-        }
 
         // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
         var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
@@ -510,7 +510,8 @@ public partial class FigureView : Node3D
         var still = !_lying && _lieSeconds <= 0;
         var actionGesture = _actionShown && still ? _gestureWanted : null;
         // A1729: the comfort gesture only while it stands idle or walks - never over an action, never lying.
-        _gestures?.Update(delta, actionGesture ?? (!_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
+        // A1785: carrying holds the arms over every other gesture but an action's own.
+        _gestures?.Update(delta, actionGesture ?? (still && _carryGesture is not null ? _carryGesture : !_actionShown && still ? _expressionShown?.Gesture ?? _comfortLook.Gesture : null));
 
         // A1729: a slight sideways shiver of the body while it is cold; back in its place once it stops.
         _shiverSeconds += delta;
@@ -622,6 +623,56 @@ public partial class FigureView : Node3D
         _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
     }
 
+    /// <summary>A1785: the shape of an object type and its size factor (from the object view), set by the presenter.</summary>
+    public Func<string, (Mesh Mesh, Material Material, double SizeM)?>? ShapeOf { get; set; }
+
+    /// <summary>The type it carries now (checks), or null.</summary>
+    public string? CarriedType => _carriedType;
+
+    /// <summary>
+    /// A1785 (B2823): the carried thing in front of the body at the data's height and lie, turning with the body; the arms
+    /// hold it with a steady carry gesture. Changed only when another thing (or none) is carried.
+    /// </summary>
+    private void Carry(string? typeId, LookFigures figures)
+    {
+        if (string.Equals(typeId, _carriedType, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _carriedType = typeId;
+        _carried?.QueueFree();
+        _carried = null;
+        _carryGesture = null;
+        if (typeId is null || _shared.Carried is not { } data || ShapeOf?.Invoke(typeId) is not { } shape)
+        {
+            return;
+        }
+
+        var look = CarriedPose.For(data, typeId, _shared.PropertiesOf?.Invoke(typeId) ?? new HashSet<string>());
+        var turn = look.Lie switch
+        {
+            CarryWayLie.Across => new Basis(Vector3.Forward, Mathf.Pi / 2),
+            CarryWayLie.Slanted => new Basis(Vector3.Forward, Mathf.Pi / 4) * new Basis(Vector3.Right, -Mathf.Pi / 8),
+            _ => Basis.Identity,
+        };
+        // Under the figure's root, which carries the figure's own scale (review GW1 #500): height and distance are metres
+        // for size 1 times the figure's size, so divided by the root's scale; the thing keeps its size in the world.
+        var root = new Vector3(Math.Abs(_bodyScale.X), _bodyScale.Y, _bodyScale.Z);
+        var size = (float)shape.SizeM;
+        _carried = new MeshInstance3D
+        {
+            Name = "Carried",
+            Mesh = shape.Mesh,
+            MaterialOverride = shape.Material,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Transform = new Transform3D(turn.Scaled(new Vector3(size / root.X, size / root.Y, size / root.Z)), new Vector3(0, (float)(look.HeightM * _scale) / root.Y, (float)(look.ForwardM * _scale) / root.Z)),
+        };
+        _body.AddChild(_carried);
+        var gesture = CarriedPose.GestureOf(look);
+        _carryGesture = figures.Gestures?.FirstOrDefault(g => string.Equals(g.Id, gesture, StringComparison.Ordinal));
+    }
+
     /// <summary>The see-through pass: drawn only where something in front hides the figure (W1689).</summary>
     private static ShaderMaterial Silhouette(FigureSilhouette look, FigureSpec spec)
     {
@@ -716,25 +767,6 @@ public partial class FigureView : Node3D
             _thinking.AddChild(_dots[i]);
         }
 
-        // A1402: the question mark in the dots' place, as calm as their brightest moment.
-        if (look.QuestionFontPx is { } questionPx)
-        {
-            _question = new Label3D
-            {
-                Name = "QuestionMark",
-                Text = "?",
-                FontSize = questionPx,
-                OutlineSize = Math.Max(1, questionPx / 8),
-                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
-                NoDepthTest = true,
-                RenderPriority = CloudCover.AbovePriority + 1,
-                OutlineRenderPriority = CloudCover.AbovePriority,
-                Modulate = new Color(1, 1, 1, (float)look.AlphaMax),
-                Visible = false,
-            };
-            _thinking.AddChild(_question);
-        }
     }
 
     private void BuildTree(Node3D root, AnimationPlayer player, AnimationLibrary library, double crossfade)

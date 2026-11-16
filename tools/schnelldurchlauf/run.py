@@ -30,11 +30,23 @@ PROJECT = ROOT / "src" / "Simulation.Headless"
 
 
 def worlds_folder() -> Path:
-    """The game's world list (user://worlds of the Godot project GlassWorld)."""
+    """The game's world list: GLASSWORLD_DATA/worlds when set (A1787: an exported game keeps its
+    data in daten/ next to itself, the start script names it), else user://worlds of the project."""
+    if data := os.environ.get("GLASSWORLD_DATA"):
+        return Path(data) / "worlds"
     appdata = os.environ.get("APPDATA")
     if appdata:
         return Path(appdata) / "Godot" / "app_userdata" / "GlassWorld" / "worlds"
     return Path.home() / ".local" / "share" / "godot" / "app_userdata" / "GlassWorld" / "worlds"
+
+
+def logs_folder() -> Path:
+    """The game's log folder (A1787 part 2, Marcel W2246): next to GLASSWORLD_DATA when that is
+    a daten/ folder beside the game, else log/ in the data folder (as the game's GameData.Logs)."""
+    data = worlds_folder().parent
+    if data.name.lower() == "daten":
+        return data.parent / "log"
+    return data / "log"
 
 
 RESERVED = {
@@ -109,11 +121,14 @@ def main(argv: list[str] | None = None) -> int:
     # Only after the build (review GW3 #473): a failed build leaves no empty world in the list.
     folder.mkdir(parents=True)
     save = folder / "world.sqlite"
+    # The world's logs live in the game's log folder (A1787 part 2): they outlive the world.
+    logs = logs_folder() / "welten" / folder.name
+    logs.mkdir(parents=True, exist_ok=True)
     command = [
         "dotnet", "run", "--project", str(PROJECT), "-c", "Release", "--no-build", "--",
         "--preset", "start_island", "--seed", str(seed), "--climate", climate,
         "--ai", "live" if args.ai == "on" else "mock", "--days", str(args.days), "--quiet",
-        "--save", str(save), "--learning-log", str(folder), "--run-trace", str(folder),
+        "--save", str(save), "--learning-log", str(logs), "--run-trace", str(logs),
     ]  # fmt: skip
     started = time.monotonic()
     with (folder / "lauf.log").open("w", encoding="utf-8") as log:

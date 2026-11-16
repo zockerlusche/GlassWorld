@@ -21,8 +21,12 @@ public partial class GameScreen
     private readonly HBoxContainer _cornerFavor = new() { Name = "Favor" };
     private readonly HBoxContainer _cornerButtons = new() { Name = "Buttons", Alignment = BoxContainer.AlignmentMode.End };
     private readonly GwIcon _seasonIcon = new() { Name = "Season", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+    // A1800 (Marcel D1192 #19): the air temperature beside the time; right-aligned in its steady width.
+    private readonly Label _air = new() { Name = "Air", HorizontalAlignment = HorizontalAlignment.Right, MouseFilter = Control.MouseFilterEnum.Stop, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.clock.air_tooltip", TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always };
     private readonly GwIcon _weatherIcon = new() { Name = "Weather", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly ProgressBar _favorBar = new() { Name = "FavorBar", ShowPercentage = false, MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "ui.favor.tooltip", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+    // A1800 (B2839): how far the season has come, as a short bar after its name ('day x of y' in the tooltip).
+    private readonly ProgressBar _seasonBar = new() { Name = "SeasonBar", ShowPercentage = false, MinValue = 0, MouseFilter = Control.MouseFilterEnum.Stop, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly GwIcon _favorThumb = new() { Name = "FavorThumb", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private readonly GwRoundButton _menuRound = new() { Name = "CornerMenu" };
     private readonly GwPortraitList _portraits = new() { Visible = false };
@@ -31,9 +35,30 @@ public partial class GameScreen
     private readonly HashSet<string> _portraitAsked = new(StringComparer.Ordinal);
     private HFlowContainer? _topRow;
     private Vector2? _cornerArea;
+
+    // A1752 (B2792): who had an aha lately (invented, built, a new word) - until the portrait is clicked or a game day passed.
+    private AhaMarks? _aha;
+
+    // Screenshot runs only: states laid onto the corner, so one picture shows each of them (a new world has only questions).
+    private Dictionary<string, PortraitState>? _shotStates;
     private bool _portraitBusy;
     private int _portraitRound;
     private double _portraitScale;
+
+    /// <summary>
+    /// Screenshot runs only (A1752): the first inhabitants show knock, worry, aha, question and none, in that order;
+    /// <c>false</c> gives the corner back to the world.
+    /// </summary>
+    public void PortraitStatesForShots(bool on)
+    {
+        _shotStates = null;
+        if (on && _feed is not null)
+        {
+            PortraitState[] order = [PortraitState.Knock, PortraitState.Worry, PortraitState.Aha, PortraitState.Question, PortraitState.None];
+            _shotStates = _feed.Snapshot.Inhabitants.Select(i => i.Id).Order(StringComparer.Ordinal).Take(order.Length)
+                .Select((id, n) => (id, n)).ToDictionary(p => p.id, p => order[p.n], StringComparer.Ordinal);
+        }
+    }
 
     /// <summary>The portrait list top left (for the UI tour).</summary>
     public GwPortraitList PortraitsForShots => _portraits;
@@ -63,6 +88,7 @@ public partial class GameScreen
         _seasonIcon.CustomMinimumSize = icon;
         _weatherIcon.CustomMinimumSize = icon;
         _favorBar.CustomMinimumSize = new Vector2(_style.Tokens.Zones.FavorBarWidth, px * 0.3f);
+        _seasonBar.CustomMinimumSize = new Vector2(_style.Tokens.Zones.SeasonBarWidth, px * 0.2f);
         _favorThumb.CustomMinimumSize = icon;
 
         _root.AddChild(_corner);
@@ -71,6 +97,8 @@ public partial class GameScreen
         _portraits.Setup(_style);
         _portraits.Chosen += id =>
         {
+            // A1752: a click on the portrait is the player having seen the aha.
+            _aha?.Seen(id);
             Encounter(id);
             _presenter?.ChooseFigure(id);
         };
@@ -95,9 +123,11 @@ public partial class GameScreen
         {
             Move(_seasonIcon, _cornerDate, 0);
             Move(_date, _cornerDate, 1);
-            Move(_day, _cornerDate, 2);
-            Move(_time, _cornerDate, 3);
-            Move(_weatherIcon, _cornerDate, 4);
+            Move(_seasonBar, _cornerDate, 2);
+            Move(_day, _cornerDate, 3);
+            Move(_time, _cornerDate, 4);
+            Move(_air, _cornerDate, 5);
+            Move(_weatherIcon, _cornerDate, 6);
             for (var i = 0; i < _timeButtons.Count; i++)
             {
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
@@ -121,7 +151,9 @@ public partial class GameScreen
 
         Move(_favor, _topRow, 3 + _timeButtons.Count);
         Move(_seasonIcon, _cornerDate, 0);
-        Move(_weatherIcon, _cornerDate, 1);
+        Move(_seasonBar, _cornerDate, 1);
+        Move(_air, _cornerDate, 2);
+        Move(_weatherIcon, _cornerDate, 3);
         Move(_favorBar, _cornerFavor, 0);
         Move(_favorThumb, _cornerFavor, 1);
     }
@@ -161,7 +193,7 @@ public partial class GameScreen
         }
 
         var edge = view.X - _style.Tokens.Window.SafeMargin;
-        var labels = new[] { _time, _date, _day };
+        var labels = new[] { _time, _date, _day, _air };
         var shown = labels.Select(l => l.Text).ToArray();
         float? width = null;
         _clockHeld = true;
@@ -172,7 +204,7 @@ public partial class GameScreen
                 for (var i = 0; i < labels.Length; i++)
                 {
                     labels[i].Text = new string([.. shown[i].Select(c => char.IsAsciiDigit(c) ? digit : c)]);
-                    UiFit.SteadyDigits(labels[i]);
+                    UiFit.SteadyDigits(labels[i], labels[i] == _air ? AirWidest() : null);
                 }
 
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -196,7 +228,7 @@ public partial class GameScreen
             for (var i = 0; i < labels.Length; i++)
             {
                 labels[i].Text = shown[i];
-                UiFit.SteadyDigits(labels[i]);
+                UiFit.SteadyDigits(labels[i], labels[i] == _air ? AirWidest() : null);
             }
         }
 
@@ -242,6 +274,13 @@ public partial class GameScreen
 
         return string.Empty;
     }
+
+    /// <summary>The temperature as the player reads it ('12 °C').</summary>
+    private string AirText(int degrees) =>
+        TextFill.Fill(Tr("ui.clock.air"), new Dictionary<string, string> { ["temp"] = degrees.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+
+    /// <summary>The widest temperature text (a sign and two digits): its room stays when the number has fewer.</summary>
+    private string AirWidest() => AirText(-88);
 
     /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
     private static VBoxContainer TimeBox(Control speeds, Control date)
@@ -332,12 +371,32 @@ public partial class GameScreen
         _portraits.Selected = _cardId;
 
         // B2749 (TL #25515): from portraits_important_from on only the important ones, and '+N' for the rest.
-        var (shown, more) = CornerModel.Shown(rows, zones, _cardId, Knocking());
-        _portraits.SetRows([.. shown.Select(r => new PortraitEntry(r.Id, ScreenModel.DisplayName(r, unnamed), _activities[r.Id], CornerModel.Brooding(r)))], more);
+        // A1752 (B2792): each portrait shows its one state, and the states rank the corner: knock > worry > aha > question > favourites.
+        var knocking = Knocking();
+        var states = _style.Tokens.PortraitStates;
+        var tick = _feed.Snapshot.Time.Tick;
+        PortraitState StateOf(InhabitantRow r) => _shotStates?.TryGetValue(r.Id, out var shot) == true
+            ? shot
+            : CornerModel.State(r, knocking.Contains(r.Id), _aha?.Shows(r.Id, tick) == true, states);
+        var (shown, more) = CornerModel.Shown(rows, zones, _cardId, StateOf);
+        _portraits.SetRows([.. shown.Select(r => new PortraitEntry(r.Id, ScreenModel.DisplayName(r, unnamed), _activities[r.Id], StateOf(r)))], more);
 
         var season = CornerModel.SeasonId(clock.SeasonKey);
         _seasonIcon.Icon = CornerModel.IconFor(zones.SeasonIcons, season);
         _seasonIcon.TooltipText = Tr(clock.SeasonKey);
+        // A1800 (B2839): the season's progress as a bar; its tooltip is the date's ('day x of y', the lengths).
+        _seasonBar.MaxValue = Math.Max(1, clock.DaysPerSeason);
+        _seasonBar.Value = Math.Clamp(clock.Day, 0, clock.DaysPerSeason);
+        _seasonBar.TooltipText = _date?.TooltipText ?? string.Empty;
+
+        // A1800: the air temperature of the island now; hidden without a weather system.
+        _air.Visible = clock.AirC is not null;
+        if (clock.AirC is { } air && !_clockHeld)
+        {
+            _air.Text = AirText(air);
+            UiFit.SteadyDigits(_air, AirWidest());
+        }
+
         var weather = _feed.Snapshot.Weather?.Weather;
         _weatherIcon.Visible = weather is not null;
         if (weather is not null)
