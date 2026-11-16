@@ -66,6 +66,12 @@ class ReadingAction(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     curiosity_min: float = Field(..., ge=0.0, le=1.0)
+    author_weight_floor: float | None = Field(
+        None,
+        description="A1357 (spec 33 section 9a): what is read is believed with the text's legibility times the reader's respect for the author, but at least this share of the legibility (an author it hardly knows). Placeholder value (TL). Omitted = respect alone.",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class FindingWriting(BaseModel):

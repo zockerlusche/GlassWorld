@@ -2247,6 +2247,10 @@
       "text": "Nachricht klopft erneut"
     },
     {
+      "key": "vocab.event.text_read",
+      "text": "Geschriebenes gelesen"
+    },
+    {
       "key": "vocab.event.writing_found",
       "text": "Geschriebenes wiedergefunden"
     },

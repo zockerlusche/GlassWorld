@@ -155,6 +155,10 @@
       "description": "An unread message knocks again (Detail = message kind)."
     },
     {
+      "id": "text_read",
+      "description": "An inhabitant who can read read a text in passing and learned what it says (B8 R15, A1357; target = the carrier, Detail = the knowledge ref)."
+    },
+    {
       "id": "writing_found",
       "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
     },
