@@ -49,6 +49,9 @@ public sealed class RunTraceTests : IDisposable
         var types = lines.GroupBy(l => l.GetProperty("t").GetString()!).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
         Assert.Equal(24, types["snapshot"].Count);
         Assert.Contains(types["event"], l => l.GetProperty("kind").GetString() == "action_started" && l.TryGetProperty("at", out _));
+
+        // A1373: an event about a thing says where the thing is (a built thing stands at its site, not at its builder).
+        Assert.Contains(types["event"], l => l.TryGetProperty("target_type", out _) && l.TryGetProperty("target_at", out var at) && at.GetArrayLength() == 2);
         Assert.Contains(types["ai"], l => l.GetProperty("kind").GetString() == "Request" && l.GetProperty("options").GetArrayLength() > 0);
         Assert.Contains(types["ai"], l => l.GetProperty("kind").GetString() == "Response" && l.TryGetProperty("option_id", out _));
         var snapshot = types["snapshot"][0];

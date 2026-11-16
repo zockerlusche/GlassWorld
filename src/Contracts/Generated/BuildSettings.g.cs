@@ -45,6 +45,48 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildSite
+    {
+
+        /// <summary>
+        /// The decider option that chooses a place (vocabulary action, only_when build_site).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// Places offered at most; with one only, nobody is asked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("candidates")]
+        public int Candidates { get; set; } = default!;
+
+        /// <summary>
+        /// How far from the builder places are looked for.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// No thing may stand closer than this to a place.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clearance_m")]
+        public double ClearanceM { get; set; } = default!;
+
+        /// <summary>
+        /// Places offered lie at least this far apart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_spacing_m")]
+        public double MinSpacingM { get; set; } = default!;
+
+        /// <summary>
+        /// A thing the builder knows within this distance names a place (its own name for it); none = a free place.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("near_m")]
+        public double NearM { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// A1373 step 2 (D827 R15/R17c, D850, B2658): when the help does not come, the builder asks the decider what to do, with options only the core offers: take a thing it believes has the missing properties instead, finish smaller (leave the thing as far as it is built), give up. First after_hours of looking after needs_help, then every after_hours again, at most max times per building. Omitted = the builder never asks, as before.
     /// </summary>
@@ -187,6 +229,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("escalation")]
         public BuildEscalation? Escalation { get; set; } = default!;
+
+        /// <summary>
+        /// A1373 (D827 R15, TL #26920): where to build - when a plan is accepted the core finds up to candidates free places near the builder (walkable, dry, nothing within clearance_m, reachable), the nearest stands as the site, and the decider is asked to choose among them (occasion build_site, action of the data). The answer moves the site while nothing of the thing stands yet; without an answer the nearest stays. Omitted = the site is where the builder stands, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("site")]
+        public BuildSite? Site { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("quality")]
