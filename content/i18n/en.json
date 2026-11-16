@@ -263,6 +263,14 @@
       "text": "day {game_day} · year {year}"
     },
     {
+      "key": "ui.clock.air",
+      "text": "{temp} °C"
+    },
+    {
+      "key": "ui.clock.air_tooltip",
+      "text": "Air temperature on the island"
+    },
+    {
       "key": "ui.common.cancel",
       "text": "Cancel"
     },

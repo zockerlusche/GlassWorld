@@ -21,6 +21,8 @@ public partial class GameScreen
     private readonly HBoxContainer _cornerFavor = new() { Name = "Favor" };
     private readonly HBoxContainer _cornerButtons = new() { Name = "Buttons", Alignment = BoxContainer.AlignmentMode.End };
     private readonly GwIcon _seasonIcon = new() { Name = "Season", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+    // A1800 (Marcel D1192 #19): the air temperature beside the time; right-aligned in its steady width.
+    private readonly Label _air = new() { Name = "Air", HorizontalAlignment = HorizontalAlignment.Right, MouseFilter = Control.MouseFilterEnum.Stop, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.clock.air_tooltip", TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always };
     private readonly GwIcon _weatherIcon = new() { Name = "Weather", MouseFilter = Control.MouseFilterEnum.Stop, TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
     private readonly ProgressBar _favorBar = new() { Name = "FavorBar", ShowPercentage = false, MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = "ui.favor.tooltip", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private readonly GwIcon _favorThumb = new() { Name = "FavorThumb", SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
@@ -120,7 +122,8 @@ public partial class GameScreen
             Move(_date, _cornerDate, 1);
             Move(_day, _cornerDate, 2);
             Move(_time, _cornerDate, 3);
-            Move(_weatherIcon, _cornerDate, 4);
+            Move(_air, _cornerDate, 4);
+            Move(_weatherIcon, _cornerDate, 5);
             for (var i = 0; i < _timeButtons.Count; i++)
             {
                 Move(_timeButtons[i].Button, _cornerSpeed, i);
@@ -144,7 +147,8 @@ public partial class GameScreen
 
         Move(_favor, _topRow, 3 + _timeButtons.Count);
         Move(_seasonIcon, _cornerDate, 0);
-        Move(_weatherIcon, _cornerDate, 1);
+        Move(_air, _cornerDate, 1);
+        Move(_weatherIcon, _cornerDate, 2);
         Move(_favorBar, _cornerFavor, 0);
         Move(_favorThumb, _cornerFavor, 1);
     }
@@ -184,7 +188,7 @@ public partial class GameScreen
         }
 
         var edge = view.X - _style.Tokens.Window.SafeMargin;
-        var labels = new[] { _time, _date, _day };
+        var labels = new[] { _time, _date, _day, _air };
         var shown = labels.Select(l => l.Text).ToArray();
         float? width = null;
         _clockHeld = true;
@@ -195,7 +199,7 @@ public partial class GameScreen
                 for (var i = 0; i < labels.Length; i++)
                 {
                     labels[i].Text = new string([.. shown[i].Select(c => char.IsAsciiDigit(c) ? digit : c)]);
-                    UiFit.SteadyDigits(labels[i]);
+                    UiFit.SteadyDigits(labels[i], labels[i] == _air ? AirWidest() : null);
                 }
 
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -219,7 +223,7 @@ public partial class GameScreen
             for (var i = 0; i < labels.Length; i++)
             {
                 labels[i].Text = shown[i];
-                UiFit.SteadyDigits(labels[i]);
+                UiFit.SteadyDigits(labels[i], labels[i] == _air ? AirWidest() : null);
             }
         }
 
@@ -265,6 +269,13 @@ public partial class GameScreen
 
         return string.Empty;
     }
+
+    /// <summary>The temperature as the player reads it ('12 °C').</summary>
+    private string AirText(int degrees) =>
+        TextFill.Fill(Tr("ui.clock.air"), new Dictionary<string, string> { ["temp"] = degrees.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+
+    /// <summary>The widest temperature text (a sign and two digits): its room stays when the number has fewer.</summary>
+    private string AirWidest() => AirText(-88);
 
     /// <summary>The upper part of the time block (S1b): speeds over date, time and weather, at the right.</summary>
     private static VBoxContainer TimeBox(Control speeds, Control date)
@@ -368,6 +379,14 @@ public partial class GameScreen
         var season = CornerModel.SeasonId(clock.SeasonKey);
         _seasonIcon.Icon = CornerModel.IconFor(zones.SeasonIcons, season);
         _seasonIcon.TooltipText = Tr(clock.SeasonKey);
+        // A1800: the air temperature of the island now; hidden without a weather system.
+        _air.Visible = clock.AirC is not null;
+        if (clock.AirC is { } air && !_clockHeld)
+        {
+            _air.Text = AirText(air);
+            UiFit.SteadyDigits(_air, AirWidest());
+        }
+
         var weather = _feed.Snapshot.Weather?.Weather;
         _weatherIcon.Visible = weather is not null;
         if (weather is not null)
