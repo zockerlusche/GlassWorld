@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
@@ -138,7 +139,7 @@ public static partial class WorldGenerator
             throw new ArgumentException($"grid size {cells} is not a multiple of the preset's chunk size {preset.Grid.ChunkCells}", nameof(gridCells));
         }
 
-        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
+        var copy = ContractSerializer.Deserialize<WorldPreset>(ContractSerializer.Serialize(preset, validate: false));
         copy.Grid.WidthCells = cells;
         copy.Grid.DepthCells = cells;
         return copy;
