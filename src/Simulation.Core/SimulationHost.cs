@@ -618,7 +618,7 @@ public sealed class SimulationHost
 
             // A1357: who can read learns in passing; an author it keeps no relationship with counts as the knowledge start.
             Skills = skillLevels,
-            Held = new HeldByInhabitants(inhabitants, objects),
+            Held = new Writing.HeldByInhabitants(inhabitants, objects),
             AuthorStart = new Relation(content.Knowledge.RelationshipStart.Affection, content.Knowledge.RelationshipStart.Trust, content.Knowledge.RelationshipStart.Respect),
         };
 
