@@ -208,17 +208,19 @@ public sealed class BedtimeTests
         sleeper.Needs[rested.Need] = 0.05;
         sleeper.Activity = new Activity("sleep", null, sleeper.Position, null);
         sleeper.Planned = null;
-        double? atWaking = null;
+        (string? Detail, double Slept)? end = null;
         host.Inhabitants.Reported += e =>
         {
             if (e.InhabitantId == sleeper.Id && e.Action == "sleep" && e.Kind is InhabitantsSystem.ActionFinished or InhabitantsSystem.ActionCancelled)
             {
-                atWaking ??= sleeper.Needs[rested.Need];
+                end ??= (e.Detail, sleeper.Needs[rested.Need]);
             }
         };
         host.World.Run(12 * calendar.Settings.TicksPerHour);
 
-        Assert.True(atWaking >= rested.At || atWaking is null, $"woken at {atWaking:0.000}");
+        // It ends with the sleep's own length, or woken once rested - never woken unrested by the nap hours at dawn.
+        Assert.NotNull(end);
+        Assert.False(end!.Value.Detail == InhabitantsSystem.WokenRested && end.Value.Slept < rested.At, $"woken at {end.Value.Slept:0.000}");
     }
 
     [Fact]
