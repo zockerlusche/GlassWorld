@@ -78,8 +78,9 @@ fi
 
 echo "== Godot export (with smoke start)"
 bash "$ROOT/tools/export-windows.sh" "$STAGE"
-# The test package's start scripts point at the build machine's repository: not for a release.
-rm -f "$STAGE/Start-mit-KI.cmd" "$STAGE/Start-ohne-KI.cmd"
+# The test package's start scripts point at the build machine's repository: not for a release. The quick run
+# (A1743, B2787) is a test package tool too: it runs tools/schnelldurchlauf from the repository with uv and the .NET SDK.
+rm -f "$STAGE/Start-mit-KI.cmd" "$STAGE/Start-ohne-KI.cmd" "$STAGE/Schnelldurchlauf.cmd" "$STAGE/Schnelldurchlauf-LIESMICH.txt"
 
 echo "== AI service (embedded Python)"
 uv run --project "$ROOT" python "$ROOT/tools/package_ai_service.py" "$PYTHON_DIR" "$STAGE"
