@@ -500,6 +500,7 @@ public partial class WorldPresenter
         _look = ReadLook(content);
         var preset = host.Content.WorldGen.Presets[map.Island.PresetId];
         _islandView = IslandView.Create(map, preset, content);
+        _bareSeen = -1; // A1385 (review GW4 #541): each world counts BareVersion from 0 - a new ground shows its bare cells anew
         AddChild(_islandView);
         var terrain = _islandView.Look!;
         var ground = map.Map;
