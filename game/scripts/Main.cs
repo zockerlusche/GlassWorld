@@ -62,6 +62,7 @@ public partial class Main : Node3D
     private bool _nightShots;
     private double _nightLimitS = 900;
     private string _contentDirectory = string.Empty;
+    private GlassWorld.Presentation.World.MadeObjectStore? _collection;
     private int _smokeFrames;
     private int _frame;
     private ulong _seed = 1;
@@ -488,7 +489,8 @@ public partial class Main : Node3D
     /// <summary>
     /// A run like a player's (B2768): creates the world in the world list exactly as the menu's "new world" does
     /// (saved at once and after every game day, learning log beside it) and enters it; with <c>--run-s</c> it runs
-    /// at the fastest speed of the data for that many real seconds and then quits saved, as closing the window does.
+    /// at the fastest speed of the data (or the one of <c>--speed=</c>, A1588) for that many real seconds, prints the frame
+    /// rate of the run (<c>RUN_FPS</c>) and then quits saved, as closing the window does.
     /// </summary>
     private void StartNewWorldRun(NewWorldChoice choice)
     {
@@ -533,17 +535,42 @@ public partial class Main : Node3D
 
     private async Task RunThenQuitAsync(double seconds)
     {
-        var fastest = ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings).Max(c => c.Speed);
-        _world.Speed = fastest;
-        GD.Print($"RUN_START speed={fastest.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+        // A1588 (B7 M1): --speed= picks one of the data's time choices for the run, else the fastest as before.
+        var choices = ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings);
+        var speed = _speedArgument is { } chosen && choices.Any(c => c.Speed == chosen) ? chosen : choices.Max(c => c.Speed);
+        _world.Speed = speed;
+        GD.Print($"RUN_START speed={speed.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds={seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
+
+        // The frame times after a short settling (the first seconds load the world's looks), for RUN_FPS.
+        var settle = Time.GetTicksMsec() + (ulong)(Math.Min(15, seconds / 4) * 1000);
+        var frames = new List<double>();
+        var last = Time.GetTicksUsec();
         while (Time.GetTicksMsec() < until && _world is not null && !_quitting)
         {
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            var now = Time.GetTicksUsec();
+            if (Time.GetTicksMsec() >= settle && now > last)
+            {
+                frames.Add((now - last) / 1000.0);
+            }
+
+            last = now;
         }
 
         GD.Print($"RUN_END tick={_world?.Host?.World.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"}");
+        GD.Print(RunFpsLine(speed, frames));
         SaveAndQuit();
+    }
+
+    /// <summary>A1588: mean frame rate, nearest-rank p95 and longest frame of a run (after its settling).</summary>
+    private static string RunFpsLine(double speed, List<double> frames)
+    {
+        var sorted = frames.Order().ToList();
+        var mean = frames.Count > 0 ? 1000.0 * frames.Count / frames.Sum() : 0;
+        var p95 = sorted.Count > 0 ? sorted[Math.Max(0, (int)Math.Ceiling(0.95 * sorted.Count) - 1)] : 0;
+        var max = sorted.Count > 0 ? sorted[^1] : 0;
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"RUN_FPS speed={speed} frames={frames.Count} mean_fps={mean:0.0} p95_ms={p95:0.00} max_ms={max:0.00}");
     }
 
     /// <summary>Builds presenter, audio and screen around a world; returns whether spatial audio is ready.</summary>
@@ -574,7 +601,8 @@ public partial class Main : Node3D
             _audio.Hearing = _world.Hearing;
         }
 
-        var spatialReady = _audio.Setup(host, host.World.Seed, GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT")));
+        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
+        var spatialReady = _audio.Setup(host, host.World.Seed, soundFolder);
         if (_mix is not null)
         {
             WorldAudio.ApplyVolumes(_mix, _settings.BusVolumesDb);
@@ -597,6 +625,8 @@ public partial class Main : Node3D
                 _meta = _meta with { Day = (host.World.Tick / host.World.Calendar.TicksPerDay) + 1, LastPlayedUtc = DateTimeOffset.UtcNow };
                 _library.Write(_meta);
             }
+
+            CollectObjects(host, soundFolder);
         };
 
         if (_style is not null)
@@ -940,4 +970,31 @@ public partial class Main : Node3D
     }
 
     private static ToastMessage SaveFailedHint() => new("msg.save.failed", new Dictionary<string, string>(), null);
+
+    /// <summary>
+    /// A1776 (B2811, D1168 stage 0): after each save, what the AI made in this world - descriptions, building plans,
+    /// icons, sounds - goes into the local collection beside the saves (<c>collection/</c> in the game's data folder),
+    /// each once by its content hash. A failure to write it never stops the game; it is only logged.
+    /// </summary>
+    private void CollectObjects(SimulationHost host, string soundFolder)
+    {
+        try
+        {
+            _collection ??= new GlassWorld.Presentation.World.MadeObjectStore(GameData.At("collection"));
+            var pictures = OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
+                ? System.IO.Path.GetFullPath(images)
+                : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(soundFolder) ?? string.Empty, "images");
+            var world = GlassWorld.Presentation.World.MadeObjectStore.WorldOf(_meta?.Id ?? "world", host.World.Seed);
+            var added = _collection.CollectFrom(host.Inventions, world, host.World.Calendar.TicksPerDay, pictures, soundFolder);
+            if (added > 0)
+            {
+                GD.Print($"COLLECTION added={added} root={_collection.Root}");
+            }
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"Object collection not written: {e.Message}");
+        }
+    }
 }
+

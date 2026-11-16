@@ -17,8 +17,9 @@ Which AI runs on your computer depends on the hardware tier (README, "Hardware t
 
 ## Step by step
 
-1. Download the release archive from the GitHub releases page and unpack it into a folder of your
-   choice. Nothing is installed system-wide.
+1. Download the release archive from the GitHub releases page and unpack it into a folder you
+   may write to (for example `C:\Games\GlassWorld`, not `C:\Program Files`). Nothing is
+   installed system-wide.
 2. Start `GlassWorld.exe`.
 3. **First start:** the game shows what is still missing, with name, size, licence and purpose,
    and asks you before anything is downloaded:
@@ -39,7 +40,31 @@ Which AI runs on your computer depends on the hardware tier (README, "Hardware t
 5. At start the game checks each AI and calmly shows whether everything is ready or what is
    missing.
 
+## Where your data lives
+
+The game keeps everything next to itself, so one look into its folder shows it all:
+
+| Folder | What is in it |
+|---|---|
+| `daten\` | your worlds (`worlds\`), settings, the collection of made things (`collection\`), diagnostics reports (`diagnostics\`) |
+| `log\` | the game's log (`godot.log`), the AI's logs (`ki\`) and each world's run trace (`welten\`) |
+
+- In the settings under "Game", the buttons **Data folder** and **Log folder** open the folder.
+- If the game may not write into its own folder (for example under `C:\Program Files`), it puts
+  `daten\` into `Documents\GlassWorld` and the logs into `Documents\GlassWorld\log\`.
+- To move the game, take the whole folder: your worlds move with it.
+- Deleting the folder deletes your worlds too. Back up `daten\worlds\` first if you want to keep them.
+
 ## When something does not work
+
+### In general
+
+| What happens | What you can do |
+|---|---|
+| Windows says "Windows protected your PC". | The game is not signed. Choose "More info", then "Run anyway". |
+| The game starts, but your worlds are missing. | Is the folder `daten\` still next to the game? Moved without it, the game starts empty. Otherwise look in `Documents\GlassWorld`. |
+| The picture stutters. | In the settings under "Graphics", choose a lower quality (it takes effect when a world is loaded next) or a smaller window (at once, with "Keep?"). Close other programs that use the graphics card. |
+| The virus scanner reports the game or its AI. | Allow the game's folder in the virus scanner. The game only downloads from the official sources, with a checksum. |
 
 The self-check at start names the cause. Here is what you can do.
 
@@ -75,5 +100,5 @@ not wait.
 If none of this helps, create a **diagnostics report** in the game (button in the setup window).
 It contains versions, the self-check, the hardware tier, the state of the models and the last
 errors. It contains **no** credentials and **no** paths with your user name. It is stored in
-`%APPDATA%\Godot\app_userdata\GlassWorld\ai-service\logs\` and stays on your computer until you
+`daten\diagnostics\` next to the game (or `Documents\GlassWorld\diagnostics\`) and stays on your computer until you
 pass it on yourself, for example in a GitHub issue.
