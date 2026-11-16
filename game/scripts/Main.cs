@@ -62,6 +62,7 @@ public partial class Main : Node3D
     private bool _nightShots;
     private double _nightLimitS = 900;
     private string _contentDirectory = string.Empty;
+    private GlassWorld.Presentation.World.MadeObjectStore? _collection;
     private int _smokeFrames;
     private int _frame;
     private ulong _seed = 1;
@@ -574,7 +575,8 @@ public partial class Main : Node3D
             _audio.Hearing = _world.Hearing;
         }
 
-        var spatialReady = _audio.Setup(host, host.World.Seed, GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT")));
+        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
+        var spatialReady = _audio.Setup(host, host.World.Seed, soundFolder);
         if (_mix is not null)
         {
             WorldAudio.ApplyVolumes(_mix, _settings.BusVolumesDb);
@@ -597,6 +599,8 @@ public partial class Main : Node3D
                 _meta = _meta with { Day = (host.World.Tick / host.World.Calendar.TicksPerDay) + 1, LastPlayedUtc = DateTimeOffset.UtcNow };
                 _library.Write(_meta);
             }
+
+            CollectObjects(host, soundFolder);
         };
 
         if (_style is not null)
@@ -940,4 +944,31 @@ public partial class Main : Node3D
     }
 
     private static ToastMessage SaveFailedHint() => new("msg.save.failed", new Dictionary<string, string>(), null);
+
+    /// <summary>
+    /// A1776 (B2811, D1168 stage 0): after each save, what the AI made in this world - descriptions, building plans,
+    /// icons, sounds - goes into the local collection beside the saves (<c>collection/</c> in the game's data folder),
+    /// each once by its content hash. A failure to write it never stops the game; it is only logged.
+    /// </summary>
+    private void CollectObjects(SimulationHost host, string soundFolder)
+    {
+        try
+        {
+            _collection ??= new GlassWorld.Presentation.World.MadeObjectStore(GameData.At("collection"));
+            var pictures = OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
+                ? System.IO.Path.GetFullPath(images)
+                : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(soundFolder) ?? string.Empty, "images");
+            var world = GlassWorld.Presentation.World.MadeObjectStore.WorldOf(_meta?.Id ?? "world", host.World.Seed);
+            var added = _collection.CollectFrom(host.Inventions, world, host.World.Calendar.TicksPerDay, pictures, soundFolder);
+            if (added > 0)
+            {
+                GD.Print($"COLLECTION added={added} root={_collection.Root}");
+            }
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"Object collection not written: {e.Message}");
+        }
+    }
 }
+
