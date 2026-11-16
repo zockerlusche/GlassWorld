@@ -26,10 +26,10 @@ from glassworld_ai.calllog import CallLog
 from glassworld_ai.decider.thoughts import wrong_language
 from glassworld_ai.grounding import (
     checks_nouns,
+    judged_things,
     request_words,
     settings_words,
     unknown_nouns,
-    world_things,
 )
 from glassworld_ai.jobs import JobOutcome
 from glassworld_ai.llm.jobcall import (
@@ -270,14 +270,14 @@ class Turns:
         ]
         # A1613 per speaker (review GW1 #476): A may name only what A knows, not what only B knows.
         self._words: list[set[str]] | None = None
-        self._world: set[str] = set()
+        self._world: set[str] | None = set()
         if checks_nouns(settings, self._locale):
             general = settings_words(settings, "general_words", self._locale)
             self._words = [
                 request_words(_speaker_job(job, i), texts, self._locale, general) | self._names[i]
                 for i in range(count)
             ]
-            self._world = world_things(texts, self._locale)
+            self._world = judged_things(settings, texts, self._locale)
 
     def problem(self, text: str, speaker: int) -> str | None:
         if not self._guard.check(text).allowed:
@@ -346,6 +346,12 @@ def parse_dialogue(
                 "expression": turn["expression"],
             }
         )
+    # D1192 #21 (Marcel 15a, talk v2): a question nobody answers is left out - it happened when the
+    # check ended the talk at the answer, or when the model ended on a question.
+    if _table(settings or {}, "talk").get("drop_unanswered") is True:
+        while out and out[-1]["act"] == "ask":
+            dropped = out.pop()
+            notes.append(f"unanswered question left out: {dropped['text']['text']}")
     return {"turns": out}, notes
 
 

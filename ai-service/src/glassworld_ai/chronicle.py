@@ -22,10 +22,10 @@ from jsonschema import Draft202012Validator
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.grounding import (
     checks_nouns,
+    judged_things,
     request_words,
     settings_words,
     unknown_nouns,
-    world_things,
 )
 from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.llm.jobcall import (
@@ -150,7 +150,7 @@ class Checks:
             if entry.action is not None:
                 self._ids.add(plain_id(entry.action))
         self._words: set[str] | None = None
-        self._world: set[str] = set()
+        self._world: set[str] | None = set()
         if checks_nouns(settings, locale):
             # Besides the general words: the day's own lines and the names it was given.
             general = set(settings_words(settings, "general_words", locale))
@@ -158,7 +158,7 @@ class Checks:
                 general |= set(base_line(entry, texts, locale).replace(".", " ").split())
             general |= {word for label in _labels(payload) for word in label.split()}
             self._words = request_words(job.model_dump(mode="json"), texts, locale, general)
-            self._world = world_things(texts, locale)
+            self._world = judged_things(settings, texts, locale)
 
     def problem(self, text: str) -> str | None:
         verdict = self._guard.check(text)

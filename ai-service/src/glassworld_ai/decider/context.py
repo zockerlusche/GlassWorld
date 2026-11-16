@@ -219,6 +219,20 @@ def _occasion(request: DecisionRequest, settings: dict[str, Any]) -> str:
         thought = intention.thought.text if intention.thought is not None else None
         said = f'"{thought}"' if thought else _humanize(_id(intention.action))
         line = line.replace("$intention", said)
+    if "$failed_action" in line:
+        # v16 (A1778, B2814): what failed and why in plain words - never what would work (PR2).
+        failure: Any = getattr(request, "failure", None)
+        if failure is None:
+            return ""
+        reasons: object = settings.get("failure_reasons")
+        known = cast(dict[str, object], reasons) if isinstance(reasons, dict) else {}
+        reason = str(known.get(failure.reason) or _humanize(failure.reason))
+        target = f" the {_humanize(failure.target_type)}" if failure.target_type else ""
+        line = (
+            line.replace("$failed_action", _humanize(_id(failure.action)))
+            .replace("$failed_target", target)
+            .replace("$failed_reason", reason)
+        )
     return f"{table['heading']}\n{line}\n\n"
 
 
@@ -330,6 +344,16 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
     felt = inhabitant.felt_temperature_c
     if felt is not None:
         lines.append(f"- You feel {_word(_bands(settings, 'felt_words'), float(felt))}.")
+    # v16 (A1793, Marcel 15a 'Waten bei Kaelte'): the core sends wet and in_water; earlier
+    # versions never said them. Words from the data ([settings.body_lines]); no line = not shown.
+    body_raw: object = settings.get("body_lines")
+    body_lines = cast(dict[str, str], body_raw) if isinstance(body_raw, dict) else {}
+    env: Any = request.environment
+    depth = _id(env.in_water) if getattr(env, "in_water", None) is not None else "none"
+    if depth != "none" and f"in_water_{depth}" in body_lines:
+        lines.append(f"- {body_lines[f'in_water_{depth}']}")
+    if getattr(env, "wet", None) is True and "wet" in body_lines:
+        lines.append(f"- {body_lines['wet']}")
     slots_raw: object = settings.get("slot_names", {})
     slots = cast(dict[str, str], slots_raw) if isinstance(slots_raw, dict) else {}
     if inhabitant.worn == []:  # sent and empty: wears nothing (absent = unknown, no line)
