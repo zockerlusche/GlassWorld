@@ -132,3 +132,9 @@ def test_every_one_of_the_twenty_invariants_is_listed() -> None:
     data = json.loads(INV.INVARIANTS.read_text(encoding="utf-8"))
     assert [i["id"] for i in data["invariants"]] == [f"inv{n:02d}" for n in range(1, 21)]
     assert all(i["kind"] in INV.CHECKS or i["kind"] == "not_measurable" for i in data["invariants"])
+
+
+def test_a_run_too_short_for_the_sleep_mean_is_na_not_ok(tmp_path: Path) -> None:
+    """Review GW4 #540: not checked is not 'held'."""
+    status, detail = _status(_trace(tmp_path, [_snap(0, [_who("sleep")])]), "inv12")
+    assert status == "n/a" and "not checked" in detail

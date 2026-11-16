@@ -111,7 +111,7 @@ def max_action_changes_per_hour(trace: Trace, invariant: Json) -> tuple[bool, st
     )
 
 
-def min_sleep_hours_mean(trace: Trace, invariant: Json) -> tuple[bool, str]:
+def min_sleep_hours_mean(trace: Trace, invariant: Json) -> tuple[bool | None, str]:
     hours = float(invariant["hours"])
     window = int(invariant["days"])
     slept: dict[str, dict[int, float]] = defaultdict(lambda: defaultdict(float))
@@ -132,7 +132,7 @@ def min_sleep_hours_mean(trace: Trace, invariant: Json) -> tuple[bool, str]:
             if worst is None or mean < worst[0]:
                 worst = (mean, ident, span[0])
     if worst is None:
-        return True, f"fewer than {window + 2} days in the run (not checked)"
+        return None, f"fewer than {window + 2} days in the run (not checked)"
     mean, ident, first = worst
     return (
         mean >= hours,
@@ -202,7 +202,8 @@ def check(folder: Path, invariants: Json) -> list[Result]:
             results.append((ident, "FAIL", text, "no snapshots in the trace"))
             continue
         ok, detail = CHECKS[kind](trace, invariant)
-        results.append((ident, "ok" if ok else "FAIL", text, detail))
+        # Review GW4 #540: a check that could not look (run too short) is n/a, not ok.
+        results.append((ident, "n/a" if ok is None else "ok" if ok else "FAIL", text, detail))
     return results
 
 
