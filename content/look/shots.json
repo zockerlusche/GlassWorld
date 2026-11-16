@@ -23,6 +23,7 @@
       "target_z_permille": 500,
       "yaw_deg": 120,
       "distance_m": 30,
+      "pitch_deg": 25,
       "revealed_permille": 1000
     },
     {
@@ -65,6 +66,7 @@
       "target_z_permille": 500,
       "yaw_deg": 30,
       "distance_m": 24,
+      "pitch_deg": 25,
       "scene": {
         "max_start_distance_cells": 40,
         "radius_cells": 12,
