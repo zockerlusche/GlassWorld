@@ -242,7 +242,6 @@ public partial class MainMenu : CanvasLayer
             AutoTranslateMode = AutoTranslateModeEnum.Disabled,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         });
-        message.AddAction("ui.common.close").Pressed += message.Close;
         ShowWindow(message);
     }
 

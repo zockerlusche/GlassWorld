@@ -63,13 +63,14 @@ public partial class GameScreen
         }
 
         // The favourite mark (B6 R19), here also for one who has died (A1565).
-        var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = host.Favourites.IsFavourite(inhabitantId) };
+        var favourite = new CheckButton { Text = "ui.card.favourite", TooltipText = "ui.card.favourite_tooltip", ButtonPressed = host.Favourites.IsFavourite(inhabitantId) };
         favourite.Toggled += on => host.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
             on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
         window.Content.AddChild(favourite);
 
-        window.AddAction("ui.memory.export").Pressed += () => ExportMemory(inhabitantId);
-        window.AddAction("ui.common.close").Pressed += window.Close;
+        var export = window.AddAction("ui.memory.export");
+        export.TooltipText = "ui.memory.export_tooltip";
+        export.Pressed += () => ExportMemory(inhabitantId);
         ShowWindow(window);
         return window;
     }

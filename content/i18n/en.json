@@ -759,6 +759,94 @@
       "text": "When an inhabitant knocks at the glass, the world pauses until you go on."
     },
     {
+      "key": "ui.settings.keys",
+      "text": "Key bindings"
+    },
+    {
+      "key": "ui.settings.key.desc",
+      "text": "Click the key, then press the new one. Esc cancels. Mouse buttons and the wheel stay."
+    },
+    {
+      "key": "ui.settings.key.fixed",
+      "text": "{key} is taken by the game and stays as it is."
+    },
+    {
+      "key": "ui.settings.key.press",
+      "text": "Press a key …"
+    },
+    {
+      "key": "ui.settings.key.tooltip",
+      "text": "Click, then press the new key"
+    },
+    {
+      "key": "ui.settings.key.conflict",
+      "text": "Used twice: {key} – {actions}"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_forward",
+      "text": "Move view forward"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_back",
+      "text": "Move view back"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_left",
+      "text": "Move view left"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_right",
+      "text": "Move view right"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_left",
+      "text": "Turn left"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_right",
+      "text": "Turn right"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_in",
+      "text": "Zoom in"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_out",
+      "text": "Zoom out"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_reset",
+      "text": "Back to the start view"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_leave",
+      "text": "Stop following"
+    },
+    {
+      "key": "ui.settings.key.gw_time_pause",
+      "text": "Pause"
+    },
+    {
+      "key": "ui.settings.key.gw_time_normal",
+      "text": "Normal speed"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_1",
+      "text": "Fast (first step)"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_2",
+      "text": "Fast (second step)"
+    },
+    {
+      "key": "ui.card.favourite_tooltip",
+      "text": "Favourites stand at the top of the corner, and you hear from them sooner."
+    },
+    {
+      "key": "ui.memory.export_tooltip",
+      "text": "Saves the memories as a page to read and as text into the data folder."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
@@ -1289,6 +1377,14 @@
     {
       "key": "vocab.base_function.closure",
       "text": "Closure"
+    },
+    {
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Keep heat in"
+    },
+    {
+      "key": "vocab.base_function.blow_air",
+      "text": "Blow air"
     },
     {
       "key": "vocab.property.braidable",
@@ -3539,6 +3635,74 @@
       "text": "Debug jumps: {back} and {forward} change the epoch"
     },
     {
+      "key": "ui.debug.jobs",
+      "text": "AI jobs: {running} running, {waiting} waiting for the night"
+    },
+    {
+      "key": "ui.debug.job",
+      "text": "  · {kind} – {name} – for {minutes} game minutes"
+    },
+    {
+      "key": "ui.debug.job_waiting",
+      "text": "  · {kind} – {name} – waiting for {minutes} game minutes"
+    },
+    {
+      "key": "ui.debug.job_kind.decide",
+      "text": "decision"
+    },
+    {
+      "key": "ui.debug.job_kind.question",
+      "text": "question"
+    },
+    {
+      "key": "ui.debug.job_kind.memory",
+      "text": "memory"
+    },
+    {
+      "key": "ui.debug.job_kind.invention",
+      "text": "invention"
+    },
+    {
+      "key": "ui.debug.job_kind.build_plan",
+      "text": "building plan"
+    },
+    {
+      "key": "ui.debug.job_kind.process",
+      "text": "process"
+    },
+    {
+      "key": "ui.debug.job_kind.dream",
+      "text": "dream"
+    },
+    {
+      "key": "ui.debug.job_kind.chronicle",
+      "text": "chronicle"
+    },
+    {
+      "key": "ui.debug.job_kind.image",
+      "text": "picture"
+    },
+    {
+      "key": "ui.debug.job_kind.sound",
+      "text": "sound"
+    },
+    {
+      "key": "ui.debug.job_kind.model3d",
+      "text": "3D model"
+    },
+    {
+      "key": "ui.debug.job_kind.review",
+      "text": "review"
+    },
+    {
+      "key": "ui.debug.job_kind.milestone",
+      "text": "milestone"
+    },
+    {
+      "key": "ui.debug.job_kind.dialogue",
+      "text": "talk"
+    },
+    {
       "key": "ui.question.settled",
       "text": "That has been settled."
     },
@@ -4177,6 +4341,18 @@
     {
       "key": "vocab.property.dug",
       "text": "dug"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Enclosing"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Air-drawing"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallic"
     },
     {
       "key": "vocab.event.dug",

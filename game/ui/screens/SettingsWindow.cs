@@ -52,6 +52,10 @@ public partial class SettingsWindow : GwWindow
 
     // The page the rows added next go to (set by Section).
     private VBoxContainer _page = null!;
+
+    // A1815: the folded key rows and the line that names keys laid twice (in words, never only by colour).
+    private VBoxContainer? _keyRows;
+    private readonly Label _keyConflicts = new() { Name = "KeyConflicts", AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = AutoTranslateModeEnum.Disabled };
     private Label? _nameProblem;
 
     // Every text the description column can show (the room of the longest stays reserved, B2791).
@@ -98,9 +102,28 @@ public partial class SettingsWindow : GwWindow
                 continue;
             }
 
+            VBoxContainer? page = null;
             foreach (var row in tab.Rows)
             {
+                // A1815: the key rows stand folded together under 'Tasten belegen', with one line of conflicts below.
+                if (KeyBindings.ActionOfRow(row) is not null && _keyRows is null)
+                {
+                    page = _page;
+                    var fold = new FoldableContainer { Name = "Keys", Title = "ui.settings.keys", Folded = true };
+                    _keyRows = new VBoxContainer();
+                    fold.AddChild(_keyRows);
+                    _page.AddChild(fold);
+                    _page = _keyRows;
+                }
+
                 AddRow(row, settings, limits, mix, style, guard);
+            }
+
+            if (page is not null)
+            {
+                _page.AddChild(_keyConflicts);
+                _page = page;
+                ShowKeyConflicts(limits);
             }
 
             var rows = tab.Rows.ToList();
@@ -112,7 +135,6 @@ public partial class SettingsWindow : GwWindow
             }
         }
 
-        AddAction("ui.common.close").Pressed += Close;
     }
 
     /// <summary>The controls of one row of the data (its id names the setting).</summary>
@@ -320,6 +342,41 @@ public partial class SettingsWindow : GwWindow
                 Row("ui.settings.log_folder", logs, "ui.settings.log_folder.desc");
                 break;
 
+            case var keyRow when KeyBindings.ActionOfRow(keyRow) is { } action:
+                var key = new GwKeyButton { WaitingText = "ui.settings.key.press", SizeFlagsHorizontal = SizeFlags.ShrinkEnd, TooltipText = "ui.settings.key.tooltip" };
+                void ShowKey(PlayerSettings s)
+                {
+                    var keys = s.KeyBindings.TryGetValue(action, out var mine) ? [mine] : InputDefaults.Defaults([action])[0].Keys;
+                    key.KeyText = keys.Count == 0 ? "-" : string.Join(" / ", keys.Select(InputDefaults.Shown));
+                    if (key.IsInsideTree())
+                    {
+                        key.ShowKey();
+                    }
+                }
+
+                ShowKey(settings);
+                key.KeyChosen += physical =>
+                {
+                    var name = InputDefaults.NameOf(physical);
+                    if (KeyBindings.Reserved.Contains(name) || InputDefaults.FixedKeys(limits.KeyActions).Contains(name))
+                    {
+                        // Escape and the keys of actions that cannot be laid anew (F12: debug view) stay theirs - said in words.
+                        _keyConflicts.Text = TextFill.Fill(Tr("ui.settings.key.fixed"), new Dictionary<string, string> { ["key"] = InputDefaults.Shown(name) });
+                        return;
+                    }
+
+                    Apply(_settings with { KeyBindings = new Dictionary<string, string>(_settings.KeyBindings, StringComparer.Ordinal) { [action] = name } });
+                    ShowKey(_settings);
+                    ShowKeyConflicts(limits);
+                };
+                _shows.Add(s =>
+                {
+                    ShowKey(s);
+                    ShowKeyConflicts(limits);
+                });
+                Row(KeyBindings.LabelKey(action), key, "ui.settings.key.desc");
+                break;
+
             default:
                 throw new InvalidDataException($"content/ui/settings.json names the unknown setting '{id}'.");
         }
@@ -348,6 +405,7 @@ public partial class SettingsWindow : GwWindow
                 "window_mode" => s with { WindowMode = d.WindowMode },
                 "resolution" => s with { Resolution = d.Resolution },
                 "vsync" => s with { Vsync = d.Vsync },
+                var keyRow when KeyBindings.ActionOfRow(keyRow) is { } action => s with { KeyBindings = s.KeyBindings.Where(k => k.Key != action).ToDictionary(k => k.Key, k => k.Value, StringComparer.Ordinal) },
                 "autosave" => s with { AutoSave = d.AutoSave },
                 "pause_on_knock" => s with { PauseOnKnock = d.PauseOnKnock },
                 "invert_turn_x" => s with { InvertTurnX = d.InvertTurnX },
@@ -452,6 +510,22 @@ public partial class SettingsWindow : GwWindow
         choice.ItemSelected += index => Apply(change(items[(int)index].Value));
         _shows.Add(Show);
         return choice;
+    }
+
+    /// <summary>A1815: the actions of the data's key rows (content/ui/settings.json).</summary>
+    public static IEnumerable<string> KeyActions() =>
+        Layout.Value.Tabs.SelectMany(t => t.Rows).Select(KeyBindings.ActionOfRow).OfType<string>();
+
+    /// <summary>A1815: names the keys that two actions share (in words), or nothing.</summary>
+    private void ShowKeyConflicts(SettingsLimits limits)
+    {
+        var effective = KeyBindings.Effective(InputDefaults.Defaults(limits.KeyActions), _settings.KeyBindings);
+        var lines = KeyBindings.Conflicts(effective).Select(c => TextFill.Fill(Tr("ui.settings.key.conflict"), new Dictionary<string, string>
+        {
+            ["key"] = InputDefaults.Shown(c.Key),
+            ["actions"] = string.Join(", ", c.Actions.Select(a => Tr(KeyBindings.LabelKey(a)).ToString())),
+        }));
+        _keyConflicts.Text = string.Join("\n", lines);
     }
 
     /// <summary>A1748: shows these settings in every control without applying them again (after 'Behalten?' fell back).</summary>

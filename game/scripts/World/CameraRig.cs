@@ -358,7 +358,8 @@ public partial class CameraRig : Node3D
         FigureClicked?.Invoke(best);
     }
 
-    private static void EnsureDefaultInput()
+    /// <summary>A1815: the camera actions with their default keys (once), also before a world exists (the settings need them).</summary>
+    public static void EnsureDefaultInput()
     {
         void Add(string action, params InputEvent[] events)
         {

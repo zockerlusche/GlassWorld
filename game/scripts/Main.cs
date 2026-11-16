@@ -123,16 +123,29 @@ public partial class Main : Node3D
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
+            // A1815: the camera and time keys exist from the start - the settings lay them anew also in the main menu.
+            InputDefaults.Ensure(ScreenModel.TimeChoices(Simulation.Time.WorldCalendar.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "world", "time.json"))).Settings).Count);
             var quality = ContractSerializer.Deserialize<LookQuality>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "look", "quality.json")));
             _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion)
             {
                 QualityLevels = [.. quality.Levels.Select(l => l.Id)],
                 QualityDefault = quality.DefaultLevel,
+                KeyActions = [.. SettingsWindow.KeyActions()],
             };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
             _settings = _smokeFrames > 0 || _shotsFolder is not null ? PlayerSettings.Parse(null, _limits) : SettingsStore.Load(_settingsPath, _limits);
+
+            // A1789 (B2826): a moved window is kept in the settings (written with them when the game quits or settings close).
+            GwWindow.PlaceChosen += (key, place) =>
+            {
+                if (_limits is not null)
+                {
+                    _settings = (_settings with { WindowPlaces = new Dictionary<string, string>(_settings.WindowPlaces, StringComparer.Ordinal) { [key] = WindowPlacement.Format((place.X, place.Y)) } }).Clamp(_limits);
+                    _settingsDirty = true;
+                }
+            };
 
             ApplySettings(_settings);
         }
@@ -339,6 +352,22 @@ public partial class Main : Node3D
         // A1749: when the world saves itself.
         WorldPresenter.AutoSaveMode = settings.AutoSave;
 
+        // A1815: the player's keys.
+        if (_limits is not null)
+        {
+            InputDefaults.Apply(_limits.KeyActions, settings.KeyBindings);
+        }
+
+        // A1789 (B2826): where the player put the windows.
+        GwWindow.Remembered.Clear();
+        foreach (var (key, text) in settings.WindowPlaces)
+        {
+            if (WindowPlacement.Parse(text) is { } place)
+            {
+                GwWindow.Remembered[key] = new Vector2(place.X, place.Y);
+            }
+        }
+
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
     }
@@ -456,7 +485,6 @@ public partial class Main : Node3D
                 var message = new GwWindow();
                 message.Setup("ui.worlds.title", _style);
                 message.Content.AddChild(new Label { Text = "msg.load.failed", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-                message.AddAction("ui.common.close").Pressed += message.Close;
                 _menu.Rebuild();
                 _menu.ShowWindow(message);
             }
