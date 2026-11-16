@@ -156,8 +156,8 @@
     }
   },
   "heat_raise": [
-    { "properties_near": ["encloses_fire"], "reach_m": 1.0, "raises_to": "strong_heat" },
-    { "properties_near": ["encloses_fire", "draws_air"], "reach_m": 1.0, "raises_to": "melting_heat" }
+    { "properties_near": ["encloses_fire"], "reach_m": 1.5, "raises_to": "strong_heat" },
+    { "properties_near": ["encloses_fire", "draws_air"], "reach_m": 1.5, "raises_to": "melting_heat" }
   ],
   "rules": [
     {
