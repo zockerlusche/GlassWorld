@@ -11,6 +11,10 @@
       "schema": "look-carried"
     },
     {
+      "pattern": "look/writing.json",
+      "schema": "look-writing"
+    },
+    {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
     },

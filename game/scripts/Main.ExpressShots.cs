@@ -120,6 +120,24 @@ public partial class Main
 
                 // Let the calm pause of earlier moments run out, so the event shows (a knock skips it anyway).
                 await ToSignal(GetTree().CreateTimer(1.5), SceneTreeTimer.SignalName.Timeout);
+                if (spec == "written")
+                {
+                    // A1356 (check runs only): a written belief on the nearest hard thing by the figure, its marks and its window.
+                    var host = _world.Host;
+                    var carrier = host.Snapshot().Objects
+                        .Where(o => host.Objects.Catalog.Contains(o.TypeId) && host.Objects.Catalog.TrueProperties(o.TypeId).Contains("hard") && host.Writing.On(o.Id) is null)
+                        .OrderBy(o => Math.Pow(o.Position.X - who.Position.X, 2) + Math.Pow(o.Position.Z - who.Position.Z, 2)).FirstOrDefault();
+                    if (carrier is not null)
+                    {
+                        host.Writing.Place(new GlassWorld.Simulation.Writing.WrittenText(carrier.Id, "rock_painting", "belief:red_berry|poisonous|true", who.Id, host.World.Tick, 0.65));
+                        _world.LookAt(carrier.Position.X, carrier.Position.Z, ExpressShotDistanceM);
+                        await Frames(5);
+                        _screen?.OpenThing(carrier.Id);
+                    }
+
+                    GD.Print($"EXPRESS_SHOT_WRITTEN {(carrier is null ? "no hard thing" : carrier.Id + " " + carrier.TypeId)}");
+                }
+
                 if (spec == "mark")
                 {
                     // A1796: the calm place mark a thing just built gets - laid at the thing nearest the followed figure.
@@ -128,7 +146,7 @@ public partial class Main
                     GD.Print($"EXPRESS_SHOT_MARK {(marked ? near!.Id + " " + near.TypeId : "none")}");
                 }
 
-                var shown = spec == "mark" ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
+                var shown = spec is "mark" or "written" ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
                 GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {who.Name ?? who.Id} shown={shown ?? "-"}");
                 var waited = 0.0;
                 foreach (var at in ExpressShotTimes)

@@ -1,0 +1,45 @@
+{
+  "contract_version": "0.2",
+  "above_m": 0.9,
+  "pixel_size_m": 0.006,
+  "font_px": 40,
+  "faint_below": 0.5,
+  "hard_below": 0.25,
+  "media": [
+    {
+      "medium": "sand_marks",
+      "marks": "~ ≀ ~",
+      "color": "bark"
+    },
+    {
+      "medium": "rock_painting",
+      "marks": "◠ ≀ ◡",
+      "color": "clay"
+    },
+    {
+      "medium": "carving_wood",
+      "marks": "⌇ ⌇ ⌇",
+      "color": "cave_inside"
+    },
+    {
+      "medium": "carving_stone",
+      "marks": "⋰ ⌇ ⋱",
+      "color": "cave_inside"
+    },
+    {
+      "medium": "tablet",
+      "marks": "≡ ≡",
+      "color": "cave_inside"
+    },
+    {
+      "medium": "book",
+      "marks": "≣",
+      "color": "cave_inside"
+    },
+    {
+      "medium": "library",
+      "marks": "≣ ≣ ≣",
+      "color": "cave_inside"
+    }
+  ]
+}

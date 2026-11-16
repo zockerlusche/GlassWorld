@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-writing.schema.json",
+  "title": "LookWriting",
+  "description": "A1356 (B8-11): how written things look - a few marks above the carrier, per carrier kind (medium of content/writing/media.json), paler as the text fades; the content itself shows in words (DE/EN) in the thing's window and when the pointer is over it. Presentation only; what is written and how legible it is stays in the core (WritingSystem).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "above_m",
+    "pixel_size_m",
+    "font_px",
+    "faint_below",
+    "hard_below",
+    "media"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "above_m": {
+      "description": "Height of the marks above the carrier's ground point (metres).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "pixel_size_m": {
+      "description": "World size of one pixel of the marks (Label3D pixel size).",
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.05
+    },
+    "font_px": {
+      "description": "Size of the marks in pixels.",
+      "type": "integer",
+      "minimum": 8,
+      "maximum": 128
+    },
+    "faint_below": {
+      "description": "A text this legible or less is 'faint' in words and its marks fade with it (0..1).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "hard_below": {
+      "description": "A text this legible or less is 'hard to read' in words (0..1); below faint_below.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "media": {
+      "description": "The marks per carrier kind; a medium without an entry shows no marks (its words still show).",
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/WritingMarks"
+      }
+    }
+  },
+  "$defs": {
+    "WritingMarks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "medium",
+        "marks",
+        "color"
+      ],
+      "properties": {
+        "medium": {
+          "description": "Medium id (content/writing/media.json).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "marks": {
+          "description": "The marks drawn (a few signs, no letters of a real script - B2741).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12
+        },
+        "color": {
+          "description": "Palette colour id of the marks.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    }
+  }
+}

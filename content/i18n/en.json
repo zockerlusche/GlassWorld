@@ -219,6 +219,34 @@
       "text": "Ground: {ground} - walking is slower ({percent} %)"
     },
     {
+      "key": "ui.writing.says",
+      "text": "{thing}: {property}"
+    },
+    {
+      "key": "ui.writing.says_not",
+      "text": "{thing}: not {property}"
+    },
+    {
+      "key": "ui.writing.on",
+      "text": "Written here: “{text}” – by {author}, {legibility}."
+    },
+    {
+      "key": "ui.writing.legible",
+      "text": "easy to read"
+    },
+    {
+      "key": "ui.writing.faint",
+      "text": "faded"
+    },
+    {
+      "key": "ui.writing.hard",
+      "text": "hardly readable"
+    },
+    {
+      "key": "ui.writing.unknown",
+      "text": "signs nobody can make out"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Memories of {name}"
     },
