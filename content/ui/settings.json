@@ -6,7 +6,8 @@
       "rows": [
         "language",
         "player_name",
-        "data_folder"
+        "data_folder",
+        "log_folder"
       ]
     },
     {

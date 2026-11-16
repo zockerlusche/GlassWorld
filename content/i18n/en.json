@@ -560,7 +560,7 @@
     },
     {
       "key": "ui.settings.data_folder.desc",
-      "text": "This game's worlds, settings and logs are kept here."
+      "text": "This game's worlds and settings are kept here."
     },
     {
       "key": "ui.settings.data_folder.open",
@@ -657,6 +657,18 @@
     {
       "key": "ui.settings.keep.back",
       "text": "Back"
+    },
+    {
+      "key": "ui.settings.log_folder",
+      "text": "Log folder"
+    },
+    {
+      "key": "ui.settings.log_folder.desc",
+      "text": "The game writes down here what happens in the worlds and with the AI. Useful when you report a bug."
+    },
+    {
+      "key": "ui.settings.log_folder.open",
+      "text": "Open"
     },
     {
       "key": "ui.settings.language",
