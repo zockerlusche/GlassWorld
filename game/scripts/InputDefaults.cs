@@ -81,8 +81,11 @@ public static class InputDefaults
     /// <summary>What the player sees for a kept key: the letter of the key on this keyboard layout.</summary>
     public static string Shown(string name)
     {
+        // Without a screen (headless check runs) the display server has no keyboard layout: the kept name is shown.
         var physical = OS.FindKeycodeFromString(name);
-        return physical == Key.None ? name : OS.GetKeycodeString(DisplayServer.KeyboardGetKeycodeFromPhysical(physical));
+        return physical == Key.None || DisplayServer.GetName() == "headless"
+            ? name
+            : OS.GetKeycodeString(DisplayServer.KeyboardGetKeycodeFromPhysical(physical));
     }
 
     private static IEnumerable<string> KeysOf(string action) =>
