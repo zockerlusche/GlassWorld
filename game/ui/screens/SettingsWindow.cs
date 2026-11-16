@@ -285,6 +285,13 @@ public partial class SettingsWindow : GwWindow
                     v => _settings with { Quality = v == limits.QualityDefault ? null : v }), "ui.settings.quality.desc");
                 break;
 
+            case "log_folder":
+                // A1787 part 2 (Marcel W2246, #525): the logs lie in their own folder (log\ next to the game) - for a bug report.
+                var logs = new Button { Text = "ui.settings.log_folder.open", SizeFlagsHorizontal = SizeFlags.ShrinkEnd, TooltipText = GameData.Logs, TooltipAutoTranslateMode = AutoTranslateModeEnum.Disabled };
+                logs.Pressed += () => OS.ShellOpen(GameData.Logs);
+                Row("ui.settings.log_folder", logs, "ui.settings.log_folder.desc");
+                break;
+
             default:
                 throw new InvalidDataException($"content/ui/settings.json names the unknown setting '{id}'.");
         }
