@@ -217,6 +217,33 @@ public sealed class LeisureTests
         Assert.DoesNotContain(request.Options, o => o.Action == "use" && o.Target == found.Id);
     }
 
+    [Fact]
+    public void AFreeMomentSentAgainLeavesIdleOutToo()
+    {
+        // Review GW3 #531: a free moment that goes out later (held back, sent again) builds its options anew - idle stays out.
+        var leisure = Settings.Value.Leisure!;
+        var port = new SilentPort();
+        var host = SimulationHost.Assemble(Content.Value, Settings.Value, new World(17, Content.Value.Calendar), port, "de");
+        host.Inhabitants.Add(BoredPerson());
+        host.World.Step();
+        Assert.Single(port.Requests);
+
+        host.Decisions.ResendPendingAfterLoad(host.World);
+        host.World.Step();
+        Assert.Equal(2, port.Requests.Count);
+        Assert.All(port.Requests, r => Assert.DoesNotContain(r.Options, o => leisure.NotOffered!.Contains(o.Action)));
+    }
+
+    /// <summary>A port that never answers: a question stays open, so it can be sent again.</summary>
+    private sealed class SilentPort : IDecisionPort
+    {
+        public List<DecisionRequest> Requests { get; } = [];
+
+        public void Send(string requestId, string requestJson) => Requests.Add(ContractSerializer.Deserialize<DecisionRequest>(requestJson));
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
+    }
+
     /// <summary>The decider data without the idle shortcut (A1794), for the every_hours rule alone.</summary>
     private static DeciderSettings WithoutWhenIdle()
     {
@@ -229,6 +256,13 @@ public sealed class LeisureTests
     {
         var port = new CountingPort();
         var host = SimulationHost.Assemble(Content.Value, settings ?? Settings.Value, new World(17, Content.Value.Calendar), port, "de");
+        var a = BoredPerson();
+        host.Inhabitants.Add(a);
+        return (host, port, a);
+    }
+
+    private static Inhabitant BoredPerson()
+    {
         var model = Content.Value.InhabitantModel;
         var a = new Inhabitant(
             "inh-000001",
@@ -240,8 +274,7 @@ public sealed class LeisureTests
             model.Start.Traits.ToDictionary(t => t.Id, t => (t.Min + t.Max) / 2, StringComparer.Ordinal),
             model.WillToLive.Start);
         Bored(a);
-        host.Inhabitants.Add(a);
-        return (host, port, a);
+        return a;
     }
 
     private static void Bored(Inhabitant a)

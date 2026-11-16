@@ -621,7 +621,8 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// any question without a subject; the AI chooses and thinks. Before this, once everything in reach was known,
     /// nobody asked any more and the days went silent.
     /// </summary>
-    // A1794: what the free moment being asked leaves out of its options (only while AskAtLeisure asks).
+    // A1794: what a free moment leaves out of its options - set by Send for every leisure request, also one held back and
+    // sent later or sent again (review GW3 #531).
     private ICollection<string>? _notOffered;
 
     private void AskAtLeisure(World world, LeisureSettings leisure)
@@ -668,10 +669,8 @@ public sealed partial class DecisionsSystem : IWorldSystem
                 var target = intention?.AboutId is { } typeId ? things.Where(t => t.TypeId == typeId).MinBy(t => ((t.Position.X - inhabitant.Position.X) * (t.Position.X - inhabitant.Position.X)) + ((t.Position.Z - inhabitant.Position.Z) * (t.Position.Z - inhabitant.Position.Z))) : null;
                 _offering = intention;
                 _offered = false;
-                _notOffered = leisure.NotOffered;
                 Ask(world, inhabitant, Leisure, LeisureSubject, target);
                 _offering = null;
-                _notOffered = null;
 
                 // Used up only when a request really went out with it (review GW1 #333): a held-back question is asked
                 // later as a plain free moment, and one whose action rests went out without it.
@@ -1206,7 +1205,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? Shuffled(stuck(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
-            : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
+            : BuildOptionsFor(kind, inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
@@ -1301,6 +1300,20 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
+    /// <summary>The options of a question of this kind: a free moment leaves out the data's not_offered (A1794).</summary>
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptionsFor(string kind, Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
+    {
+        _notOffered = kind == Leisure ? _settings.Leisure?.NotOffered : null;
+        try
+        {
+            return BuildOptions(asker, target, tick, others, things, orderSeed, out partners);
+        }
+        finally
+        {
+            _notOffered = null;
+        }
+    }
+
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, int orderSeed, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
