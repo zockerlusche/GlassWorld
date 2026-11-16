@@ -78,6 +78,9 @@ public partial class WorldPresenter : Node3D
     /// <summary>Save game of the running world (null = not saved, e.g. smoke runs).</summary>
     public string? SavePath { get; private set; }
 
+    /// <summary>A1749: when the world saves itself (settings 'Spiel'); every game day by default.</summary>
+    public static string AutoSaveMode { get; set; } = GlassWorld.Presentation.Ui.GameOptions.AutoSaveDay;
+
     /// <summary>Raised after a successful autosave at the day boundary (a calm notice, test feedback F5287).</summary>
     public event Action? AutoSaved;
 
@@ -334,24 +337,33 @@ public partial class WorldPresenter : Node3D
 
         if (savePath is not null)
         {
-            // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
-            // World.Step: it would cost the remaining ticks of the frame and the player would not know.
+            // Autosave every game day (B2487) - or when the compute night begins, or not at all (A1749, the player's
+            // choice). Like AutoSaver, but a failure must not escape into World.Step: it would cost the remaining ticks
+            // of the frame and the player would not know.
+            var wasNight = host.Inventions.IsComputeNight == true;
             host.World.BoundaryReached += (_, boundary) =>
             {
+                var night = host.Inventions.IsComputeNight == true;
+                var nightBegan = night && !wasNight;
+                wasNight = night;
+                if (GlassWorld.Presentation.Ui.GameOptions.SavesNow(AutoSaveMode, boundary == TimeBoundary.Day, nightBegan))
+                {
+                    try
+                    {
+                        Save();
+                        AutoSaved?.Invoke();
+                    }
+                    catch (Exception e) when (e is not OutOfMemoryException)
+                    {
+                        GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
+                        SaveFailed?.Invoke(e);
+                    }
+                }
+
+                // The learning log is written at every new game day, whatever the autosave mode (review GW3 #536).
                 if (boundary != TimeBoundary.Day)
                 {
                     return;
-                }
-
-                try
-                {
-                    Save();
-                    AutoSaved?.Invoke();
-                }
-                catch (Exception e) when (e is not OutOfMemoryException)
-                {
-                    GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
-                    SaveFailed?.Invoke(e);
                 }
 
                 // A1620 (B2685): the learning log of the finished day, with the world's logs (A1787 part 2). Its own
