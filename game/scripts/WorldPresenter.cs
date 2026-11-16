@@ -346,20 +346,24 @@ public partial class WorldPresenter : Node3D
                 var night = host.Inventions.IsComputeNight == true;
                 var nightBegan = night && !wasNight;
                 wasNight = night;
-                if (!GlassWorld.Presentation.Ui.GameOptions.SavesNow(AutoSaveMode, boundary == TimeBoundary.Day, nightBegan))
+                if (GlassWorld.Presentation.Ui.GameOptions.SavesNow(AutoSaveMode, boundary == TimeBoundary.Day, nightBegan))
                 {
-                    return;
+                    try
+                    {
+                        Save();
+                        AutoSaved?.Invoke();
+                    }
+                    catch (Exception e) when (e is not OutOfMemoryException)
+                    {
+                        GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
+                        SaveFailed?.Invoke(e);
+                    }
                 }
 
-                try
+                // The learning log is written at every new game day, whatever the autosave mode (review GW3 #536).
+                if (boundary != TimeBoundary.Day)
                 {
-                    Save();
-                    AutoSaved?.Invoke();
-                }
-                catch (Exception e) when (e is not OutOfMemoryException)
-                {
-                    GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
-                    SaveFailed?.Invoke(e);
+                    return;
                 }
 
                 // A1620 (B2685): the learning log of the finished day, with the world's logs (A1787 part 2). Its own
