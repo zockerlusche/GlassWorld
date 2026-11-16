@@ -16,6 +16,25 @@ public static class WorldLogArchive
     /// <summary>Folder below the log folder that holds the logs of worlds that are gone.</summary>
     public const string Archive = "archiv";
 
+    /// <summary>
+    /// Where a save's logs go (review GW5 #525): a world of the world list (its save directly in a folder of
+    /// <paramref name="worldsRoot"/>) gets its folder below the log folder; any other save - a check run's world, the load
+    /// check's copy, a measurement copy - keeps them beside itself, as before (tools and measurements read them there).
+    /// </summary>
+    /// <param name="savePath">The save game.</param>
+    /// <param name="worldsRoot">The world list's folder.</param>
+    /// <param name="logsRoot">The game's log folder.</param>
+    public static string For(string savePath, string worldsRoot, string logsRoot)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(savePath);
+        ArgumentException.ThrowIfNullOrEmpty(worldsRoot);
+        var folder = Path.GetDirectoryName(Path.GetFullPath(savePath)) ?? throw new ArgumentException("A save needs a folder.", nameof(savePath));
+        var parent = Path.GetDirectoryName(folder);
+        return parent is not null && string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(worldsRoot)), parent, StringComparison.OrdinalIgnoreCase)
+            ? Of(logsRoot, Path.GetFileName(folder))
+            : folder;
+    }
+
     /// <summary>The log folder of one world.</summary>
     /// <param name="logsRoot">The game's log folder.</param>
     /// <param name="worldId">The world's folder name (WorldLibrary id).</param>

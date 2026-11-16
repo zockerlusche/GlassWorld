@@ -41,6 +41,12 @@ public static class GameData
     /// <summary>The log folder of one world (run trace, learning log) - outside the world folder, so it outlives it.</summary>
     public static string WorldLogs(string worldId) => GlassWorld.Presentation.World.WorldLogArchive.Of(Logs, worldId);
 
+    /// <summary>
+    /// Where a save's logs go (review GW5 #525): a world of the world list in its log folder, any other save (check runs,
+    /// the load check's copy, measurement copies) beside itself as before.
+    /// </summary>
+    public static string LogsFor(string savePath) => GlassWorld.Presentation.World.WorldLogArchive.For(savePath, At("worlds"), Logs);
+
     /// <summary>A path inside the data folder.</summary>
     public static string At(params string[] parts) => System.IO.Path.Combine([Root, .. parts]);
 

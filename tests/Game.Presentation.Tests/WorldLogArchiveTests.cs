@@ -44,6 +44,17 @@ public sealed class WorldLogArchiveTests : IDisposable
     }
 
     [Fact]
+    public void OnlyAWorldOfTheListLogsInTheLogFolderOtherSavesKeepThemBesideThem()
+    {
+        // Review GW5 #525: a check run's world or the load check's copy is no world of the list.
+        var worlds = Path.Combine(_root, "daten", "worlds");
+        var logs = Path.Combine(_root, "log");
+        Assert.Equal(WorldLogArchive.Of(logs, "insel"), WorldLogArchive.For(Path.Combine(worlds, "insel", "world.sqlite"), worlds, logs));
+        Assert.Equal(Path.Combine(_root, "daten"), WorldLogArchive.For(Path.Combine(_root, "daten", "check-load.db"), worlds, logs));
+        Assert.Equal(Path.Combine(_root, "smoke", "worlds", "a"), WorldLogArchive.For(Path.Combine(_root, "smoke", "worlds", "a", "world.sqlite"), worlds, logs));
+    }
+
+    [Fact]
     public void WithoutWorldLogsNothingHappens() =>
         Assert.Empty(WorldLogArchive.ArchiveOrphans(Path.Combine(_root, "worlds"), Path.Combine(_root, "log"), DateTimeOffset.UnixEpoch));
 }

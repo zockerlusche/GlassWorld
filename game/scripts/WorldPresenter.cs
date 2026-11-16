@@ -316,11 +316,11 @@ public partial class WorldPresenter : Node3D
         host.Conversation.Port = _conversationPort;
         // A1719 (B2767): the run trace reads along; one that cannot start is no reason to stop the game.
         // A1787 part 2 (Marcel W2246): in the game's log folder, one folder per world - it outlives the world folder.
-        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 } worldFolder)
+        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 })
         {
             try
             {
-                _trace = RunTraceWriter.Start(host, GameData.WorldLogs(Path.GetFileName(worldFolder)), _contentDirectory);
+                _trace = RunTraceWriter.Start(host, GameData.LogsFor(savePath), _contentDirectory);
                 if (_trace is not null)
                 {
                     _trace.Failed += e => GD.PushWarning($"RUN_TRACE_OFF {e.GetType().Name}: {e.Message}");
@@ -358,9 +358,9 @@ public partial class WorldPresenter : Node3D
                 // try (review GW3 #353): a log that cannot be written is no failed save and never reaches World.Step.
                 try
                 {
-                    if (Path.GetDirectoryName(SavePath) is { Length: > 0 } worldFolder)
+                    if (SavePath is { Length: > 0 } save && Path.GetDirectoryName(save) is { Length: > 0 })
                     {
-                        LearningLogWriter.WriteFinishedDays(host, GameData.WorldLogs(Path.GetFileName(worldFolder)), _contentDirectory);
+                        LearningLogWriter.WriteFinishedDays(host, GameData.LogsFor(save), _contentDirectory);
                     }
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
