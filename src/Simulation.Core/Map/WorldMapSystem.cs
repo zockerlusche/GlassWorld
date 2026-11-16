@@ -263,6 +263,15 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     public IReadOnlyDictionary<string, (int MinPermille, int MaxPermille, int FallsPerDayPermille, int PlantHeightCm)> Hangs { get; init; } =
         new Dictionary<string, (int, int, int, int)>(StringComparer.Ordinal);
 
+    /// <summary>
+    /// A1380 N2b (R15): the types that spread, set by the host from the nature data (a group's spread) and the spawn
+    /// table (the biomes, by index into the map's biome ids, that list the type; never a fruit on a plant): the chance
+    /// per day a grown place sows into a neighbouring field cell and how many places of the type one field cell holds
+    /// at most. Empty = nothing spreads. Field cells are the overuse ones (cell_m); without overuse data nothing spreads.
+    /// </summary>
+    public IReadOnlyDictionary<string, (int ChancePerDayPermille, int MaxPerCell, IReadOnlySet<int> Biomes)> Spreads { get; init; } =
+        new Dictionary<string, (int, int, IReadOnlySet<int>)>(StringComparer.Ordinal);
+
     /// <summary>D1105 H3b: the plant a hanging type grows on and how far from it (cells, each axis), from the spawn data.</summary>
     public IReadOnlyDictionary<string, (string Plant, int WithinCells)> GrowsOn { get; init; } =
         new Dictionary<string, (string, int)>(StringComparer.Ordinal);
@@ -847,6 +856,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         if (world.Tick % world.Calendar.Settings.TicksPerHour == 0)
         {
             Recover(world.Tick, world.Calendar.Settings.TicksPerHour);
+            Sow(world);
         }
 
         for (var i = 0; i < _occurrences.Count; i++)
@@ -891,6 +901,75 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             }
         }
     }
+
+    // The sown places of an hour, added after the walk over the places.
+    private readonly List<Occurrence> _sown = [];
+
+    /// <summary>
+    /// Once an hour (A1380 N2b, R15): every grown place of a spreading type sows with its chance per day (stream
+    /// nature/sow) into one of the eight neighbouring field cells, at a cell drawn within it - if that cell's biome
+    /// lists the type, nothing blocks it, no place lies there yet, the field cell is not bare and holds fewer than the
+    /// data's places of the type. The new place starts empty and grows like any other (saved with the places).
+    /// </summary>
+    private void Sow(World world)
+    {
+        if (Spreads.Count == 0 || Overuse is not { } o)
+        {
+            return;
+        }
+
+        var fieldCells = Math.Max(1, (int)Math.Round(o.CellM * 100.0 / CellSizeCm));
+        HashSet<(int X, int Z)>? taken = null;
+        Dictionary<(string Type, int X, int Z), int>? perField = null;
+        foreach (var place in _occurrences)
+        {
+            if (place.GoneSinceTick is not null || !Spreads.TryGetValue(place.TypeId, out var spread) || spread.ChancePerDayPermille <= 0
+                || world.Random.Get("nature/sow").NextInt(0, 24_000) >= spread.ChancePerDayPermille)
+            {
+                continue;
+            }
+
+            var random = world.Random.Get("nature/sow");
+            var (fx, fz) = FieldOf(place, o);
+            var direction = random.NextInt(0, 8);
+            (fx, fz) = (fx + NeighbourX[direction], fz + NeighbourZ[direction]);
+            var (x, z) = ((fx * fieldCells) + random.NextInt(0, fieldCells), (fz * fieldCells) + random.NextInt(0, fieldCells));
+            if (!Map.Contains(x, z) || Map.Cell(x, z) is var cell && (cell.WalkCost == MapCell.Blocked || !spread.Biomes.Contains(cell.Biome))
+                || BareAt(CentreOf(x, z)))
+            {
+                continue;
+            }
+
+            // Built once per hour, only when a seed is about to land.
+            if (taken is null || perField is null)
+            {
+                taken = [];
+                perField = [];
+                foreach (var p in _occurrences.Concat(_sown))
+                {
+                    taken.Add((p.X, p.Z));
+                    var f = FieldOf(p, o);
+                    perField[(p.TypeId, f.X, f.Z)] = perField.GetValueOrDefault((p.TypeId, f.X, f.Z)) + 1;
+                }
+            }
+
+            if (taken.Contains((x, z)) || perField.GetValueOrDefault((place.TypeId, fx, fz)) >= spread.MaxPerCell)
+            {
+                continue;
+            }
+
+            var sown = new Occurrence(string.Empty, place.TypeId, x, z, world.Tick);
+            _sown.Add(sown);
+            taken.Add((x, z));
+            perField[(place.TypeId, fx, fz)] = perField.GetValueOrDefault((place.TypeId, fx, fz)) + 1;
+        }
+
+        _occurrences.AddRange(_sown);
+        _sown.Clear();
+    }
+
+    private static readonly int[] NeighbourX = [1, 1, 0, -1, -1, -1, 0, 1];
+    private static readonly int[] NeighbourZ = [0, 1, 1, 1, 0, -1, -1, -1];
 
     /// <inheritdoc/>
     public void WriteState(StateHasher hasher)
