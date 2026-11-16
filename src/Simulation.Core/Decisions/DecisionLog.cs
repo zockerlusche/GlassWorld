@@ -148,6 +148,18 @@ public sealed class ReplayDecisionPort : IDecisionPort
 /// <summary>Notes used in the log.</summary>
 public static class ReplayNotes
 {
+    /// <summary>
+    /// A talk's job got no answer within the data's hours: the core dropped it itself (DialogueSystem) - no message
+    /// came, so a replay must not deliver this line as one (B4b run 15./16.11.: REPLAY_DIFF at the tick after).
+    /// </summary>
+    public const string DialogueTooLate = "dialogue_too_late";
+
+    /// <summary>
+    /// True for a job log line the core wrote on its own, without a message from the service: the replay port leaves it
+    /// out, the replayed core writes it again by itself at the same tick.
+    /// </summary>
+    public static bool IsCoreOnly(string? note) => note is DialogueTooLate;
+
     /// <summary>The decider answered with a ServiceError.</summary>
     public const string ServiceError = "service_error";
 
