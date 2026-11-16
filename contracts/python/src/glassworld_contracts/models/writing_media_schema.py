@@ -40,6 +40,18 @@ class WritingAction(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    action: str | None = Field(
+        None,
+        description='A1357 part 2: the action id that writes (vocabulary actions, target object). Omitted = nobody writes on purpose.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_confidence: float | None = Field(
+        None,
+        description='A1357 part 2: a writer writes its surest own belief of at least this confidence (never one it only read). Placeholder (TL). Omitted = any.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class ReadingAction(BaseModel):
@@ -66,6 +78,12 @@ class ReadingAction(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     curiosity_min: float = Field(..., ge=0.0, le=1.0)
+    action: str | None = Field(
+        None,
+        description='A1357 part 2: the action id that reads a text on purpose (vocabulary actions, target object). Omitted = reading only in passing.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     author_weight_floor: float | None = Field(
         None,
         description="A1357 (spec 33 section 9a): what is read is believed with the text's legibility times the reader's respect for the author, but at least this share of the legibility (an author it hardly knows). Placeholder value (TL). Omitted = respect alone.",
