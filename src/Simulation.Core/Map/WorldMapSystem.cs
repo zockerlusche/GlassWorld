@@ -99,6 +99,12 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     public bool BareAt(Position at) =>
         Overuse is { } o && _bare.TryGetValue(FieldOf(at, o), out var spans) && spans.Count > 0 && spans[^1].End is null;
 
+    /// <summary>
+    /// A1380 N2 (wish GW3 #533, A1385): grows by one whenever a field cell turns bare or green again, or a save game's
+    /// overuse is restored - the look rebuilds its bare ground only when it changed. Derived; never saved or hashed.
+    /// </summary>
+    public long BareVersion { get; private set; }
+
     /// <summary>A1380 N2: the overuse for a save game, in cell order (only cells with anything).</summary>
     public IReadOnlyList<OveruseCell> CaptureOveruse()
     {
@@ -123,6 +129,8 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 _bare[(cell.X, cell.Z)] = [.. cell.Bare];
             }
         }
+
+        BareVersion++;
     }
 
     private static (int X, int Z) FieldOf(Position at, Contracts.NatureOveruse o) =>
@@ -155,6 +163,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             }
 
             spans.Add(new BareSpan(tick, null));
+            BareVersion++;
             ticks.Clear();
         }
 
@@ -191,6 +200,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             if (spans[^1] is { End: null } open && !oldestGone.ContainsKey(cell) && tick - open.Start >= (long)o.BareMinHours * ticksPerHour)
             {
                 spans[^1] = open with { End = tick };
+                BareVersion++;
             }
 
             spans.RemoveAll(s => s.End is { } end && (!oldestGone.TryGetValue(cell, out var since) || end <= since));
