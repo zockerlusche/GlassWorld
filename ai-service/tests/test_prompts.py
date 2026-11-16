@@ -210,6 +210,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v13",
         "decider/decide.v14",
         "decider/decide.v15",
+        "decider/decide.v16",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -628,3 +629,43 @@ def test_v12_says_the_intention_in_its_own_morning_words() -> None:
     data.pop("intention")
     plain = _render(DecisionRequest.model_validate(data), version=12).split("=== user ===")[1]
     assert "This morning you meant to" not in plain
+
+
+def test_v16_says_there_is_no_word_for_things_from_elsewhere() -> None:
+    """A1797 (Marcel W2243 'Kaffee'): the frame - nothing from elsewhere; the user part is v15's."""
+    v15 = _render(_leisure(), version=15)
+    v16 = _render(_leisure(), version=16)
+    assert "no word for anything they did not meet" in v16
+    assert "no word for anything" not in v15
+    assert v15.split("=== user ===")[1] == v16.split("=== user ===")[1]
+
+
+def test_v16_says_what_failed_and_why_never_what_would_work() -> None:
+    """A1778 (B2814): the occasion action_failed shows the action, the thing and the reason in
+    plain words (data); an unknown reason code is shown as words; nothing about a fix (PR2)."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["occasion"] = "action_failed"
+    data["failure"] = {"action": "pick_up", "target_type": "apple_tree", "reason": "too_high"}
+    user = _render(DecisionRequest.model_validate(data), version=16).split("=== user ===")[1]
+    block = user.split("## Right now")[1].split("## Options")[0]
+    assert (
+        "You just tried to pick up the apple tree, and it did not work: it is too high up" in block
+    )
+    data["failure"] = {"action": "talk_to", "reason": "voice_lost"}
+    user = _render(DecisionRequest.model_validate(data), version=16).split("=== user ===")[1]
+    assert "You just tried to talk to, and it did not work: voice lost." in user
+    assert "## Right now" not in _render(_leisure(None), version=16).split("=== user ===")[1]
+
+
+def test_v16_says_when_the_person_is_wet_or_stands_in_water() -> None:
+    """A1793 (Marcel 15a): the core sends environment.wet and in_water; v15 never showed them."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["environment"]["wet"] = True
+    data["environment"]["in_water"] = "shallow"
+    request = DecisionRequest.model_validate(data)
+    v16 = _render(request, version=16).split("=== user ===")[1]
+    assert "- You stand knee-deep in something wet." in v16 and "- You are wet." in v16
+    assert "You are wet." not in _render(request, version=15)
+    dry = _render(_leisure(None), version=16).split("=== user ===")[1]
+    body = dry.split("## Your body")[1].split("##")[0]
+    assert "You are wet." not in dry and "deep in" not in body

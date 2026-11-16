@@ -24,7 +24,7 @@ public sealed class SettingsLayoutTests
     {
         var rows = Layout.Tabs.SelectMany(t => t.Rows).ToList();
         Assert.Equal(rows.Count, rows.Distinct(StringComparer.Ordinal).Count());
-        foreach (var setting in new[] { "language", "player_name", "volume", "ui_scale", "text_scale", "feeling_symbols", "hint_duration", "hints_until_dismissed", "hide_ui", "high_contrast", "reduce_motion", "ai", "data_folder" })
+        foreach (var setting in new[] { "language", "player_name", "volume", "ui_scale", "text_scale", "feeling_symbols", "hint_duration", "hints_until_dismissed", "hide_ui", "high_contrast", "reduce_motion", "ai", "data_folder", "window_mode", "resolution", "vsync", "max_fps", "quality", "log_folder", "invert_turn_x", "invert_turn_y", "invert_pan_x", "invert_pan_y" })
         {
             Assert.Contains(setting, rows);
         }

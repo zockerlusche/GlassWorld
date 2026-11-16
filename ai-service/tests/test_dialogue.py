@@ -218,3 +218,35 @@ def test_why_a_talk_ended_early_goes_into_the_call_log(monkeypatch: pytest.Monke
     assert detail_of(({"turns": []}, ["talk ends before turn 2 (unknown: Feuer): x", "y"])) == (
         "talk ends before turn 2 (unknown: Feuer): x; y"
     )
+
+
+def test_v2_a_turn_naming_a_thing_from_elsewhere_ends_the_talk() -> None:
+    """A1797 (Marcel W2243): with v1 only names of things of this world were judged, so a turn
+    with 'Kaffee' passed; v2 judges every noun - the inhabitants know nothing from elsewhere."""
+    v2 = load_prompt(REPO / "prompts", "dialogue/talk", 2)
+    coffee = _answer(GOOD[0], _turn("b", "Ja! Danach trinken wir einen Kaffee."))
+    _, notes = parse_dialogue(coffee, JOB, GUARD, TEXTS, TEMPLATE.settings)
+    assert notes == []  # v1 as it was
+    result, notes = parse_dialogue(coffee, JOB, GUARD, TEXTS, v2.settings)
+    assert "unknown: Kaffee" in notes[0]
+    assert result["turns"] == []  # the question alone is left out too (D1192 #21)
+    talk = _answer(GOOD[0], _turn("b", "Ja! Hast du was Neues? Ein Gespräch tut gut."))
+    result, notes = parse_dialogue(talk, JOB, GUARD, TEXTS, v2.settings)
+    assert notes == [] and len(result["turns"]) == 2  # general words stay
+    assert "no word for anything they did not meet" in v2.system
+
+
+def test_v2_a_talk_never_ends_on_a_question_nobody_answers() -> None:
+    """D1192 #21 (Marcel 15a): when the check ends the talk at the answer, the question stays
+    alone - v2 leaves it out; a question as the model's last turn too. v1 as it was."""
+    v2 = load_prompt(REPO / "prompts", "dialogue/talk", 2)
+    cut = _answer(GOOD[0], _turn("b", "Ja! Danach trinken wir einen Kaffee."))
+    result, notes = parse_dialogue(cut, JOB, GUARD, TEXTS, v2.settings)
+    assert result["turns"] == []
+    assert "unanswered question left out: Joro, hast du" in notes[-1]
+    last = _answer(*GOOD, _turn("a", "Und wie geht es dir?", "ask"))
+    result, _ = parse_dialogue(last, JOB, GUARD, TEXTS, v2.settings)
+    assert len(result["turns"]) == 2
+    result, _ = parse_dialogue(last, JOB, GUARD, TEXTS, TEMPLATE.settings)
+    assert len(result["turns"]) == 3  # v1 unchanged
+    assert "the last turn is no question" in v2.system

@@ -65,6 +65,9 @@ def main(argv: list[str] | None = None) -> None:
         if args.parent_pid is not None:
             loop = asyncio.get_running_loop()
             background.append(loop.create_task(watch_parent(args.parent_pid, request_exit)))
+        if settings.sampling_seed_offset:
+            # R27 (review GW3 #513): the logs keep the request seeds; this line says what was added.
+            print(f"AI_SERVICE_SEED_OFFSET {settings.sampling_seed_offset}", flush=True)
         print(READY_LINE.format(port=port), flush=True)
 
     app = create_app(

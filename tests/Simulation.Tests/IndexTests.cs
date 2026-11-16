@@ -280,6 +280,12 @@ public sealed class IndexTests : IDisposable
         // does), the other never: if anything were kept that the state does not say, they would part.
         var kept = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
         var forgetful = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+
+        // The run must ask a lot (both tables in use): a fast AI job leaves the hour's budget (A1587) wide open.
+        foreach (var host in new[] { kept, forgetful })
+        {
+            host.Decisions.Submit(new PlayerCommand(AiPace.SetAiRate, null) { Amount = 100 });
+        }
         var held = false;
         var lapsed = false;
         var seen = 0L;

@@ -11,7 +11,14 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="PlayerNameMaxLength">Longest player name (content/player/world_options.json).</param>
 /// <param name="Guard">Content guard (R13); a blocked name from a hand-edited file is dropped.</param>
 /// <param name="MixDefaultsVersion">Version of the default bus volumes (mix.json); saved volumes of another version are reset.</param>
-public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard, int MixDefaultsVersion = 1);
+public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard, int MixDefaultsVersion = 1)
+{
+    /// <summary>A1748: the quality levels of content/look/quality.json (ids), empty when unknown.</summary>
+    public IReadOnlyList<string> QualityLevels { get; init; } = [];
+
+    /// <summary>A1748: the data's default quality level (shown when the player chose none).</summary>
+    public string? QualityDefault { get; init; }
+}
 
 /// <summary>
 /// The player's settings (B6 R4): stored in the game's data folder (<c>settings.json</c>, GameData A1787), never in a
@@ -62,6 +69,36 @@ public sealed record PlayerSettings
 
     /// <summary>Mix defaults version the saved volumes belong to (review #106: new defaults reset old volumes once).</summary>
     public int MixDefaultsVersion { get; init; }
+
+    /// <summary>A1749 (B2825): turning with the mouse goes the other way across.</summary>
+    public bool InvertTurnX { get; init; }
+
+    /// <summary>A1749 (B2825): tilting with the mouse goes the other way up and down.</summary>
+    public bool InvertTurnY { get; init; }
+
+    /// <summary>A1749 (B2825): moving the view with the mouse goes the other way across.</summary>
+    public bool InvertPanX { get; init; }
+
+    /// <summary>A1749 (B2825): moving the view with the mouse goes the other way up and down.</summary>
+    public bool InvertPanY { get; init; }
+
+    /// <summary>A1749: the mouse axes for the camera.</summary>
+    public MouseAxes ToMouseAxes() => new(InvertTurnX, InvertTurnY, InvertPanX, InvertPanY);
+
+    /// <summary>A1748: window mode (<see cref="DisplayChoices.WindowModes"/>), null = as the game starts.</summary>
+    public string? WindowMode { get; init; }
+
+    /// <summary>A1748: window size 'WIDTHxHEIGHT' in window mode (one of the data's), null = as the game starts.</summary>
+    public string? Resolution { get; init; }
+
+    /// <summary>A1748: wait for the screen's refresh (no tearing).</summary>
+    public bool Vsync { get; init; } = true;
+
+    /// <summary>A1748: frame rate limit (one of the data's choices), 0 = none.</summary>
+    public int MaxFps { get; init; }
+
+    /// <summary>A1748: quality level id (content/look/quality.json), null = the data's default; takes effect when a world is loaded.</summary>
+    public string? Quality { get; init; }
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -122,6 +159,12 @@ public sealed record PlayerSettings
             UiScale = UiScaling.Snap(UiScale, tokens.UiScale),
             TextScale = UiScaling.Snap(TextScale, tokens.TextScale),
             HintDurationFactor = Math.Clamp(HintDurationFactor, 1, tokens.Toast.MaxDurationFactor),
+
+            // A1748: only the choices of the data; anything else (hand-edited) is 'as the game starts' / no limit / default.
+            WindowMode = WindowMode is not null && DisplayChoices.WindowModes.Contains(WindowMode, StringComparer.Ordinal) ? WindowMode : null,
+            Resolution = Resolution is not null && tokens.Graphics.Resolutions.Contains(Resolution, StringComparer.Ordinal) ? Resolution : null,
+            MaxFps = tokens.Graphics.FpsChoices.Contains(MaxFps) ? MaxFps : 0,
+            Quality = Quality is not null && limits.QualityLevels.Contains(Quality, StringComparer.Ordinal) ? Quality : null,
 
             // A hand-edited "bus_volumes_db": null must not break the UI either.
             MixDefaultsVersion = limits.MixDefaultsVersion,

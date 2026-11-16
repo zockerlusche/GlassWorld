@@ -253,6 +253,62 @@ public partial class SettingsWindow : GwWindow
                 Row("ui.settings.data_folder", folder, "ui.settings.data_folder.desc");
                 break;
 
+            // A1748 (D957 v4 section 10): the graphics. Mode and size rebuild the window and ask 'Behalten?' (Main).
+            case "window_mode":
+                Row("ui.settings.window_mode", Choice(
+                    [(null, "ui.settings.window_mode.start"), .. DisplayChoices.WindowModes.Select(m => ((string?)m, DisplayChoices.ModeKey(m)))],
+                    s => s.WindowMode, v => _settings with { WindowMode = v }), "ui.settings.window_mode.desc");
+                break;
+
+            case "resolution":
+                var screen = DisplayServer.ScreenGetSize(DisplayServer.WindowGetCurrentScreen()); // the screen the window is on (review GW3 #530)
+                Row("ui.settings.resolution", Choice(
+                    [(null, "ui.settings.resolution.start"), .. DisplayChoices.Fitting(limits.Tokens.Graphics.Resolutions, screen.X, screen.Y).Select(r => ((string?)r, r))],
+                    s => s.Resolution, v => _settings with { Resolution = v }), "ui.settings.resolution.desc");
+                break;
+
+            // A1749 (B2825): the mouse axes, each on its own; the default is as before.
+            case "invert_turn_x":
+                Row("ui.settings.invert_turn_x", Toggle(settings.InvertTurnX, v => _settings with { InvertTurnX = v }, s => s.InvertTurnX), "ui.settings.invert_turn_x.desc");
+                break;
+
+            case "invert_turn_y":
+                Row("ui.settings.invert_turn_y", Toggle(settings.InvertTurnY, v => _settings with { InvertTurnY = v }, s => s.InvertTurnY), "ui.settings.invert_turn_y.desc");
+                break;
+
+            case "invert_pan_x":
+                Row("ui.settings.invert_pan_x", Toggle(settings.InvertPanX, v => _settings with { InvertPanX = v }, s => s.InvertPanX), "ui.settings.invert_pan_x.desc");
+                break;
+
+            case "invert_pan_y":
+                Row("ui.settings.invert_pan_y", Toggle(settings.InvertPanY, v => _settings with { InvertPanY = v }, s => s.InvertPanY), "ui.settings.invert_pan_y.desc");
+                break;
+
+            case "vsync":
+                Row("ui.settings.vsync", Toggle(settings.Vsync, v => _settings with { Vsync = v }, s => s.Vsync), "ui.settings.vsync.desc");
+                break;
+
+            case "max_fps":
+                Row("ui.settings.max_fps", Choice(
+                    [.. limits.Tokens.Graphics.FpsChoices.Select(f => ((string?)f.ToString(System.Globalization.CultureInfo.InvariantCulture), f == 0 ? "ui.settings.max_fps.none" : f.ToString(System.Globalization.CultureInfo.InvariantCulture)))],
+                    s => s.MaxFps.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    v => _settings with { MaxFps = int.Parse(v ?? "0", System.Globalization.CultureInfo.InvariantCulture) }), "ui.settings.max_fps.desc");
+                break;
+
+            case "quality":
+                Row("ui.settings.quality", Choice(
+                    [.. limits.QualityLevels.Select(l => ((string?)l, DisplayChoices.QualityKey(l)))],
+                    s => s.Quality ?? limits.QualityDefault,
+                    v => _settings with { Quality = v == limits.QualityDefault ? null : v }), "ui.settings.quality.desc");
+                break;
+
+            case "log_folder":
+                // A1787 part 2 (Marcel W2246, #525): the logs lie in their own folder (log\ next to the game) - for a bug report.
+                var logs = new Button { Text = "ui.settings.log_folder.open", SizeFlagsHorizontal = SizeFlags.ShrinkEnd, TooltipText = GameData.Logs, TooltipAutoTranslateMode = AutoTranslateModeEnum.Disabled };
+                logs.Pressed += () => OS.ShellOpen(GameData.Logs);
+                Row("ui.settings.log_folder", logs, "ui.settings.log_folder.desc");
+                break;
+
             default:
                 throw new InvalidDataException($"content/ui/settings.json names the unknown setting '{id}'.");
         }
@@ -278,6 +334,15 @@ public partial class SettingsWindow : GwWindow
                 "hints_until_dismissed" => s with { HintsUntilDismissed = d.HintsUntilDismissed },
                 "hint_duration" => s with { HintDurationFactor = d.HintDurationFactor },
                 "volume" => s with { BusVolumesDb = new Dictionary<string, double>(d.BusVolumesDb, StringComparer.Ordinal) },
+                "window_mode" => s with { WindowMode = d.WindowMode },
+                "resolution" => s with { Resolution = d.Resolution },
+                "vsync" => s with { Vsync = d.Vsync },
+                "invert_turn_x" => s with { InvertTurnX = d.InvertTurnX },
+                "invert_turn_y" => s with { InvertTurnY = d.InvertTurnY },
+                "invert_pan_x" => s with { InvertPanX = d.InvertPanX },
+                "invert_pan_y" => s with { InvertPanY = d.InvertPanY },
+                "max_fps" => s with { MaxFps = d.MaxFps },
+                "quality" => s with { Quality = d.Quality },
                 _ => s,
             };
         }
@@ -344,6 +409,46 @@ public partial class SettingsWindow : GwWindow
             label.Text = Percent(read(s));
         });
         return box;
+    }
+
+    /// <summary>
+    /// A1748: a choice of values (null = 'as the game starts') with their texts - a key, or a plain number or size shown
+    /// as it is; it shows the settings' value and applies a new one.
+    /// </summary>
+    private OptionButton Choice(IReadOnlyList<(string? Value, string Text)> items, Func<PlayerSettings, string?> read, Func<string?, PlayerSettings> change)
+    {
+        var choice = new OptionButton();
+        foreach (var (_, text) in items)
+        {
+            choice.AddItem(text);
+        }
+
+        void Show(PlayerSettings s)
+        {
+            var value = read(s);
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (items[i].Value == value)
+                {
+                    choice.Select(i);
+                }
+            }
+        }
+
+        Show(_settings);
+        choice.ItemSelected += index => Apply(change(items[(int)index].Value));
+        _shows.Add(Show);
+        return choice;
+    }
+
+    /// <summary>A1748: shows these settings in every control without applying them again (after 'Behalten?' fell back).</summary>
+    public void Show(PlayerSettings settings)
+    {
+        _settings = settings;
+        foreach (var show in _shows)
+        {
+            show(settings);
+        }
     }
 
     private CheckButton Toggle(bool value, Func<bool, PlayerSettings> change, Func<PlayerSettings, bool> read)

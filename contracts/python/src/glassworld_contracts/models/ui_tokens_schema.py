@@ -478,6 +478,36 @@ class UiLogCategory(BaseModel):
     highlight: bool
 
 
+type FpsChoice = Annotated[int, Field(..., ge=0, le=1000)]
+
+
+type Resolution = Annotated[
+    str, Field(..., pattern='^[1-9][0-9]{2,4}x[1-9][0-9]{2,4}$')
+]
+
+
+class UiGraphics(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    fps_choices: list[FpsChoice] = Field(
+        ...,
+        description='Frame rate limits the player can choose; 0 = no limit.',
+        min_length=1,
+    )
+    resolutions: list[Resolution] = Field(
+        ...,
+        description="Window sizes 'WIDTHxHEIGHT' offered in window mode (only those that fit the screen are shown).",
+        min_length=1,
+    )
+    keep_seconds: float = Field(
+        ...,
+        description="Seconds the question 'Behalten?' waits after a change of window mode or size; without an answer it falls back.",
+        ge=3.0,
+        le=60.0,
+    )
+
+
 class UiPortraitStates(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -769,3 +799,4 @@ class UiTokens(BaseModel):
         description='One rule for all value bars (B2642, D772): the bar shows how much of what its label names is there. Whether that is good or bad is said by colour and a thumb, from these thresholds (percent).',
     )
     portrait_states: UiPortraitStates
+    graphics: UiGraphics
