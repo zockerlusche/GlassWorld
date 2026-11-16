@@ -19,6 +19,9 @@ public static class KnowledgeSources
 
     /// <summary>Seen by looking closely: only what can be seen, never the effect (TL #19921).</summary>
     public const string Seen = "seen";
+
+    /// <summary>What the player's voice said (B6 R20, A1536): believed by trust, awe and fear toward the player.</summary>
+    public const string Voice = "voice";
 }
 
 /// <summary>

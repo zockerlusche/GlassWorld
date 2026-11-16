@@ -99,7 +99,9 @@
         "trust": { "type": "number", "minimum": -1, "maximum": 1 },
         "awe": { "type": "number", "minimum": -1, "maximum": 1 },
         "fear": { "type": "number", "minimum": -1, "maximum": 1 },
-        "max": { "type": "number", "minimum": 0, "maximum": 1 }
+        "max": { "type": "number", "minimum": 0, "maximum": 1 },
+        "proven_trust": { "description": "Spec 31 acceptance 15: trust change toward the player when the inhabitant's own doing proves a tip true (placeholder). Omitted = 0.", "type": "number", "minimum": -1, "maximum": 1 },
+        "failed_trust": { "description": "The same when its doing shows the tip false (placeholder, negative). Omitted = 0.", "type": "number", "minimum": -1, "maximum": 1 }
       }
     },
     "dialogue": {

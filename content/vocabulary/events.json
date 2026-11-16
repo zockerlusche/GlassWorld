@@ -163,6 +163,10 @@
       "description": "An inhabitant who can read read a text in passing and learned what it says (B8 R15, A1357; target = the carrier, Detail = the knowledge ref)."
     },
     {
+      "id": "voice_tested",
+      "description": "An inhabitant's own doing tested a tip of the voice (B6 R20, A1536; target = the type, Detail = property/proven or property/failed). Its trust in the player follows."
+    },
+    {
       "id": "voice_believed",
       "description": "An inhabitant took what the player's voice said about a thing as a weak belief (B6 R20, A1536; target = the type, Detail = property|value)."
     },

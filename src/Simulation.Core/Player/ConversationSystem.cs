@@ -650,7 +650,31 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     public const string VoiceBelieved = "voice_believed";
 
     /// <summary>The knowledge source of what the voice said (vocabulary knowledge_source, B6 R20).</summary>
-    public const string VoiceSource = "voice";
+    public const string VoiceSource = KnowledgeSources.Voice;
+
+    /// <summary>
+    /// A1536 (B6 R20, spec 31 acceptance 15): an inhabitant's own doing tested a tip of the voice - proven, its trust in the
+    /// player rises by the data; false, it falls. A tip nobody tries changes nothing. Subscribed by the host.
+    /// </summary>
+    public void Observe(WorldEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (e.Kind != InhabitantsSystem.VoiceTested || _settings.Tip is not { } rule || Find(e.InhabitantId) is not { } inhabitant)
+        {
+            return;
+        }
+
+        var proven = e.Detail?.EndsWith("/" + InhabitantsSystem.VoiceProven, StringComparison.Ordinal) == true;
+        var change = proven ? rule.ProvenTrust ?? 0 : rule.FailedTrust ?? 0;
+        if (change == 0)
+        {
+            return;
+        }
+
+        var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+        var r = inhabitant.Relationships.Get(PlayerId, start);
+        inhabitant.Relationships.Set(PlayerId, r with { Trust = Math.Clamp(r.Trust + change, 0, 1) });
+    }
 
     /// <summary>Whether an id is a property of the vocabulary (set by the host from the object catalog; null = any).</summary>
     public Func<string, bool>? PropertyKnown { get; set; }

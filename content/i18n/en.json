@@ -2435,6 +2435,10 @@
       "text": "Read some writing"
     },
     {
+      "key": "vocab.event.voice_tested",
+      "text": "Tried a tip of the voice"
+    },
+    {
       "key": "vocab.event.voice_believed",
       "text": "Believed the voice"
     },

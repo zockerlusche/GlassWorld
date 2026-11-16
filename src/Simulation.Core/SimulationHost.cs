@@ -687,6 +687,7 @@ public sealed class SimulationHost
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
         conversation.PropertyKnown = objects.Catalog.PropertyVocabulary.Contains;
+        inhabitants.Reported += conversation.Observe;
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns

@@ -2435,6 +2435,10 @@
       "text": "Geschriebenes gelesen"
     },
     {
+      "key": "vocab.event.voice_tested",
+      "text": "Hat einen Rat der Stimme ausprobiert"
+    },
+    {
       "key": "vocab.event.voice_believed",
       "text": "Hat der Stimme etwas geglaubt"
     },

@@ -560,6 +560,44 @@ public sealed class ConversationTests : IDisposable
         Assert.Equal((false, GlassWorld.Simulation.Objects.KnowledgeSources.Experienced), (kept.Value, kept.Source));
     }
 
+    [Fact]
+    public void AnAdviceThatProvesTrueAndOneThatProvesFalseChangeTheTrustInOppositeDirections()
+    {
+        // A1536, spec 31 acceptance 15 (R20): only its own doing counts - eating an apple the voice called edible raises the
+        // trust in the player, eating a flint the voice called edible lowers it; a tip nobody tries changes nothing.
+        double TrustAfter(string type)
+        {
+            var (host, id) = Host();
+            var who = host.Inhabitants.Get(id);
+            who.Relationships.Set(ConversationSystem.PlayerId, new GlassWorld.Simulation.Objects.Relation(0.5, 0.5, 0.3));
+            who.Beliefs.Set(type, "edible", true, 0.25, ConversationSystem.VoiceSource, ConversationSystem.PlayerId, host.World.Tick);
+            var tested = new List<WorldEvent>();
+            host.Inhabitants.Reported += e =>
+            {
+                if (e.Kind == InhabitantsSystem.VoiceTested)
+                {
+                    tested.Add(e);
+                }
+            };
+            host.Inhabitants.Experience(host.World.Tick, who, "eat", type, ["edible"]);
+            Assert.Single(tested);
+            return who.Relationships.Get(ConversationSystem.PlayerId, default).Trust;
+        }
+
+        var proven = TrustAfter("apple");
+        var failed = TrustAfter("flint");
+        Assert.True(proven > 0.5, $"proven: {proven:0.000}");
+        Assert.True(failed < 0.5, $"failed: {failed:0.000}");
+
+        // Untried: the trust stays.
+        var (h, i) = Host();
+        var untouched = h.Inhabitants.Get(i);
+        untouched.Relationships.Set(ConversationSystem.PlayerId, new GlassWorld.Simulation.Objects.Relation(0.5, 0.5, 0.3));
+        untouched.Beliefs.Set("apple", "edible", true, 0.25, ConversationSystem.VoiceSource, ConversationSystem.PlayerId, h.World.Tick);
+        h.World.Run(2);
+        Assert.Equal(0.5, untouched.Relationships.Get(ConversationSystem.PlayerId, default).Trust, 9);
+    }
+
     private sealed class TipPort(string type, string property, bool value) : IConversationPort
     {
         private readonly Queue<PortMessage> _ready = new();

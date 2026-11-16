@@ -1362,6 +1362,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Reason of a sleep ended by day because the sleeper is rested (B2778, A1711).</summary>
     public const string WokenRested = "woken_rested";
 
+    /// <summary>Event: its own doing tested a tip of the voice (target = type, detail = property/proven|failed; A1536).</summary>
+    public const string VoiceTested = "voice_tested";
+
+    /// <summary>Detail of <see cref="VoiceTested"/>: the tip was true.</summary>
+    public const string VoiceProven = "proven";
+
+    /// <summary>Detail of <see cref="VoiceTested"/>: the tip was false.</summary>
+    public const string VoiceFailed = "failed";
+
     /// <summary>
     /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
     /// inhabitant is below its neglect threshold (neglect_below of the inhabitant model) and the action - one
@@ -2505,6 +2514,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 var change = old.Value == truth ? knowledge.TrustTrueHeardGain : -knowledge.TrustFalseHeardLoss;
                 inhabitant.Relationships.Set(teller, relation with { Trust = relation.Trust + change });
                 BondByProof(inhabitant, teller, old.Value == truth);
+            }
+
+            // A1536 (B6 R20): a tip of the voice that its own doing tested - proven or not; the conversation weighs it.
+            if (known && old.Source == KnowledgeSources.Voice)
+            {
+                Report(new WorldEvent(VoiceTested, tick, inhabitant.Id, action, typeId) { Detail = property + "/" + (old.Value == truth ? VoiceProven : VoiceFailed) });
             }
 
             var confidence = Math.Max(knowledge.ExperiencedConfidence, known && old.Value == truth && old.Source == KnowledgeSources.Experienced ? old.Confidence : 0);
