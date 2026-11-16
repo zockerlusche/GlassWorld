@@ -215,6 +215,13 @@ public sealed class RunTraceWriter : IDisposable
                 json.WriteNumber("turns", turns);
             }
 
+            // Where the target thing is (A1373, Marcel's stone cup 15a): a built thing stands at its site, which can lie
+            // metres from where its builder finished - the line says both.
+            if (e.TargetId is { } targetId && _host.Objects.TryGet(targetId, out var target))
+            {
+                WritePosition(json, "target_at", target.Position);
+            }
+
             if (_host.Inhabitants.TryGet(e.InhabitantId, out var who))
             {
                 WritePosition(json, "at", who.Position);

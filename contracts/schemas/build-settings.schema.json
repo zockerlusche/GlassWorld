@@ -77,6 +77,7 @@
       "maximum": 20
     },
     "escalation": { "$ref": "#/$defs/BuildEscalation" },
+    "site": { "description": "A1373 (D827 R15, TL #26920): where to build - when a plan is accepted the core finds up to candidates free places near the builder (walkable, dry, nothing within clearance_m, reachable), the nearest stands as the site, and the decider is asked to choose among them (occasion build_site, action of the data). The answer moves the site while nothing of the thing stands yet; without an answer the nearest stays. Omitted = the site is where the builder stands, as before.", "$ref": "#/$defs/BuildSite" },
     "quality": { "$ref": "#/$defs/BuildQuality" }
   },
   "$defs": {
@@ -97,6 +98,19 @@
       "properties": {
         "id": { "$ref": "common.schema.json#/$defs/VocabId" },
         "from_level": { "description": "Skill level from which this tier is reached.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "BuildSite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "candidates", "radius_m", "clearance_m", "min_spacing_m", "near_m"],
+      "properties": {
+        "action": { "description": "The decider option that chooses a place (vocabulary action, only_when build_site).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "candidates": { "description": "Places offered at most; with one only, nobody is asked.", "type": "integer", "minimum": 1, "maximum": 5 },
+        "radius_m": { "description": "How far from the builder places are looked for.", "type": "number", "minimum": 1, "maximum": 64 },
+        "clearance_m": { "description": "No thing may stand closer than this to a place.", "type": "number", "minimum": 0, "maximum": 10 },
+        "min_spacing_m": { "description": "Places offered lie at least this far apart.", "type": "number", "minimum": 0, "maximum": 32 },
+        "near_m": { "description": "A thing the builder knows within this distance names a place (its own name for it); none = a free place.", "type": "number", "minimum": 0, "maximum": 32 }
       }
     },
     "BuildEscalation": {

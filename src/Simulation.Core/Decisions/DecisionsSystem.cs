@@ -179,6 +179,18 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
     public const string BuildStuck = "build_stuck";
 
+    /// <summary>Question kind and occasion: where to build an approved invention (A1373, D827 R15).</summary>
+    public const string BuildSite = "build_site";
+
+    /// <summary>A1373: the options of a build site question (one per place, data order) for (inhabitant, invention type); set by the host.</summary>
+    public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? SiteOptions { get; set; }
+
+    /// <summary>A1373: the places of those options, in the same order; set by the host.</summary>
+    public Func<string, string, IReadOnlyList<BuildPlace>>? SitePlaces { get; set; }
+
+    /// <summary>A1373: the answer - (inhabitant, invention type, index of the chosen place in data order); set by the host.</summary>
+    public Action<string, string, int>? SiteAnswered { get; set; }
+
     /// <summary>A1373 step 2 (set by the host): the options of a stuck building (inhabitant, invention type), fresh each time a request is built.</summary>
     public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? StuckOptions { get; set; }
 
@@ -1238,6 +1250,8 @@ public sealed partial class DecisionsSystem : IWorldSystem
         IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? Shuffled(stuck(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
+            : kind == BuildSite && SiteOptions is { } sites
+            ? Shuffled(sites(inhabitant.Id, subject), OrderSeed(world.Seed, questionId))
             : BuildOptions(inhabitant, target, world.Tick, others, things, OrderSeed(world.Seed, questionId), out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
@@ -1245,6 +1259,22 @@ public sealed partial class DecisionsSystem : IWorldSystem
         if (kind == BuildStuck)
         {
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
+        }
+
+        // A1373: where to build - each option carries its place (how far, near what the builder knows), never a value (PR2).
+        if (kind == BuildSite && SitePlaces?.Invoke(inhabitant.Id, subject) is { } places)
+        {
+            request.Occasion = BuildSite;
+            // The places follow the options through the same shuffle (review GW2 #526): Shuffled cuts to MaxOptions first and
+            // then shuffles exactly options.Count items with this seed, so shuffling their positions alike gives each sent
+            // option its place - the same coupling InDataOrder undoes (D1025). A changed Shuffled must change both.
+            var order = Enumerable.Range(0, options.Count).ToList();
+            Shuffle(order, OrderSeed(world.Seed, questionId));
+            var sentOptions = request.Options.ToList();
+            for (var sent = 0; sent < sentOptions.Count && sent < order.Count; sent++)
+            {
+                sentOptions[sent].Place = order[sent] < places.Count ? places[order[sent]] : null;
+            }
         }
 
         // A1778: a failed action says what failed and why (never what would work, PR2).
@@ -1318,6 +1348,28 @@ public sealed partial class DecisionsSystem : IWorldSystem
         var question = Send(world, inhabitant, questionId, BuildStuck, typeId, null);
         AddOpen(question);
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
+        return true;
+    }
+
+    /// <summary>
+    /// A1373 (D827 R15): asks the decider where to build an approved invention, with the places the core found
+    /// (<see cref="SiteOptions"/>, <see cref="SitePlaces"/>). Within the step's limit like any day decision; false if
+    /// it did not go out now. Answered, the choice moves the site (<see cref="SiteAnswered"/>) - no walk.
+    /// </summary>
+    public bool AskBuildSite(World world, string inhabitantId, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        // A1587 S2 (review GW2 #526): the hour's budget holds for where to build as for a stuck building; without room the nearest place stays.
+        if (!MaySend(world) || !HasBudget(world, inhabitantId, BuildSite) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
+        {
+            return false;
+        }
+
+        _counter++;
+        var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
+        var question = Send(world, _inhabitants.Get(inhabitantId), questionId, BuildSite, typeId, null);
+        AddOpen(question);
+        _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitantId, null, question.Id));
         return true;
     }
 
@@ -1750,6 +1802,31 @@ public sealed partial class DecisionsSystem : IWorldSystem
 
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
+
+        // A1373: a chosen build site is a choice of the mind - it moves the site, nobody walks for it.
+        if (question.Kind == BuildSite)
+        {
+            var order = Enumerable.Range(0, question.Options.Count).ToList();
+            Shuffle(order, OrderSeed(world.Seed, question.Id));
+            var sent = question.Options.ToList().FindIndex(o => o.OptionId == response.OptionId);
+            if (sent < 0 || sent >= order.Count)
+            {
+                // Review GW2 #526: an option the question did not have moves nothing - closed, the nearest place stays.
+                Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.UnknownOption));
+                Close(world, question, "question_failed", ReplayNotes.UnknownOption);
+                return;
+            }
+
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
+            Close(world, question, "question_answered");
+            SiteAnswered?.Invoke(question.InhabitantId, question.Subject, order[sent]);
+            if (response.Thought is { } siteThought && _guard.Check(siteThought.Text).Allowed)
+            {
+                _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = siteThought.Text });
+            }
+
+            return;
+        }
         // A stuck building's options are the core's own (asking another for help passes no knowledge, A1376).
         if (question.Kind != BuildStuck && resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
         {

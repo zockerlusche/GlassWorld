@@ -754,6 +754,74 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         return best;
     }
 
+    /// <summary>
+    /// A1373 (D827 R15): free places for a building near a position, nearest first (cell centres; ties by cell): dry
+    /// land that can be walked on, in the same walkable area as the position (reachable on foot), with no thing within
+    /// the data's clearance, and at least min_spacing_m apart. At most the data's number; empty without the objects.
+    /// </summary>
+    public IReadOnlyList<Position> FreeSites(Position around, Contracts.BuildSite site)
+    {
+        ArgumentNullException.ThrowIfNull(site);
+        if (_objects is null || CellOf(around) is not { } centre)
+        {
+            return [];
+        }
+
+        var area = AreaOf(centre.X, centre.Z);
+        if (area == 0)
+        {
+            return [];
+        }
+
+        var cells = (int)Math.Ceiling(site.RadiusM * 100 / CellSizeCm);
+        var candidates = new List<(double Distance, int Z, int X, Position At)>();
+        for (var z = centre.Z - cells; z <= centre.Z + cells; z++)
+        {
+            for (var x = centre.X - cells; x <= centre.X + cells; x++)
+            {
+                if (!Map.Contains(x, z) || AreaOf(x, z) != area)
+                {
+                    continue;
+                }
+
+                var cell = Map.Cell(x, z);
+                var at = CentreOf(x, z);
+                var distance = Math.Sqrt(((at.X - around.X) * (at.X - around.X)) + ((at.Z - around.Z) * (at.Z - around.Z)));
+                if (cell.Water != WaterKind.None || cell.WalkCost == MapCell.Blocked || distance > site.RadiusM)
+                {
+                    continue;
+                }
+
+                candidates.Add((distance, z, x, at));
+            }
+        }
+
+        var chosen = new List<Position>();
+        var near = new List<WorldObject>();
+        foreach (var (_, _, _, at) in candidates.OrderBy(c => c.Distance).ThenBy(c => c.Z).ThenBy(c => c.X))
+        {
+            if (chosen.Any(p => ((p.X - at.X) * (p.X - at.X)) + ((p.Z - at.Z) * (p.Z - at.Z)) < site.MinSpacingM * site.MinSpacingM))
+            {
+                continue;
+            }
+
+            near.Clear();
+            _objects.Within(at, site.ClearanceM, near);
+            if (near.Count > 0)
+            {
+                continue;
+            }
+
+            chosen.Add(at);
+            if (chosen.Count >= site.Candidates)
+            {
+                break;
+            }
+        }
+
+        return chosen;
+    }
+
     /// <summary>World position (metres, origin at the map corner) of the centre of cell (x, z).</summary>
     public Position CentreOf(int x, int z) => new((x + 0.5) * CellSizeCm / 100.0, (z + 0.5) * CellSizeCm / 100.0);
 

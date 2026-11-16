@@ -112,6 +112,11 @@
       "group": "building"
     },
     {
+      "action": "build_here",
+      "sound": "action.build_step",
+      "group": "building"
+    },
+    {
       "action": "ask_for_help",
       "sound": "action.talk_to",
       "group": "speaking"
