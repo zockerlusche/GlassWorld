@@ -99,6 +99,13 @@ public sealed partial class DecisionsSystem : IWorldSystem
     public AiBudget? Budget { get; init; }
 
     /// <summary>
+    /// A1568 (B2757, Marcel W2134 'Tag ohne KI'): true while the decider is asked nothing - by day in the day mode
+    /// night_only (<see cref="Night.NightQueueSystem.HoldsNow"/>). A question keeps its mark and goes with the compute
+    /// night (A1587 S4), a free moment is not asked; the day runs on the core alone. Null = never.
+    /// </summary>
+    public Func<bool>? Quiet { get; set; }
+
+    /// <summary>
     /// Whether the compute night can answer questions of a trigger at all: it guesses about object types, so
     /// only a trigger whose questions are about a type qualifies (checked when the world is assembled).
     /// </summary>
@@ -1220,6 +1227,11 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool HasBudget(World world, string inhabitantId, string kind)
     {
+        if (Quiet?.Invoke() == true)
+        {
+            return false;
+        }
+
         if (Budget is null)
         {
             return true;
