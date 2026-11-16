@@ -92,6 +92,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, GwValueBar> _cardBars = new(StringComparer.Ordinal);
     private GwPortrait? _cardPortrait;
     private Label? _cardTrying;
+    private Label? _cardGround;
     private string? _cardTopQuestionId;
     private Label? _cardTopQuestion;
     private Label? _cardTopReason;
@@ -123,6 +124,7 @@ public partial class GameScreen : CanvasLayer
     private bool _worldHeld;
     private bool _menuPaused;
     private double _speedBeforeNight = 1;
+    private bool _nightPassed;
     private bool _cameraHeldBeforeNight;
     private long? _nightfallTick;
     private PanelContainer? _topBar;
@@ -144,6 +146,9 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
     private Label? _time;
+
+    // A1762 self-check: the clock keeps the test digits while they are measured.
+    private bool _clockHeld;
     private WorldPresenter? _presenter;
     private WorldFeed? _feed;
     private UiStyle? _style;
@@ -613,7 +618,8 @@ public partial class GameScreen : CanvasLayer
         var row = new HFlowContainer();
         var date = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
         var day = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, MouseFilter = Control.MouseFilterEnum.Stop };
-        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        // Right-aligned in its steady width (A1762): the minutes stay where they are while the digits change.
+        var time = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Right };
         row.AddChild(date);
         row.AddChild(day);
         row.AddChild(time);
@@ -675,6 +681,14 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
+
+            // A1752: an inhabitant's own aha (invented, built, a new word) marks its portrait.
+            if (_presenter.Host is { } ahaHost)
+            {
+                _aha ??= new AhaMarks(_style.Tokens.PortraitStates, ahaHost.World.Calendar.Settings.TicksPerHour);
+                _aha.Take(events);
+            }
+
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
@@ -855,6 +869,12 @@ public partial class GameScreen : CanvasLayer
         else
         {
             _presenter?.ClickedGround();
+
+            // A1791 (Marcel W2242): a thing near the click says what it is, who made it and who knows what about it.
+            if (WorldPoint(position) is { } ground && ThingAt(ground) is { } thing)
+            {
+                OpenThing(thing);
+            }
         }
     }
 
@@ -1578,7 +1598,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
@@ -2129,6 +2149,20 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
     /// <summary>The log again from scratch (a filter, the search or open/closed changed).</summary>
+    /// <summary>
+    /// B2815: the height of <paramref name="lines"/> one-line log lines in the closed log, measured with a line of the
+    /// log's own theme, so the closed log keeps its size from the first line on.
+    /// </summary>
+    private float ClosedLogHeight(int lines)
+    {
+        var probe = new Button { Text = "ui.log.more", Flat = true, AutowrapMode = TextServer.AutowrapMode.Off, ClipText = true };
+        _logList.AddChild(probe);
+        var line = probe.GetCombinedMinimumSize().Y;
+        _logList.RemoveChild(probe);
+        probe.Free();
+        return (lines * line) + (Math.Max(0, lines - 1) * _logList.GetThemeConstant("separation"));
+    }
+
     private void RedrawLog()
     {
         _logShown = -1;
@@ -2158,8 +2192,13 @@ public partial class GameScreen : CanvasLayer
         var open = _logOpen || !_zones;
         _logTools.Visible = open;
         var all = _log.Newest();
-        _logMore.Visible = _zones && (open || all.Count > data.CornerLines);
+        // B2815 (Marcel W2208): the closed log keeps one size - "more" stays in its place (greyed while there is no more)
+        // and the list keeps the room of its lines however many there are and however long they are.
+        var closed = _zones && !open;
+        _logMore.Visible = _zones;
+        _logMore.Disabled = closed && all.Count <= data.CornerLines;
         _logMore.Text = open ? "ui.log.less" : "ui.log.more";
+        _logList.CustomMinimumSize = closed ? new Vector2(0, ClosedLogHeight(data.CornerLines)) : Vector2.Zero;
         if (all.Count == 0)
         {
             _logList.AddChild(new Label { Text = "ui.log.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
@@ -2193,6 +2232,15 @@ public partial class GameScreen : CanvasLayer
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             };
+            if (closed)
+            {
+                // B2815: closed, every line is one line ("..." at the end, the whole line in the tooltip and in the open log).
+                button.AutowrapMode = TextServer.AutowrapMode.Off;
+                button.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+                button.ClipText = true;
+                button.TooltipText = text;
+            }
+
             if (LogModel.CategoryOf(line, data)?.Highlight == true && bold is not null)
             {
                 button.AddThemeFontOverride("font", bold);
@@ -2291,7 +2339,7 @@ public partial class GameScreen : CanvasLayer
         if (hold == _worldHeld)
         {
             // Nothing else may start the world while it is held (a check run, a late button event).
-            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            if (hold && _presenter.Speed != 0 && !_menuPaused && _night?.PassesNight != true)
             {
                 _presenter.Speed = 0;
             }
@@ -2317,10 +2365,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         _presenter.CameraHeld = _cameraHeldBeforeNight;
-        if (!_menuPaused && _presenter.Speed == 0)
+        // After a passed night (A1798) the world runs at the scene's speed, not 0: the player's speed comes back too.
+        if (!_menuPaused && (_presenter.Speed == 0 || _nightPassed))
         {
             _presenter.Speed = _speedBeforeNight;
         }
+
+        _nightPassed = false;
 
         foreach (var control in _restingUi.Where(IsInstanceValid))
         {
@@ -2385,6 +2436,12 @@ public partial class GameScreen : CanvasLayer
         var sceneDelta = NightDelta(delta);
         _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
         HoldWorld(_night.HoldsWorld);
+        if (_night.PassesNight && !_menuPaused)
+        {
+            // A1798: the rest of the night passes behind the shade at the fastest speed; dawn fades the morning in.
+            _presenter.Speed = ScreenModel.TimeChoices(_presenter.Host.World.Calendar.Settings).Max(c => c.Speed);
+            _nightPassed = true;
+        }
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -2708,14 +2765,24 @@ public partial class GameScreen : CanvasLayer
             ["game_day"] = Number(clock.GameDay),
             ["year"] = Number(clock.Year),
         };
-        _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
-        _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+        // While the corner self-check shows its test digits, the clock does not write over them (review GW3 #496).
+        if (!_clockHeld)
+        {
+            _date.Text = TextFill.Fill(Tr("ui.clock.date"), values);
+            _day.Text = TextFill.Fill(Tr("ui.clock.day_year"), values);
+            _time.Text = clock.Time;
+        }
+
         _date.TooltipText = TextFill.Fill(Tr("ui.clock.date_tooltip"), new Dictionary<string, string>(values)
         {
             ["year_days"] = Number(clock.DaysPerYear),
         });
         _day.TooltipText = _date.TooltipText;
-        _time.Text = clock.Time;
+
+        // A1762: the numbers change, the widths do not - nothing beside them moves each minute or day.
+        UiFit.SteadyDigits(_date);
+        UiFit.SteadyDigits(_day);
+        UiFit.SteadyDigits(_time);
         RefreshCorners(rows, clock);
 
         // Each inhabitant's diary (W1726): the core keeps it (TL #20472); take what is new.
@@ -3248,6 +3315,8 @@ public partial class GameScreen : CanvasLayer
         about.AddChild(doing);
         _cardTrying = new Label { Name = "CardTrying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, Visible = false };
         about.AddChild(_cardTrying);
+        _cardGround = new Label { Name = "CardGround", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        about.AddChild(_cardGround);
 
         // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
         var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
@@ -3423,7 +3492,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The head's values: portrait, what it does, a first try.</summary>
     private void RefreshCardHead(InhabitantCard card, string inhabitantId)
     {
-        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row) ? PortraitState.Question : PortraitState.None, selected: false);
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
         if (_cardActionIcon is not null)
@@ -3445,6 +3514,16 @@ public partial class GameScreen : CanvasLayer
             if (trying)
             {
                 _cardTrying.Text = TrFor("ui.card.trying", _feed?.SexOf(inhabitantId));
+            }
+        }
+
+        if (_cardGround is not null)
+        {
+            var ground = CardGroundLine(inhabitantId);
+            _cardGround.Visible = ground.Length > 0;
+            if (_cardGround.Text != ground)
+            {
+                _cardGround.Text = ground;
             }
         }
     }
@@ -3731,7 +3810,8 @@ public partial class GameScreen : CanvasLayer
         // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
         // has looked at since leaves only the effect open; the questions panel still lists every open question.
         mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
-        mark.Visible = row.PuzzlingQuestions > 0;
+        // Never over a figure lying asleep (review GW5 #510, like the feeling symbols in #499 and the dots, D1112 #8).
+        mark.Visible = row.PuzzlingQuestions > 0 && _presenter?.LiesNow(row.Id) != true;
     }
 
     private string? PickAt(Vector2 screen)
@@ -3769,7 +3849,13 @@ public partial class GameScreen : CanvasLayer
         string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : NameOfId(id);
         return rows.ToDictionary(
             r => r.Id,
-            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant)
+                ? InhabitantActivity.WithCarrying(
+                    InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf),
+                    InhabitantActivity.CarriedType(inhabitant, index) is { } carried ? ThingName(carried) : null, // A1784: what it carries
+                    key => Tr(key),
+                    smallThing: !TranslationServer.GetLocale().StartsWith("de", StringComparison.OrdinalIgnoreCase))
+                : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }
 

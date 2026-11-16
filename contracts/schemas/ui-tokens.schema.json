@@ -24,7 +24,9 @@
     "palettes",
     "knock",
     "head_symbol",
-    "zones"
+    "zones",
+    "portrait_states",
+    "graphics"
   ],
   "properties": {
     "contract_version": {
@@ -185,6 +187,7 @@
         "portrait_list_height_share",
         "round_button_px",
         "favor_bar_width",
+        "season_bar_width",
         "middle_share",
         "season_icons",
         "weather_icons",
@@ -269,6 +272,12 @@
           "minimum": 60,
           "maximum": 1200
         },
+        "season_bar_width": {
+          "description": "A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 400
+        },
         "middle_share": {
           "description": "Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).",
           "type": "number",
@@ -334,6 +343,12 @@
           }
         }
       }
+    },
+    "portrait_states": {
+      "$ref": "#/$defs/UiPortraitStates"
+    },
+    "graphics": {
+      "$ref": "#/$defs/UiGraphics"
     }
   },
   "$defs": {
@@ -385,6 +400,7 @@
         "bubble_max_chars",
         "list_refresh_ms",
         "pick_radius_px",
+        "thing_pick_m",
         "table_min_height",
         "card_bar_width",
         "mark_height_m",
@@ -402,6 +418,7 @@
         "button_radius",
         "world_outline_px",
         "scrim_alpha",
+        "window_ground_alpha",
         "scrim_soft_px",
         "world_check_grounds",
         "card_diary_lines",
@@ -449,6 +466,12 @@
           "type": "integer",
           "minimum": 8,
           "maximum": 200
+        },
+        "thing_pick_m": {
+          "description": "A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
         },
         "side_panel_width": {
           "description": "Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).",
@@ -591,6 +614,12 @@
         },
         "scrim_alpha": {
           "description": "Opacity of the soft dark ground behind the corners that stand on the world (S1b, TL #25715: light text must read over sand and snow too).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "window_ground_alpha": {
+          "description": "Opacity of the dark ground of a window (settings, pause, forms, messages; B2791): nearly opaque, so the world or a menu behind it shows at most faintly through its text (1 = fully opaque).",
           "type": "number",
           "minimum": 0,
           "maximum": 1
@@ -996,6 +1025,125 @@
         },
         "highlight": {
           "type": "boolean"
+        }
+      }
+    },
+    "UiGraphics": {
+      "description": "A1748 (D957 v4 section 10): the choices of the settings tab 'Grafik' - frame rate limits, window sizes - and how long a change that rebuilds the window waits for 'Behalten?' before it falls back.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fps_choices",
+        "resolutions",
+        "keep_seconds"
+      ],
+      "properties": {
+        "fps_choices": {
+          "description": "Frame rate limits the player can choose; 0 = no limit.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "resolutions": {
+          "description": "Window sizes 'WIDTHxHEIGHT' offered in window mode (only those that fit the screen are shown).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{2,4}x[1-9][0-9]{2,4}$"
+          }
+        },
+        "keep_seconds": {
+          "description": "Seconds the question 'Behalten?' waits after a change of window mode or size; without an answer it falls back.",
+          "type": "number",
+          "minimum": 3,
+          "maximum": 60
+        }
+      }
+    },
+    "UiPortraitStates": {
+      "description": "A1752 (B2792, Marcel W2166/W2167): the states of a portrait in the inhabitants corner - knock, worry, aha, question - told apart by shape and motion, never by colour alone; at most one shows, the most important (knock > worry > aha > question). Calm: only the knock moves, and with reduced motion it stands still.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knock_taps",
+        "knock_tap_s",
+        "knock_gap_s",
+        "knock_pause_s",
+        "ring_share",
+        "aha_flash_s",
+        "aha_hours",
+        "aha_events",
+        "worry_after_hours",
+        "badge_share"
+      ],
+      "properties": {
+        "knock_taps": {
+          "description": "Pulses of the ring per knock (B2792: twice short, then a pause).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "knock_tap_s": {
+          "description": "How long one pulse of the knock ring lasts (real seconds).",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 2
+        },
+        "knock_gap_s": {
+          "description": "The pause between two pulses of one knock (real seconds).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "knock_pause_s": {
+          "description": "The pause after a knock before the next one (real seconds).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "ring_share": {
+          "description": "Thickness of a state's ring as a share of the portrait's diameter.",
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 0.3
+        },
+        "aha_flash_s": {
+          "description": "The aha ring lights up once this long (real seconds), then stays calmly bright without pulsing.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "aha_hours": {
+          "description": "How long an aha stays (game hours, B2792: about one game day) unless the portrait is clicked.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 240
+        },
+        "aha_events": {
+          "description": "The inhabitant's own events that are an aha (GW1 #27065: invented, built, word_heard); vocabulary event ids.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "worry_after_hours": {
+          "description": "A need below its neglect line this long (game hours, the snapshot's NeglectHours) shows the worry mark; a fading inhabitant shows it too.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 240
+        },
+        "badge_share": {
+          "description": "Diameter of the badge on the portrait's edge as a share of the portrait's diameter.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 0.7
         }
       }
     }

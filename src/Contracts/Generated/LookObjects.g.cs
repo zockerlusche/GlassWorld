@@ -46,6 +46,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("color")]
         public string Color { get; set; } = default!;
 
+        /// <summary>
+        /// A1796 (D1114, Marcel 15a): events whose thing (the event's target, if it is in the world) gets the same calm ring where it is, without moving the camera - so one finds a thing just built. Omitted = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mark_events")]
+        public System.Collections.Generic.ICollection<string>? MarkEvents { get; set; } = default!;
+
+        /// <summary>
+        /// A1796: how long such a place mark takes to fade (real seconds); omitted = seconds. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mark_seconds")]
+        public double? MarkSeconds { get; set; } = default!;
+
     }
 
     /// <summary>

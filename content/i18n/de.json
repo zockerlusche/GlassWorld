@@ -159,6 +159,66 @@
       "text": "{name} – Liebling"
     },
     {
+      "key": "ui.thing.title",
+      "text": "Ding"
+    },
+    {
+      "key": "ui.thing.built_by",
+      "text": "Gebaut von {name}"
+    },
+    {
+      "key": "ui.thing.invented_by",
+      "text": "Erfunden von {name}"
+    },
+    {
+      "key": "ui.thing.known",
+      "text": "Was die Bewohner darüber wissen"
+    },
+    {
+      "key": "ui.thing.nobody_knows",
+      "text": "Noch weiß niemand etwas darüber."
+    },
+    {
+      "key": "ui.thing.knows",
+      "text": "{name}: {facts}"
+    },
+    {
+      "key": "ui.thing.fact",
+      "text": "{fact} ({source})"
+    },
+    {
+      "key": "ui.thing.fact_not",
+      "text": "nicht {property}"
+    },
+    {
+      "key": "ui.thing.source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "ui.thing.source.seen",
+      "text": "gesehen"
+    },
+    {
+      "key": "ui.thing.source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "ui.thing.source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "ui.thing.source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "ui.thing.ground",
+      "text": "Boden: {ground}"
+    },
+    {
+      "key": "ui.thing.ground_slow",
+      "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Erinnerungen an {name}"
     },
@@ -181,6 +241,10 @@
     {
       "key": "ui.memory.export",
       "text": "Exportieren"
+    },
+    {
+      "key": "ui.memory.go_to_thing",
+      "text": "Hinschauen, wo es ist"
     },
     {
       "key": "ui.card.memory",
@@ -252,7 +316,7 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season} {day}/{days}"
+      "text": "{season}"
     },
     {
       "key": "ui.clock.date_tooltip",
@@ -261,6 +325,14 @@
     {
       "key": "ui.clock.day_year",
       "text": "Tag {game_day} · Jahr {year}"
+    },
+    {
+      "key": "ui.clock.air",
+      "text": "{temp} °C"
+    },
+    {
+      "key": "ui.clock.air_tooltip",
+      "text": "Lufttemperatur auf der Insel"
     },
     {
       "key": "ui.common.cancel",
@@ -483,6 +555,122 @@
       "text": "Hinweise bleiben, bis ich sie schließe"
     },
     {
+      "key": "ui.settings.data_folder",
+      "text": "Datenordner"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "Hier liegen die Welten und Einstellungen dieses Spiels."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Öffnen"
+    },
+    {
+      "key": "ui.settings.window_mode",
+      "text": "Fenstermodus"
+    },
+    {
+      "key": "ui.settings.window_mode.desc",
+      "text": "Im Fenster, als Vollbild (das Spiel allein) oder randlos über den ganzen Bildschirm. Nach dem Wechsel fragt das Spiel, ob du ihn behalten willst."
+    },
+    {
+      "key": "ui.settings.window_mode.start",
+      "text": "Wie beim Start"
+    },
+    {
+      "key": "ui.settings.window_mode.windowed",
+      "text": "Fenster"
+    },
+    {
+      "key": "ui.settings.window_mode.fullscreen",
+      "text": "Vollbild"
+    },
+    {
+      "key": "ui.settings.window_mode.borderless",
+      "text": "Randlos"
+    },
+    {
+      "key": "ui.settings.resolution",
+      "text": "Fenstergröße"
+    },
+    {
+      "key": "ui.settings.resolution.desc",
+      "text": "Wie groß das Fenster im Fenstermodus ist. Im Vollbild gilt die Größe des Bildschirms."
+    },
+    {
+      "key": "ui.settings.resolution.start",
+      "text": "Wie beim Start"
+    },
+    {
+      "key": "ui.settings.vsync",
+      "text": "V-Sync"
+    },
+    {
+      "key": "ui.settings.vsync.desc",
+      "text": "Wartet auf den Bildschirm, damit das Bild nicht zerreißt. Aus kann flüssiger, aber unruhiger sein."
+    },
+    {
+      "key": "ui.settings.max_fps",
+      "text": "Bildraten-Grenze"
+    },
+    {
+      "key": "ui.settings.max_fps.desc",
+      "text": "Höchstens so viele Bilder pro Sekunde. Eine Grenze schont Rechner und Lüfter."
+    },
+    {
+      "key": "ui.settings.max_fps.none",
+      "text": "Keine Grenze"
+    },
+    {
+      "key": "ui.settings.quality",
+      "text": "Qualität"
+    },
+    {
+      "key": "ui.settings.quality.desc",
+      "text": "Schatten, Gras und Sichtweite. Gilt ab dem nächsten Laden einer Welt."
+    },
+    {
+      "key": "ui.settings.quality.low",
+      "text": "Niedrig"
+    },
+    {
+      "key": "ui.settings.quality.medium",
+      "text": "Mittel"
+    },
+    {
+      "key": "ui.settings.quality.high",
+      "text": "Hoch"
+    },
+    {
+      "key": "ui.settings.keep.title",
+      "text": "Behalten?"
+    },
+    {
+      "key": "ui.settings.keep.text",
+      "text": "Ist das Bild so in Ordnung? Ohne Antwort geht es in {seconds} s zurück."
+    },
+    {
+      "key": "ui.settings.keep.keep",
+      "text": "Behalten"
+    },
+    {
+      "key": "ui.settings.keep.back",
+      "text": "Zurück"
+    },
+    {
+      "key": "ui.settings.log_folder",
+      "text": "Protokollordner"
+    },
+    {
+      "key": "ui.settings.log_folder.desc",
+      "text": "Hier schreibt das Spiel mit, was in den Welten und bei der KI geschieht. Hilfreich, wenn du einen Fehler meldest."
+    },
+    {
+      "key": "ui.settings.log_folder.open",
+      "text": "Öffnen"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },
@@ -497,10 +685,6 @@
     {
       "key": "ui.settings.player_name",
       "text": "Dein Name"
-    },
-    {
-      "key": "ui.settings.player_name_hint",
-      "text": "Nur für die Chronik und Hinweise"
     },
     {
       "key": "ui.settings.problem.name_blocked",
@@ -523,32 +707,96 @@
       "text": "Bewegung reduzieren"
     },
     {
-      "key": "ui.settings.section.audio",
-      "text": "Klang"
-    },
-    {
-      "key": "ui.settings.section.display",
-      "text": "Darstellung"
-    },
-    {
-      "key": "ui.settings.section.hints",
-      "text": "Hinweise"
-    },
-    {
-      "key": "ui.settings.section.language",
-      "text": "Sprache"
-    },
-    {
-      "key": "ui.settings.section.player",
-      "text": "Spieler"
-    },
-    {
       "key": "ui.settings.text_scale",
       "text": "Textgröße"
     },
     {
       "key": "ui.settings.title",
       "text": "Einstellungen"
+    },
+    {
+      "key": "ui.settings.tab.game",
+      "text": "Spiel"
+    },
+    {
+      "key": "ui.settings.tab.graphics",
+      "text": "Grafik"
+    },
+    {
+      "key": "ui.settings.tab.audio",
+      "text": "Ton"
+    },
+    {
+      "key": "ui.settings.tab.interface",
+      "text": "Oberfläche"
+    },
+    {
+      "key": "ui.settings.tab.controls",
+      "text": "Steuerung"
+    },
+    {
+      "key": "ui.settings.tab.accessibility",
+      "text": "Zugänglichkeit"
+    },
+    {
+      "key": "ui.settings.tab.ai",
+      "text": "KI"
+    },
+    {
+      "key": "ui.settings.coming",
+      "text": "Diese Einstellungen kommen mit einem späteren Schritt."
+    },
+    {
+      "key": "ui.settings.restore",
+      "text": "Standard wiederherstellen"
+    },
+    {
+      "key": "ui.settings.desc_hint",
+      "text": "Zeige auf eine Einstellung, um zu lesen, was sie tut."
+    },
+    {
+      "key": "ui.settings.language.desc",
+      "text": "Die Sprache aller Texte im Spiel. Die Bewohner sprechen sie auch."
+    },
+    {
+      "key": "ui.settings.player_name.desc",
+      "text": "Nur für die Chronik und Hinweise. Du kannst es leer lassen."
+    },
+    {
+      "key": "ui.settings.ui_scale.desc",
+      "text": "Wie groß Fenster, Knöpfe und Schrift zusammen sind."
+    },
+    {
+      "key": "ui.settings.text_scale.desc",
+      "text": "Nur die Schrift größer oder kleiner; die Fenster wachsen mit."
+    },
+    {
+      "key": "ui.settings.feeling_symbols.desc",
+      "text": "Kleine Zeichen über den Köpfen zeigen, was ein Bewohner gerade fühlt."
+    },
+    {
+      "key": "ui.settings.hint_duration.desc",
+      "text": "Wie lange ein Hinweis stehen bleibt, als Vielfaches der kürzesten Zeit."
+    },
+    {
+      "key": "ui.settings.hints_until_dismissed.desc",
+      "text": "Hinweise bleiben stehen, bis du sie schließt."
+    },
+    {
+      "key": "ui.settings.hide_ui.desc",
+      "text": "Blendet alles aus, was man nicht bedienen kann, um nur die Welt zu sehen."
+    },
+    {
+      "key": "ui.settings.high_contrast.desc",
+      "text": "Stärkere Unterschiede zwischen Schrift und Grund."
+    },
+    {
+      "key": "ui.settings.reduce_motion.desc",
+      "text": "Weniger Bewegung: keine zitternde Scheibe, ruhigere Übergänge."
+    },
+    {
+      "key": "ui.settings.volume.desc",
+      "text": "Die Lautstärke jedes Kanals; gesperrte Kanäle sind grau."
     },
     {
       "key": "ui.settings.ui_scale",
@@ -2199,6 +2447,14 @@
       "text": "Feuer heruntergebrannt"
     },
     {
+      "key": "vocab.event.spoiled",
+      "text": "Etwas ist verdorben"
+    },
+    {
+      "key": "vocab.event.broke",
+      "text": "Etwas ist zerbrochen"
+    },
+    {
       "key": "vocab.event.put_out",
       "text": "Feuer vom Regen gelöscht"
     },
@@ -2433,6 +2689,10 @@
     {
       "key": "ui.activity.thinking",
       "text": "denkt nach"
+    },
+    {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · trägt {thing}"
     },
     {
       "key": "ui.activity.idle",
@@ -2899,10 +3159,6 @@
       "text": "Auch tagsüber lernen"
     },
     {
-      "key": "ui.settings.section.ai",
-      "text": "KI"
-    },
-    {
       "key": "ui.selfcheck.checking",
       "text": "Die KI wird geprüft …"
     },
@@ -3017,6 +3273,18 @@
     {
       "key": "ui.pause.help",
       "text": "Hilfe und Gaben"
+    },
+    {
+      "key": "ui.corner.knocking",
+      "text": "Klopft an die Scheibe"
+    },
+    {
+      "key": "ui.corner.worry",
+      "text": "Etwas fehlt schon lange"
+    },
+    {
+      "key": "ui.corner.aha",
+      "text": "Hat gerade etwas geschafft - Klick, und der Stern geht"
     },
     {
       "key": "ui.corner.brooding",
@@ -3769,6 +4037,54 @@
     {
       "key": "vocab.event.arrival",
       "text": "Angekommen"
+    },
+    {
+      "key": "vocab.action.dig",
+      "text": "graben"
+    },
+    {
+      "key": "vocab.property.digs",
+      "text": "greift in den Boden"
+    },
+    {
+      "key": "vocab.property.ore_bearing",
+      "text": "erzhaltig"
+    },
+    {
+      "key": "vocab.property.dug",
+      "text": "gegraben"
+    },
+    {
+      "key": "vocab.event.dug",
+      "text": "Gegraben"
+    },
+    {
+      "key": "vocab.event.dig_failed",
+      "text": "Graben ging nicht"
+    },
+    {
+      "key": "vocab.event.well_dug",
+      "text": "Wasser im Loch"
+    },
+    {
+      "key": "vocab.object.pit",
+      "text": "Grube"
+    },
+    {
+      "key": "vocab.object.waterhole",
+      "text": "Brunnen"
+    },
+    {
+      "key": "vocab.object.earth",
+      "text": "Erde"
+    },
+    {
+      "key": "vocab.object.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.object.ore_chunk",
+      "text": "Erzbrocken"
     }
   ]
 }

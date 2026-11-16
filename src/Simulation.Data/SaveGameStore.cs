@@ -597,10 +597,28 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("placed", JsonSerializer.Serialize(s.Placed, Json)));
         }
 
+        if (s.Dug is not null)
+        {
+            // A1578: dug cells; no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("dug", JsonSerializer.Serialize(s.Dug, Json)));
+        }
+
+        if (s.Used is not null)
+        {
+            // A1576: things worn by use; no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("used", JsonSerializer.Serialize(s.Used, Json)));
+        }
+
         if (s.Wet is not null)
         {
             // How wet the inhabitants are (B5-11); no entry = nobody.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("wet", JsonSerializer.Serialize(s.Wet, Json)));
+        }
+
+        if (s.Overuse is { Count: > 0 })
+        {
+            // Overuse of field cells (A1380 N2); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("overuse", JsonSerializer.Serialize(s.Overuse, Json)));
         }
 
         if (s.Climbed is { Count: > 0 })
@@ -625,6 +643,11 @@ public static class SaveGameStore
         {
             // Talks between two inhabitants (A1735); no entry = none yet.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("dialogue", JsonSerializer.Serialize(s.Dialogue, Json)));
+        }
+
+        if (s.AiBudget is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("ai_budget", JsonSerializer.Serialize(s.AiBudget, Json)));
         }
 
         if (s.NightQueue is not null)
@@ -921,11 +944,15 @@ public static class SaveGameStore
             Nature = meta.TryGetValue("nature", out var nature) ? JsonSerializer.Deserialize<Simulation.Nature.NatureState>(nature, Json) : null,
             Animals = meta.TryGetValue("animals", out var animals) ? JsonSerializer.Deserialize<Simulation.Nature.AnimalStockState>(animals, Json) : null,
             Placed = meta.TryGetValue("placed", out var placed) ? JsonSerializer.Deserialize<List<Simulation.Objects.PlacedThing>>(placed, Json) : null,
+            Dug = meta.TryGetValue("dug", out var dug) ? JsonSerializer.Deserialize<List<Simulation.Objects.DugCell>>(dug, Json) : null,
+            Used = meta.TryGetValue("used", out var used) ? JsonSerializer.Deserialize<List<Simulation.Objects.UsedThing>>(used, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
+            Overuse = meta.TryGetValue("overuse", out var overuse) ? JsonSerializer.Deserialize<List<Map.OveruseCell>>(overuse, Json) : null,
             Climbed = meta.TryGetValue("climbed", out var climbed) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.UpInhabitant>>(climbed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,
             ChronicleNight = meta.TryGetValue("chronicle_night", out var chronicleNight) ? JsonSerializer.Deserialize<Simulation.Night.ChronicleNightState>(chronicleNight, Json) : null,
             Dialogue = meta.TryGetValue("dialogue", out var dialogue) ? JsonSerializer.Deserialize<Simulation.Inhabitants.DialogueState>(dialogue, Json) : null,
+            AiBudget = meta.TryGetValue("ai_budget", out var aiBudget) ? JsonSerializer.Deserialize<Simulation.Decisions.AiBudgetState>(aiBudget, Json) : null,
             NightQueue = meta.TryGetValue("night_queue", out var nightQueue) ? JsonSerializer.Deserialize<Simulation.Night.NightQueueState>(nightQueue, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",

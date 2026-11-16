@@ -243,6 +243,14 @@
       "description": "D1105 H3b: an inhabitant slid gently down while climbing (target = what it climbed, target type = its type). A fright, no harm."
     },
     {
+      "id": "spoiled",
+      "description": "A1576 (D1008 H2): a made or carried thing spoiled and is gone (target = the thing, target type = its type; inhabitant = who held it, if anyone)."
+    },
+    {
+      "id": "broke",
+      "description": "A1576 (D1008 H2): a made or carried thing wore out by time or use and broke; it is gone (target = the thing, target type = its type)."
+    },
+    {
       "id": "out_of_reach",
       "description": "D1105 H3: an inhabitant could not get its hands on a thing (target = the thing, target type = its type, detail = why: too_high). Only the reason, never a way."
     },
@@ -337,6 +345,18 @@
     {
       "id": "arrival",
       "description": "Inhabitants arrived from across the water (B9 R29)."
+    },
+    {
+      "id": "dug",
+      "description": "A1578 (K5): an inhabitant dug where it stood (target = the pit, detail = the material it brought up, if any)."
+    },
+    {
+      "id": "dig_failed",
+      "description": "A1578 (K5): digging gave nothing (detail = why: no_tool for ground too hard for bare hands, water_reached at the groundwater)."
+    },
+    {
+      "id": "well_dug",
+      "description": "A1578 (K5): the hole reached the groundwater - water stands in it now (target = the well)."
     }
   ]
 }

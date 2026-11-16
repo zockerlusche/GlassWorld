@@ -85,6 +85,12 @@ public static class GestureCadence
         var (dip, lift) = fromStart ? (gesture.DipS ?? 0, gesture.LiftS ?? 0) : (0, 0);
         var start = fromStart ? 0.0 : 1.0;
         var peak = gesture.Influence;
+        if (gesture.Steady == true)
+        {
+            // A1785: carrying - up once, then held while shown.
+            return new GestureState(peak * Smooth(Math.Max(0, seconds) / Math.Max(gesture.RiseS, 1e-6)), start);
+        }
+
 
         if (t < gesture.RiseS)
         {

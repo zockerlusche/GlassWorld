@@ -464,6 +464,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public Map.IRouteFinder? Routes { get; init; }
 
     /// <summary>
+    /// A1498 (B2828): the nearest dry ground to a position within a distance - the position itself when it is dry, null when
+    /// there is none (or no map); set by the host from the map.
+    /// </summary>
+    public Func<Position, double, Position?>? DryGroundNear { get; set; }
+
+    /// <summary>
     /// How far the inhabitants see right now (B2594: the weather lowers it; B5 adds the light); full sight
     /// when the host sets none. Every system that asks what an inhabitant perceives reads it here.
     /// </summary>
@@ -749,6 +755,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 Separate(inhabitant);
                 probe?.Leave(PartSpacing);
             }
+
+            GiveUpStuckWalk(world, inhabitant, planned, before);
         }
 
         // AK1a, K4: what an inhabitant holds or wears goes where it goes (the hand's height and the body are the look's).
@@ -825,6 +833,86 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         mover.Position = part;
+    }
+
+    /// <summary>Detail of <see cref="ActionCancelled"/>: the walk came no closer for the data's minutes (A1751).</summary>
+    public const string Blocked = "blocked";
+
+    /// <summary>
+    /// A1751 (D1159): a walk that has come no closer to its destination for the data's stall_minutes is given up, so the
+    /// routine or the decider chooses anew. Four walkers jammed on a narrow way waited for each other seven days before:
+    /// keeping apart left none of them a step, and nothing ended a walk that did not get on. Only while stuck is anything
+    /// kept (the tick and the distance it stopped getting on at); getting stall_gain_m closer clears it.
+    /// </summary>
+    private void GiveUpStuckWalk(World world, Inhabitant inhabitant, Activity? planned, Position before)
+    {
+        if (Space is not { StallMinutes: > 0 } space || inhabitant.Activity is not { RemainingTicks: null } walk || planned is null
+            || walk.Action != planned.Action || walk.TargetId != planned.TargetId)
+        {
+            return;
+        }
+
+        // Along the route where there is one (review GW1 #485): a detour round a lake or a cliff gets on although it
+        // leads away from the destination for a while.
+        // A route found or searched anew this tick changes the measure: the count starts afresh (the first ticks of a
+        // walk on a map have no route yet, its route is longer than the straight line).
+        if ((planned.Route is null) != (walk.Route is null) || (walk.Route?.Count ?? 0) > (planned.Route?.Count ?? 0))
+        {
+            if (walk.StallSinceTick is not null)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            }
+
+            return;
+        }
+
+        var now = RemainingM(inhabitant.Position, walk.Route, walk.Destination);
+        var limit = (long)space.StallMinutes.Value * _ticksPerHour / 60;
+        var gain = space.StallGainM ?? 0;
+        if (walk.StallSinceTick is not { } since)
+        {
+            // A tick slower than the pace the data ask for (stall_gain_m over stall_minutes) starts the count; a
+            // walk that gets on as usual keeps nothing.
+            var was = RemainingM(before, planned.Route, walk.Destination);
+            if (was - now < gain / Math.Max(1, limit) && now > 1e-9)
+            {
+                inhabitant.Activity = walk with { StallSinceTick = world.Tick, StallFromM = was };
+            }
+
+            return;
+        }
+
+        if (now < (walk.StallFromM ?? now) - gain)
+        {
+            inhabitant.Activity = walk with { StallSinceTick = null, StallFromM = null };
+            return;
+        }
+
+        if (world.Tick - since >= limit)
+        {
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, walk.Action, walk.TargetId) { Detail = Blocked });
+            inhabitant.Activity = null;
+        }
+    }
+
+    /// <summary>
+    /// A1751: the way still to go from a position - along the route's waypoints to the destination where there is a
+    /// route, else straight.
+    /// </summary>
+    internal static double RemainingM(Position from, IReadOnlyList<Position>? route, Position destination)
+    {
+        if (route is not { Count: > 0 })
+        {
+            return Distance(from, destination);
+        }
+
+        var total = Distance(from, route[0]);
+        for (var i = 1; i < route.Count; i++)
+        {
+            total += Distance(route[i - 1], route[i]);
+        }
+
+        return total + Distance(route[^1], destination);
     }
 
     /// <summary>Whether the inhabitant is on its way somewhere (an action without a running duration and a destination elsewhere).</summary>
@@ -1400,6 +1488,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
+            // A1498 (B2828): nobody lies down in the water - one about to sleep on a wet cell goes to dry ground first.
+            if (target is null && listener is null && string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal)
+                && _model.Togetherness?.DryGroundWithinM is { } within && DryGroundNear?.Invoke(inhabitant.Position, within) is { } dry
+                && dry != inhabitant.Position)
+            {
+                inhabitant.Activity = activity with { Destination = dry, Route = null };
+                return;
+            }
+
             if (listener is not null && !seen)
             {
                 // Arrived where it last saw the other, who is not there any more: nothing to say to nobody.
@@ -1486,10 +1583,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
-            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep.
-            if (IsAsleep(inhabitant) && timingNow.DurationTicks - activity.RemainingTicks.Value >= timingNow.WakeAfterTicks
+            // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep; and after the
+            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %) - only a
+            // sleep that began by day is a nap: the night's sleep is not cut at dawn (A1798's earlier sunrise showed it).
+            var sleptTicks = timingNow.DurationTicks - activity.RemainingTicks.Value;
+            if (IsAsleep(inhabitant) && sleptTicks >= timingNow.WakeAfterTicks
                 && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
-                && inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+                && ((inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
+                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour)
+                    && world.Calendar.MinutesSinceNightfall(Math.Max(0, world.Tick - sleptTicks)) is null)))
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
                 inhabitant.Activity = null;
@@ -1503,6 +1605,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             // B2778 (A1711): the night's sleep lasts until morning - the day wakes it (or a pressing need).
             remaining = 1;
+        }
+
+        if (remaining <= 0 && KeepsSheltering(world, inhabitant, activity, target))
+        {
+            // A1793 (D1192 #7): taking shelter lasts while the rain or the cold lasts - one action, not short pieces.
+            remaining = timingNow.DurationTicks;
         }
 
         if (remaining > 0)
@@ -2000,6 +2108,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     }
 
     /// <summary>
+    /// A1790: how far short of a route's last point the walker may stop - so that it is still within reach of the
+    /// destination. The last point is the destination itself (the full reach), or a point in front of a trunk or a rock
+    /// the walk goes to (less by how far that point lies from it).
+    /// </summary>
+    private static double LastStop(IReadOnlyList<Position> route, Position destination, double reach) =>
+        route.Count > 0 ? Math.Max(0, reach - Distance(route[^1], destination)) : reach;
+
+    /// <summary>
     /// Walks along the route to the destination (B2 R10): the route is searched once when the walk starts
     /// and kept in the activity (saved and hashed, so a loaded game walks on identically); speed follows
     /// the ground (shallow water, slopes). No route: the action is cancelled with the reason.
@@ -2029,7 +2145,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
-        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
         if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
         {
             if (kept)
@@ -2039,7 +2155,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     return false;
                 }
 
-                (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+                (position, ahead, arrived) = Step(inhabitant, from, route, budget, LastStop(route, destination, reach), routes);
             }
 
             if (!routes.Connected(from, position))

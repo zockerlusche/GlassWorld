@@ -15,7 +15,9 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// Null for everything the routine or another system chose. It stays with the activity while it waits, walks and runs.
 /// </param>
 /// <param name="Partners">The things used together with the target (combine, B2687), in the order of the option; null for all other actions.</param>
-public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null, long? DecidedTick = null, IReadOnlyList<string>? Partners = null);
+/// <param name="StallSinceTick">A1751: the tick since which the walk has come no closer to its destination; null while it gets on.</param>
+/// <param name="StallFromM">A1751: the distance to the destination when it stopped getting on; null while it gets on.</param>
+public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null, long? DecidedTick = null, IReadOnlyList<string>? Partners = null, long? StallSinceTick = null, double? StallFromM = null);
 
 /// <summary>
 /// The same action done again and again at one spot without any effect (W1696): which action on which
@@ -426,6 +428,12 @@ public sealed class Inhabitant
             if (a.DecidedTick is { } decided)
             {
                 hasher.Write("decided").Write(decided);
+            }
+
+            // A walk that got stuck (A1751) only while it is: walks that get on keep their hashes.
+            if (a.StallSinceTick is { } stalled)
+            {
+                hasher.Write("stalled").Write(stalled).Write(a.StallFromM ?? 0);
             }
 
             // The things used together with the target (combine, B2687) only where there are any.

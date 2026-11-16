@@ -81,6 +81,13 @@ public sealed record InhabitantSnapshot(
 
     /// <summary>How high it is up in what it climbed (D1105 H3b, centimetres; 0 = on the ground), or null without a body system - for the look (A1385).</summary>
     public int? ClimbedCm { get; init; }
+
+    /// <summary>
+    /// How long a need of it has been below its neglect line, in game hours (Inhabitant.NeglectTicks; A1752, GW1 #27065):
+    /// the portrait's worry mark reads it against its own threshold. A read-only copy for the presentation, not part of
+    /// the state hash.
+    /// </summary>
+    public double NeglectHours { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -164,6 +171,7 @@ public static class WorldView
                 // A1385 (GW3): wet look and the height when up in a tree, from the body (islands only).
                 WetPermille = body?.WetPermille(i.Id),
                 ClimbedCm = body?.ClimbedCm(i.Id),
+                NeglectHours = (double)i.NeglectTicks / world.Calendar.Settings.TicksPerHour,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

@@ -52,6 +52,9 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The answer came after the data's hours.</summary>
     public const string TooLate = "dialogue_too_late";
 
+    /// <summary>The kind a talk has for the ranking of day requests (A1587 S3).</summary>
+    public const string DialogueKind = "dialogue";
+
     /// <summary>The kind of the events the turns become.</summary>
     public const string SaidKind = "said";
 
@@ -112,6 +115,9 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>Whether jobs are validated against the contract before they go out (tests may turn it off).</summary>
     public bool ValidateRequests { get; init; } = true;
+
+    /// <summary>The day requests per game hour the data allow, shared with the decider (A1587); null = no limit.</summary>
+    public AiBudget? Budget { get; init; }
 
     /// <summary>Language the next talk is written in (de/en).</summary>
     public string DisplayLocale { get; set; }
@@ -218,6 +224,18 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
+        // A1587 (B7 R24): over the game hour's budget for day requests the two talk without words this time.
+        if (Budget is { } budget)
+        {
+            // S3 (R23, B2804): a talk ranks like its better speaker - the followed one or one near it (2), else the rest (4).
+            Objects.Position? Where(string id) => _inhabitants.TryGet(id, out var who) ? who.Position : null;
+            var rank = Math.Min(budget.RankOf(speaker.Id, DialogueKind, Where), budget.RankOf(listener.Id, DialogueKind, Where));
+            if (!budget.Allows(rank) || !budget.HasRoom(worldEvent.Tick))
+            {
+                return;
+            }
+        }
+
         _lastTalk[pair] = worldEvent.Tick;
         _counter++;
         var requestId = DecisionIds.RequestId(_seed, worldEvent.Tick, "dialogue/" + speaker.Id, _counter);
@@ -245,6 +263,7 @@ public sealed class DialogueSystem : IWorldSystem, IOptionalWorldState
         var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, worldEvent.Tick, json, null));
         _port!.Submit(requestId, json);
+        Budget?.Note(worldEvent.Tick);
         _jobs[requestId] = new DialogueJob(requestId, speaker.Id, listener.Id, action, worldEvent.Tick, _settings.MaxWords, DisplayLocale.ToLowerInvariant());
     }
 

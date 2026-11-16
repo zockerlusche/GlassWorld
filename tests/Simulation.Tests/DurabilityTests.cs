@@ -81,4 +81,151 @@ public sealed class DurabilityTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void UseWearsAThingOutAndItsEndIsToldOnlyForMadeOrCarriedThings()
+    {
+        // A1576 (plan D1008 H2): each end of a use action wears its target by use_permille; at 1000 it breaks.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var who = host.Inhabitants.All.First();
+        var at = new Position(who.Position.X + 30, who.Position.Z);
+        var carried = host.Objects.Spawn("dry_grass", at);
+        var lying = host.Objects.Spawn("dry_grass", new Position(at.X + 1, at.Z));
+        host.Objects.SetHeld(carried.Id, who.Id);
+        var material = Content.Value.Durability!.Classes.First(c => c.Id == "fibre");
+        var uses = (int)Math.Ceiling(1000.0 / material.UsePermille!.Value);
+        var events = new List<Inhabitants.WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+
+        var before = host.Durability!.WearPermille(carried, host.World.Tick)!.Value;
+        Use(host, carried.Id, 1);
+        Assert.Equal(material.UsePermille.Value, host.Durability.ExtraWearOf(carried.Id));
+        Assert.InRange(host.Durability.WearPermille(carried, host.World.Tick)!.Value, before + material.UsePermille.Value, before + material.UsePermille.Value + 1);
+        Assert.Equal(0, host.Durability.ExtraWearOf(lying.Id)); // a thing nobody used stays as it was
+
+        Use(host, carried.Id, uses);
+        Use(host, lying.Id, uses);
+        Assert.False(host.Objects.TryGet(carried.Id, out _));
+        Assert.False(host.Objects.TryGet(lying.Id, out _));
+        var told = Assert.Single(events, e => e.Kind == material.EndEvent);
+        Assert.Equal((who.Id, carried.Id, "dry_grass"), (told.InhabitantId, told.TargetId, told.TargetType)); // the lying one ends in silence
+    }
+
+    [Fact]
+    public void QualityStretchesTheLifeAndUsesSurviveSavingAndLoading()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var thing = host.Objects.Spawn("dry_grass", new Position(host.Inhabitants.All.First().Position.X + 30, host.Inhabitants.All.First().Position.Z));
+        Use(host, thing.Id, 10);
+        var plain = host.Durability!.WearPermille(thing, host.World.Tick)!.Value;
+        var best = Content.Value.Durability!.Quality!.OrderByDescending(q => q.LifePermille).First();
+        host.Durability.QualityOf = _ => best.Tier;
+        Assert.InRange(host.Durability.WearPermille(thing, host.World.Tick)!.Value, (plain * 1000 / best.LifePermille) - 1, (plain * 1000 / best.LifePermille) + 1);
+        host.Durability.QualityOf = null;
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-durability-uses-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+            Assert.Equal(host.Durability.ExtraWearOf(thing.Id), loaded.Durability!.ExtraWearOf(thing.Id));
+            Assert.True(loaded.Durability.ExtraWearOf(thing.Id) > 0);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DamageWearsEvenAThingThatTimeDoesNotWear()
+    {
+        // A1576 (review GW1 #26993 d): AddWear for damage (a storm on a building, A1382 S2) - a stone breaks only that way.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var stone = host.Objects.Spawn("fieldstone", new Position(host.Inhabitants.All.First().Position.X + 30, host.Inhabitants.All.First().Position.Z));
+        Assert.Null(host.Durability!.WearPermille(stone, host.World.Tick));
+        host.Durability.AddWear(stone.Id, 400);
+        host.World.Run(1);
+        Assert.Equal(400, host.Durability.WearPermille(stone, host.World.Tick));
+        host.Durability.AddWear(stone.Id, 600);
+        host.World.Run(1);
+        Assert.False(host.Objects.TryGet(stone.Id, out _));
+    }
+
+    /// <summary>Ends a use action on the thing <paramref name="times"/> times, then one step (the use counts in it).</summary>
+    private static void Use(SimulationHost host, string id, int times)
+    {
+        for (var i = 0; i < times; i++)
+        {
+            host.Durability!.Observe(new Inhabitants.WorldEvent(Inhabitants.InhabitantsSystem.ActionFinished, host.World.Tick, "inh-test", "use", id));
+        }
+
+        host.World.Run(1);
+    }
+
+    [Fact]
+    public void AProcessedThingKeepsItsAgeAndHolderAndEndsAtTheSameTickAfterSavingAndLoading()
+    {
+        // GW2 #492: a processed thing (WorldObjects.ChangeType) left the world and came back - the running world forgot its
+        // age, a loaded one started it anew, and they ended it at different ticks; the holder lost it from the hand too.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var who = host.Inhabitants.All.First();
+        var apple = host.Objects.Spawn("apple", new Position(who.Position.X + 30, who.Position.Z));
+        host.World.Run(30);
+        host.Objects.ChangeType(apple.Id, "egg"); // firm fruit -> fresh food: another material class
+        Assert.True(host.Objects.TryGet(apple.Id, out var changed));
+        Assert.Equal("egg", changed.TypeId);
+        host.World.Run(5);
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-durability-change-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            Assert.Equal(host.Durability!.WearPermille(changed, host.World.Tick), loaded.Durability!.WearPermille(changed, loaded.World.Tick));
+            long? Gone(SimulationHost world)
+            {
+                for (var i = 0; i < 20_000; i++)
+                {
+                    if (!world.Objects.TryGet(apple.Id, out _))
+                    {
+                        return world.World.Tick;
+                    }
+
+                    world.World.Step();
+                }
+
+                return null;
+            }
+
+            var running = Gone(host);
+            Assert.NotNull(running);
+            Assert.Equal(running, Gone(loaded));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AProcessedThingStaysInTheHandOfWhoHoldsIt()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var who = host.Inhabitants.All.First();
+        var apple = host.Objects.Spawn("apple", who.Position);
+        host.Objects.SetHeld(apple.Id, who.Id);
+        who.Held = apple.Id;
+        host.Objects.ChangeType(apple.Id, "egg");
+        Assert.Equal(apple.Id, who.Held);
+        Assert.Equal(who.Id, host.Objects.HeldBy(apple.Id));
+    }
 }

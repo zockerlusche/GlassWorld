@@ -47,6 +47,9 @@ public static class UiTheme
     /// </summary>
     public const string WorldPanel = "GwWorldPanel";
 
+    /// <summary>The dark, nearly opaque ground of a window (B2791): settings, pause, forms, messages.</summary>
+    public const string WindowGround = "GwWindowGround";
+
     /// <summary>A button without a frame in a window on the world (A1736): light text with the dark outline.</summary>
     public const string WorldFlatButton = "GwWorldFlatButton";
 
@@ -129,6 +132,14 @@ public static class UiTheme
         world.SetContentMarginAll(0);
         theme.SetTypeVariation(WorldPanel, "PanelContainer");
         theme.SetStylebox("panel", WorldPanel, world);
+
+        // B2791: a window gets the same dark ground, nearly opaque, with the room of a window around its content:
+        // what lies behind it (the world, the menu under a form) never shows through its text.
+        var windowGround = (StyleBoxFlat)world.Duplicate();
+        windowGround.BgColor = scrim with { A = (float)style.Tokens.Window.WindowGroundAlpha };
+        windowGround.SetContentMarginAll(style.Tokens.Window.Padding);
+        theme.SetTypeVariation(WindowGround, "PanelContainer");
+        theme.SetStylebox("panel", WindowGround, windowGround);
         theme.SetTypeVariation(BubblePanel, "PanelContainer");
         theme.SetStylebox("panel", BubblePanel, Frame(style, UiFrameId.Bubble, UiColorId.Bubble_inhabitant));
 

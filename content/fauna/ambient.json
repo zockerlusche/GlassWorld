@@ -1,0 +1,167 @@
+{
+  "contract_version": "0.2",
+  "cell_m": 24,
+  "radius_m": 40,
+  "animals": [
+    {
+      "animal": "gull",
+      "shape": "wings",
+      "color": "#e8e8e2",
+      "size_m": 0.9,
+      "per_cell": 1,
+      "stay_s": 40,
+      "motion": {
+        "kind": "glide",
+        "height_m": 9,
+        "wander_m": 12,
+        "speed": 0.08,
+        "flap_hz": 1.2
+      }
+    },
+    {
+      "animal": "crab",
+      "shape": "body",
+      "color": "#c0543a",
+      "size_m": 0.18,
+      "per_cell": 2,
+      "stay_s": 30,
+      "motion": {
+        "kind": "hop",
+        "height_m": 0.0,
+        "wander_m": 1.5,
+        "speed": 0.3
+      }
+    },
+    {
+      "animal": "butterfly",
+      "shape": "wings",
+      "color": "#f2c14e",
+      "size_m": 0.12,
+      "per_cell": 3,
+      "stay_s": 25,
+      "motion": {
+        "kind": "flutter",
+        "height_m": 0.9,
+        "wander_m": 2.5,
+        "speed": 0.35,
+        "flap_hz": 7
+      }
+    },
+    {
+      "animal": "bee",
+      "shape": "body",
+      "color": "#e0b020",
+      "size_m": 0.05,
+      "per_cell": 3,
+      "stay_s": 20,
+      "motion": {
+        "kind": "hover",
+        "height_m": 0.6,
+        "wander_m": 0.8,
+        "speed": 0.9,
+        "flap_hz": 30
+      }
+    },
+    {
+      "animal": "songbird",
+      "shape": "wings",
+      "color": "#8a6a4a",
+      "size_m": 0.25,
+      "per_cell": 2,
+      "stay_s": 30,
+      "motion": {
+        "kind": "glide",
+        "height_m": 4,
+        "wander_m": 5,
+        "speed": 0.2,
+        "flap_hz": 6
+      }
+    },
+    {
+      "animal": "squirrel",
+      "shape": "body",
+      "color": "#a0522d",
+      "size_m": 0.3,
+      "per_cell": 1,
+      "stay_s": 30,
+      "motion": {
+        "kind": "hop",
+        "height_m": 0.25,
+        "wander_m": 3,
+        "speed": 1.2
+      }
+    },
+    {
+      "animal": "dragonfly",
+      "shape": "wings",
+      "color": "#3fa7c9",
+      "size_m": 0.12,
+      "per_cell": 2,
+      "stay_s": 20,
+      "motion": {
+        "kind": "hover",
+        "height_m": 0.8,
+        "wander_m": 2,
+        "speed": 0.6,
+        "flap_hz": 25
+      }
+    },
+    {
+      "animal": "frog",
+      "shape": "body",
+      "color": "#5f8f3a",
+      "size_m": 0.12,
+      "per_cell": 2,
+      "stay_s": 40,
+      "motion": {
+        "kind": "hop",
+        "height_m": 0.3,
+        "wander_m": 1,
+        "speed": 0.15
+      }
+    },
+    {
+      "animal": "firefly",
+      "shape": "glow",
+      "color": "#fff3a0",
+      "size_m": 0.06,
+      "per_cell": 5,
+      "stay_s": 30,
+      "motion": {
+        "kind": "blink",
+        "height_m": 1.2,
+        "wander_m": 2,
+        "speed": 0.25
+      }
+    },
+    {
+      "animal": "owl",
+      "shape": "wings",
+      "color": "#7a6a58",
+      "size_m": 0.8,
+      "per_cell": 1,
+      "stay_s": 60,
+      "motion": {
+        "kind": "glide",
+        "height_m": 6,
+        "wander_m": 10,
+        "speed": 0.06,
+        "flap_hz": 1.5
+      }
+    },
+    {
+      "animal": "fish",
+      "shape": "body",
+      "color": "#9fb6c4",
+      "size_m": 0.3,
+      "per_cell": 1,
+      "stay_s": 40,
+      "motion": {
+        "kind": "jump",
+        "height_m": 0.6,
+        "wander_m": 2,
+        "speed": 0.1
+      }
+    }
+  ]
+}

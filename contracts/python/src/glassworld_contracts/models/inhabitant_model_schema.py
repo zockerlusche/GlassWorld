@@ -204,6 +204,12 @@ class WakeRested(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     at: float = Field(..., gt=0.0, le=1.0)
+    max_nap_hours: float | None = Field(
+        None,
+        description='A1498 (B2828): by day a sleep ends after this many game hours at most, rested or not - a nap is not the afternoon. Omitted = only the need ends it.',
+        gt=0.0,
+        le=12.0,
+    )
 
 
 class Togetherness(BaseModel):
@@ -263,6 +269,12 @@ class Togetherness(BaseModel):
     wake_rested: WakeRested | None = Field(
         None,
         description="B2778 (A1711, D1112 #4): outside the night (between sunrise and nightfall) a sleeper wakes as soon as the need reaches the value, after the sleep action's wake_after_minutes - a nap ends when it is rested instead of lasting the action's whole duration. At night the sleep lasts as before (the compute night). Omitted = always the whole duration.",
+    )
+    dry_ground_within_m: float | None = Field(
+        None,
+        description='A1498 (B2828, Marcel 15a: one lay in the stream): nobody lies down in the water - one who would sleep on a wet cell (sea, stream, pond, swamp) walks to the nearest dry ground within this distance first. Omitted = it sleeps where it stands, as before.',
+        gt=0.0,
+        le=64.0,
     )
     sleep_through_night: bool | None = Field(
         None,
