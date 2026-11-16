@@ -789,3 +789,9 @@ class LookFigures(BaseModel):
         description="A1802 (Marcel W2245): the resting face by mood - the mood furthest above its 'shows_from' shows its mouth shape ('smile', 'sad', 'surprised') at 'weight' (0..1) while no expression or talking shows and the figure is awake. Omitted = a neutral face. Placeholder values (TL).",
         max_length=10,
     )
+    mood_face_hold: float | None = Field(
+        None,
+        description='A1802 (review GW5 #547): a resting face once shown holds until its mood falls this far below its shows_from, so a mood hovering at the threshold does not switch it on and off. Omitted = 0. Placeholder value (TL).',
+        ge=0.0,
+        le=0.5,
+    )

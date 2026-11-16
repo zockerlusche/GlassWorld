@@ -284,7 +284,7 @@ public partial class FigureView : Node3D
 
         // A1577 (K4): what it wears shows in the colour of its top; taken off, the outfit's own colour is back.
         var worn = inhabitant.Worn is { } wornId ? _shared.WornColor?.Invoke(wornId) : null;
-        _moodFace = GlassWorld.Presentation.World.MoodFace.For(figures.MoodFaces, inhabitant.Moods);
+        _moodFace = GlassWorld.Presentation.World.MoodFace.For(figures.MoodFaces, inhabitant.Moods, _moodFace, figures.MoodFaceHold ?? 0);
 
         // A1385 (B5-8): wet clothes and hair look darker, in steps of the wetness (BodySystem).
         var wetShade = GlassWorld.Presentation.World.BareGround.WetShade(figures.WetShade, inhabitant.WetPermille);

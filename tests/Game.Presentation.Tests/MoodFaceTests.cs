@@ -22,6 +22,20 @@ public sealed class MoodFaceTests
     }
 
     [Fact]
+    public void AShownFaceHoldsAMarginBelowItsThreshold()
+    {
+        // Review GW5 #547: a mood hovering at the threshold does not switch the face on and off.
+        var faces = Figures.MoodFaces;
+        var joy = faces!.First(f => f.Mood == "joy");
+        var hold = Figures.MoodFaceHold!.Value;
+        var justBelow = new Dictionary<string, double> { ["joy"] = joy.ShowsFrom - (hold / 2) };
+        Assert.Null(MoodFace.For(faces, justBelow));
+        var shown = MoodFace.For(faces, new Dictionary<string, double> { ["joy"] = joy.ShowsFrom + 0.01 });
+        Assert.Equal(shown, MoodFace.For(faces, justBelow, shown, hold));
+        Assert.Null(MoodFace.For(faces, new Dictionary<string, double> { ["joy"] = joy.ShowsFrom - hold - 0.01 }, shown, hold));
+    }
+
+    [Fact]
     public void TheStrongestMoodAboveItsThresholdShowsItsMouth()
     {
         var faces = Figures.MoodFaces;

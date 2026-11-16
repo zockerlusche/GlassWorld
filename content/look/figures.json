@@ -163,6 +163,7 @@
   },
   "walk_min_step_m": 0.05,
   "wet_shade": 0.72,
+  "mood_face_hold": 0.05,
   "mood_faces": [
     { "mood": "joy", "face": "smile", "shows_from": 0.55, "weight": 0.45 },
     { "mood": "sadness", "face": "sad", "shows_from": 0.5, "weight": 0.5 },

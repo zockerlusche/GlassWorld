@@ -892,6 +892,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("mood_faces")]
         public System.Collections.Generic.ICollection<FigureMoodFace>? MoodFaces { get; set; } = default!;
 
+        /// <summary>
+        /// A1802 (review GW5 #547): a resting face once shown holds until its mood falls this far below its shows_from, so a mood hovering at the threshold does not switch it on and off. Omitted = 0. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mood_face_hold")]
+        public double? MoodFaceHold { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
