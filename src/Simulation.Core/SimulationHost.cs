@@ -641,6 +641,9 @@ public sealed class SimulationHost
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
         // become said events; no effect on the world. Dormant without a job port or without the data's block.
+        // A1568 (B2757): by day in night_only the decider is asked nothing either - the day runs on the core alone.
+        decisions.Quiet = () => nightQueue.HoldsNow;
+
         var dialogue = new DialogueSystem(content.Conversation.Dialogue, content.Knowledge, inhabitants, content.Inventions.Guard, expressions, jobs, inventions.Log, world.Seed, world.Calendar.Settings.TicksPerHour, displayLocale)
         {
             ValidateRequests = options.ValidateRequests,
