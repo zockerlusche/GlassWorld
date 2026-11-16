@@ -53,6 +53,25 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("drought_permille")]
         public int? DroughtPermille { get; set; } = default!;
 
+        /// <summary>
+        /// A1380 N2b (R15): every grown place of a type of this group sows with this chance per day into a neighbouring field cell (overuse cell_m) - a cell whose biome the spawn table lists the type in, not bare, without a place there yet and with fewer than max_per_cell places of the type. The new place grows like any other. Fruits on a plant (grows_on) never spread. Omitted = the group does not spread. Placeholder values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("spread")]
+        public NatureSpread? Spread { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NatureSpread
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_per_day_permille")]
+        public int ChancePerDayPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_per_cell")]
+        public int MaxPerCell { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
