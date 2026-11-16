@@ -252,7 +252,7 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season} {day}/{days}"
+      "text": "{season}"
     },
     {
       "key": "ui.clock.date_tooltip",

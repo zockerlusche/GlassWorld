@@ -1023,6 +1023,12 @@ namespace GlassWorld.Contracts
         public int FavorBarWidth { get; set; } = default!;
 
         /// <summary>
+        /// A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("season_bar_width")]
+        public int SeasonBarWidth { get; set; } = default!;
+
+        /// <summary>
         /// Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("middle_share")]
