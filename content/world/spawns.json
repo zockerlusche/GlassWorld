@@ -380,6 +380,17 @@
     },
     {
       "biome": "rocks_hills",
+      "object_type": "ore_chunk",
+      "per_1000_cells": 120,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 14,
+      "min_ore_permille": 150
+    },
+    {
+      "biome": "rocks_hills",
       "object_type": "fieldstone",
       "per_1000_cells": 7,
       "cluster": {

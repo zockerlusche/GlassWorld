@@ -133,6 +133,12 @@ class SpawnRule(BaseModel):
         le=100000,
     )
     grows_on: SpawnGrowsOn | None = None
+    min_ore_permille: int | None = Field(
+        None,
+        description='A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.',
+        ge=1,
+        le=1000,
+    )
 
 
 class SpawnTable(BaseModel):

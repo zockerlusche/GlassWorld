@@ -48,6 +48,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("grows_on")]
         public SpawnGrowsOn? GrowsOn { get; set; } = default!;
 
+        /// <summary>
+        /// A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_ore_permille")]
+        public int? MinOrePermille { get; set; } = default!;
+
     }
 
     /// <summary>

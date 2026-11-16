@@ -3259,6 +3259,18 @@
       "text": "Eingeschaltet besprechen die Bewohner Neues schon tagsüber mit der KI – sie nutzt dann während des Spiels Rechenleistung. Ausgeschaltet geschieht alles in der Rechennacht; die Bewohner lernen dann langsamer."
     },
     {
+      "key": "ui.settings.ai_by_day",
+      "text": "KI am Tag"
+    },
+    {
+      "key": "ui.settings.ai_by_day_switch",
+      "text": "KI denkt auch tagsüber mit"
+    },
+    {
+      "key": "ui.settings.ai_by_day_hint",
+      "text": "Aus: Tagsüber rechnet keine KI, die Bewohner leben nach ihren Gewohnheiten. Alles Nachdenken, Erfinden und Träumen passiert nachts in der Rechennacht. Gut für schwächere Rechner. Gilt für diese Welt."
+    },
+    {
       "key": "ui.settings.learn_by_day",
       "text": "Lernen am Tag"
     },
