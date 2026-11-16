@@ -1607,6 +1607,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             remaining = 1;
         }
 
+        if (remaining <= 0 && KeepsSheltering(world, inhabitant, activity, target))
+        {
+            // A1793 (D1192 #7): taking shelter lasts while the rain or the cold lasts - one action, not short pieces.
+            remaining = timingNow.DurationTicks;
+        }
+
         if (remaining > 0)
         {
             inhabitant.Activity = activity with { RemainingTicks = remaining };

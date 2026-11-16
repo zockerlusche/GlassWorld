@@ -685,6 +685,7 @@ public sealed class SimulationHost
 
             inhabitants.ShelteredAt = body.Sheltered;
             inhabitants.StaySheltered = bodyData.StaySheltered;
+            inhabitants.ShelterProperty = bodyData.Wetness.ShelterProperty;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;

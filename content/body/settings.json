@@ -583,7 +583,7 @@
     "fright_mood": "fear",
     "fright_delta": 0.1
   },
-  "stay_sheltered": { "leaving_factor_permille": 300, "in_precipitation": true, "at_levels": ["cold"] },
+  "stay_sheltered": { "leaving_factor_permille": 300, "in_precipitation": true, "at_levels": ["cold"], "holds_action": "use", "hold_while": { "need": "warmth", "below": 0.8 }, "hold_while_needs_above": 0.15 },
   "others_warmth": {
     "tenth_c": 15,
     "radius_cm": 250
