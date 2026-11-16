@@ -615,6 +615,10 @@ public sealed class SimulationHost
         {
             Inhabitants = inhabitants,
             PerceptionRadiusM = content.Brain.Weights.PerceptionRadiusM,
+
+            // A1357: who can read learns in passing; an author it keeps no relationship with counts as the knowledge start.
+            Skills = skillLevels,
+            AuthorStart = new Relation(content.Knowledge.RelationshipStart.Affection, content.Knowledge.RelationshipStart.Trust, content.Knowledge.RelationshipStart.Respect),
         };
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour)
         {

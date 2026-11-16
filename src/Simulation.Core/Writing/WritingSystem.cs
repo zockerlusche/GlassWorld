@@ -41,11 +41,23 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Event: an inhabitant saw an old text of another author for the first time (R15, found again).</summary>
     public const string WritingFound = "writing_found";
 
+    /// <summary>Event: an inhabitant read a text in passing and learned it (A1357; target = carrier, detail = knowledge ref).</summary>
+    public const string TextRead = "text_read";
+
+    /// <summary>Prefix of the marks in <see cref="Seen"/> that say a reader has read a text (not only seen it).</summary>
+    private const string ReadMark = "read:";
+
     /// <summary>The inhabitants who notice writing; null = nobody notices (unit tests of wear alone).</summary>
     public InhabitantsSystem? Inhabitants { get; init; }
 
     /// <summary>How far an inhabitant notices writing in full sight (the perception radius of the behaviour data; the inhabitants' sight shortens it, B2594).</summary>
     public double PerceptionRadiusM { get; init; }
+
+    /// <summary>A1357: the inhabitants' skill levels - who can read (none = nobody reads, as before).</summary>
+    public ISkillLevels? Skills { get; init; }
+
+    /// <summary>A1357: the relationship that counts for an author the reader keeps none with (knowledge data).</summary>
+    public Relation AuthorStart { get; init; }
 
     /// <summary>Creates the system; <paramref name="weather"/> is null while the world has no weather.</summary>
     public WritingSystem(WritingMedia rules, WorldObjects objects, IWeather? weather, int ticksPerHour, long ticksPerDay)
@@ -172,17 +184,66 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
             {
                 var dx = inhabitant.Position.X - obj.Position.X;
                 var dz = inhabitant.Position.Z - obj.Position.Z;
-                if ((dx * dx) + (dz * dz) > radius2 || !_seen.Add(inhabitant.Id + "|" + text.ObjectId))
+                if ((dx * dx) + (dz * dz) > radius2)
                 {
                     continue;
                 }
 
-                if (tick - text.WrittenTick >= oldTicks)
+                if (_seen.Add(inhabitant.Id + "|" + text.ObjectId) && tick - text.WrittenTick >= oldTicks)
                 {
                     Inhabitants.Report(new WorldEvent(WritingFound, tick, inhabitant.Id, null, text.ObjectId) { Detail = text.AuthorId });
                 }
+
+                // A1357 (spec 33 section 9a): one who can read and is curious reads it in passing - once, also a text
+                // it saw before it could read.
+                if (Skills is not null && !_seen.Contains(ReadMark + inhabitant.Id + "|" + text.ObjectId)
+                    && WouldReadInPassing(inhabitant, text, Skills) is null)
+                {
+                    _seen.Add(ReadMark + inhabitant.Id + "|" + text.ObjectId);
+                    Learn(inhabitant, text, tick);
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// A1357 (spec 33 section 9a): the reader takes what the text says as a belief with source 'read' - as sure as the
+    /// text is legible, weighed by its respect for the author (at least the data's floor). What it already believes more
+    /// surely stays; what is wrong stays wrong (the text holds the author's belief, not the truth). A knowledge ref
+    /// that is no belief (another kind of knowledge, a later format) teaches nothing yet.
+    /// </summary>
+    private void Learn(Inhabitant reader, WrittenText text, long tick)
+    {
+        if (ParseBelief(text.KnowledgeRef) is not { } belief)
+        {
+            return;
+        }
+
+        var respect = reader.Relationships.Get(text.AuthorId, AuthorStart).Respect;
+        var weight = Math.Max(_rules.Read.AuthorWeightFloor ?? 0, Math.Clamp(respect, 0, 1));
+        var confidence = Math.Clamp(text.Legibility * weight, 0, 1);
+        if (reader.Beliefs.TryGet(belief.TypeId, belief.PropertyId, out var held) && held.Confidence >= confidence)
+        {
+            return;
+        }
+
+        reader.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, confidence, KnowledgeSources.Read, text.AuthorId, tick);
+        Inhabitants!.Report(new WorldEvent(TextRead, tick, reader.Id, null, text.ObjectId) { Detail = text.KnowledgeRef });
+    }
+
+    /// <summary>A knowledge ref of the form <c>belief:type|property|true|false</c>, or null.</summary>
+    internal static (string TypeId, string PropertyId, bool Value)? ParseBelief(string knowledgeRef)
+    {
+        const string Prefix = "belief:";
+        if (!knowledgeRef.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var parts = knowledgeRef[Prefix.Length..].Split('|');
+        return parts.Length == 3 && parts[0].Length > 0 && parts[1].Length > 0 && bool.TryParse(parts[2], out var value)
+            ? (parts[0], parts[1], value)
+            : null;
     }
 
     private void Forget(string objectId)

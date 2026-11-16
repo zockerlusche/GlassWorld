@@ -165,6 +165,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "author_weight_floor": {
+          "description": "A1357 (spec 33 section 9a): what is read is believed with the text's legibility times the reader's respect for the author, but at least this share of the legibility (an author it hardly knows). Placeholder value (TL). Omitted = respect alone.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

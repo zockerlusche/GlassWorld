@@ -2247,6 +2247,10 @@
       "text": "Message knocks again"
     },
     {
+      "key": "vocab.event.text_read",
+      "text": "Read some writing"
+    },
+    {
       "key": "vocab.event.writing_found",
       "text": "Writing found again"
     },
