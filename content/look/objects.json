@@ -56,6 +56,41 @@
       "sway_m": 0.26
     },
     {
+      "id": "felled_trunk", "reach": "low",
+      "types": [
+        "felled_trunk"
+      ],
+      "shape": "log",
+      "colors": [
+        "bark",
+        "ground"
+      ],
+      "size_m": 4.0,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 2.0,
+      "footprint_width_m": 0.35
+    },
+    {
+      "id": "tree_stump", "reach": "low",
+      "types": [
+        "tree_stump"
+      ],
+      "shape": "log",
+      "colors": [
+        "bark",
+        "ground"
+      ],
+      "size_m": 0.4,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
       "id": "young_tree", "reach": "mid",
       "types": [
         "young_tree"

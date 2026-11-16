@@ -9,7 +9,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -459,9 +459,31 @@ CTX3 = JudgeContext(
 )
 
 
+def _without_felling(guard: dict[str, Any]) -> dict[str, Any]:
+    """The physics without A1830's additions: the process fell and rooted under never_if."""
+    out: dict[str, Any] = {}
+    for key, value in guard.items():
+        if not isinstance(value, dict):
+            out[key] = value
+            continue
+        per_process = cast(dict[str, Any], value)
+        kept: dict[str, Any] = {}
+        for process, entry in per_process.items():
+            if process == "fell":
+                continue
+            if isinstance(entry, list):
+                entry = [x for x in cast(list[str], entry) if x != "rooted"]
+                if not entry and key == "never_if":
+                    continue
+            kept[process] = entry
+        out[key] = kept
+    return out
+
+
 def test_v3_reads_the_physics_from_the_data_unchanged_from_v2() -> None:
-    """A1554 (F5297 = A): one place for all physics - the data hold v2's table as it was."""
-    assert CTX3.guard == CTX2.guard
+    """A1554 (F5297 = A): one place for all physics - the data hold v2's table as it was, plus only
+    A1830 (felling: process fell, and no other process may take a rooted, standing thing)."""
+    assert _without_felling(CTX3.guard) == CTX2.guard
     assert CTX3.examples["works"] and CTX3.examples["does_not"]
 
 

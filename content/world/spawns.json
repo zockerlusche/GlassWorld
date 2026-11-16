@@ -172,7 +172,8 @@
         "min": 2,
         "max": 7
       },
-      "max_total": 140
+      "max_total": 140,
+      "regrow_hours": 1344
     },
     {
       "biome": "forest",
@@ -182,7 +183,8 @@
         "min": 2,
         "max": 7
       },
-      "max_total": 120
+      "max_total": 120,
+      "regrow_hours": 1344
     },
     {
       "biome": "forest",
@@ -557,7 +559,8 @@
         "min": 2,
         "max": 5
       },
-      "max_total": 60
+      "max_total": 60,
+      "regrow_hours": 1344
     },
     {
       "biome": "forest",
@@ -567,7 +570,8 @@
         "min": 1,
         "max": 3
       },
-      "max_total": 30
+      "max_total": 30,
+      "regrow_hours": 336
     },
     {
       "biome": "meadow",
@@ -577,7 +581,8 @@
         "min": 1,
         "max": 2
       },
-      "max_total": 20
+      "max_total": 20,
+      "regrow_hours": 336
     }
   ],
   "mandatory": [
