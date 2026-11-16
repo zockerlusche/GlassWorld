@@ -723,18 +723,6 @@
       "text": "Every compute night"
     },
     {
-      "key": "ui.settings.start_speed",
-      "text": "Speed at start"
-    },
-    {
-      "key": "ui.settings.start_speed.desc",
-      "text": "The speed a world begins with when you start or load it."
-    },
-    {
-      "key": "ui.settings.start_speed.saved",
-      "text": "As last time"
-    },
-    {
       "key": "ui.settings.pause_on_knock",
       "text": "Pause when someone knocks"
     },

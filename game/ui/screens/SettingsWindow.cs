@@ -252,19 +252,6 @@ public partial class SettingsWindow : GwWindow
                     s => s.AutoSave, v => _settings with { AutoSave = v ?? GameOptions.AutoSaveDay }), "ui.settings.autosave.desc");
                 break;
 
-            case "start_speed":
-                string SpeedText(int speed) => speed switch
-                {
-                    0 => Tr("ui.time.pause"),
-                    1 => Tr("ui.time.normal"),
-                    _ => TextFill.Fill(Tr("ui.time.fast"), new Dictionary<string, string> { ["factor"] = speed.ToString(System.Globalization.CultureInfo.InvariantCulture) }),
-                };
-                Row("ui.settings.start_speed", Choice(
-                    [(null, "ui.settings.start_speed.saved"), .. limits.SpeedChoices.Select(c => ((string?)c.ToString(System.Globalization.CultureInfo.InvariantCulture), SpeedText(c)))],
-                    s => s.StartSpeed?.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    v => _settings with { StartSpeed = v is null ? null : int.Parse(v, System.Globalization.CultureInfo.InvariantCulture) }), "ui.settings.start_speed.desc");
-                break;
-
             case "pause_on_knock":
                 Row("ui.settings.pause_on_knock", Toggle(settings.PauseOnKnock, v => _settings with { PauseOnKnock = v }, s => s.PauseOnKnock), "ui.settings.pause_on_knock.desc");
                 break;
@@ -362,7 +349,6 @@ public partial class SettingsWindow : GwWindow
                 "resolution" => s with { Resolution = d.Resolution },
                 "vsync" => s with { Vsync = d.Vsync },
                 "autosave" => s with { AutoSave = d.AutoSave },
-                "start_speed" => s with { StartSpeed = d.StartSpeed },
                 "pause_on_knock" => s with { PauseOnKnock = d.PauseOnKnock },
                 "invert_turn_x" => s with { InvertTurnX = d.InvertTurnX },
                 "invert_turn_y" => s with { InvertTurnY = d.InvertTurnY },

@@ -40,6 +40,10 @@ public partial class Main : Node3D
     private const string LookAtArgument = "--look-at=";
     private const string NewWorldArgument = "--new-world=";
     private const string RunSecondsArgument = "--run-s=";
+    private const string SpeedArgument = "--speed=";
+
+    // A1749 (Marcel W2271): the speed a world starts with, from the command line only (the menu has no such option).
+    private double? _speedArgument;
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
 
@@ -123,7 +127,6 @@ public partial class Main : Node3D
             {
                 QualityLevels = [.. quality.Levels.Select(l => l.Id)],
                 QualityDefault = quality.DefaultLevel,
-                SpeedChoices = [.. ScreenModel.TimeChoices(Simulation.Time.WorldCalendar.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "world", "time.json"))).Settings).Select(c => (int)c.Speed)],
             };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
@@ -291,6 +294,12 @@ public partial class Main : Node3D
                 && double.TryParse(arg[RunSecondsArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var runS) && runS > 0)
             {
                 _runS = runS;
+            }
+
+            if (arg.StartsWith(SpeedArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[SpeedArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var speedArg) && speedArg >= 0)
+            {
+                _speedArgument = speedArg;
             }
 
             if (arg == DebugArgument)
@@ -607,10 +616,12 @@ public partial class Main : Node3D
             _world.Faulted += (_, _) => _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
             _screen.PauseRequested += OpenPause;
 
-            // A1749: the speed a world starts with, when the player chose one (else as it was saved).
-            if (_settings.StartSpeed is { } speed)
+            // A1749 (Marcel W2270/W2271): a world always starts at normal speed - only the command line may choose another
+            // (--speed=N, one of the time choices), e.g. for long runs with a window.
+            if (_speedArgument is { } speed && ScreenModel.TimeChoices(host.World.Calendar.Settings).Any(c => c.Speed == speed))
             {
                 _world.Speed = speed;
+                GD.Print($"START_SPEED {speed.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             }
         }
 

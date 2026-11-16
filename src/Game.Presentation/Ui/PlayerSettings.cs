@@ -19,8 +19,6 @@ public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string>
     /// <summary>A1748: the data's default quality level (shown when the player chose none).</summary>
     public string? QualityDefault { get; init; }
 
-    /// <summary>A1749: the world speeds a world can start with (pause, normal, the fast factors of time.json).</summary>
-    public IReadOnlyList<int> SpeedChoices { get; init; } = [0, 1];
 }
 
 /// <summary>
@@ -75,9 +73,6 @@ public sealed record PlayerSettings
 
     /// <summary>A1749: when the world saves itself (<see cref="GameOptions.AutoSaveModes"/>); every game day by default.</summary>
     public string AutoSave { get; init; } = GameOptions.AutoSaveDay;
-
-    /// <summary>A1749: the speed a world starts with (one of the limits' choices), null = as it was saved.</summary>
-    public int? StartSpeed { get; init; }
 
     /// <summary>A1749: a knock pauses the world (off by default: a knock is quiet, D957 v4 question 3).</summary>
     public bool PauseOnKnock { get; init; }
@@ -180,7 +175,6 @@ public sealed record PlayerSettings
 
             // A1749: a mode or speed the game does not know (hand-edited) falls back to the default.
             AutoSave = AutoSave is not null && GameOptions.AutoSaveModes.Contains(AutoSave, StringComparer.Ordinal) ? AutoSave : GameOptions.AutoSaveDay,
-            StartSpeed = StartSpeed is { } speed && limits.SpeedChoices.Contains(speed) ? speed : null,
 
             // A hand-edited "bus_volumes_db": null must not break the UI either.
             MixDefaultsVersion = limits.MixDefaultsVersion,

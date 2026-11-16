@@ -2,7 +2,7 @@ using GlassWorld.Presentation.Ui;
 
 namespace GlassWorld.Presentation.Tests;
 
-/// <summary>A1749 part 2a (D957 v4 section 10): autosave, start speed, pause on knock - defaults as before, only known values.</summary>
+/// <summary>A1749 part 2a (D957 v4 section 10): autosave and pause on knock - defaults as before, only known values (no start speed: Marcel W2270).</summary>
 public sealed class GameOptionsTests
 {
     private static SettingsLimits Limits()
@@ -13,23 +13,23 @@ public sealed class GameOptionsTests
         var volume = GlassWorld.Contracts.Validation.ContractSerializer
             .Deserialize<GlassWorld.Contracts.SoundMix>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "sound", "mix.json"))).PlayerVolumeDb;
         var guard = GlassWorld.Simulation.Safety.TextGuard.FromJson(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "safety", "rules.json")));
-        return new SettingsLimits(tokens, ["de", "en"], volume, 24, guard) { SpeedChoices = [0, 1, 4, 16] };
+        return new SettingsLimits(tokens, ["de", "en"], volume, 24, guard);
     }
 
     [Fact]
     public void TheDefaultsAreAsBefore()
     {
         var start = PlayerSettings.Parse(null, Limits());
-        Assert.Equal((GameOptions.AutoSaveDay, (int?)null, false), (start.AutoSave, start.StartSpeed, start.PauseOnKnock));
+        Assert.Equal((GameOptions.AutoSaveDay, false), (start.AutoSave, start.PauseOnKnock));
     }
 
     [Fact]
     public void OnlyKnownModesAndSpeedsSurvive()
     {
-        var odd = new PlayerSettings { AutoSave = "hourly", StartSpeed = 7 }.Clamp(Limits());
-        Assert.Equal((GameOptions.AutoSaveDay, (int?)null), (odd.AutoSave, odd.StartSpeed));
-        var fine = new PlayerSettings { AutoSave = GameOptions.AutoSaveNight, StartSpeed = 0, PauseOnKnock = true }.Clamp(Limits());
-        Assert.Equal((GameOptions.AutoSaveNight, (int?)0, true), (fine.AutoSave, fine.StartSpeed, fine.PauseOnKnock));
+        var odd = new PlayerSettings { AutoSave = "hourly" }.Clamp(Limits());
+        Assert.Equal(GameOptions.AutoSaveDay, odd.AutoSave);
+        var fine = new PlayerSettings { AutoSave = GameOptions.AutoSaveNight, PauseOnKnock = true }.Clamp(Limits());
+        Assert.Equal((GameOptions.AutoSaveNight, true), (fine.AutoSave, fine.PauseOnKnock));
         Assert.Equal(fine.AutoSave, PlayerSettings.Parse(fine.ToJson(), Limits()).AutoSave);
     }
 

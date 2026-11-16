@@ -723,18 +723,6 @@
       "text": "Jede Rechennacht"
     },
     {
-      "key": "ui.settings.start_speed",
-      "text": "Tempo beim Start"
-    },
-    {
-      "key": "ui.settings.start_speed.desc",
-      "text": "Mit welchem Tempo eine Welt beginnt, wenn du sie startest oder lädst."
-    },
-    {
-      "key": "ui.settings.start_speed.saved",
-      "text": "Wie zuletzt"
-    },
-    {
       "key": "ui.settings.pause_on_knock",
       "text": "Anhalten, wenn jemand klopft"
     },
