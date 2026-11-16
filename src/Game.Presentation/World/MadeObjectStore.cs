@@ -84,32 +84,57 @@ public sealed class MadeObjectStore(string root)
     {
         ArgumentNullException.ThrowIfNull(inventions);
         var added = 0;
-        var records = inventions.Capture().Inventions.ToDictionary(r => r.TypeId, StringComparer.Ordinal);
+
+        // Review GW3 #545: the records and the job log are read only for things not taken yet in this session.
+        var records = new Lazy<Dictionary<string, InventionRecord>>(() => inventions.Capture().Inventions.ToDictionary(r => r.TypeId, StringComparer.Ordinal));
         foreach (var info in inventions.Inventions)
         {
-            var record = records.GetValueOrDefault(info.TypeId);
-            var (model, prompt) = ModelOf(inventions.Log, record?.RequestId);
-            var origin = new CollectedOrigin(world, (info.Tick / Math.Max(1, ticksPerDay)) + 1, info.InhabitantId, info.TypeId, record?.RequestId, model, prompt, Approved);
-            added += Take($"invention|{world}|{info.TypeId}", "invention", Description(info), [], origin);
+            CollectedOrigin? origin = null;
+            CollectedOrigin Origin()
+            {
+                if (origin is null)
+                {
+                    var record = records.Value.GetValueOrDefault(info.TypeId);
+                    var (model, prompt) = ModelOf(inventions.Log, record?.RequestId);
+                    origin = new CollectedOrigin(world, (info.Tick / Math.Max(1, ticksPerDay)) + 1, info.InhabitantId, info.TypeId, record?.RequestId, model, prompt, Approved);
+                }
+
+                return origin;
+            }
+
+            added += Take($"invention|{world}|{info.TypeId}", "invention", () => Description(info), [], Origin);
             if (inventions.Builds.FirstOrDefault(b => b.TypeId == info.TypeId && b.PlanJson is not null)?.PlanJson is { } plan)
             {
-                added += Take($"plan|{world}|{info.TypeId}", "build_plan", JsonNode.Parse(plan)!, [], origin);
+                added += Take($"plan|{world}|{info.TypeId}", "build_plan", () => Parsed(plan), [], Origin);
             }
 
             if (inventions.ImageOf(info.TypeId) is { } image && pictureFolder is not null && File.Exists(Path.Combine(pictureFolder, image.File)))
             {
-                var meta = new JsonObject { ["width"] = image.Width, ["height"] = image.Height, ["workflow"] = image.Workflow, ["style"] = image.Style };
-                added += Take($"image|{world}|{info.TypeId}", "icon", meta, [("icon" + Path.GetExtension(image.File), Path.Combine(pictureFolder, image.File))], origin);
+                JsonNode Meta() => new JsonObject { ["width"] = image.Width, ["height"] = image.Height, ["workflow"] = image.Workflow, ["style"] = image.Style };
+                added += Take($"image|{world}|{info.TypeId}", "icon", Meta, [("icon" + Path.GetExtension(image.File), Path.Combine(pictureFolder, image.File))], Origin);
             }
 
             if (info.SoundFile is { } sound && soundFolder is not null && File.Exists(Path.Combine(soundFolder, sound)))
             {
-                var meta = new JsonObject { ["description"] = info.SoundDescription };
-                added += Take($"sound|{world}|{info.TypeId}", "sound", meta, [("sound" + Path.GetExtension(sound), Path.Combine(soundFolder, sound))], origin);
+                JsonNode Meta() => new JsonObject { ["description"] = info.SoundDescription };
+                added += Take($"sound|{world}|{info.TypeId}", "sound", Meta, [("sound" + Path.GetExtension(sound), Path.Combine(soundFolder, sound))], Origin);
             }
         }
 
         return added;
+    }
+
+    /// <summary>A building plan as JSON, or null when it cannot be read (review GW3 #545: it is skipped, the save goes on).</summary>
+    private static JsonNode? Parsed(string plan)
+    {
+        try
+        {
+            return JsonNode.Parse(plan);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The id: SHA-256 of the kind, the content (compact JSON) and every file's name and bytes.</summary>
@@ -130,14 +155,14 @@ public sealed class MadeObjectStore(string root)
 
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
-    private int Take(string key, string kind, JsonNode content, IReadOnlyList<(string Name, string Path)> files, CollectedOrigin origin)
+    private int Take(string key, string kind, Func<JsonNode?> content, IReadOnlyList<(string Name, string Path)> files, Func<CollectedOrigin> origin)
     {
-        if (!_seen.Add(key))
+        if (!_seen.Add(key) || content() is not { } node)
         {
             return 0;
         }
 
-        return Add(kind, content, files, origin).Added ? 1 : 0;
+        return Add(kind, node, files, origin()).Added ? 1 : 0;
     }
 
     /// <summary>What an invention is, in words - without its world's type id, so the same idea elsewhere is the same object.</summary>
