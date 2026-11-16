@@ -189,6 +189,39 @@ public sealed class BedtimeTests
     }
 
     [Fact]
+    public void TheNightsSleepIsNoNapAndIsNotCutAtDawn()
+    {
+        // A1498 review (CI of #517): a sleep begun in the night runs on past sunrise until rested - max_nap_hours is for naps.
+        var rested = Content.InhabitantModel.Togetherness!.WakeRested!;
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de");
+        var sleeper = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(sleeper);
+        var calendar = host.World.Calendar;
+        var lateNight = FirstNightTick(calendar) + (6 * calendar.Settings.TicksPerHour);
+        host.World.Run(lateNight - host.World.Tick);
+        Assert.NotNull(calendar.MinutesSinceNightfall(host.World.Tick));
+        foreach (var need in sleeper.Needs.Keys.ToList())
+        {
+            sleeper.Needs[need] = 1.0;
+        }
+
+        sleeper.Needs[rested.Need] = 0.05;
+        sleeper.Activity = new Activity("sleep", null, sleeper.Position, null);
+        sleeper.Planned = null;
+        double? atWaking = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == sleeper.Id && e.Action == "sleep" && e.Kind is InhabitantsSystem.ActionFinished or InhabitantsSystem.ActionCancelled)
+            {
+                atWaking ??= sleeper.Needs[rested.Need];
+            }
+        };
+        host.World.Run(12 * calendar.Settings.TicksPerHour);
+
+        Assert.True(atWaking >= rested.At || atWaking is null, $"woken at {atWaking:0.000}");
+    }
+
+    [Fact]
     public void TheServiceHearsNightWhenAllSleepOrAtTheLimitNotAtNightfall()
     {
         var port = new PhasePort();
