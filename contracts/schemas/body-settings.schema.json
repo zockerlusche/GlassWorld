@@ -48,7 +48,10 @@
       "properties": {
         "leaving_factor_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
         "in_precipitation": { "type": "boolean" },
-        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+        "at_levels": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "holds_action": { "description": "A1793 (D1192 #7): this action on a thing under a shelter, done under the shelter, does not end while the rain or the cold of in_precipitation/at_levels lasts there, or while the need of hold_while is still below its line - one action instead of short pieces (no new start, no repetition count, one diary line). Absent = it ends after its duration as any action.", "$ref": "common.schema.json#/$defs/VocabId" },
+        "hold_while": { "description": "A need the shelter is taken for and its line: while the need is below it, the shelter holds too (feeling cool is not yet cold). Placeholder value.", "type": "object", "additionalProperties": false, "required": ["need", "below"], "properties": { "need": { "$ref": "common.schema.json#/$defs/VocabId" }, "below": { "type": "number", "minimum": 0, "maximum": 1 } } },
+        "hold_while_needs_above": { "description": "It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "others_warmth": {

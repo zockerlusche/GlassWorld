@@ -72,6 +72,39 @@ public sealed partial class InhabitantsSystem
         }
     }
 
+    /// <summary>
+    /// A1793 (D1192 #7, Marcel 15a 'rock niche used' over and over): the data's sheltering action on a thing under a
+    /// shelter, done under the shelter, goes on while the rain or the cold of the data lasts there, or while the need it
+    /// is taken for is still below the data's line (hold_while) - unless a need it
+    /// does not serve has fallen below the data's line; then the inhabitant chooses again (and the leaving factor
+    /// still weighs going out).
+    /// </summary>
+    internal bool KeepsSheltering(World world, Inhabitant inhabitant, Activity activity, WorldObject? target)
+    {
+        if (StaySheltered is not { HoldsAction: { } action } stay || !string.Equals(activity.Action, action, StringComparison.Ordinal)
+            || target is null || ShelteredAt?.Invoke(target.Position) != true || Sheltered?.Invoke(inhabitant) != true)
+        {
+            return false;
+        }
+
+        var rains = stay.InPrecipitation == true && AirAt?.Invoke(world, inhabitant.Position) is { Precipitation: true };
+        var feels = stay.AtLevels is { Count: > 0 } levels && ComfortLevelOf(world, inhabitant) is { } level && levels.Contains(level);
+        var wants = stay.HoldWhile is { } hold && inhabitant.Needs.GetValueOrDefault(hold.Need, 1.0) < hold.Below;
+        if (!rains && !feels && !wants)
+        {
+            return false;
+        }
+
+        // Bedtime ends it as well: the night's sleep (under the shelter) is chosen anew, not put off by the shelter.
+        if (AtBedtime(world))
+        {
+            return false;
+        }
+
+        var line = stay.HoldWhileNeedsAbove ?? 0;
+        return !_model.Needs.Any(n => inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < line && !_brain.Serves(action, n.Id));
+    }
+
     private bool ServesNeglected(Inhabitant inhabitant, string action) =>
         _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow && _brain.Serves(action, n.Id));
 

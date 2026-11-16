@@ -68,4 +68,60 @@ public sealed class StayShelteredTests
         air = new Air(200, false);
         Assert.All(Weighed(one), o => Assert.Equal(1.0, o.Score));
     }
+
+    [Fact]
+    public void TakingShelterLastsWhileTheRainLastsAndEndsWhenANeedPresses()
+    {
+        // A1793 (D1192 #7, Marcel 15a: 'rock niche used' over and over): the sheltering action goes on as one action while
+        // it rains (or feels cold) there - not in ten-minute pieces; a need it does not serve below the line ends it.
+        var stay = Content.Body!.StaySheltered!;
+        Assert.Equal("use", stay.HoldsAction);
+        var line = stay.HoldWhileNeedsAbove!.Value;
+
+        var air = new Air(150, true);
+        var world = new World(3, Content.Calendar);
+        var objects = new WorldObjects(Content.Objects);
+        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
+        {
+            Knowledge = Content.Knowledge,
+            AirAt = (_, _) => air,
+            StaySheltered = stay,
+            ShelteredAt = at => at.X < 10,
+        };
+        inhabitants.Sheltered = inhabitant => inhabitants.ShelteredAt!(inhabitant.Position);
+        world.Add(objects).Add(inhabitants);
+
+        // Midday, far from bedtime (bedtime ends it as well).
+        world.Run(12L * world.Calendar.Settings.TicksPerHour);
+        Assert.False(inhabitants.AtBedtime(world));
+        inhabitants.SpawnStartInhabitants(world, [new(1, 1), new(50, 1), new(60, 60), new(70, 70)]);
+        var (one, outside) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        foreach (var need in one.Needs.Keys.ToList())
+        {
+            one.Needs[need] = 1.0;
+        }
+
+        var niche = objects.Spawn("rock_niche", new Position(2, 1));
+        var use = new Activity("use", niche.Id, niche.Position, null);
+
+        // In the rain under the shelter it lasts.
+        Assert.True(inhabitants.KeepsSheltering(world, one, use, niche));
+
+        // Not another action, not out in the open, not once it is dry and warm.
+        Assert.False(inhabitants.KeepsSheltering(world, one, use with { Action = "inspect" }, niche));
+        Assert.False(inhabitants.KeepsSheltering(world, outside, use, niche));
+        air = new Air(250, false);
+        Assert.False(inhabitants.KeepsSheltering(world, one, use, niche));
+
+        // Dry, but the need it is taken for is still low (feeling cool is not yet cold): it lasts.
+        var hold = stay.HoldWhile!;
+        one.Needs[hold.Need] = hold.Below / 2;
+        Assert.True(inhabitants.KeepsSheltering(world, one, use, niche));
+        one.Needs[hold.Need] = 1.0;
+        air = new Air(150, true);
+
+        // A need the shelter does not serve, below the line: it ends, and the inhabitant chooses again.
+        one.Needs["hunger"] = line / 2;
+        Assert.False(inhabitants.KeepsSheltering(world, one, use, niche));
+    }
 }
