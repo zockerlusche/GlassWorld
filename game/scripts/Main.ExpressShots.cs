@@ -112,7 +112,17 @@ public partial class Main
                     GD.Print($"EXPRESS_SHOT_HELD {(who is null ? "nobody carried anything" : $"{who.Name ?? who.Id} holds {who.Held}")}");
                 }
 
-                if (who is null || !_world.CloseLook(who.Id, ExpressShotDistanceM))
+                // A1578 (B2827): the ore outcrop - the camera on the first ore chunk of the island instead of a figure.
+                var ore = spec == "ore" ? _world.Host.Snapshot().Objects.Where(o => o.TypeId == "ore_chunk").OrderBy(o => o.Id, System.StringComparer.Ordinal).FirstOrDefault() : null;
+                if (spec == "ore")
+                {
+                    GD.Print($"EXPRESS_SHOT_ORE {(ore is null ? "none" : $"{ore.Id} at {ore.Position.X:0.0},{ore.Position.Z:0.0}")}");
+                    if (ore is null || !_world.LookAt(ore.Position.X, ore.Position.Z, ExpressShotDistanceM * 1.6))
+                    {
+                        continue;
+                    }
+                }
+                else if (who is null || !_world.CloseLook(who.Id, ExpressShotDistanceM))
                 {
                     GD.Print($"EXPRESS_SHOT_SKIPPED {spec}: nobody awake to follow");
                     continue;
@@ -120,7 +130,7 @@ public partial class Main
 
                 // Let the calm pause of earlier moments run out, so the event shows (a knock skips it anyway).
                 await ToSignal(GetTree().CreateTimer(1.5), SceneTreeTimer.SignalName.Timeout);
-                if (spec == "mark")
+                if (spec == "mark" && who is not null)
                 {
                     // A1796: the calm place mark a thing just built gets - laid at the thing nearest the followed figure.
                     var near = _world.Host.Snapshot().Objects.OrderBy(o => Math.Pow(o.Position.X - who.Position.X, 2) + Math.Pow(o.Position.Z - who.Position.Z, 2)).FirstOrDefault();
@@ -128,14 +138,15 @@ public partial class Main
                     GD.Print($"EXPRESS_SHOT_MARK {(marked ? near!.Id + " " + near.TypeId : "none")}");
                 }
 
-                var shown = spec == "mark" ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
-                GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {who.Name ?? who.Id} shown={shown ?? "-"}");
+                var label = who?.Name ?? who?.Id ?? "island";
+                var shown = spec is "mark" or "ore" || who is null ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
+                GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {label} shown={shown ?? "-"}");
                 var waited = 0.0;
                 foreach (var at in ExpressShotTimes)
                 {
                     await ToSignal(GetTree().CreateTimer(at - waited), SceneTreeTimer.SignalName.Timeout);
                     waited = at;
-                    var name = System.FormattableString.Invariant($"{size.X}x{size.Y}_{number:00}_{spec.Replace(':', '-')}_{at:0.0}s_{who.Name ?? who.Id}.png");
+                    var name = System.FormattableString.Invariant($"{size.X}x{size.Y}_{number:00}_{spec.Replace(':', '-')}_{at:0.0}s_{label}.png");
                     if (Shot(name))
                     {
                         shots++;
