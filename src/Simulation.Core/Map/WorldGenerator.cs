@@ -1,5 +1,4 @@
 using GlassWorld.Contracts;
-using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
@@ -139,7 +138,9 @@ public static partial class WorldGenerator
             throw new ArgumentException($"grid size {cells} is not a multiple of the preset's chunk size {preset.Grid.ChunkCells}", nameof(gridCells));
         }
 
-        var copy = ContractSerializer.Deserialize<WorldPreset>(ContractSerializer.Serialize(preset, validate: false));
+        // A deep copy of loaded content, not a message: plain System.Text.Json (ContractSerializer.Serialize in the core
+        // stands for a request to the AI and goes through the switch of ADR-0009, RequestValidationTests).
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
         copy.Grid.WidthCells = cells;
         copy.Grid.DepthCells = cells;
         return copy;
