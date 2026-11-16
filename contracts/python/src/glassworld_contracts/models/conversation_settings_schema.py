@@ -9,6 +9,17 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class Tip(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    base: float = Field(..., ge=0.0, le=1.0)
+    trust: float = Field(..., ge=-1.0, le=1.0)
+    awe: float = Field(..., ge=-1.0, le=1.0)
+    fear: float = Field(..., ge=-1.0, le=1.0)
+    max: float = Field(..., ge=0.0, le=1.0)
+
+
 class Outcome(StrEnum):
     reply = 'reply'
     gesture = 'gesture'
@@ -175,6 +186,10 @@ class ConversationSettings(BaseModel):
     naming: NamingEffect | None = Field(
         None,
         description='A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.',
+    )
+    tip: Tip | None = Field(
+        None,
+        description="A1536 (B6 R20, B2830, D1203 section 4): how sure an inhabitant is of what the player's voice says a thing is like - base + trust x its trust in the player + awe x its awe + fear x its fear, at most max (a guess, never sure). A belief it holds more surely stays. Placeholders (TL). Absent = a tip changes no belief.",
     )
     dialogue: DialogueSettings | None = Field(
         None,

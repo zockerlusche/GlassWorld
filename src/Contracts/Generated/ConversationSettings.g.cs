@@ -219,6 +219,13 @@ namespace GlassWorld.Contracts
         public NamingEffect? Naming { get; set; } = default!;
 
         /// <summary>
+        /// A1536 (B6 R20, B2830, D1203 section 4): how sure an inhabitant is of what the player's voice says a thing is like - base + trust x its trust in the player + awe x its awe + fear x its fear, at most max (a guess, never sure). A belief it holds more surely stays. Placeholders (TL). Absent = a tip changes no belief.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tip")]
+        public Tip? Tip { get; set; } = default!;
+
+        /// <summary>
         /// A1735 (B2782, D1119): a talk between two inhabitants. When one starts one of the actions with another inhabitant as target (awake and in reach - the core checked), the core sends a job of kind dialogue; the turns that pass its checks become said events of both, with target, turn and turns. A talk has no effect on the world: needs and relationship work through the action as before. Omitted = no dialogue jobs (talking stays without words).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -250,6 +257,27 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("no_answer")]
         No_answer = 4,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Tip
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("base")]
+        public double Base { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trust")]
+        public double Trust { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("awe")]
+        public double Awe { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fear")]
+        public double Fear { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
 
     }
 }
