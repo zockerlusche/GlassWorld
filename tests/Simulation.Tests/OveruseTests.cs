@@ -29,10 +29,12 @@ public sealed class OveruseTests
 
         Assert.Empty(map.BareCells);
         Assert.NotEmpty(map.CaptureOveruse());
+        var version = map.BareVersion;
 
-        // The limit: bare.
+        // The limit: bare - and the look learns it changed (wish GW3 #533).
         Harvest(host, places[^1]);
         Assert.Equal([cell], map.BareCells);
+        Assert.Equal(version + 1, map.BareVersion);
         Assert.True(map.BareAt(map.CentreOf(places[0].X, places[0].Z)));
 
         // Green again once everything has grown back and the data's hours have passed.
@@ -43,6 +45,12 @@ public sealed class OveruseTests
         }
 
         Assert.Empty(map.BareCells);
+        Assert.True(map.BareVersion >= version + 2, "green again counts as a change");
+
+        // A restored save game counts as a change too.
+        var before = map.BareVersion;
+        map.RestoreOveruse(map.CaptureOveruse());
+        Assert.Equal(before + 1, map.BareVersion);
     }
 
     [Fact]
