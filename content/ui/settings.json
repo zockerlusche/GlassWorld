@@ -45,7 +45,21 @@
         "invert_turn_x",
         "invert_turn_y",
         "invert_pan_x",
-        "invert_pan_y"
+        "invert_pan_y",
+        "key.gw_camera_pan_forward",
+        "key.gw_camera_pan_back",
+        "key.gw_camera_pan_left",
+        "key.gw_camera_pan_right",
+        "key.gw_camera_turn_left",
+        "key.gw_camera_turn_right",
+        "key.gw_camera_zoom_in",
+        "key.gw_camera_zoom_out",
+        "key.gw_camera_reset",
+        "key.gw_camera_leave",
+        "key.gw_time_pause",
+        "key.gw_time_normal",
+        "key.gw_time_fast_1",
+        "key.gw_time_fast_2"
       ]
     },
     {
