@@ -42,7 +42,7 @@ public sealed class StoresTests
 
         var rule = content.Body!.Stores!.Stamina;
         var gait = content.Gaits.GaitFor(free, "explore");
-        Assert.Equal(1 - (rule.GaitPerHour.GetValueOrDefault(gait) / 1000.0), stores.Stamina(free.Id), 9);
+        Assert.Equal(1 - ((rule.GaitPerHour.TryGetValue(gait, out var rate) ? rate : 0) / 1000.0), stores.Stamina(free.Id), 9);
         Assert.True(stores.Stamina(loaded.Id) < stores.Stamina(free.Id), $"{stores.Stamina(loaded.Id):0.000} vs {stores.Stamina(free.Id):0.000}");
     }
 

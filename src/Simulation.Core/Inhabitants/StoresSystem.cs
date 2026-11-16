@@ -103,7 +103,7 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
                 // Walking: the gait of the walk, and what is carried (load share squared, at most the full rate).
                 var gait = _gaits.GaitFor(inhabitant, walk.Action);
                 var load = Math.Min(1.0, LoadShare(inhabitant));
-                var perHour = rule.GaitPerHour.GetValueOrDefault(gait) + (long)Math.Round(rule.LoadPerHour * load * load);
+                var perHour = (rule.GaitPerHour.TryGetValue(gait, out var gaitRate) ? gaitRate : 0) + (long)Math.Round(rule.LoadPerHour * load * load);
                 stamina = Math.Max(0, stamina - Step(world.Tick, perHour));
             }
             else
