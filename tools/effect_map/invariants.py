@@ -15,11 +15,12 @@ import json
 import math
 import sys
 from collections import Counter, defaultdict
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from check_run import load, trace_lines  # a tool beside check_run.py, not a package
+from check_run import is_daytime, load, trace_lines  # a tool beside check_run.py, not a package
 
 INVARIANTS = Path(__file__).with_name("invariants.json")
 
@@ -180,6 +181,115 @@ def invented_things_have_an_event(trace: Trace, invariant: Json) -> tuple[bool, 
     )
 
 
+def _series(trace: Trace, field: str) -> dict[str, list[tuple[Json, Json]]]:
+    """Per inhabitant its snapshots (snapshot, inhabitant) that carry the field (older traces do not)."""
+    rows: dict[str, list[tuple[Json, Json]]] = defaultdict(list)
+    for snap, who in trace.inhabitants():
+        if field in who:
+            rows[str(who["id"])].append((snap, who))
+    return rows
+
+
+def max_hours_mood_above(trace: Trace, invariant: Json) -> tuple[bool | None, str]:
+    rows = _series(trace, "moods")
+    if not rows:
+        return None, "no moods in the snapshots (trace from before GW4 #554)"
+    above, limit = float(invariant["above"]), float(invariant["hours"])
+    exempt = {str(m) for m in cast(list[str], invariant.get("exempt_moods", []))}
+    worst = (0, "-", "-")
+    for ident, seq in rows.items():
+        streak: dict[str, int] = defaultdict(int)
+        for _, who in seq:
+            for mood, value in cast(Json, who["moods"]).items():
+                if mood in exempt:
+                    continue
+                streak[mood] = streak[mood] + 1 if float(value) > above else 0
+                if streak[mood] > worst[0]:
+                    worst = (streak[mood], ident, mood)
+    hours, ident, mood = worst
+    # n snapshots in a row above = at least n - 1 hours above (hourly snapshots).
+    return max(
+        0, hours - 1
+    ) <= limit, f"longest above {above}: {max(0, hours - 1)} h ({mood}, {ident}); limit {limit:g} h"
+
+
+def cold_frustration_needs_a_second_need(trace: Trace, invariant: Json) -> tuple[bool | None, str]:
+    rows = _series(trace, "moods")
+    if not rows:
+        return None, "no moods in the snapshots (trace from before GW4 #554)"
+    mood, cold = str(invariant["mood"]), str(invariant["cold_need"])
+    cold_below, second_below, rise = (
+        float(invariant["cold_below"]),
+        float(invariant["second_below"]),
+        float(invariant["rise"]),
+    )
+    seconds = [str(n) for n in cast(list[str], invariant["second_needs"])]
+    max_rise = float(invariant.get("max_rise", 1.0))
+    cases = alone = 0
+    example = ""
+    for ident, seq in rows.items():
+        for (_, before), (snap, now) in pairwise(seq):
+            needs = cast(Json, now.get("needs", {}))
+            grew = float(cast(Json, now["moods"]).get(mood, 0)) - float(
+                cast(Json, before["moods"]).get(mood, 0)
+            )
+            # Review GW4 #555: cold at or below the mark (the comfort floor is exactly 0.3); a jump above max_rise per
+            # hour comes from an event (a building given up ...), not from the cold.
+            if rise < grew <= max_rise and float(needs.get(cold, 1)) <= cold_below:
+                cases += 1
+                if not any(float(needs.get(n, 1)) < second_below for n in seconds):
+                    alone += 1
+                    example = example or f"{ident} at {snap['clock']}"
+    return alone == 0, f"{mood} rose while cold {cases}x, {alone}x with no second need low" + (
+        f" (e.g. {example})" if example else ""
+    )
+
+
+def traits_never_change(trace: Trace, _: Json) -> tuple[bool | None, str]:
+    rows = _series(trace, "traits")
+    if not rows:
+        return None, "no traits in the snapshots (trace from before GW4 #554)"
+    changed = [
+        ident
+        for ident, seq in rows.items()
+        if len({json.dumps(w["traits"], sort_keys=True) for _, w in seq}) > 1
+    ]
+    return not changed, f"{len(rows)} inhabitants" + (
+        f"; changed: {', '.join(changed[:3])}" if changed else "; every character stayed"
+    )
+
+
+def will_changes_only_at_night(trace: Trace, invariant: Json) -> tuple[bool | None, str]:
+    rows = _series(trace, "will_to_live")
+    if not rows:
+        return None, "no will to live in the snapshots (trace from before GW4 #554)"
+    body = [str(n) for n in cast(list[str], invariant["body_needs"])]
+    met = float(invariant["met_above"])
+    by_day_changes = 0
+    sank_while_met = 0
+    for seq in rows.values():
+        day_needs: dict[int, list[float]] = defaultdict(list)
+        for (_, a), (snap_b, b) in pairwise(seq):
+            if float(a["will_to_live"]) != float(b["will_to_live"]) and is_daytime(
+                day_of(snap_b), str(snap_b["clock"])
+            ):
+                by_day_changes += 1
+        for snap, who in seq:
+            needs = cast(Json, who.get("needs", {}))
+            day_needs[day_of(snap)].append(min(float(needs.get(n, 1)) for n in body))
+        first_of_day = {day_of(s): float(w["will_to_live"]) for s, w in reversed(seq)}
+        for day, values in day_needs.items():
+            if (
+                day + 1 in first_of_day
+                and sum(values) / len(values) > met
+                and first_of_day[day + 1] < first_of_day[day]
+            ):
+                sank_while_met += 1
+    return by_day_changes == 0 and sank_while_met == 0, (
+        f"changes by day: {by_day_changes}; sank over a night after a day with body needs met: {sank_while_met}"
+    )
+
+
 CHECKS = {
     "values_in_range": values_in_range,
     "max_same_failure_per_day": max_same_failure_per_day,
@@ -187,6 +297,10 @@ CHECKS = {
     "min_sleep_hours_mean": min_sleep_hours_mean,
     "max_idle_minutes": max_idle_minutes,
     "invented_things_have_an_event": invented_things_have_an_event,
+    "max_hours_mood_above": max_hours_mood_above,
+    "cold_frustration_needs_a_second_need": cold_frustration_needs_a_second_need,
+    "traits_never_change": traits_never_change,
+    "will_changes_only_at_night": will_changes_only_at_night,
 }
 
 
