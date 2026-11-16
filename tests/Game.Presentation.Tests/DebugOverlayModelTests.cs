@@ -38,7 +38,7 @@ public sealed class DebugOverlayModelTests
         var data = DebugOverlayModel.Read(host, hash, host.World.Tick, 59.6, SomeCell(host), ("PageDown", "PageUp"));
         var lines = DebugOverlayModel.Lines(data, Texts(locale));
 
-        Assert.Equal(11, lines.Count);
+        Assert.Equal(11 + JobLines(data), lines.Count); // A1801: the AI's jobs follow
         Assert.All(lines, line => Assert.False(string.IsNullOrWhiteSpace(line)));
         Assert.Empty(DebugOverlayModel.RawKeys(lines));
         Assert.EndsWith(" 7", lines[0], StringComparison.Ordinal);
@@ -84,7 +84,7 @@ public sealed class DebugOverlayModelTests
         var data = DebugOverlayModel.Read(host, host.World.StateHash(), host.World.Tick, 60, null, ("PageDown", "PageUp"));
 
         Assert.Null(data.EpochKeys);
-        Assert.Equal(10, DebugOverlayModel.Lines(data, Texts("en")).Count);
+        Assert.Equal(10 + JobLines(data), DebugOverlayModel.Lines(data, Texts("en")).Count);
     }
 
     [Fact]
@@ -143,4 +143,7 @@ public sealed class DebugOverlayModelTests
         Assert.NotNull(next);
         Assert.Equal(debug, host.Decisions.Submit(new PlayerCommand(LookEpochSystem.DebugSetLookEpoch, null) { TypeId = next }).Accepted);
     }
+
+    /// <summary>A1801: the lines of the AI's jobs - a count line and one per open job, at most the view's number.</summary>
+    private static int JobLines(DebugOverlayData data) => data.Jobs is { } jobs ? 1 + Math.Min(jobs.Count, DebugOverlayModel.MaxJobs) : 0;
 }
