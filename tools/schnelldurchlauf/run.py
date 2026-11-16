@@ -59,6 +59,16 @@ RESERVED = {
 }
 
 
+def runner_dll() -> Path | None:
+    """The built headless runner (Release), started directly with 'dotnet <dll>'.
+
+    'dotnet run --no-build' still evaluates the project with MSBuild first, about 15 s per
+    start (TL #27953, measured 16.11.)."""
+    # The newest build wins (review GW3 #544: as text, net9.0 would sort after net10.0).
+    found = (PROJECT / "bin" / "Release").glob("*/GlassWorld.Simulation.Headless.dll")
+    return max(found, key=lambda dll: dll.stat().st_mtime, default=None)
+
+
 def slug(name: str) -> str:
     """As WorldLibrary.Slug: umlauts spelled out, ASCII letters and digits, '-' between, at most
     32 characters, 'world' when empty, Windows device names get '-world'."""
@@ -124,8 +134,14 @@ def main(argv: list[str] | None = None) -> int:
     # The world's logs live in the game's log folder (A1787 part 2): they outlive the world.
     logs = logs_folder() / "welten" / folder.name
     logs.mkdir(parents=True, exist_ok=True)
+    dll = runner_dll()
+    start = (
+        ["dotnet", str(dll)]
+        if dll is not None
+        else ["dotnet", "run", "--project", str(PROJECT), "-c", "Release", "--no-build", "--"]
+    )
     command = [
-        "dotnet", "run", "--project", str(PROJECT), "-c", "Release", "--no-build", "--",
+        *start,
         "--preset", "start_island", "--seed", str(seed), "--climate", climate,
         "--ai", "live" if args.ai == "on" else "mock", "--days", str(args.days), "--quiet",
         "--save", str(save), "--learning-log", str(logs), "--run-trace", str(logs),
