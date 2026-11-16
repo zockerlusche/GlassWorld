@@ -14,10 +14,10 @@ public static class MoodFace
     /// <param name="moods">The inhabitant's moods now.</param>
     /// <param name="shown">The face shown until now, or null: its entry holds down to its shows_from less <paramref name="hold"/>.</param>
     /// <param name="hold">The margin a shown face keeps (review GW5 #547: no flicker at the threshold).</param>
-    public static (string Face, double Weight)? For(IEnumerable<GlassWorld.Contracts.FigureMoodFace>? faces, IReadOnlyDictionary<string, double> moods, (string Face, double Weight)? shown = null, double hold = 0)
+    public static (string Face, double Weight, string? Brow)? For(IEnumerable<GlassWorld.Contracts.FigureMoodFace>? faces, IReadOnlyDictionary<string, double> moods, (string Face, double Weight, string? Brow)? shown = null, double hold = 0)
     {
         ArgumentNullException.ThrowIfNull(moods);
-        (string Face, double Weight)? best = null;
+        (string Face, double Weight, string? Brow)? best = null;
         var lead = 0.0;
         foreach (var face in faces ?? [])
         {
@@ -25,7 +25,7 @@ public static class MoodFace
             var from = shown is { } was && was.Face == name ? face.ShowsFrom - Math.Max(0, hold) : face.ShowsFrom;
             if (moods.TryGetValue(face.Mood, out var value) && value >= from && (best is null || value - face.ShowsFrom > lead))
             {
-                best = (name, face.Weight);
+                best = (name, face.Weight, face.Brow is { } brow ? "brow_" + brow.ToString().ToLowerInvariant() : null);
                 lead = value - face.ShowsFrom;
             }
         }

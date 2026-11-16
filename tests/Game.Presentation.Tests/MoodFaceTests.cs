@@ -22,6 +22,16 @@ public sealed class MoodFaceTests
     }
 
     [Fact]
+    public void TheBrowsGoWithTheMood()
+    {
+        // GW1 #553: the figure models carry brow_raise and brow_frown; worry raises them, frustration frowns.
+        var faces = Figures.MoodFaces;
+        Assert.Equal("brow_raise", MoodFace.For(faces, new Dictionary<string, double> { ["sadness"] = 0.9 })!.Value.Brow);
+        Assert.Equal("brow_frown", MoodFace.For(faces, new Dictionary<string, double> { ["frustration"] = 0.95 })!.Value.Brow);
+        Assert.Null(MoodFace.For(faces, new Dictionary<string, double> { ["joy"] = 0.95 })!.Value.Brow);
+    }
+
+    [Fact]
     public void AShownFaceHoldsAMarginBelowItsThreshold()
     {
         // Review GW5 #547: a mood hovering at the threshold does not switch the face on and off.

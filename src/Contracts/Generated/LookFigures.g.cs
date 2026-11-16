@@ -749,6 +749,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("shows_from")]
         public double ShowsFrom { get; set; } = default!;
 
+        /// <summary>
+        /// A1802 (GW1 #553): the brows that go with this mood - raise (surprise, worry) or frown (anger, frustration), at the same weight as the mouth. Omitted = brows stay.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("brow")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FigureMoodFaceBrow>))]
+        public FigureMoodFaceBrow? Brow { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -951,6 +959,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("surprised")]
         Surprised = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum FigureMoodFaceBrow
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("raise")]
+        Raise = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("frown")]
+        Frown = 1,
 
 
     }

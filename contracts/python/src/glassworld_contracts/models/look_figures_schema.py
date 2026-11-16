@@ -566,6 +566,11 @@ class Face(StrEnum):
     surprised = 'surprised'
 
 
+class Brow(StrEnum):
+    raise_ = 'raise'
+    frown = 'frown'
+
+
 class FigureMoodFace(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -585,6 +590,10 @@ class FigureMoodFace(BaseModel):
     )
     shows_from: float = Field(
         ..., description='The mood shows from this value (0..1).', ge=0.0, le=1.0
+    )
+    brow: Brow | None = Field(
+        None,
+        description='A1802 (GW1 #553): the brows that go with this mood - raise (surprise, worry) or frown (anger, frustration), at the same weight as the mouth. Omitted = brows stay.',
     )
 
 

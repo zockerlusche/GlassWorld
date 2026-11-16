@@ -228,6 +228,7 @@ public partial class ProportionModifier : SkeletonModifier3D
 public partial class FaceDriver : Node
 {
     private static readonly string[] Mouths = ["smile", "sad", "surprised", "talk"];
+    private static readonly string[] Brows = ["brow_raise", "brow_frown"];
     private double _time;
     private double _nextBlink = 2.0;
     private uint _state;
@@ -246,6 +247,9 @@ public partial class FaceDriver : Node
 
     /// <summary>A1802: how strongly the resting shape shows (0..1).</summary>
     public float RestWeight { get; set; }
+
+    /// <summary>A1802 (GW1 #553): the brow shape that rests with it (brow_raise, brow_frown), or null.</summary>
+    public string? RestBrow { get; set; }
 
     /// <summary>Whether the eyes blink.</summary>
     public bool Blinking { get; set; } = true;
@@ -274,6 +278,17 @@ public partial class FaceDriver : Node
             var target = mouth == "talk" ? talkOpen : (Expression == mouth ? 1f : (Expression == "neutral" && Rest == mouth ? RestWeight : 0f));
             var current = Body.GetBlendShapeValue(index);
             Body.SetBlendShapeValue(index, Mathf.MoveToward(current, target, (float)delta * (mouth == "talk" ? 14f : 4f)));
+        }
+
+        // A1802: the brows rest with the mood's mouth (only while the expression is neutral), eased like the mouth.
+        foreach (var brow in Brows)
+        {
+            var index = Body.FindBlendShapeByName(brow);
+            if (index >= 0)
+            {
+                var target = Expression == "neutral" && RestBrow == brow ? RestWeight : 0f;
+                Body.SetBlendShapeValue(index, Mathf.MoveToward(Body.GetBlendShapeValue(index), target, (float)delta * 4f));
+            }
         }
 
         var blink = Body.FindBlendShapeByName("blink");

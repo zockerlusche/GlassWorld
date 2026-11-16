@@ -43,7 +43,7 @@ public partial class FigureView : Node3D
     private bool _standsIdle;
     private bool _lying;
     private ShaderMaterial? _paint;
-    private (string Face, double Weight)? _moodFace; // A1802: the resting face by mood
+    private (string Face, double Weight, string? Brow)? _moodFace; // A1802: the resting face by mood
     private double _wetShown = 1.0;
     private string _topColor = "#ffffff";
     private string? _wornShown;
@@ -636,7 +636,7 @@ public partial class FigureView : Node3D
         _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
         _face.Expression = _talkLeft > 0 ? "talk" : _expressionShown?.Face ?? "neutral";
         // A1802: the face rests by the strongest mood; neutral while it lies asleep.
-        (_face.Rest, _face.RestWeight) = _lieSeconds > 0 || _moodFace is not { } rest ? (null, 0f) : (rest.Face, (float)rest.Weight);
+        (_face.Rest, _face.RestWeight, _face.RestBrow) = _lieSeconds > 0 || _moodFace is not { } rest ? (null, 0f, null) : (rest.Face, (float)rest.Weight, rest.Brow);
     }
 
     /// <summary>A1785: the shape of an object type and its size factor (from the object view), set by the presenter.</summary>
