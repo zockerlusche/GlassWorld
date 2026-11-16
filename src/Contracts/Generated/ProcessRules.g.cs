@@ -73,6 +73,30 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class HeatRaise
+    {
+
+        /// <summary>
+        /// Properties that things within reach must have together (one thing or several).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties_near")]
+        public System.Collections.Generic.ICollection<string> PropertiesNear { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// How far from the burning thing they may stand (metres). Placeholder (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reach_m")]
+        public double ReachM { get; set; } = default!;
+
+        /// <summary>
+        /// The heat level it then gives (vocabulary heat_levels).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("raises_to")]
+        public string RaisesTo { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/processes/rules.json (B2537): heat levels in order and the basic processing rules. AI-found rules are added per world at runtime (job process) in the same form. When several rules match one try, the most specific wins: more inputs, then more required properties (properties_all over all inputs), then a tool condition, then a heat condition; ties by rule id (ordinal). The core (P3) applies exactly this order.
     /// </summary>
@@ -98,6 +122,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("physics")]
         public Physics? Physics { get; set; } = default!;
+
+        /// <summary>
+        /// A1579 (B4b K6, D1228): a burning thing's heat level rises when things with all these properties stand within reach - an enclosing hollow makes a fire an oven, air drawn through it a furnace. No rule names a thing (D827 R5). The highest matching entry wins; embers keep their own level. Optional; absent = a fire gives only its own level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_raise")]
+        public System.Collections.Generic.ICollection<HeatRaise>? HeatRaise { get; set; } = default!;
 
     }
 

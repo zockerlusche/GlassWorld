@@ -154,7 +154,8 @@ public partial class GwDebugOverlay : PanelContainer
     private static string KeyName(string action) =>
         InputMap.ActionGetEvents(action).OfType<InputEventKey>().FirstOrDefault()?.AsTextPhysicalKeycode() ?? DebugOverlayModel.None;
 
-    private static void EnsureDefaultInput()
+    /// <summary>A1815: the debug view's keys (F12 ...), made at the start too, so the settings know them as fixed keys.</summary>
+    public static void EnsureDefaultInput()
     {
         static void Add(string action, Key key)
         {

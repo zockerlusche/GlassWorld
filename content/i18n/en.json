@@ -759,6 +759,86 @@
       "text": "When an inhabitant knocks at the glass, the world pauses until you go on."
     },
     {
+      "key": "ui.settings.keys",
+      "text": "Key bindings"
+    },
+    {
+      "key": "ui.settings.key.desc",
+      "text": "Click the key, then press the new one. Esc cancels. Mouse buttons and the wheel stay."
+    },
+    {
+      "key": "ui.settings.key.fixed",
+      "text": "{key} is taken by the game and stays as it is."
+    },
+    {
+      "key": "ui.settings.key.press",
+      "text": "Press a key …"
+    },
+    {
+      "key": "ui.settings.key.tooltip",
+      "text": "Click, then press the new key"
+    },
+    {
+      "key": "ui.settings.key.conflict",
+      "text": "Used twice: {key} – {actions}"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_forward",
+      "text": "Move view forward"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_back",
+      "text": "Move view back"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_left",
+      "text": "Move view left"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_pan_right",
+      "text": "Move view right"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_left",
+      "text": "Turn left"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_turn_right",
+      "text": "Turn right"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_in",
+      "text": "Zoom in"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_zoom_out",
+      "text": "Zoom out"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_reset",
+      "text": "Back to the start view"
+    },
+    {
+      "key": "ui.settings.key.gw_camera_leave",
+      "text": "Stop following"
+    },
+    {
+      "key": "ui.settings.key.gw_time_pause",
+      "text": "Pause"
+    },
+    {
+      "key": "ui.settings.key.gw_time_normal",
+      "text": "Normal speed"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_1",
+      "text": "Fast (first step)"
+    },
+    {
+      "key": "ui.settings.key.gw_time_fast_2",
+      "text": "Fast (second step)"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
@@ -1289,6 +1369,14 @@
     {
       "key": "vocab.base_function.closure",
       "text": "Closure"
+    },
+    {
+      "key": "vocab.base_function.enclose_fire",
+      "text": "Keep heat in"
+    },
+    {
+      "key": "vocab.base_function.blow_air",
+      "text": "Blow air"
     },
     {
       "key": "vocab.property.braidable",
@@ -4245,6 +4333,18 @@
     {
       "key": "vocab.property.dug",
       "text": "dug"
+    },
+    {
+      "key": "vocab.property.encloses_fire",
+      "text": "Enclosing"
+    },
+    {
+      "key": "vocab.property.draws_air",
+      "text": "Air-drawing"
+    },
+    {
+      "key": "vocab.property.metallic",
+      "text": "Metallic"
     },
     {
       "key": "vocab.event.dug",

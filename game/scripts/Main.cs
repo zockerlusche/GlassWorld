@@ -123,11 +123,14 @@ public partial class Main : Node3D
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
+            // A1815: the camera and time keys exist from the start - the settings lay them anew also in the main menu.
+            InputDefaults.Ensure(ScreenModel.TimeChoices(Simulation.Time.WorldCalendar.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "world", "time.json"))).Settings).Count);
             var quality = ContractSerializer.Deserialize<LookQuality>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "look", "quality.json")));
             _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion)
             {
                 QualityLevels = [.. quality.Levels.Select(l => l.Id)],
                 QualityDefault = quality.DefaultLevel,
+                KeyActions = [.. SettingsWindow.KeyActions()],
             };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
@@ -338,6 +341,12 @@ public partial class Main : Node3D
 
         // A1749: when the world saves itself.
         WorldPresenter.AutoSaveMode = settings.AutoSave;
+
+        // A1815: the player's keys.
+        if (_limits is not null)
+        {
+            InputDefaults.Apply(_limits.KeyActions, settings.KeyBindings);
+        }
 
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
