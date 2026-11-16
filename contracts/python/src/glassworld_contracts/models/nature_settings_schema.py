@@ -8,6 +8,17 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class NatureOveruse(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cell_m: int = Field(..., ge=1, le=64)
+    window_hours: int = Field(..., ge=1, le=8760)
+    bare_after: int = Field(..., ge=1, le=1000)
+    bare_growth_permille: int = Field(..., ge=0, le=1000)
+    bare_min_hours: int = Field(..., ge=0, le=8760)
+
+
 class SeasonGrowth(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -120,6 +131,10 @@ class NatureSettings(BaseModel):
         ...,
         description='Which object types belong to which growth group; a regrowing type without a group grows by the clock.',
         max_length=256,
+    )
+    overuse: NatureOveruse | None = Field(
+        None,
+        description='A1380 N2 (R15): more than bare_after harvests (places eaten or picked) within window_hours in one field cell of cell_m make it bare; while bare its places regrow with bare_growth_permille of their growth (only for the time it is bare). It is green again once all its places have grown back, at the earliest after bare_min_hours. Omitted = no overuse.',
     )
     influences: NatureInfluences | None = Field(
         None,

@@ -192,6 +192,9 @@ public sealed record SaveState(
     /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
 
+    /// <summary>Overuse of field cells (A1380 N2); null = none.</summary>
+    public IReadOnlyList<Map.OveruseCell>? Overuse { get; init; }
+
     /// <summary>Who is up in a crown (D1105 H3b); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.UpInhabitant>? Climbed { get; init; }
 
@@ -291,6 +294,7 @@ public static class StateCodec
             Dug = host.Digging is { HasState: true } digging ? digging.Capture() : null,
             Used = host.Durability?.CaptureUses() is { Count: > 0 } used ? used : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
+            Overuse = host.Map?.CaptureOveruse() is { Count: > 0 } overuse ? overuse : null,
             Climbed = host.Body is { HasState: true } up ? up.CaptureUp() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
             ChronicleNight = host.ChronicleNight.HasState ? host.ChronicleNight.Capture() : null,
@@ -475,6 +479,7 @@ public static class StateCodec
         host.Durability?.Restore(state.Placed, state.Tick, state.Used);
         host.Digging?.Restore(state.Dug);
         host.Body?.Restore(state.Wet);
+        host.Map?.RestoreOveruse(state.Overuse);
         host.Body?.RestoreUp(state.Climbed);
         host.Milestones.Restore(state.Milestones);
         host.ChronicleNight.Restore(state.ChronicleNight);
