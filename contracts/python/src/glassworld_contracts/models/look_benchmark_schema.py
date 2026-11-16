@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -123,6 +123,63 @@ class BenchmarkPass(BaseModel):
     )
 
 
+type HeldType = Annotated[str, Field(..., max_length=64, min_length=1)]
+
+
+type PlacedType = Annotated[str, Field(..., max_length=64, min_length=1)]
+
+
+type WeatherCycleItem = Annotated[str, Field(..., max_length=32, min_length=1)]
+
+
+class BenchmarkLateGame(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    held_types: list[HeldType] = Field(
+        ...,
+        description='Object types the crowd figures carry, one each in turn (catalog ids).',
+        max_length=64,
+        min_length=1,
+    )
+    placed_count: int = Field(
+        ..., description='Things laid around the crowd centre, on land.', ge=0, le=5000
+    )
+    placed_radius_m: float = Field(
+        ...,
+        description='Radius around the crowd centre the placed things and fires lie in.',
+        gt=0.0,
+        le=1000.0,
+    )
+    placed_types: list[PlacedType] = Field(
+        ...,
+        description='Object types of the placed things, in turn (catalog ids).',
+        max_length=64,
+        min_length=1,
+    )
+    fires: int = Field(
+        ..., description='Burning fires among the placed things.', ge=0, le=200
+    )
+    fire_type: str = Field(
+        ...,
+        description='Object type of a fire (catalog id).',
+        max_length=64,
+        min_length=1,
+    )
+    weather_cycle: list[WeatherCycleItem] = Field(
+        ...,
+        description='Weathers shown in turn within each pass (each needs a look, content/look/weather.json).',
+        max_length=16,
+        min_length=1,
+    )
+    weather_change_s: float = Field(
+        ...,
+        description='Real seconds between two weathers of the cycle.',
+        gt=0.0,
+        le=3600.0,
+    )
+
+
 class BenchmarkCrowd(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -233,4 +290,8 @@ class LookBenchmark(BaseModel):
         description='The passes in the order a full run measures them.',
         max_length=16,
         min_length=1,
+    )
+    late_game: BenchmarkLateGame | None = Field(
+        None,
+        description='B2810 (Marcel W2197): the late game scenario, run with --bench-scenario=late - every crowd figure carries a thing, placed things lie around the crowd (stores, tools, material), fires burn and the weather changes within each pass. Seed-fixed like the crowd. Omitted = only the start scenario.',
     )

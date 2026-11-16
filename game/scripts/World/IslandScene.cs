@@ -170,6 +170,12 @@ public partial class IslandScene : Node3D
         Func<double, double, double> groundAt = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
         _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), _quality.HullOutline);
         AddChild(_objects);
+        if (benchmark is not null && Arg("--bench-scenario") is { } scenario)
+        {
+            // A1775 (B2810): the late game lays its fires and things into the world before the objects are drawn.
+            PlanLateGame(benchmark, scenario, seed, host, IsLandFor(host, preset, terrain.UnitM, groundAt));
+        }
+
         _objects.Refresh(host.Snapshot().Objects);
         _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, _quality.Level);
         AddChild(_grass);

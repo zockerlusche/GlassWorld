@@ -217,4 +217,33 @@ public sealed class BenchmarkTests
 
         Assert.Contains(" adapter=unknown driver=unknown api=a-b build=dev", line, StringComparison.Ordinal);
     }
+    [Fact]
+    public void TheLateGameLaysOutFiresAndFiveHundredThingsOnLandTheSameForTheSameSeed()
+    {
+        // A1775 (B2810, Marcel W2197): the late game scenario - fires first, then the placed things in turn, all on land.
+        var data = Data().LateGame!;
+        static bool Land(double x, double z) => x > 0;
+        var plan = BenchmarkLatePlan.Build(data, 7, (0, 0), Land);
+        Assert.Equal(data.Fires + data.PlacedCount, plan.Placements.Count);
+        Assert.All(plan.Placements.Take(data.Fires), p => Assert.Equal(data.FireType, p.TypeId));
+        Assert.Equal(data.PlacedTypes.First(), plan.Placements[data.Fires].TypeId);
+        Assert.All(plan.Placements, p => Assert.True(p.X > 0 && Math.Sqrt((p.X * p.X) + (p.Z * p.Z)) <= data.PlacedRadiusM + 1e-9));
+        Assert.Equal(plan.Placements, BenchmarkLatePlan.Build(data, 7, (0, 0), Land).Placements);
+        Assert.NotEqual(plan.Placements, BenchmarkLatePlan.Build(data, 8, (0, 0), Land).Placements);
+        Assert.Throws<InvalidDataException>(() => BenchmarkLatePlan.Build(data, 7, (0, 0), (_, _) => false));
+    }
+
+    [Fact]
+    public void InTheLateGameEveryFigureCarriesAThingAndTheWeatherChangesInTurn()
+    {
+        var data = Data().LateGame!;
+        var plan = BenchmarkLatePlan.Build(data, 7, (0, 0), (_, _) => true);
+        var held = data.HeldTypes.ToList();
+        Assert.Equal(held[0], plan.HeldType(0));
+        Assert.Equal(held[1], plan.HeldType(held.Count + 1));
+        var cycle = data.WeatherCycle.ToList();
+        Assert.Equal(cycle[0], plan.WeatherAt(0));
+        Assert.Equal(cycle[1], plan.WeatherAt(data.WeatherChangeS + 0.1));
+        Assert.Equal(cycle[0], plan.WeatherAt(cycle.Count * data.WeatherChangeS));
+    }
 }
