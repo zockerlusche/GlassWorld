@@ -82,6 +82,11 @@
         "$ref": "#/$defs/BenchmarkPass"
       }
     },
+    "sound_volumes_db": {
+      "description": "A1829 (B8, KR5): bus volumes (dB, by bus id) of a run with --bench-sound=on - the world audio with the mixer on, the crowd's actions heard like the inhabitants'. The player's calm defaults (-60) would measure silence. Omitted = the mix data's defaults.",
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": -80, "maximum": 6 }
+    },
     "late_game": {
       "description": "B2810 (Marcel W2197): the late game scenario, run with --bench-scenario=late - every crowd figure carries a thing, placed things lie around the crowd (stores, tools, material), fires burn and the weather changes within each pass. Seed-fixed like the crowd. Omitted = only the start scenario.",
       "$ref": "#/$defs/BenchmarkLateGame"

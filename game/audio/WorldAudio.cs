@@ -58,6 +58,12 @@ public partial class WorldAudio : Node3D
     /// </summary>
     public Func<(Position Listener, double Zoom, double? LimitM)?>? Hearing { get; set; }
 
+    /// <summary>
+    /// A1829 (B8, KR5): more sound sources of the presentation only, heard like the inhabitants' actions - the benchmark's
+    /// placeholder crowd. Called once per frame; the events are taken (not kept). Null = none (the game).
+    /// </summary>
+    public Func<(IReadOnlyList<GlassWorld.Simulation.Inhabitants.WorldEvent> Events, IReadOnlyDictionary<string, Position> Positions)>? Extra { get; set; }
+
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
 
@@ -199,7 +205,8 @@ public partial class WorldAudio : Node3D
         PlayAmbience(listener);
         PlayFires(listener);
         var events = _feed.NewEvents();
-        if (events.Count == 0)
+        var extra = Extra?.Invoke();
+        if (events.Count == 0 && (extra is null || extra.Value.Events.Count == 0))
         {
             return;
         }
@@ -221,6 +228,15 @@ public partial class WorldAudio : Node3D
         }
 
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
+        if (extra is { } more && more.Events.Count > 0)
+        {
+            foreach (var (id, at) in more.Positions)
+            {
+                positions[id] = at;
+            }
+
+            events = [.. events, .. more.Events];
+        }
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
         var inventions = _inventionSounds;
         // A1515 (B2608): walking rustles only through plants; on sand, rock or snow the step sound of the ground.
@@ -670,6 +686,17 @@ public partial class WorldAudio : Node3D
     /// Sets the bus volumes: the player's choice from the settings (B6 R4), otherwise the default of the
     /// mix data. Buses that do not exist yet (no world audio) are skipped.
     /// </summary>
+    public void ApplyVolumes(IReadOnlyDictionary<string, double> playerDb)
+    {
+        if (_mixer is not null)
+        {
+            ApplyVolumes(_mixer.Mix, playerDb);
+        }
+    }
+
+    /// <summary>Sets the bus volumes of a mix (see the instance method).</summary>
+    /// <param name="mix">The mix data.</param>
+    /// <param name="playerDb">The player's volumes by bus key.</param>
     public static void ApplyVolumes(SoundMix mix, IReadOnlyDictionary<string, double> playerDb)
     {
         ArgumentNullException.ThrowIfNull(mix);
