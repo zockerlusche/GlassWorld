@@ -385,14 +385,23 @@ public partial class MainMenu : CanvasLayer
         // still being made when the player changes again is dropped. A quiet bar shows only when it takes a while.
         PreviewShown? shown = null;
         var latest = new LatestOnly<(GlassWorld.Simulation.Map.PreviewIsland Island, PreviewImage Image)>();
-        var pending = 0;
+        var running = false;
+        var again = false;
         var debounce = new Godot.Timer { OneShot = true, WaitTime = style.Tokens.Window.PreviewDebounceMs / 1000.0, Autostart = data.Preview is not null };
         var slow = new Godot.Timer { OneShot = true, WaitTime = Math.Max(0.01, style.Tokens.Window.PreviewProgressAfterMs / 1000.0) };
         window.AddChild(debounce);
         window.AddChild(slow);
-        slow.Timeout += () => busy.Visible = pending > 0;
+        slow.Timeout += () => busy.Visible = running;
         async Task RefreshAsync()
         {
+            // At most one island is generated at a time (review GW3 #586): a change during a run only marks that one more
+            // run is due, which starts with the newest choice when the running one ends.
+            if (running)
+            {
+                again = true;
+                return;
+            }
+
             var (ok, value) = NewWorldModel.ParseSeed(seed.Text);
             if (data.Preview is not { } make || !ok || value is not { } s)
             {
@@ -400,7 +409,8 @@ public partial class MainMenu : CanvasLayer
             }
 
             var asked = Chosen(s);
-            pending++;
+            running = true;
+            again = false;
             slow.Start();
             try
             {
@@ -421,12 +431,25 @@ public partial class MainMenu : CanvasLayer
             {
                 GD.PushWarning($"NEW_WORLD_PREVIEW failed: {e.Message}");
             }
+            catch (ArgumentException e)
+            {
+                GD.PushWarning($"NEW_WORLD_PREVIEW failed: {e.Message}");
+            }
+            catch (Contracts.Validation.ContractViolationException e)
+            {
+                // Also the first content load inside the preview maker (its Lazy keeps the failure: no preview then).
+                GD.PushWarning($"NEW_WORLD_PREVIEW failed: {e.Message}");
+            }
             finally
             {
-                pending--;
+                running = false;
                 if (GodotObject.IsInstanceValid(busy))
                 {
-                    busy.Visible = pending > 0 && slow.IsStopped();
+                    busy.Visible = again;
+                    if (again)
+                    {
+                        _ = RefreshAsync();
+                    }
                 }
             }
         }
