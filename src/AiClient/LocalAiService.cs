@@ -32,11 +32,12 @@ public static class LocalAiService
 
     /// <summary>Starts the service and waits for its ready line.</summary>
     /// <param name="repositoryRoot">Repository root (see <see cref="RepositoryRoot"/>).</param>
-    /// <param name="dataDirectory">The host's folder for the service's lock file and logs.</param>
+    /// <param name="dataDirectory">The host's folder for the service's lock file (and its logs when no log folder is given).</param>
+    /// <param name="logDirectory">Where the service writes its logs (A1787 part 2: the game's log folder); null = <c>logs</c> in the data folder.</param>
     /// <exception cref="TimeoutException">No ready line in time.</exception>
     /// <exception cref="Win32Exception"><c>uv</c> could not be started.</exception>
     /// <exception cref="InvalidOperationException">The service ended before its ready line.</exception>
-    public static AiServiceProcess Start(string repositoryRoot, string dataDirectory)
+    public static AiServiceProcess Start(string repositoryRoot, string dataDirectory, string? logDirectory = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(repositoryRoot);
         ArgumentException.ThrowIfNullOrEmpty(dataDirectory);
@@ -48,7 +49,7 @@ public static class LocalAiService
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["GW_AI_LOCK_DIR"] = Path.Combine(dataDirectory, "lock"),
-                ["GW_AI_LOG_DIR"] = Path.Combine(dataDirectory, "logs"),
+                ["GW_AI_LOG_DIR"] = logDirectory ?? Path.Combine(dataDirectory, "logs"),
             });
     }
 

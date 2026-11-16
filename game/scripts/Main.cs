@@ -114,10 +114,16 @@ public partial class Main : Node3D
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
         _library = new WorldLibrary(GameData.At("worlds"));
+        ArchiveGoneWorldLogs(_library.Root);
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
-            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion);
+            var quality = ContractSerializer.Deserialize<LookQuality>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "look", "quality.json")));
+            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion)
+            {
+                QualityLevels = [.. quality.Levels.Select(l => l.Id)],
+                QualityDefault = quality.DefaultLevel,
+            };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
@@ -314,6 +320,10 @@ public partial class Main : Node3D
         }
         _screen?.ApplySettings(settings, _style);
         WorldAudio.ApplyVolumes(_mix, settings.BusVolumesDb);
+
+        // A1748: the graphics - window, V-Sync, frame rate now; the quality level when the next world is built.
+        DisplaySettings.Apply(settings);
+        WorldPresenter.QualityChoice = settings.Quality;
     }
 
     /// <summary>
@@ -657,9 +667,16 @@ public partial class Main : Node3D
         window.Changed += settings =>
         {
             // Applied at once (also audible for volumes); written when the window closes or the game quits.
+            var before = _settings;
             _settings = settings.Clamp(_limits);
             _settingsDirty = true;
             ApplySettings(_settings);
+
+            // A1748: a new window mode or size asks 'Behalten?' and falls back without an answer (D957 v4 section 10).
+            if (DisplayChoices.NeedsKeep(before, _settings))
+            {
+                AskKeep(window, before);
+            }
 
             // UI and text size change the logical screen; fit the window again after the change.
             Callable.From(() =>
@@ -683,8 +700,98 @@ public partial class Main : Node3D
         show(window);
     }
 
+    /// <summary>
+    /// A1748 (D957 v4 section 10): after a change of window mode or size, 'Behalten?' with the seconds left; 'Behalten' keeps
+    /// it, 'Zurück' or no answer within the data's seconds puts the window part of <paramref name="before"/> back.
+    /// </summary>
+    private void AskKeep(SettingsWindow settingsWindow, PlayerSettings before)
+    {
+        if (_style is null || _limits is null)
+        {
+            return;
+        }
+
+        var countdown = new KeepCountdown(_style.Tokens.Graphics.KeepSeconds);
+        var ask = new GwWindow { Name = "KeepDisplay" };
+        ask.Setup("ui.settings.keep.title", _style);
+        var line = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = AutoTranslateModeEnum.Disabled };
+        void Show() => line.Text = TextFill.Fill(Tr("ui.settings.keep.text"), new Dictionary<string, string> { ["seconds"] = countdown.SecondsLeft.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        Show();
+        ask.Content.AddChild(line);
+        var done = false;
+        void FallBack()
+        {
+            if (done)
+            {
+                return;
+            }
+
+            done = true;
+            _settings = DisplayChoices.FallBack(_settings, before).Clamp(_limits);
+            ApplySettings(_settings);
+            if (IsInstanceValid(settingsWindow))
+            {
+                settingsWindow.Show(_settings);
+            }
+
+            ask.Close();
+        }
+
+        ask.AddAction("ui.settings.keep.back").Pressed += FallBack;
+        ask.AddAction("ui.settings.keep.keep").Pressed += () =>
+        {
+            done = true;
+            ask.Close();
+        };
+        var timer = new Godot.Timer { WaitTime = 0.25, Autostart = true };
+        timer.Timeout += () =>
+        {
+            if (done)
+            {
+                timer.QueueFree();
+                return;
+            }
+
+            if (countdown.Tick(timer.WaitTime))
+            {
+                FallBack();
+                return;
+            }
+
+            Show();
+        };
+        ask.AddChild(timer);
+        if (_screen is not null)
+        {
+            _screen.ShowWindow(ask, modal: true);
+        }
+        else
+        {
+            _menu?.ShowWindow(ask);
+        }
+    }
+
     /// <summary>Where the player's copies of diagnostics reports lie (W1703): the game's own folder, which it can open.</summary>
     private static string DiagnosticsFolder() => GameData.At("diagnostics");
+
+    /// <summary>
+    /// A1787 part 2 (Marcel W2246): the logs of worlds that are gone (a world folder removed by hand) move to the log
+    /// folder's archive - never deleted. A failure here is no reason not to start: it is tried again next time.
+    /// </summary>
+    private static void ArchiveGoneWorldLogs(string worldsRoot)
+    {
+        try
+        {
+            foreach (var moved in WorldLogArchive.ArchiveOrphans(worldsRoot, GameData.Logs, DateTimeOffset.Now))
+            {
+                GD.Print($"WORLD_LOGS_ARCHIVED {moved}");
+            }
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"WORLD_LOGS_ARCHIVE_FAILED {e.GetType().Name}: {e.Message}");
+        }
+    }
 
     /// <summary>
     /// Once per world (W1703 rule 2): if an AI needs the player, one calm hint that points to the settings.

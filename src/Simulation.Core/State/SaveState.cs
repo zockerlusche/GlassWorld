@@ -207,6 +207,9 @@ public sealed record SaveState(
     /// <summary>Talks between two inhabitants (A1735): open dialogue jobs, last talk per pair; null = none yet.</summary>
     public Inhabitants.DialogueState? Dialogue { get; init; }
 
+    /// <summary>The day requests of the last game hour (A1587); null = none counted.</summary>
+    public Decisions.AiBudgetState? AiBudget { get; init; }
+
     /// <summary>The night queue (A1766): jobs held by day for the night; null = none.</summary>
     public Night.NightQueueState? NightQueue { get; init; }
 }
@@ -296,6 +299,7 @@ public static class StateCodec
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
             ChronicleNight = host.ChronicleNight.HasState ? host.ChronicleNight.Capture() : null,
             Dialogue = host.Dialogue.HasState ? host.Dialogue.Capture() : null,
+            AiBudget = host.Budget.HasState ? host.Budget.Capture() : null,
             NightQueue = host.NightQueue.HasState ? host.NightQueue.Capture() : null,
         };
     }
@@ -480,6 +484,7 @@ public static class StateCodec
         host.Milestones.Restore(state.Milestones);
         host.ChronicleNight.Restore(state.ChronicleNight);
         host.Dialogue.Restore(state.Dialogue);
+        host.Budget.Restore(state.AiBudget);
         host.NightQueue.Restore(state.NightQueue);
         host.UseLoggedPlayerSettings();
         return host;

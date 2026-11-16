@@ -34,3 +34,13 @@ def test_the_worlds_go_where_the_game_keeps_its_data(
     the world lands in that folder's worlds/, where the exported game looks."""
     monkeypatch.setenv("GLASSWORLD_DATA", str(tmp_path))
     assert run.worlds_folder() == tmp_path / "worlds"
+
+
+def test_the_logs_go_into_the_log_folder_beside_daten(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A1787 part 2 (Marcel W2246): with a package's daten/ the logs go to log/ next to it."""
+    monkeypatch.setenv("GLASSWORLD_DATA", str(tmp_path / "daten"))
+    assert run.logs_folder() == tmp_path / "log"
+    monkeypatch.setenv("GLASSWORLD_DATA", str(tmp_path / "other"))
+    assert run.logs_folder() == tmp_path / "other" / "log"

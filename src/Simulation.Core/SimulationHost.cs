@@ -214,6 +214,12 @@ public sealed class SimulationHost
                         },
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
+
+                // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
+                ObstacleRadiusCm = content.Objects.TypeIds
+                    .Where(t => content.Objects.Params(t).ObstacleRadiusCm is > 0)
+                    .ToDictionary(t => t, t => content.Objects.Params(t).ObstacleRadiusCm!.Value, StringComparer.Ordinal),
+                BodyRadiusM = (content.Gaits.Data.Spacing?.MinSeparationM ?? 0) / 2,
                 Tides = tides,
                 TideWalk = tides.Active
                     ? new TideWalkLayer(
@@ -347,6 +353,11 @@ public sealed class SimulationHost
                 milestonesRef?.TechLevel ?? content.Inventions.Settings.TechLevel),
         };
         CheckNightTriggers(settings, content.Knowledge);
+
+        // A1587 (B2804, D1161): the game's speed, the followed inhabitant and the AI's job time (logged commands) and
+        // the day requests they allow per game hour (data: decider throughput), shared by the decider and the talks.
+        var pace = new AiPace(world.Calendar.Settings.FastForwardFactors);
+        var budget = new AiBudget(settings.Throughput, pace, world.Calendar);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, content.Inventions.Guard, displayLocale)
         {
             WeatherSource = weather,
@@ -355,6 +366,7 @@ public sealed class SimulationHost
             // A1487: questions wait for the night only where the night can answer them (a job port).
             NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
             ValidateRequests = options.ValidateRequests,
+            Budget = budget,
         };
         inhabitants.QuestionOpen = decisions.IsAskingAbout;
 
@@ -621,6 +633,7 @@ public sealed class SimulationHost
         {
             ValidateRequests = options.ValidateRequests,
             PerceivedTypes = decisions.PerceivedTypes,
+            Budget = budget,
             // D1119 §5: by day in night_only a talk has no words (it belongs to its moment, it is not queued).
             Quiet = () => nightQueue.HoldsNow,
         };
@@ -628,7 +641,7 @@ public sealed class SimulationHost
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.
         // Exploration right after the inhabitants: who has moved in a tick looks around in the same tick.
-        world.Add(objects).Add(decisions).Add(inhabitants);
+        world.Add(objects).Add(budget).Add(decisions).Add(inhabitants);
         if (exploration is not null)
         {
             world.Add(exploration);
@@ -683,6 +696,7 @@ public sealed class SimulationHost
 
             inhabitants.ShelteredAt = body.Sheltered;
             inhabitants.StaySheltered = bodyData.StaySheltered;
+            inhabitants.ShelterProperty = bodyData.Wetness.ShelterProperty;
             var wetFrom = bodyData.Wetness.WetFromPermille ?? 1;
             var wetBody = body;
             decisions.IsWet = inhabitant => wetBody.WetPermille(inhabitant.Id) >= wetFrom;
@@ -755,7 +769,8 @@ public sealed class SimulationHost
             Diary = diary,
             LearningLog = learningLog,
             Favourites = favourites,
-            Pace = new AiPace(world.Calendar.Settings.FastForwardFactors),
+            Pace = pace,
+            Budget = budget,
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
@@ -1077,6 +1092,9 @@ public sealed class SimulationHost
 
     /// <summary>The game's speed, whom the camera follows and how long an AI job takes, from logged commands (A1587, B2804).</summary>
     public AiPace Pace { get; private init; } = null!;
+
+    /// <summary>How many day requests may go to the AI per game hour (A1587; data: decider throughput).</summary>
+    public AiBudget Budget { get; private init; } = null!;
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;

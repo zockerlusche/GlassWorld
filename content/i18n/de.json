@@ -243,6 +243,10 @@
       "text": "Exportieren"
     },
     {
+      "key": "ui.memory.go_to_thing",
+      "text": "Hinschauen, wo es ist"
+    },
+    {
       "key": "ui.card.memory",
       "text": "Erinnerungen"
     },
@@ -549,6 +553,110 @@
     {
       "key": "ui.settings.hints_until_dismissed",
       "text": "Hinweise bleiben, bis ich sie schließe"
+    },
+    {
+      "key": "ui.settings.data_folder",
+      "text": "Datenordner"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "Hier liegen die Welten, Einstellungen und Protokolle dieses Spiels."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Öffnen"
+    },
+    {
+      "key": "ui.settings.window_mode",
+      "text": "Fenstermodus"
+    },
+    {
+      "key": "ui.settings.window_mode.desc",
+      "text": "Im Fenster, als Vollbild (das Spiel allein) oder randlos über den ganzen Bildschirm. Nach dem Wechsel fragt das Spiel, ob du ihn behalten willst."
+    },
+    {
+      "key": "ui.settings.window_mode.start",
+      "text": "Wie beim Start"
+    },
+    {
+      "key": "ui.settings.window_mode.windowed",
+      "text": "Fenster"
+    },
+    {
+      "key": "ui.settings.window_mode.fullscreen",
+      "text": "Vollbild"
+    },
+    {
+      "key": "ui.settings.window_mode.borderless",
+      "text": "Randlos"
+    },
+    {
+      "key": "ui.settings.resolution",
+      "text": "Fenstergröße"
+    },
+    {
+      "key": "ui.settings.resolution.desc",
+      "text": "Wie groß das Fenster im Fenstermodus ist. Im Vollbild gilt die Größe des Bildschirms."
+    },
+    {
+      "key": "ui.settings.resolution.start",
+      "text": "Wie beim Start"
+    },
+    {
+      "key": "ui.settings.vsync",
+      "text": "V-Sync"
+    },
+    {
+      "key": "ui.settings.vsync.desc",
+      "text": "Wartet auf den Bildschirm, damit das Bild nicht zerreißt. Aus kann flüssiger, aber unruhiger sein."
+    },
+    {
+      "key": "ui.settings.max_fps",
+      "text": "Bildraten-Grenze"
+    },
+    {
+      "key": "ui.settings.max_fps.desc",
+      "text": "Höchstens so viele Bilder pro Sekunde. Eine Grenze schont Rechner und Lüfter."
+    },
+    {
+      "key": "ui.settings.max_fps.none",
+      "text": "Keine Grenze"
+    },
+    {
+      "key": "ui.settings.quality",
+      "text": "Qualität"
+    },
+    {
+      "key": "ui.settings.quality.desc",
+      "text": "Schatten, Gras und Sichtweite. Gilt ab dem nächsten Laden einer Welt."
+    },
+    {
+      "key": "ui.settings.quality.low",
+      "text": "Niedrig"
+    },
+    {
+      "key": "ui.settings.quality.medium",
+      "text": "Mittel"
+    },
+    {
+      "key": "ui.settings.quality.high",
+      "text": "Hoch"
+    },
+    {
+      "key": "ui.settings.keep.title",
+      "text": "Behalten?"
+    },
+    {
+      "key": "ui.settings.keep.text",
+      "text": "Ist das Bild so in Ordnung? Ohne Antwort geht es in {seconds} s zurück."
+    },
+    {
+      "key": "ui.settings.keep.keep",
+      "text": "Behalten"
+    },
+    {
+      "key": "ui.settings.keep.back",
+      "text": "Zurück"
     },
     {
       "key": "ui.settings.language",

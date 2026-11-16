@@ -315,11 +315,12 @@ public partial class WorldPresenter : Node3D
         // (R16, review GW1 #131) - never made-up mock words in front of the player.
         host.Conversation.Port = _conversationPort;
         // A1719 (B2767): the run trace reads along; one that cannot start is no reason to stop the game.
-        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 } traceFolder)
+        // A1787 part 2 (Marcel W2246): in the game's log folder, one folder per world - it outlives the world folder.
+        if (savePath is not null && Path.GetDirectoryName(savePath) is { Length: > 0 })
         {
             try
             {
-                _trace = RunTraceWriter.Start(host, traceFolder, _contentDirectory);
+                _trace = RunTraceWriter.Start(host, GameData.LogsFor(savePath), _contentDirectory);
                 if (_trace is not null)
                 {
                     _trace.Failed += e => GD.PushWarning($"RUN_TRACE_OFF {e.GetType().Name}: {e.Message}");
@@ -353,13 +354,13 @@ public partial class WorldPresenter : Node3D
                     SaveFailed?.Invoke(e);
                 }
 
-                // A1620 (B2685): the learning log of the finished day, next to the save (GW3 #23238). Its own
+                // A1620 (B2685): the learning log of the finished day, with the world's logs (A1787 part 2). Its own
                 // try (review GW3 #353): a log that cannot be written is no failed save and never reaches World.Step.
                 try
                 {
-                    if (Path.GetDirectoryName(SavePath) is { Length: > 0 } worldFolder)
+                    if (SavePath is { Length: > 0 } save && Path.GetDirectoryName(save) is { Length: > 0 })
                     {
-                        LearningLogWriter.WriteFinishedDays(host, worldFolder, _contentDirectory);
+                        LearningLogWriter.WriteFinishedDays(host, GameData.LogsFor(save), _contentDirectory);
                     }
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
@@ -534,7 +535,7 @@ public partial class WorldPresenter : Node3D
         var repository = LocalAiService.RepositoryRoot(ContentLocator.Variant is null ? contentDirectory : ContentLocator.RealContentDirectory(), System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         try
         {
-            _service = LocalAiService.Start(repository, GameData.At("ai-service"));
+            _service = LocalAiService.Start(repository, GameData.At("ai-service"), Path.Combine(GameData.Logs, "ki"));
             if (_service.StaleKilled is { } stale)
             {
                 GD.Print($"AI_SERVICE ended leftover service from an earlier session (pid {stale})");
@@ -614,6 +615,7 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            MarkThing(e); // A1796: a thing just built gets a calm place mark
             if (LiesNow(e.InhabitantId))
             {
                 // D1112 #8: a figure lying asleep neither speaks nor thinks on screen (the core keeps sleepers quiet too, A1710).
