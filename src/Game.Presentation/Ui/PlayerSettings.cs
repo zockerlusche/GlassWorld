@@ -83,6 +83,9 @@ public sealed record PlayerSettings
     /// <summary>A1815: the player's own key per action (its physical place, e.g. 'W'); an action without one keeps its defaults.</summary>
     public Dictionary<string, string> KeyBindings { get; init; } = new(StringComparer.Ordinal);
 
+    /// <summary>A1789 (B2826): where the player put each kind of window ('x,y' by title key).</summary>
+    public Dictionary<string, string> WindowPlaces { get; init; } = new(StringComparer.Ordinal);
+
     /// <summary>A1749 (B2825): turning with the mouse goes the other way across.</summary>
     public bool InvertTurnX { get; init; }
 
@@ -181,6 +184,9 @@ public sealed record PlayerSettings
 
             // A1815: only the data's actions, no empty or reserved key.
             KeyBindings = Ui.KeyBindings.Clean(KeyBindings, limits.KeyActions),
+
+            // A1789: only readable places, not too many.
+            WindowPlaces = WindowPlacement.Clean(WindowPlaces),
 
             // A1749: a mode or speed the game does not know (hand-edited) falls back to the default.
             AutoSave = AutoSave is not null && GameOptions.AutoSaveModes.Contains(AutoSave, StringComparer.Ordinal) ? AutoSave : GameOptions.AutoSaveDay,

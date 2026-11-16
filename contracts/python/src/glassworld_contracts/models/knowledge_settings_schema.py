@@ -287,6 +287,47 @@ class KnowledgeReview(BaseModel):
     )
 
 
+class KnowledgeMaterialIdeas(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    actions: list[common_schema.VocabId] = Field(
+        ...,
+        description='Actions on a thing after which an idea may sprout (vocabulary actions).',
+        max_length=16,
+        min_length=1,
+    )
+    properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='True properties that make a thing material to make something from (vocabulary properties); any one counts.',
+        max_length=16,
+        min_length=1,
+    )
+    chance: float = Field(
+        ...,
+        description='Chance that an idea sprouts after such an action (before the trait factors). Placeholder (TL).',
+        ge=0.0,
+        le=1.0,
+    )
+    chance_by_trait: list[common_schema.TraitCurve] | None = Field(
+        None,
+        description='Trait factors the chance is multiplied by (curiosity, drive - D1086: how often, never which).',
+        max_length=4,
+    )
+    max_per_day: int = Field(
+        ...,
+        description='At most this many such ideas per inhabitant and game day.',
+        ge=1,
+        le=10,
+    )
+    text: str = Field(
+        ...,
+        description="The idea's internal English text for the AI ({type} = the type id); never shown as is.",
+        max_length=120,
+        min_length=1,
+    )
+
+
 type DecayPerDay = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
@@ -616,6 +657,10 @@ class KnowledgeSettings(BaseModel):
     imprinting: KnowledgeImprinting | None = None
     memory: KnowledgeMemory | None = None
     night_questions: KnowledgeNightQuestions | None = None
+    material_ideas: KnowledgeMaterialIdeas | None = Field(
+        None,
+        description="A1581 (Marcel W2243, D1212 c): by day, handling a thing of a material kind may let an idea sprout - 'what could I make from it?' - in the inhabitant's own ideas (the same store as the nightly look back; it grows there and may ripen into a wish to invent, B2687). Absent = ideas come only from the night.",
+    )
     review: KnowledgeReview | None = Field(
         None,
         description='The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.',

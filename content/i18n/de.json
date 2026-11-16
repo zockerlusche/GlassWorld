@@ -839,6 +839,14 @@
       "text": "Schnell (zweite Stufe)"
     },
     {
+      "key": "ui.card.favourite_tooltip",
+      "text": "Lieblinge stehen in der Ecke oben, und du hörst eher von ihnen."
+    },
+    {
+      "key": "ui.memory.export_tooltip",
+      "text": "Speichert die Erinnerungen als Seite zum Lesen und als Text in den Datenordner."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },

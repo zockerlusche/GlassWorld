@@ -649,6 +649,49 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMaterialIdeas
+    {
+
+        /// <summary>
+        /// Actions on a thing after which an idea may sprout (vocabulary actions).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// True properties that make a thing material to make something from (vocabulary properties); any one counts.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties")]
+        public System.Collections.Generic.ICollection<string> Properties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Chance that an idea sprouts after such an action (before the trait factors). Placeholder (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("chance")]
+        public double Chance { get; set; } = default!;
+
+        /// <summary>
+        /// Trait factors the chance is multiplied by (curiosity, drive - D1086: how often, never which).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("chance_by_trait")]
+        public System.Collections.Generic.ICollection<TraitCurve>? ChanceByTrait { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many such ideas per inhabitant and game day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_per_day")]
+        public int MaxPerDay { get; set; } = default!;
+
+        /// <summary>
+        /// The idea's internal English text for the AI ({type} = the type id); never shown as is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// D1017 G1 (B2707): knowledge fades when it is not used. Once a game day every belief's strength is 1 - decay_per_day[its source] x days since it was last used (learned, acted on); the inhabitant is then as sure as before times the strength (a fading belief reaches the AI as a weaker one), below forgotten_below the belief leaves its mind and is kept as forgotten (nothing is deleted). A source not listed never fades. Absent = nothing fades.
     /// </summary>
@@ -785,6 +828,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("night_questions")]
         public KnowledgeNightQuestions? NightQuestions { get; set; } = default!;
+
+        /// <summary>
+        /// A1581 (Marcel W2243, D1212 c): by day, handling a thing of a material kind may let an idea sprout - 'what could I make from it?' - in the inhabitant's own ideas (the same store as the nightly look back; it grows there and may ripen into a wish to invent, B2687). Absent = ideas come only from the night.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("material_ideas")]
+        public KnowledgeMaterialIdeas? MaterialIdeas { get; set; } = default!;
 
         /// <summary>
         /// The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.

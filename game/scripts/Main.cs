@@ -137,6 +137,16 @@ public partial class Main : Node3D
             _settingsPath = SettingsStore.DefaultPath;
             _settings = _smokeFrames > 0 || _shotsFolder is not null ? PlayerSettings.Parse(null, _limits) : SettingsStore.Load(_settingsPath, _limits);
 
+            // A1789 (B2826): a moved window is kept in the settings (written with them when the game quits or settings close).
+            GwWindow.PlaceChosen += (key, place) =>
+            {
+                if (_limits is not null)
+                {
+                    _settings = (_settings with { WindowPlaces = new Dictionary<string, string>(_settings.WindowPlaces, StringComparer.Ordinal) { [key] = WindowPlacement.Format((place.X, place.Y)) } }).Clamp(_limits);
+                    _settingsDirty = true;
+                }
+            };
+
             ApplySettings(_settings);
         }
 
@@ -348,6 +358,16 @@ public partial class Main : Node3D
             InputDefaults.Apply(_limits.KeyActions, settings.KeyBindings);
         }
 
+        // A1789 (B2826): where the player put the windows.
+        GwWindow.Remembered.Clear();
+        foreach (var (key, text) in settings.WindowPlaces)
+        {
+            if (WindowPlacement.Parse(text) is { } place)
+            {
+                GwWindow.Remembered[key] = new Vector2(place.X, place.Y);
+            }
+        }
+
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
     }
@@ -465,7 +485,6 @@ public partial class Main : Node3D
                 var message = new GwWindow();
                 message.Setup("ui.worlds.title", _style);
                 message.Content.AddChild(new Label { Text = "msg.load.failed", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-                message.AddAction("ui.common.close").Pressed += message.Close;
                 _menu.Rebuild();
                 _menu.ShowWindow(message);
             }
