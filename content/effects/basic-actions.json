@@ -9,6 +9,8 @@
     { "action": "drop", "destination": "here", "duration_minutes": 1, "reach_m": 0, "releases": true },
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
+    { "action": "write", "destination": "here", "duration_minutes": 30, "reach_m": 1.0 },
+    { "action": "read", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
     { "action": "dig", "destination": "here", "duration_minutes": 30, "reach_m": 0 },
     { "action": "use_instead", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "decider_option": false },
@@ -79,6 +81,8 @@
       { "kind": "need", "id": "warmth", "delta": 0.2 }
     ] },
     { "action": "dig", "requires_property": null, "consumes_target": false, "effects": [] },
+    { "action": "write", "requires_property": null, "consumes_target": false, "effects": [] },
+    { "action": "read", "requires_property": null, "consumes_target": false, "effects": [] },
     { "action": "build_step", "requires_property": null, "consumes_target": true, "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },

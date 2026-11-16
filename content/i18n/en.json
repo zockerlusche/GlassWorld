@@ -1027,6 +1027,14 @@
       "text": "Take off"
     },
     {
+      "key": "vocab.action.write",
+      "text": "write"
+    },
+    {
+      "key": "vocab.action.read",
+      "text": "read"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -2245,6 +2253,10 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Message knocks again"
+    },
+    {
+      "key": "vocab.event.text_written",
+      "text": "Wrote something down"
     },
     {
       "key": "vocab.event.text_read",
