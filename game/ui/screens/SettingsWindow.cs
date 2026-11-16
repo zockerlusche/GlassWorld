@@ -267,6 +267,23 @@ public partial class SettingsWindow : GwWindow
                     s => s.Resolution, v => _settings with { Resolution = v }), "ui.settings.resolution.desc");
                 break;
 
+            // A1749 (B2825): the mouse axes, each on its own; the default is as before.
+            case "invert_turn_x":
+                Row("ui.settings.invert_turn_x", Toggle(settings.InvertTurnX, v => _settings with { InvertTurnX = v }, s => s.InvertTurnX), "ui.settings.invert_turn_x.desc");
+                break;
+
+            case "invert_turn_y":
+                Row("ui.settings.invert_turn_y", Toggle(settings.InvertTurnY, v => _settings with { InvertTurnY = v }, s => s.InvertTurnY), "ui.settings.invert_turn_y.desc");
+                break;
+
+            case "invert_pan_x":
+                Row("ui.settings.invert_pan_x", Toggle(settings.InvertPanX, v => _settings with { InvertPanX = v }, s => s.InvertPanX), "ui.settings.invert_pan_x.desc");
+                break;
+
+            case "invert_pan_y":
+                Row("ui.settings.invert_pan_y", Toggle(settings.InvertPanY, v => _settings with { InvertPanY = v }, s => s.InvertPanY), "ui.settings.invert_pan_y.desc");
+                break;
+
             case "vsync":
                 Row("ui.settings.vsync", Toggle(settings.Vsync, v => _settings with { Vsync = v }, s => s.Vsync), "ui.settings.vsync.desc");
                 break;
@@ -320,6 +337,10 @@ public partial class SettingsWindow : GwWindow
                 "window_mode" => s with { WindowMode = d.WindowMode },
                 "resolution" => s with { Resolution = d.Resolution },
                 "vsync" => s with { Vsync = d.Vsync },
+                "invert_turn_x" => s with { InvertTurnX = d.InvertTurnX },
+                "invert_turn_y" => s with { InvertTurnY = d.InvertTurnY },
+                "invert_pan_x" => s with { InvertPanX = d.InvertPanX },
+                "invert_pan_y" => s with { InvertPanY = d.InvertPanY },
                 "max_fps" => s with { MaxFps = d.MaxFps },
                 "quality" => s with { Quality = d.Quality },
                 _ => s,

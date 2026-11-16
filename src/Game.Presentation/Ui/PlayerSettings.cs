@@ -70,6 +70,21 @@ public sealed record PlayerSettings
     /// <summary>Mix defaults version the saved volumes belong to (review #106: new defaults reset old volumes once).</summary>
     public int MixDefaultsVersion { get; init; }
 
+    /// <summary>A1749 (B2825): turning with the mouse goes the other way across.</summary>
+    public bool InvertTurnX { get; init; }
+
+    /// <summary>A1749 (B2825): tilting with the mouse goes the other way up and down.</summary>
+    public bool InvertTurnY { get; init; }
+
+    /// <summary>A1749 (B2825): moving the view with the mouse goes the other way across.</summary>
+    public bool InvertPanX { get; init; }
+
+    /// <summary>A1749 (B2825): moving the view with the mouse goes the other way up and down.</summary>
+    public bool InvertPanY { get; init; }
+
+    /// <summary>A1749: the mouse axes for the camera.</summary>
+    public MouseAxes ToMouseAxes() => new(InvertTurnX, InvertTurnY, InvertPanX, InvertPanY);
+
     /// <summary>A1748: window mode (<see cref="DisplayChoices.WindowModes"/>), null = as the game starts.</summary>
     public string? WindowMode { get; init; }
 
