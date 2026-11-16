@@ -40,12 +40,20 @@ class ChatResult:
 
 class OllamaClient:
     def __init__(
-        self, base_url: str, model: str, client: httpx.AsyncClient, keep_alive: str
+        self,
+        base_url: str,
+        model: str,
+        client: httpx.AsyncClient,
+        keep_alive: str,
+        seed_offset: int = 0,
     ) -> None:
         self._base = base_url.rstrip("/")
         self._model = model
         self._client = client
         self._keep_alive = keep_alive
+        # R27 (D827 T1): the acceptance runs one world N times with other sampling - the offset
+        # shifts every seed sent to the model; the logs keep the request's own seed.
+        self._seed_offset = seed_offset
 
     @property
     def model(self) -> str:
@@ -90,7 +98,11 @@ class OllamaClient:
             "stream": False,
             "think": False,
             "keep_alive": self._keep_alive,
-            "options": {"seed": seed, "temperature": temperature, "num_ctx": num_ctx},
+            "options": {
+                "seed": (seed + self._seed_offset) % 2_147_483_648,
+                "temperature": temperature,
+                "num_ctx": num_ctx,
+            },
         }
         started = time.perf_counter()
         data = await self._post("/api/chat", body, timeout)

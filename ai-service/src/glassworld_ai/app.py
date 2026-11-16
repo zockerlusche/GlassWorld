@@ -156,7 +156,11 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         async with httpx.AsyncClient(transport=transport) as client:
             ollama = OllamaClient(
-                str(settings.ollama_url), settings.decider_model, client, settings.keep_alive
+                str(settings.ollama_url),
+                settings.decider_model,
+                client,
+                settings.keep_alive,
+                seed_offset=settings.sampling_seed_offset,
             )
             app.state.ollama = ollama
             setup: OllamaSetup = app.state.ollama_setup
