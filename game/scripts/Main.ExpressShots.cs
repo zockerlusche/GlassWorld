@@ -117,6 +117,7 @@ public partial class Main
                 if (spec == "ore")
                 {
                     GD.Print($"EXPRESS_SHOT_ORE {(ore is null ? "none" : $"{ore.Id} at {ore.Position.X:0.0},{ore.Position.Z:0.0}")}");
+                    _world.ShowCoverForShots(1000); // the outcrop may lie where nobody went yet
                     if (ore is null || !_world.LookAt(ore.Position.X, ore.Position.Z, ExpressShotDistanceM * 1.6))
                     {
                         continue;

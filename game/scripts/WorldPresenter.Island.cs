@@ -377,6 +377,9 @@ public partial class WorldPresenter
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
     public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
 
+    /// <summary>Check runs only (A1578): the cloud cover shows at least this share of the island as seen (permille).</summary>
+    public void ShowCoverForShots(int permille) => _cover?.ShowShare(permille);
+
     /// <summary>
     /// Check runs (A1375): the camera looks at a spot of the island from <paramref name="distanceM"/>, as if the
     /// player had taken it (the observer stands back). False on the placeholder.
