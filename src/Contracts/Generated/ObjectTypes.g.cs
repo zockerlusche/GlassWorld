@@ -73,6 +73,13 @@ namespace GlassWorld.Contracts
         public int? CrownRadiusCm { get; set; } = default!;
 
         /// <summary>
+        /// A1830: the object type that stays at its place when a process uses this thing up (a felled tree leaves its stump); it goes again when the thing grows back there. Omitted = nothing stays.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("leaves_behind")]
+        public string? LeavesBehind { get; set; } = default!;
+
+        /// <summary>
         /// Radius of the solid part on the ground that nobody walks through (a trunk, a rock), in centimetres (A1790): the path search goes around the cells it covers, and a walk to the thing itself ends in front of it. Omitted or 0 = no obstacle. Placeholder values.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

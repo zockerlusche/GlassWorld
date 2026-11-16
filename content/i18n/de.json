@@ -1519,6 +1519,10 @@
       "text": "Tragbar"
     },
     {
+      "key": "vocab.property.rooted",
+      "text": "Verwurzelt"
+    },
+    {
       "key": "vocab.property.salty",
       "text": "Salzig"
     },
@@ -1693,6 +1697,10 @@
     {
       "key": "vocab.process.split",
       "text": "Spalten"
+    },
+    {
+      "key": "vocab.process.fell",
+      "text": "Fällen"
     },
     {
       "key": "vocab.process.bind",
@@ -1921,6 +1929,14 @@
     {
       "key": "vocab.object.dry_wood",
       "text": "Trockenes Holz"
+    },
+    {
+      "key": "vocab.object.tree_stump",
+      "text": "Baumstumpf"
+    },
+    {
+      "key": "vocab.object.felled_trunk",
+      "text": "Gefällter Stamm"
     },
     {
       "key": "vocab.object.dry_grass",

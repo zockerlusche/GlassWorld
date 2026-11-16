@@ -87,6 +87,10 @@
       "description": "Can hold other things."
     },
     {
+      "id": "rooted",
+      "description": "Grows in the ground and stays where it is (a standing tree); only felling takes it away (A1830)."
+    },
+    {
       "id": "portable",
       "description": "Small and light enough to be carried."
     },
