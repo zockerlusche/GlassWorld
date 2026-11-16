@@ -7,6 +7,7 @@
   "duration_s": 120.0,
   "target_mean_fps": 60.0,
   "target_p95_frame_ms": 16.7,
+  "sound_volumes_db": { "effects": -4, "voices": -14 },
   "crowd": {
     "count": 100,
     "spacing_m": 3.0,

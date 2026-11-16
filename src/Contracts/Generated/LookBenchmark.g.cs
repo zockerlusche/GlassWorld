@@ -304,6 +304,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<BenchmarkPass> Passes { get; set; } = new System.Collections.ObjectModel.Collection<BenchmarkPass>();
 
         /// <summary>
+        /// A1829 (B8, KR5): bus volumes (dB, by bus id) of a run with --bench-sound=on - the world audio with the mixer on, the crowd's actions heard like the inhabitants'. The player's calm defaults (-60) would measure silence. Omitted = the mix data's defaults.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sound_volumes_db")]
+        public System.Collections.Generic.IDictionary<string, double>? SoundVolumesDb { get; set; } = default!;
+
+        /// <summary>
         /// B2810 (Marcel W2197): the late game scenario, run with --bench-scenario=late - every crowd figure carries a thing, placed things lie around the crowd (stores, tools, material), fires burn and the weather changes within each pass. Seed-fixed like the crowd. Omitted = only the start scenario.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

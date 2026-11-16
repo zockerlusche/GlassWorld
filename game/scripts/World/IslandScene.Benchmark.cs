@@ -1,6 +1,7 @@
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Presentation.World;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.View;
 using GlassWorld.Simulation.Weather;
@@ -49,6 +50,13 @@ public partial class IslandScene
     private readonly List<WorldObject> _crowdHeld = [];
     private string _lateWeather = string.Empty;
     private readonly List<(string Id, double X, double Z)> _lateFires = [];
+
+    // A1829 (B8, KR5): the benchmark with its sound (--bench-sound=on) - the world audio, and the crowd's new actions
+    // heard like the inhabitants' (presentation only, never in the core).
+    private GlassWorld.Game.Audio.WorldAudio? _benchAudio;
+    private readonly List<WorldEvent> _crowdSounds = [];
+    private readonly Dictionary<string, Position> _crowdAt = new(StringComparer.Ordinal);
+    private int _crowdSoundCount;
 
     /// <summary>A1775: plans the late game and lays its fires and things into the core's world (seed-fixed).</summary>
     private void PlanLateGame(LookBenchmark data, string scenario, ulong seed, GlassWorld.Simulation.SimulationHost host, Func<double, double, bool> onLand)
@@ -176,8 +184,28 @@ public partial class IslandScene
         _crowdWalkers.AddRange(_crowd.Walkers.Select(w => _crowdFigures.First(e => ReferenceEquals(e.Plan, w))));
         _benchmark = data;
 
+        if (arg("--bench-sound") == "on")
+        {
+            // A1829 (B8, KR5): the mixer on, as in the game; the camera's target is the listener, its zoom the hearing range.
+            _benchAudio = new GlassWorld.Game.Audio.WorldAudio { Name = "BenchAudio" };
+            AddChild(_benchAudio);
+            _benchAudio.Hearing = () => (new Position(_rig.Model.Target.X, _rig.Model.Target.Z), _rig.Model.ZoomShare, null);
+            _benchAudio.Extra = () =>
+            {
+                IReadOnlyList<WorldEvent> taken = [.. _crowdSounds];
+                _crowdSounds.Clear();
+                return (taken, _crowdAt);
+            };
+            if (!_benchAudio.Setup(_host, seed))
+            {
+                throw new InvalidDataException("--bench-sound=on: the world audio did not start (sound library or mix data).");
+            }
+
+            _benchAudio.ApplyVolumes(data.SoundVolumesDb is { } volumes ? new Dictionary<string, double>(volumes, StringComparer.Ordinal) : new Dictionary<string, double>());
+        }
+
         _benchCsv = Path.GetFullPath(csv);
-        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} scenario={(_late is null ? "start" : "late")} placed={_late?.Placements.Count ?? 0} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} revealed_permille={(_cover is null ? "none" : ((int)(_cover.Map.SeenShare * 1000)).ToString(CultureInfo.InvariantCulture))} size={Size()} csv={_benchCsv}"));
+        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} scenario={(_late is null ? "start" : "late")} sound={(_benchAudio is null ? "off" : "on")} placed={_late?.Placements.Count ?? 0} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} revealed_permille={(_cover is null ? "none" : ((int)(_cover.Map.SeenShare * 1000)).ToString(CultureInfo.InvariantCulture))} size={Size()} csv={_benchCsv}"));
 
         // Asked once, before the clock runs (the query can take a moment); empty without a driver (headless).
         _benchDriver = string.Join(' ', OS.GetVideoAdapterDriverInfo());
@@ -275,6 +303,11 @@ public partial class IslandScene
         }
 
         var ok = _schedule.Passes.All(p => _recorder.Summary(p.Id).Meets(_benchmark!.TargetMeanFps, _benchmark.TargetP95FrameMs));
+        if (_benchAudio is not null)
+        {
+            GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_SOUND crowd_actions_heard={_crowdSoundCount}"));
+        }
+
         GD.Print($"BENCH_DONE passes={_schedule.Passes.Count} rows={_recorder.Count} ok={(ok ? "yes" : "no")} csv={_benchCsv}");
         _benchmark = null;
         GetTree().Quit();
@@ -309,6 +342,15 @@ public partial class IslandScene
             {
                 // Expressions: a new action comes with a wave and a few words (mouth).
                 entry.View!.React(new Reaction(0, group.WaveS ?? 0, group.TalkS ?? 0));
+            }
+
+            if (step != entry.Step && !place && _benchAudio is not null)
+            {
+                // A1829: a crowd figure starting an action sounds as an inhabitant's would (the same director and mixer).
+                var (x, z) = _crowd.Position(entry.Plan, at);
+                _crowdAt[entry.Plan.Id] = new Position(x, z);
+                _crowdSoundCount++;
+                _crowdSounds.Add(new WorldEvent(InhabitantsSystem.ActionStarted, _host.World.Tick, entry.Plan.Id, _crowd.Action(entry.Plan, at), null));
             }
 
             entry.Step = step;

@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type SoundVolumesDb = Annotated[float, Field(..., ge=-80.0, le=6.0)]
+
 
 class BenchmarkCrowdGroup(BaseModel):
     model_config = ConfigDict(
@@ -290,6 +292,10 @@ class LookBenchmark(BaseModel):
         description='The passes in the order a full run measures them.',
         max_length=16,
         min_length=1,
+    )
+    sound_volumes_db: dict[str, SoundVolumesDb] | None = Field(
+        None,
+        description="A1829 (B8, KR5): bus volumes (dB, by bus id) of a run with --bench-sound=on - the world audio with the mixer on, the crowd's actions heard like the inhabitants'. The player's calm defaults (-60) would measure silence. Omitted = the mix data's defaults.",
     )
     late_game: BenchmarkLateGame | None = Field(
         None,
