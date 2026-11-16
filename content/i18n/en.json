@@ -551,6 +551,18 @@
       "text": "Hints stay until I close them"
     },
     {
+      "key": "ui.settings.data_folder",
+      "text": "Data folder"
+    },
+    {
+      "key": "ui.settings.data_folder.desc",
+      "text": "This game's worlds, settings and logs are kept here."
+    },
+    {
+      "key": "ui.settings.data_folder.open",
+      "text": "Open"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },

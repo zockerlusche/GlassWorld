@@ -73,6 +73,13 @@ namespace GlassWorld.Contracts
         public int? CrownRadiusCm { get; set; } = default!;
 
         /// <summary>
+        /// Radius of the solid part on the ground that nobody walks through (a trunk, a rock), in centimetres (A1790): the path search goes around the cells it covers, and a walk to the thing itself ends in front of it. Omitted or 0 = no obstacle. Placeholder values.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("obstacle_radius_cm")]
+        public int? ObstacleRadiusCm { get; set; } = default!;
+
+        /// <summary>
         /// How long a thing of this type burns on its own once it is in the world, in game minutes; then it is gone (a fire, a spark; B2687 K3, R7, B2690).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

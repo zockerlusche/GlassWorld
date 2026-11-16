@@ -38,6 +38,12 @@ class ObjectParams(BaseModel):
         ge=0,
         le=2000,
     )
+    obstacle_radius_cm: int | None = Field(
+        None,
+        description='Radius of the solid part on the ground that nobody walks through (a trunk, a rock), in centimetres (A1790): the path search goes around the cells it covers, and a walk to the thing itself ends in front of it. Omitted or 0 = no obstacle. Placeholder values.',
+        ge=0,
+        le=500,
+    )
     burn_minutes: int | None = Field(
         None,
         description='How long a thing of this type burns on its own once it is in the world, in game minutes; then it is gone (a fire, a spark; B2687 K3, R7, B2690).',

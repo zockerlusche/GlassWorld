@@ -245,6 +245,14 @@ public partial class SettingsWindow : GwWindow
                 // The AI tab is filled by AddAi (it needs the running world's service).
                 break;
 
+            case "data_folder":
+                // A1787 (B2824, GW1 #27301): where this game keeps worlds, settings and logs - one click opens it; the path in
+                // the tooltip. Nothing to restore: it is no setting.
+                var folder = new Button { Text = "ui.settings.data_folder.open", SizeFlagsHorizontal = SizeFlags.ShrinkEnd, TooltipText = GameData.Root, TooltipAutoTranslateMode = AutoTranslateModeEnum.Disabled };
+                folder.Pressed += () => OS.ShellOpen(GameData.Root);
+                Row("ui.settings.data_folder", folder, "ui.settings.data_folder.desc");
+                break;
+
             default:
                 throw new InvalidDataException($"content/ui/settings.json names the unknown setting '{id}'.");
         }
