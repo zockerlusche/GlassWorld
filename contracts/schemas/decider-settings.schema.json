@@ -47,6 +47,17 @@
         "mood": { "description": "A mood that must be at least mood_at_least (e.g. boredom); omitted = any free moment counts.", "$ref": "common.schema.json#/$defs/VocabId" },
         "mood_at_least": { "type": "number", "minimum": 0, "maximum": 1 },
         "every_hours": { "description": "Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.", "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+        "when_idle": {
+          "description": "A1794 (D1212, TL #27680): one who stands idle (the routine's idle action) is asked again after these game minutes instead of every_hours - three idle actions in a row (3 x 15 min) are a free moment, not hours of standing about. Omitted = every_hours only.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "every_minutes"],
+          "properties": {
+            "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+            "every_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 }
+          }
+        },
+        "not_offered": { "description": "A1794 (D1212): actions a free moment does not offer - leisure is for doing something; standing idle stays the routine's fallback. Omitted = all the needs suggest.", "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
         "every_hours_by_trait": { "description": "D1086: every_hours is divided by this trait factor (a higher factor = free moments come more often). Omitted = the same for all.", "$ref": "common.schema.json#/$defs/TraitCurve" },
         "needs_at_least_by_trait": { "description": "D1086: needs_at_least is multiplied by this trait factor (a lower factor = a free moment already with less strength). Omitted = the same for all.", "$ref": "common.schema.json#/$defs/TraitCurve" }
       }

@@ -22,7 +22,9 @@ public sealed class LeisureTests
     public void ABoredInhabitantWithNothingPressingAsksAtMostEveryFewHours()
     {
         var leisure = Settings.Value.Leisure!;
-        var (host, port, a) = Alone();
+
+        // Without the idle shortcut (A1794): the routine's own idle would bring the question sooner - tested below.
+        var (host, port, a) = Alone(WithoutWhenIdle());
         host.World.Step();
         Assert.Equal(1, port.Sent);
 
@@ -102,7 +104,42 @@ public sealed class LeisureTests
         // no mood condition (boredom >= 0.3 never came: the routine fills fun first, L1137).
         Assert.Contains(Settings.Value.Triggers, t => t.Kind == TriggerKind.Leisure && t.Enabled);
         var leisure = Settings.Value.Leisure!;
-        Assert.Equal((0.3, (string?)null, 6.0), (leisure.NeedsAtLeast, leisure.Mood, leisure.EveryHours));
+        Assert.Equal((0.3, (string?)null, 3.0), (leisure.NeedsAtLeast, leisure.Mood, leisure.EveryHours));
+
+        // A1794 (D1212, TL #27680): after three idle actions (45 min) a free moment comes, and idle is no option of it.
+        Assert.Equal(("idle", 45), (leisure.WhenIdle!.Action, leisure.WhenIdle.EveryMinutes));
+        Assert.Contains("idle", leisure.NotOffered!);
+    }
+
+    [Fact]
+    public void OneStandingIdleIsAskedAgainAfterTheDataMinutesNotHours()
+    {
+        // A1794 (D1212): an hour of standing about is a free moment - the question comes after when_idle's minutes.
+        var leisure = Settings.Value.Leisure!;
+        var (host, port, a) = Alone();
+        host.World.Step();
+        Assert.Equal(1, port.Sent);
+
+        var perHour = host.World.Calendar.Settings.TicksPerHour;
+        var idleTicks = (long)leisure.WhenIdle!.EveryMinutes * perHour / 60;
+        Assert.True(idleTicks < (long)(leisure.EveryHours * perHour), "the idle shortcut is shorter than every_hours");
+        for (var t = 0; t < idleTicks + perHour && port.Sent < 2; t++)
+        {
+            Bored(a);
+            if (a.Activity is null || a.Activity.Action != leisure.WhenIdle.Action)
+            {
+                a.Activity = new Activity(leisure.WhenIdle.Action, null, a.Position, 10_000);
+                a.Planned = null;
+            }
+
+            host.World.Step();
+        }
+
+        Assert.Equal(2, port.Sent);
+        Assert.InRange(host.World.Tick, idleTicks, idleTicks + perHour);
+
+        // Neither question offered standing idle as something to do.
+        Assert.DoesNotContain(port.Requests.SelectMany(r => r.Options), o => leisure.NotOffered!.Contains(o.Action));
     }
 
     /// <summary>One inhabitant alone on empty ground: no thing and nobody to ask about, every need met, bored.</summary>
@@ -180,10 +217,18 @@ public sealed class LeisureTests
         Assert.DoesNotContain(request.Options, o => o.Action == "use" && o.Target == found.Id);
     }
 
-    private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone()
+    /// <summary>The decider data without the idle shortcut (A1794), for the every_hours rule alone.</summary>
+    private static DeciderSettings WithoutWhenIdle()
+    {
+        var copy = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        copy.Leisure!.WhenIdle = null;
+        return copy;
+    }
+
+    private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone(DeciderSettings? settings = null)
     {
         var port = new CountingPort();
-        var host = SimulationHost.Assemble(Content.Value, Settings.Value, new World(17, Content.Value.Calendar), port, "de");
+        var host = SimulationHost.Assemble(Content.Value, settings ?? Settings.Value, new World(17, Content.Value.Calendar), port, "de");
         var model = Content.Value.InhabitantModel;
         var a = new Inhabitant(
             "inh-000001",

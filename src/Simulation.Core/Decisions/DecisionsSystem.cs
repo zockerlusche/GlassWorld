@@ -621,12 +621,22 @@ public sealed partial class DecisionsSystem : IWorldSystem
     /// any question without a subject; the AI chooses and thinks. Before this, once everything in reach was known,
     /// nobody asked any more and the days went silent.
     /// </summary>
+    // A1794: what the free moment being asked leaves out of its options (only while AskAtLeisure asks).
+    private ICollection<string>? _notOffered;
+
     private void AskAtLeisure(World world, LeisureSettings leisure)
     {
         foreach (var inhabitant in _inhabitants.Ordered)
         {
             // D1086 (B2728): drive makes free moments come more often and with less strength - how often, never what.
             var every = (long)(leisure.EveryHours / Math.Max(0.01, TraitFactor.Of(leisure.EveryHoursByTrait, inhabitant.Traits)) * world.Calendar.Settings.TicksPerHour);
+
+            // A1794 (D1212): one who stands idle is asked again sooner - three idle actions are a free moment, not hours.
+            if (leisure.WhenIdle is { } idle && inhabitant.Activity?.Action == idle.Action)
+            {
+                every = Math.Min(every, Math.Max(1, (long)idle.EveryMinutes * world.Calendar.Settings.TicksPerHour / 60));
+            }
+
             var needsAtLeast = leisure.NeedsAtLeast * TraitFactor.Of(leisure.NeedsAtLeastByTrait, inhabitant.Traits);
             // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
             // action only the core plans (decider_option false, e.g. a building step).
@@ -658,8 +668,10 @@ public sealed partial class DecisionsSystem : IWorldSystem
                 var target = intention?.AboutId is { } typeId ? things.Where(t => t.TypeId == typeId).MinBy(t => ((t.Position.X - inhabitant.Position.X) * (t.Position.X - inhabitant.Position.X)) + ((t.Position.Z - inhabitant.Position.Z) * (t.Position.Z - inhabitant.Position.Z))) : null;
                 _offering = intention;
                 _offered = false;
+                _notOffered = leisure.NotOffered;
                 Ask(world, inhabitant, Leisure, LeisureSubject, target);
                 _offering = null;
+                _notOffered = null;
 
                 // Used up only when a request really went out with it (review GW1 #333): a held-back question is asked
                 // later as a plain free moment, and one whose action rests went out without it.
@@ -1302,6 +1314,12 @@ public sealed partial class DecisionsSystem : IWorldSystem
         var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
+            // A1794 (D1212): a free moment does not offer what the data leave out (standing idle).
+            if (_notOffered?.Contains(action) == true)
+            {
+                continue;
+            }
+
             // The intention bypasses the needs, not the rule for made things (review GW2 #358): no 'use' on clay.
             var isIntended = action == intended && (target is null || _brain.BelievesMadeFor(asker, action, target.TypeId));
 

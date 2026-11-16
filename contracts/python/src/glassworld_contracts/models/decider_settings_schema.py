@@ -19,6 +19,19 @@ class FallbackEnvironment(BaseModel):
     weather: list[common_schema.VocabId] = Field(..., max_length=4, min_length=1)
 
 
+class WhenIdle(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    every_minutes: int = Field(..., ge=1, le=1440)
+
+
 class LeisureSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -38,6 +51,15 @@ class LeisureSettings(BaseModel):
         description="Least game hours between two leisure questions of one inhabitant - the free moment's own cool-down; ask_cooldown_hours does not apply to it (D1086), so a value below it is possible.",
         gt=0.0,
         le=240.0,
+    )
+    when_idle: WhenIdle | None = Field(
+        None,
+        description="A1794 (D1212, TL #27680): one who stands idle (the routine's idle action) is asked again after these game minutes instead of every_hours - three idle actions in a row (3 x 15 min) are a free moment, not hours of standing about. Omitted = every_hours only.",
+    )
+    not_offered: list[common_schema.VocabId] | None = Field(
+        None,
+        description="A1794 (D1212): actions a free moment does not offer - leisure is for doing something; standing idle stays the routine's fallback. Omitted = all the needs suggest.",
+        max_length=16,
     )
     every_hours_by_trait: common_schema.TraitCurve | None = Field(
         None,
