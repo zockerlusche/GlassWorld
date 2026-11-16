@@ -1459,6 +1459,18 @@
       "text": "Wearable"
     },
     {
+      "key": "msg.command.too_far",
+      "text": "The hand does not reach that far."
+    },
+    {
+      "key": "msg.command.place_taken",
+      "text": "There is no free place there."
+    },
+    {
+      "key": "msg.command.not_movable",
+      "text": "That cannot be moved."
+    },
+    {
       "key": "vocab.property.portable",
       "text": "Portable"
     },
@@ -2385,6 +2397,10 @@
     {
       "key": "vocab.event.text_read",
       "text": "Read some writing"
+    },
+    {
+      "key": "vocab.event.object_moved",
+      "text": "The hand moved something"
     },
     {
       "key": "vocab.event.writing_found",

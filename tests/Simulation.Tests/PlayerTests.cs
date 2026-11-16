@@ -329,6 +329,49 @@ public sealed class PlayerTests : IDisposable
         }
     }
 
+    [Fact]
+    public void TheHandMovesAMovableThingAndItCostsFavour()
+    {
+        // B6 R22, spec 31 acceptance 17 (A1539): moving a movable thing works and costs favour; it is a command of the log.
+        var host = WorldWithThirsty(out _);
+        var stone = host.Objects.Spawn("fieldstone", new Position(6, 0));
+        var before = host.Player.Favor;
+        var command = new PlayerCommand(PlayerSystem.MoveObject, null) { ObjectId = stone.Id, X = 9, Z = 2 };
+        Assert.True(host.Decisions.Submit(command).Accepted);
+        host.World.Step();
+
+        Assert.True(host.Objects.TryGet(stone.Id, out var moved));
+        Assert.Equal(new Position(9, 2), moved.Position);
+        var e = Assert.Single(host.Inhabitants.Events, x => x.Kind == PlayerSystem.ObjectMoved);
+        Assert.Equal((stone.Id, "fieldstone"), (e.TargetId, e.Detail));
+        var regrow = host.Content.Favor.RegrowPerHour / (double)host.World.Calendar.Settings.TicksPerHour;
+        Assert.Equal(before - host.Player.CostOf("move") + regrow, host.Player.Favor, 9);
+        Assert.Contains(host.Decisions.Log.Entries, x => x.Kind == DecisionLogKind.Command && x.Json.Contains(stone.Id, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheHandMovesNoInhabitantAndNothingThatIsNotMovable()
+    {
+        // Spec 31 acceptance 17: an inhabitant or a thing that is not movable is refused - and so is a move too far, onto a
+        // taken place or next to an inhabitant, or a thing in someone's hand.
+        var host = WorldWithThirsty(out var inhabitant);
+        var hand = host.Content.GiftRules.Hand!;
+        var stone = host.Objects.Spawn("fieldstone", new Position(6, 0));
+        var other = host.Objects.Spawn("fieldstone", new Position(8, 0));
+        var unmovable = host.Content.Objects.TypeIds.First(t => !host.Objects.Catalog.HasProperty(t, hand.MovableProperty));
+        var tree = host.Objects.Spawn(unmovable, new Position(10, 0));
+        CommandResult Move(string id, double x, double z) => host.Decisions.Submit(new PlayerCommand(PlayerSystem.MoveObject, null) { ObjectId = id, X = x, Z = z });
+
+        Assert.Equal(PlayerSystem.ReasonNotMovable, Move(inhabitant.Id, 5, 5).ReasonKey);
+        Assert.Equal(PlayerSystem.ReasonNotMovable, Move(tree.Id, 12, 0).ReasonKey);
+        Assert.Equal(PlayerSystem.ReasonTooFar, Move(stone.Id, 6 + hand.MaxMoveM + 1, 0).ReasonKey);
+        Assert.Equal(PlayerSystem.ReasonPlaceTaken, Move(stone.Id, 8, 0).ReasonKey);
+        Assert.Equal(PlayerSystem.ReasonTooClose, Move(stone.Id, 0.5, 0).ReasonKey);
+        host.Objects.SetHeld(other.Id, inhabitant.Id);
+        Assert.Equal(PlayerSystem.ReasonNotMovable, Move(other.Id, 12, 3).ReasonKey);
+        Assert.Equal(new Position(6, 0), host.Objects.TryGet(stone.Id, out var still) ? still.Position : default);
+    }
+
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");

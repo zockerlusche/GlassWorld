@@ -44,6 +44,21 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Command kind: place a gift (TypeId, X, Z).</summary>
     public const string PlaceGift = "place_gift";
 
+    /// <summary>Command kind: the player's hand moves a thing (ObjectId, X, Z; B6 R22, A1539).</summary>
+    public const string MoveObject = "move_object";
+
+    /// <summary>Event: the hand moved a thing (TargetId = the thing, Detail = its type).</summary>
+    public const string ObjectMoved = "object_moved";
+
+    /// <summary>Reason: the thing cannot be moved by the hand (not movable, held, worn, not there - or an inhabitant).</summary>
+    public const string ReasonNotMovable = "msg.command.not_movable";
+
+    /// <summary>Reason: the target lies farther than the hand reaches.</summary>
+    public const string ReasonTooFar = "msg.command.too_far";
+
+    /// <summary>Reason: another thing lies at the target.</summary>
+    public const string ReasonPlaceTaken = "msg.command.place_taken";
+
     /// <summary>
     /// Command kind: the start favour of a new world (Amount), allowed only before the first tick. As a
     /// command it is in the log, so a replay from seed and log starts with the same favour (GW1 #67 N1).
@@ -66,6 +81,7 @@ public sealed class PlayerSystem : IWorldSystem
     public const string ReasonNoPosition = "msg.command.no_position";
 
     private const string GiftIntervention = "gift";
+    private const string MoveIntervention = "move";
 
     private readonly GiftRules _rules;
     private readonly FavorSettings _favor;
@@ -173,6 +189,65 @@ public sealed class PlayerSystem : IWorldSystem
         }
 
         return Favor + 1e-9 < CostOf(GiftIntervention) ? new CommandResult(false, ReasonNoFavor) : new CommandResult(true, null);
+    }
+
+    /// <summary>
+    /// Checks a move of the hand (B6 R22): a thing of the movable property, in nobody's hand or on nobody's body, at most
+    /// the data's distance from where it lies, onto a place with no other thing near and no inhabitant too near, and
+    /// enough favour. An inhabitant's id is no thing: inhabitants are never moved.
+    /// </summary>
+    public CommandResult CheckMove(PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.X is not { } x || command.Z is not { } z)
+        {
+            return new CommandResult(false, ReasonNoPosition);
+        }
+
+        if (_rules.Hand is not { } hand || command.ObjectId is not { } id || !_objects.TryGet(id, out var thing)
+            || !_objects.Catalog.HasProperty(thing.TypeId, hand.MovableProperty) || _objects.HeldBy(id) is not null
+            || _inhabitants.All.Any(i => i.Worn == id))
+        {
+            return new CommandResult(false, ReasonNotMovable);
+        }
+
+        var to = new Position(x, z);
+        if (DistanceSquared(thing.Position, to) > hand.MaxMoveM * hand.MaxMoveM)
+        {
+            return new CommandResult(false, ReasonTooFar);
+        }
+
+        var min = _rules.MinDistanceToInhabitantM;
+        if (_inhabitants.All.Any(i => DistanceSquared(i.Position, to) < min * min))
+        {
+            return new CommandResult(false, ReasonTooClose);
+        }
+
+        var near = new List<WorldObject>();
+        _objects.Within(to, hand.FreeRadiusM, near);
+        if (near.Any(o => o.Id != id))
+        {
+            return new CommandResult(false, ReasonPlaceTaken);
+        }
+
+        return Favor + 1e-9 < CostOf(MoveIntervention) ? new CommandResult(false, ReasonNoFavor) : new CommandResult(true, null);
+    }
+
+    /// <summary>Applies a checked move of the hand at the tick it takes effect (checked again: things change).</summary>
+    public void ApplyMove(World world, PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(command);
+        if (!CheckMove(command).Accepted)
+        {
+            return;
+        }
+
+        Favor -= CostOf(MoveIntervention);
+        var id = command.ObjectId!;
+        _objects.Move(id, new Position(command.X!.Value, command.Z!.Value));
+        _objects.TryGet(id, out var moved);
+        _inhabitants.Report(new WorldEvent(ObjectMoved, world.Tick, string.Empty, null, id) { Detail = moved?.TypeId });
     }
 
     /// <summary>Applies a checked gift command (called by the decisions system at the tick it takes effect).</summary>

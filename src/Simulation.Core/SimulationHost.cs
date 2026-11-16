@@ -409,6 +409,7 @@ public sealed class SimulationHost
 
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
+        decisions.RegisterCommand(Simulation.Player.PlayerSystem.MoveObject, player.CheckMove, player.ApplyMove);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
 
         // The player's weather (B2-5 R13): a logged command that costs favour; start and end of storm and

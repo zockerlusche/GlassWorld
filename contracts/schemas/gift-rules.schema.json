@@ -48,6 +48,17 @@
       "minimum": 0,
       "maximum": 1
     },
+    "hand": {
+      "description": "B6 R22 (A1539): the player's hand moves a thing - only things with the movable property, at most max_move_m from where they lie, onto a place with no other thing within free_radius_m and no inhabitant within min_distance_to_inhabitant_m. Inhabitants are never moved. The cost is the favour intervention 'move'. Placeholders (TL). Absent = no hand.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["movable_property", "max_move_m", "free_radius_m"],
+      "properties": {
+        "movable_property": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "max_move_m": { "type": "number", "exclusiveMinimum": 0, "maximum": 200 },
+        "free_radius_m": { "type": "number", "minimum": 0, "maximum": 5 }
+      }
+    },
     "missing_radius_m": {
       "description": "The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).",
       "type": "number",

@@ -17,6 +17,10 @@
       "cost": 10
     },
     {
+      "intervention": "move",
+      "cost": 3
+    },
+    {
       "intervention": "weather",
       "cost": 40
     }
