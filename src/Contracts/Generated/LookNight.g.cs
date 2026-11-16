@@ -140,6 +140,13 @@ namespace GlassWorld.Contracts
         public double? WaitForSleepersMaxH { get; set; } = default!;
 
         /// <summary>
+        /// A1798 (Marcel W2243, B2680 'the scene ends when the service is done or in the morning'): once the service is done, the scene lets the rest of the night pass behind the shade at the fastest speed and the morning fades in at dawn - instead of showing the same night again. Omitted = false: the scene fades in as soon as the service is done.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("pass_night")]
+        public bool? PassNight { get; set; } = default!;
+
+        /// <summary>
         /// The dream scene stays at least this long (real seconds), also when the service has nothing to do - short, but without a jolt.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_scene_s")]
