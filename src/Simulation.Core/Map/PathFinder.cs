@@ -137,7 +137,14 @@ public static class PathFinder
     /// instead of the cells' base costs; null = the base costs. <paramref name="minWalkCost"/> must then be
     /// the lowest of these costs.
     /// </param>
-    public static PathResult Find(WorldMap map, (int X, int Z) from, (int X, int Z) to, int nodeBudget, int minWalkCost, Scratch? scratch = null, int[]? costs = null)
+    /// <param name="obstacles">
+    /// Cells taken by things nobody walks through (trunks, rocks; A1790), index z × width + x: never entered
+    /// and never cut at a corner - except the start and the cells within <paramref name="goalSlack"/> of the
+    /// goal, so a walk can leave such a cell and reach the thing it goes to (where it ends is the route's
+    /// business, <see cref="WorldMapSystem.Find"/>). null = none.
+    /// </param>
+    /// <param name="goalSlack">How many cells around the goal (each axis) obstacles do not close; 0 = the goal cell only.</param>
+    public static PathResult Find(WorldMap map, (int X, int Z) from, (int X, int Z) to, int nodeBudget, int minWalkCost, Scratch? scratch = null, int[]? costs = null, bool[]? obstacles = null, int goalSlack = 0)
     {
         ArgumentNullException.ThrowIfNull(map);
         var w = map.WidthCells;
@@ -146,6 +153,11 @@ public static class PathFinder
         if (costs is not null && costs.Length != size)
         {
             throw new ArgumentException($"The walk costs have {costs.Length} entries, the map has {size} cells.", nameof(costs));
+        }
+
+        if (obstacles is not null && obstacles.Length != size)
+        {
+            throw new ArgumentException($"The obstacles have {obstacles.Length} entries, the map has {size} cells.", nameof(obstacles));
         }
 
         // One flat array of walk costs, whoever gives them: the run-time layer or the map itself.
@@ -182,6 +194,11 @@ public static class PathFinder
         heap[count++] = new Open(first, first, start);
         var expanded = 0;
         var steps = Steps;
+
+        // A cell the search may not pass: blocked ground, or an obstacle away from the start and the goal.
+        bool Closed(int i) => cost[i] == MapCell.Blocked
+            || (obstacles is not null && obstacles[i] && i != start && (Math.Abs((i % w) - toX) > goalSlack || Math.Abs((i / w) - toZ) > goalSlack));
+
         while (count > 0)
         {
             // Take the smallest entry out: the last one moves to the top and sinks to its place.
@@ -241,13 +258,13 @@ public static class PathFinder
 
                 var next = (nz * w) + nx;
                 var there = cost[next];
-                if (there == MapCell.Blocked)
+                if (Closed(next))
                 {
                     continue;
                 }
 
-                // No corner cutting: a diagonal step needs both orthogonal neighbours walkable.
-                if (dx != 0 && dz != 0 && (cost[current + dx] == MapCell.Blocked || cost[next - dx] == MapCell.Blocked))
+                // No corner cutting: a diagonal step needs both orthogonal neighbours walkable (and free of obstacles).
+                if (dx != 0 && dz != 0 && (Closed(current + dx) || Closed(next - dx)))
                 {
                     continue;
                 }
