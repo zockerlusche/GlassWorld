@@ -200,14 +200,20 @@ public sealed class SpacingTests
         var (westEnd, eastEnd) = (new Position(1, 0.5), new Position(39, 0.5));
         a.Activity = new Activity("wander", null, swapped ? westEnd : eastEnd, null);
         b.Activity = new Activity("wander", null, swapped ? eastEnd : westEnd, null);
+        var gaveWay = 0;
         for (var tick = 0; tick < 600 && !(a.Activity?.RemainingTicks is not null && b.Activity?.RemainingTicks is not null); tick++)
         {
             var (a0, b0) = (a.Position, b.Position);
             world.Step();
             Assert.True(Closest(a0, a.Position, b0, b.Position) >= Space.MinSeparationM - 1e-6, $"tick {tick}: {a0}->{a.Position} {b0}->{b.Position}");
+
+            // A1795: the give-way step is told to the figure (it keeps facing ahead), and only to the one with the higher id.
+            Assert.False(inhabitants.GaveWay(a));
+            gaveWay += inhabitants.GaveWay(b) ? 1 : 0;
         }
 
         Assert.True(a.Activity?.RemainingTicks is not null && b.Activity?.RemainingTicks is not null, $"stuck: {a.Position} {a.Activity} / {b.Position} {b.Activity}");
+        Assert.True(gaveWay > 0, "the one with the higher id gave way");
     }
 
     [Fact]

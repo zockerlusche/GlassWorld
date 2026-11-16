@@ -12,8 +12,6 @@ namespace GlassWorld.Presentation.World;
 public sealed class FigureMotion
 {
     private readonly double _turnRateRad;
-    private readonly int _turnBackAfterSteps;
-    private int _backSteps;
     private Point3 _from;
     private Point3 _to;
     private double _elapsed;
@@ -23,11 +21,9 @@ public sealed class FigureMotion
     /// <summary>Creates the motion of a figure standing at <paramref name="start"/>.</summary>
     /// <param name="start">Start position in metres.</param>
     /// <param name="turnRateDegS">How fast the figure turns, degrees per real second.</param>
-    /// <param name="turnBackAfterSteps">How many backward steps in a row turn a walking figure round (data, at least 1).</param>
-    public FigureMotion(Point3 start, double turnRateDegS, int turnBackAfterSteps = 1)
+    public FigureMotion(Point3 start, double turnRateDegS)
     {
         _turnRateRad = turnRateDegS * Math.PI / 180;
-        _turnBackAfterSteps = Math.Max(1, turnBackAfterSteps);
         Position = _from = _to = start;
     }
 
@@ -91,13 +87,12 @@ public sealed class FigureMotion
     /// <summary>
     /// Takes the position of a new tick: the figure goes from where it is now to <paramref name="to"/>
     /// over <paramref name="ticks"/> × the real tick time. A step of at least <paramref name="minStepM"/>
-    /// turns the figure towards it; while it walks, a step backwards (more than 90° from its facing, e.g. giving
-    /// way on a narrow path, W1726) turns it only from the data's number of such steps in a row, so a figure
-    /// that steps back and forth keeps facing the way it goes.
+    /// turns the figure towards it - backwards too (A1795, Marcel W2242: it turns round instead of walking
+    /// backwards). Only a step back to give way on a narrow path (<paramref name="givingWay"/>, from the core,
+    /// W1726) keeps its facing, so a figure that yields back and forth does not flip round every tick.
     /// </summary>
-    public void Retarget(Point3 to, int ticks, double gameSecondsPerTick, double realSecondsPerTick, double minStepM)
+    public void Retarget(Point3 to, int ticks, double gameSecondsPerTick, double realSecondsPerTick, double minStepM, bool givingWay = false)
     {
-        var walking = StepM >= minStepM;
         StepM = Flat(_to, to);
         GameSpeedCmS = SpeedCmS(StepM, ticks * gameSecondsPerTick);
         _from = Position;
@@ -105,16 +100,9 @@ public sealed class FigureMotion
         _elapsed = 0;
         _duration = ticks * realSecondsPerTick;
         ScreenSpeedCmS = SpeedCmS(Flat(_from, _to), _duration);
-        if (StepM >= minStepM && Flat(_from, _to) > 1e-6)
+        if (StepM >= minStepM && Flat(_from, _to) > 1e-6 && !givingWay)
         {
-            var yaw = Math.Atan2(_to.X - _from.X, _to.Z - _from.Z);
-            var back = walking && Math.Abs(Math.IEEERemainder(yaw - _targetYaw, 2 * Math.PI)) > Math.PI / 2;
-            _backSteps = back ? _backSteps + 1 : 0;
-            if (!back || _backSteps >= _turnBackAfterSteps)
-            {
-                _targetYaw = yaw;
-                _backSteps = 0;
-            }
+            _targetYaw = Math.Atan2(_to.X - _from.X, _to.Z - _from.Z);
         }
     }
 
