@@ -142,7 +142,7 @@ Doppelklick auf Schnelldurchlauf.cmd. Es fragt:
 
 Die Welt laeuft ohne Grafik, so schnell der Rechner kann. Sie speichert nach jedem Spieltag und am
 Ende und schreibt Lern-Protokoll und Ablauf-Protokoll neben den Spielstand.
-Ohne KI rechnet nur der Prozessor (gemessen: etwa 30 Spieltage in 1 Minute). Mit KI arbeitet die
+Ohne KI rechnet nur der Prozessor (gemessen 16.11.2026: etwa 8 Spieltage je Minute, dazu etwa 20 s Start). Mit KI arbeitet die
 Grafikkarte fuer die KI (etwa 1 Spieltag je Minute).
 
 Danach: Spiel starten (Start-mit-KI.cmd oder Start-ohne-KI.cmd) -> Hauptmenue -> Welten -> die Welt
