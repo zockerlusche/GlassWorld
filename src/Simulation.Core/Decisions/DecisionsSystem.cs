@@ -1345,7 +1345,8 @@ public sealed partial class DecisionsSystem : IWorldSystem
     public bool AskBuildSite(World world, string inhabitantId, string typeId)
     {
         ArgumentNullException.ThrowIfNull(world);
-        if (!MaySend(world) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
+        // A1587 S2 (review GW2 #526): the hour's budget holds for where to build as for a stuck building; without room the nearest place stays.
+        if (!MaySend(world) || !HasBudget(world, BuildSite) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
         {
             return false;
         }
