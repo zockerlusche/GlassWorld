@@ -401,10 +401,13 @@ public partial class Main : Node3D
         _menu = new MainMenu { Name = "MainMenu" };
         AddChild(_menu);
         _menu.Setup(LoadMenuData(_library), _style);
-        _menu.NewWorldRequested += choice =>
+        _menu.NewWorldRequested += (choice, shown) =>
         {
             var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
+
+            // A1771 (B2805): the start takes over the island the preview showed; the host checks that it is still this
+            // choice's island (seed, preset, grid, resources, pairs) and generates otherwise.
+            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice), shown?.Island), meta, created: true);
         };
         _menu.LoadRequested += meta => Enter(presenter => presenter.Load(_contentDirectory, _library.SavePath(meta.Id)), meta);
         _menu.SettingsRequested += () => OpenSettings(_menu.ShowWindow);
@@ -452,7 +455,27 @@ public partial class Main : Node3D
             TextGuard.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "safety", "rules.json"))))
         {
             Sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "sharing.json"))),
+            Preview = PreviewMaker(),
         };
+    }
+
+    /// <summary>
+    /// A1771 (B2805): the new-world window's preview - the content is loaded once, on the first preview (off the main
+    /// thread), and every preview generates exactly the island the start would.
+    /// </summary>
+    private Func<NewWorldChoice, (Simulation.Map.PreviewIsland Island, Presentation.World.PreviewImage Image)> PreviewMaker()
+    {
+        var directory = _contentDirectory;
+        var maker = new Lazy<Presentation.World.NewWorldPreview>(
+            () =>
+            {
+                var content = Simulation.Content.ContentSet.Load(directory);
+                T Read<T>(string file)
+                    where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(directory, "look", file)));
+                return new Presentation.World.NewWorldPreview(content.WorldGen, content.Objects, Read<LookWorld>("world.json").IslandPreset, Read<LookTerrain>("terrain.json"), Read<LookPalette>("palette.json"));
+            },
+            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        return choice => maker.Value.Make(choice.Seed, SpecOf(choice));
     }
 
     /// <summary>Leaves the menu for a world; if the world cannot be built, the menu stays with a message.</summary>

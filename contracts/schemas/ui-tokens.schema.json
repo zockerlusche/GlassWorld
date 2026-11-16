@@ -422,7 +422,10 @@
         "scrim_soft_px",
         "world_check_grounds",
         "card_diary_lines",
-        "card_talk_lines"
+        "card_talk_lines",
+        "preview_px",
+        "preview_debounce_ms",
+        "preview_progress_after_ms"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -650,6 +653,24 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 50
+        },
+        "preview_px": {
+          "description": "A1771 (B2805): side of the island preview in the new-world window (pixels before UI scale).",
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 512
+        },
+        "preview_debounce_ms": {
+          "description": "A1771 (B2805): the preview is generated this long after the last change of a control.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "preview_progress_after_ms": {
+          "description": "A1771 (B2805): a quiet progress bar shows when the preview takes longer than this.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
         }
       }
     },

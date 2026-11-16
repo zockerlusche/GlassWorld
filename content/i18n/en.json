@@ -507,6 +507,14 @@
       "text": "8 (four pairs)"
     },
     {
+      "key": "ui.new_world.preview",
+      "text": "Preview"
+    },
+    {
+      "key": "ui.new_world.advanced",
+      "text": "Advanced"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },

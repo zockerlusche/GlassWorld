@@ -54,6 +54,23 @@ public sealed class IslandPreviewTests
     }
 
     [Fact]
+    public void ThePreviewGeneratesTheIslandTheStartWouldAndKnowsWhenItStillFits()
+    {
+        // A1771 (B2805): same generator, seed and specification - the same island, and it fits that choice; climate and
+        // favour do not change it, another seed, size, resources or pair count do.
+        var maker = new NewWorldPreview(Set.Value.WorldGen, Set.Value.Objects, "start_island", Read<LookTerrain>("look", "terrain.json"), Read<LookPalette>("look", "palette.json"));
+        var spec = new Simulation.State.WorldSpec("small", null, "temperate", 50, "rich", 1.5, 3);
+        var (island, image) = maker.Make(5, spec);
+        Assert.Equal(WorldGenerator.Generate(Set.Value.WorldGen, Set.Value.Objects, "start_island", 5, null, 1.5, 3).Hash(), island.Island.Hash());
+        Assert.True(image.Width > 0);
+        Assert.True(island.Fits(5, "start_island", null, 1.5, 3));
+        Assert.False(island.Fits(6, "start_island", null, 1.5, 3));
+        Assert.False(island.Fits(5, "start_island", 256, 1.5, 3));
+        Assert.False(island.Fits(5, "start_island", null, 0.6, 3));
+        Assert.False(island.Fits(5, "start_island", null, 1.5, 2));
+    }
+
+    [Fact]
     public async Task OnlyTheLatestRunCounts()
     {
         // A slider moved again while the generator ran: the older island is stale and not shown.

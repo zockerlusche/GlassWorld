@@ -248,6 +248,24 @@ class UiWindowTokens(BaseModel):
         ge=0,
         le=50,
     )
+    preview_px: int = Field(
+        ...,
+        description='A1771 (B2805): side of the island preview in the new-world window (pixels before UI scale).',
+        ge=64,
+        le=512,
+    )
+    preview_debounce_ms: int = Field(
+        ...,
+        description='A1771 (B2805): the preview is generated this long after the last change of a control.',
+        ge=0,
+        le=2000,
+    )
+    preview_progress_after_ms: int = Field(
+        ...,
+        description='A1771 (B2805): a quiet progress bar shows when the preview takes longer than this.',
+        ge=0,
+        le=5000,
+    )
 
 
 class UiButtonTokens(BaseModel):

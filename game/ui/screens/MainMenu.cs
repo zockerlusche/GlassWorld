@@ -17,6 +17,12 @@ public sealed record MenuData(WorldLibrary Worlds, WorldOptions Options, FavorSe
 {
     /// <summary>Sharing a world as one file (content/player/sharing.json); null hides "Open a world".</summary>
     public WorldSharing? Sharing { get; init; }
+
+    /// <summary>
+    /// A1771 (B2805): generates the island of a choice and its picture (called off the main thread); null = no preview
+    /// (the layout check).
+    /// </summary>
+    public Func<NewWorldChoice, (GlassWorld.Simulation.Map.PreviewIsland Island, PreviewImage Image)>? Preview { get; init; }
 }
 
 /// <summary>
@@ -35,7 +41,7 @@ public partial class MainMenu : CanvasLayer
     private PanelContainer? _menuBox;
 
     /// <summary>The player wants a new world.</summary>
-    public event Action<NewWorldChoice>? NewWorldRequested;
+    public event Action<NewWorldChoice, PreviewShown?>? NewWorldRequested;
 
     /// <summary>The player wants to play a saved world.</summary>
     public event Action<WorldMeta>? LoadRequested;
@@ -171,7 +177,7 @@ public partial class MainMenu : CanvasLayer
     {
         if (_data is not null && _style is not null)
         {
-            ShowWindow(NewWorldWindow(_data, _style, choice => NewWorldRequested?.Invoke(choice)));
+            ShowWindow(NewWorldWindow(_data, _style, (choice, shown) => NewWorldRequested?.Invoke(choice, shown)));
         }
     }
 
@@ -255,7 +261,7 @@ public partial class MainMenu : CanvasLayer
     }
 
     /// <summary>Builds the new-world form (also for the layout check in all reference sizes).</summary>
-    public static GwWindow NewWorldWindow(MenuData data, UiStyle style, Action<NewWorldChoice> create)
+    public static GwWindow NewWorldWindow(MenuData data, UiStyle style, Action<NewWorldChoice, PreviewShown?> create)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(style);
@@ -334,23 +340,111 @@ public partial class MainMenu : CanvasLayer
         code.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         codeRow.AddChild(code);
         codeRow.AddChild(copy);
-        Row(window, "ui.new_world.name", name);
-        Row(window, "ui.new_world.code", codeRow);
-        Row(window, "ui.new_world.seed", seed);
-        Row(window, "ui.new_world.size", size);
-        Row(window, "ui.new_world.climate", climate);
+        // A1771 (B2805): 'Einfach' - the few choices most players make - and the island they give; 'Erweitert' (folded)
+        // holds seed, world code and start favour (later also the terrain controls, A1833, and the start inhabitants, A1774).
+        Row(window.Content, "ui.new_world.name", name);
+        Row(window.Content, "ui.new_world.size", size);
+        Row(window.Content, "ui.new_world.climate", climate);
         if (resources.ItemCount > 0)
         {
-            Row(window, "ui.new_world.resources", resources);
+            Row(window.Content, "ui.new_world.resources", resources);
         }
 
         if (pairs.ItemCount > 0)
         {
-            Row(window, "ui.new_world.start_pairs", pairs);
+            Row(window.Content, "ui.new_world.start_pairs", pairs);
         }
 
-        Row(window, "ui.new_world.start_favor", favor);
+        var preview = new TextureRect
+        {
+            Name = "IslandPreview",
+            CustomMinimumSize = new Vector2(style.Tokens.Window.PreviewPx, style.Tokens.Window.PreviewPx),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        };
+        var busy = new ProgressBar { Name = "PreviewBusy", ShowPercentage = false, Indeterminate = true, Visible = false };
+        var previewBox = new VBoxContainer();
+        previewBox.AddChild(preview);
+        previewBox.AddChild(busy);
+        if (data.Preview is not null)
+        {
+            Row(window.Content, "ui.new_world.preview", previewBox);
+        }
+
+        var advanced = new FoldableContainer { Name = "Advanced", Title = "ui.new_world.advanced", Folded = true };
+        var advancedRows = new VBoxContainer();
+        advanced.AddChild(advancedRows);
+        Row(advancedRows, "ui.new_world.code", codeRow);
+        Row(advancedRows, "ui.new_world.seed", seed);
+        Row(advancedRows, "ui.new_world.start_favor", favor);
+        window.Content.AddChild(advanced);
         window.Content.AddChild(problem);
+
+        // The preview: the real generator off the main thread, some time after the last change; an older island that is
+        // still being made when the player changes again is dropped. A quiet bar shows only when it takes a while.
+        PreviewShown? shown = null;
+        var latest = new LatestOnly<(GlassWorld.Simulation.Map.PreviewIsland Island, PreviewImage Image)>();
+        var pending = 0;
+        var debounce = new Godot.Timer { OneShot = true, WaitTime = style.Tokens.Window.PreviewDebounceMs / 1000.0, Autostart = data.Preview is not null };
+        var slow = new Godot.Timer { OneShot = true, WaitTime = Math.Max(0.01, style.Tokens.Window.PreviewProgressAfterMs / 1000.0) };
+        window.AddChild(debounce);
+        window.AddChild(slow);
+        slow.Timeout += () => busy.Visible = pending > 0;
+        async Task RefreshAsync()
+        {
+            var (ok, value) = NewWorldModel.ParseSeed(seed.Text);
+            if (data.Preview is not { } make || !ok || value is not { } s)
+            {
+                return;
+            }
+
+            var asked = Chosen(s);
+            pending++;
+            slow.Start();
+            try
+            {
+                var (isLatest, made) = await latest.RunAsync(() => make(asked));
+                if (!isLatest || !GodotObject.IsInstanceValid(preview))
+                {
+                    return;
+                }
+
+                shown = new PreviewShown(asked, made.Island);
+                preview.Texture = ImageTexture.CreateFromImage(Image.CreateFromData(made.Image.Width, made.Image.Height, false, Image.Format.Rgb8, made.Image.Rgb));
+            }
+            catch (InvalidOperationException e)
+            {
+                GD.PushWarning($"NEW_WORLD_PREVIEW failed: {e.Message}");
+            }
+            catch (InvalidDataException e)
+            {
+                GD.PushWarning($"NEW_WORLD_PREVIEW failed: {e.Message}");
+            }
+            finally
+            {
+                pending--;
+                if (GodotObject.IsInstanceValid(busy))
+                {
+                    busy.Visible = pending > 0 && slow.IsStopped();
+                }
+            }
+        }
+
+        debounce.Timeout += () => _ = RefreshAsync();
+        void Changed()
+        {
+            if (data.Preview is not null && debounce.IsInsideTree())
+            {
+                debounce.Start();
+            }
+        }
+
+        seed.TextChanged += _ => Changed();
+        code.TextChanged += _ => Changed();
+        size.ItemSelected += _ => Changed();
+        resources.ItemSelected += _ => Changed();
+        pairs.ItemSelected += _ => Changed();
         window.AddAction("ui.common.cancel").Pressed += window.Close;
         window.AddAction("ui.new_world.create").Pressed += () =>
         {
@@ -365,17 +459,20 @@ public partial class MainMenu : CanvasLayer
                 return;
             }
 
-            var choice = new NewWorldChoice(
+            var choice = Chosen(seedValue ?? NewWorldModel.DrawSeed(DateTimeOffset.UtcNow));
+            window.Close();
+            create(choice, shown);
+        };
+
+        NewWorldChoice Chosen(ulong seedValue) =>
+            new(
                 name.Text.Trim(),
-                seedValue ?? NewWorldModel.DrawSeed(DateTimeOffset.UtcNow),
+                seedValue,
                 size.GetItemMetadata(size.Selected).AsString(),
                 climate.GetItemMetadata(climate.Selected).AsString(),
                 favor.GetItemMetadata(favor.Selected).AsInt32(),
                 resources.ItemCount > 0 ? resources.GetItemMetadata(resources.Selected).AsString() : null,
                 pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null);
-            window.Close();
-            create(choice);
-        };
         name.CallDeferred(Control.MethodName.GrabFocus);
         return window;
     }
@@ -472,13 +569,15 @@ public partial class MainMenu : CanvasLayer
         }
     }
 
-    private static void Row(GwWindow window, string key, Control control)
+    private static void Row(GwWindow window, string key, Control control) => Row(window.Content, key, control);
+
+    private static void Row(Container parent, string key, Control control)
     {
         var row = new HBoxContainer();
         row.AddChild(new Label { Text = key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         control.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         row.AddChild(control);
-        window.Content.AddChild(row);
+        parent.AddChild(row);
     }
 
     public override void _EnterTree() => UiSetup.ThemeApplied += OnThemeApplied;
