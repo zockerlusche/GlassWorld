@@ -92,6 +92,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, GwValueBar> _cardBars = new(StringComparer.Ordinal);
     private GwPortrait? _cardPortrait;
     private Label? _cardTrying;
+    private Label? _cardGround;
     private string? _cardTopQuestionId;
     private Label? _cardTopQuestion;
     private Label? _cardTopReason;
@@ -123,6 +124,7 @@ public partial class GameScreen : CanvasLayer
     private bool _worldHeld;
     private bool _menuPaused;
     private double _speedBeforeNight = 1;
+    private bool _nightPassed;
     private bool _cameraHeldBeforeNight;
     private long? _nightfallTick;
     private PanelContainer? _topBar;
@@ -679,6 +681,14 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
+
+            // A1752: an inhabitant's own aha (invented, built, a new word) marks its portrait.
+            if (_presenter.Host is { } ahaHost)
+            {
+                _aha ??= new AhaMarks(_style.Tokens.PortraitStates, ahaHost.World.Calendar.Settings.TicksPerHour);
+                _aha.Take(events);
+            }
+
             foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 // A1684: the hint box keeps only knocks and calls for help (at most two); a question becomes a log
@@ -859,6 +869,12 @@ public partial class GameScreen : CanvasLayer
         else
         {
             _presenter?.ClickedGround();
+
+            // A1791 (Marcel W2242): a thing near the click says what it is, who made it and who knows what about it.
+            if (WorldPoint(position) is { } ground && ThingAt(ground) is { } thing)
+            {
+                OpenThing(thing);
+            }
         }
     }
 
@@ -1582,7 +1598,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        var folder = GameData.At("chronicle");
         System.IO.Directory.CreateDirectory(folder);
         var title = Tr("ui.chronicle.title").ToString();
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
@@ -2323,7 +2339,7 @@ public partial class GameScreen : CanvasLayer
         if (hold == _worldHeld)
         {
             // Nothing else may start the world while it is held (a check run, a late button event).
-            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            if (hold && _presenter.Speed != 0 && !_menuPaused && _night?.PassesNight != true)
             {
                 _presenter.Speed = 0;
             }
@@ -2349,10 +2365,13 @@ public partial class GameScreen : CanvasLayer
         }
 
         _presenter.CameraHeld = _cameraHeldBeforeNight;
-        if (!_menuPaused && _presenter.Speed == 0)
+        // After a passed night (A1798) the world runs at the scene's speed, not 0: the player's speed comes back too.
+        if (!_menuPaused && (_presenter.Speed == 0 || _nightPassed))
         {
             _presenter.Speed = _speedBeforeNight;
         }
+
+        _nightPassed = false;
 
         foreach (var control in _restingUi.Where(IsInstanceValid))
         {
@@ -2417,6 +2436,12 @@ public partial class GameScreen : CanvasLayer
         var sceneDelta = NightDelta(delta);
         _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
         HoldWorld(_night.HoldsWorld);
+        if (_night.PassesNight && !_menuPaused)
+        {
+            // A1798: the rest of the night passes behind the shade at the fastest speed; dawn fades the morning in.
+            _presenter.Speed = ScreenModel.TimeChoices(_presenter.Host.World.Calendar.Settings).Max(c => c.Speed);
+            _nightPassed = true;
+        }
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -3290,6 +3315,8 @@ public partial class GameScreen : CanvasLayer
         about.AddChild(doing);
         _cardTrying = new Label { Name = "CardTrying", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, Visible = false };
         about.AddChild(_cardTrying);
+        _cardGround = new Label { Name = "CardGround", ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        about.AddChild(_cardGround);
 
         // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
         var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
@@ -3465,7 +3492,7 @@ public partial class GameScreen : CanvasLayer
     /// <summary>The head's values: portrait, what it does, a first try.</summary>
     private void RefreshCardHead(InhabitantCard card, string inhabitantId)
     {
-        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row), selected: false);
+        _cardPortrait?.Show(_portraitPictures.GetValueOrDefault(inhabitantId), CornerModel.Initial(DisplayName(card.Row)), CornerModel.Brooding(card.Row) ? PortraitState.Question : PortraitState.None, selected: false);
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         var inhabitant = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id);
         if (_cardActionIcon is not null)
@@ -3487,6 +3514,16 @@ public partial class GameScreen : CanvasLayer
             if (trying)
             {
                 _cardTrying.Text = TrFor("ui.card.trying", _feed?.SexOf(inhabitantId));
+            }
+        }
+
+        if (_cardGround is not null)
+        {
+            var ground = CardGroundLine(inhabitantId);
+            _cardGround.Visible = ground.Length > 0;
+            if (_cardGround.Text != ground)
+            {
+                _cardGround.Text = ground;
             }
         }
     }
@@ -3773,7 +3810,8 @@ public partial class GameScreen : CanvasLayer
         // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
         // has looked at since leaves only the effect open; the questions panel still lists every open question.
         mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
-        mark.Visible = row.PuzzlingQuestions > 0;
+        // Never over a figure lying asleep (review GW5 #510, like the feeling symbols in #499 and the dots, D1112 #8).
+        mark.Visible = row.PuzzlingQuestions > 0 && _presenter?.LiesNow(row.Id) != true;
     }
 
     private string? PickAt(Vector2 screen)
@@ -3811,7 +3849,13 @@ public partial class GameScreen : CanvasLayer
         string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : NameOfId(id);
         return rows.ToDictionary(
             r => r.Id,
-            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant)
+                ? InhabitantActivity.WithCarrying(
+                    InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf),
+                    InhabitantActivity.CarriedType(inhabitant, index) is { } carried ? ThingName(carried) : null, // A1784: what it carries
+                    key => Tr(key),
+                    smallThing: !TranslationServer.GetLocale().StartsWith("de", StringComparison.OrdinalIgnoreCase))
+                : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }
 

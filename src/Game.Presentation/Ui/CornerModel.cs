@@ -34,16 +34,38 @@ public static class CornerModel
     /// <param name="knocking">Who knocks on the glass (an open message in the mailbox).</param>
     public static (IReadOnlyList<InhabitantRow> Shown, int More) Shown(IReadOnlyList<InhabitantRow> rows, Zones zones, string? selected, IReadOnlySet<string> knocking)
     {
+        ArgumentNullException.ThrowIfNull(knocking);
+        return Shown(rows, zones, selected, r => knocking.Contains(r.Id) ? PortraitState.Knock : Brooding(r) ? PortraitState.Question : PortraitState.None);
+    }
+
+    /// <summary>
+    /// The inhabitants the corner shows, ranked by the state their portrait shows (A1752, B2792): the one followed or
+    /// selected, then who knocks, who worries, who had an aha, who puzzles over a question, then the favourites - at most
+    /// <c>portraits_important_max</c>, in the order of the list (so nobody jumps).
+    /// </summary>
+    /// <param name="rows">All inhabitants in the order of the list.</param>
+    /// <param name="zones">The thresholds.</param>
+    /// <param name="selected">The inhabitant followed or selected, or null.</param>
+    /// <param name="stateOf">The state each portrait shows.</param>
+    public static (IReadOnlyList<InhabitantRow> Shown, int More) Shown(IReadOnlyList<InhabitantRow> rows, Zones zones, string? selected, Func<InhabitantRow, PortraitState> stateOf)
+    {
         ArgumentNullException.ThrowIfNull(rows);
         ArgumentNullException.ThrowIfNull(zones);
-        ArgumentNullException.ThrowIfNull(knocking);
+        ArgumentNullException.ThrowIfNull(stateOf);
         if (rows.Count < zones.PortraitsImportantFrom)
         {
             return (rows, 0);
         }
 
         int Rank(InhabitantRow r) =>
-            r.Id == selected ? 0 : knocking.Contains(r.Id) ? 1 : r.Favourite ? 2 : Brooding(r) ? 3 : -1;
+            r.Id == selected ? 0 : stateOf(r) switch
+            {
+                PortraitState.Knock => 1,
+                PortraitState.Worry => 2,
+                PortraitState.Aha => 3,
+                PortraitState.Question => 4,
+                _ => r.Favourite ? 5 : -1,
+            };
 
         List<InhabitantRow> shown = [.. rows
             .Select((row, index) => (Row: row, Index: index, Rank: Rank(row)))
@@ -54,6 +76,59 @@ public static class CornerModel
             .OrderBy(x => x.Index)
             .Select(x => x.Row)];
         return (shown, rows.Count - shown.Count);
+    }
+
+    /// <summary>
+    /// The one state a portrait shows (A1752, B2792): the most important of knock (an open message at the glass), worry (a
+    /// need long below its neglect line, or fading), aha (something succeeded lately) and question (one still puzzles it).
+    /// </summary>
+    /// <param name="row">The inhabitant.</param>
+    /// <param name="knocking">It knocks at the glass.</param>
+    /// <param name="aha">It had an aha that still shows.</param>
+    /// <param name="data">The thresholds (tokens portrait_states).</param>
+    public static PortraitState State(InhabitantRow row, bool knocking, bool aha, UiPortraitStates data)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(data);
+        return knocking ? PortraitState.Knock
+            : Worried(row, data) ? PortraitState.Worry
+            : aha ? PortraitState.Aha
+            : Brooding(row) ? PortraitState.Question
+            : PortraitState.None;
+    }
+
+    /// <summary>Whether the worry mark shows (A1752, GW1 #27065): a need below its neglect line for the data's hours, or fading.</summary>
+    public static bool Worried(InhabitantRow row, UiPortraitStates data)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(data);
+        return row.Fading || row.NeglectHours >= data.WorryAfterHours;
+    }
+
+    /// <summary>
+    /// The knock ring's strength <paramref name="seconds"/> into the knocking (A1752, B2792): the data's taps, short and
+    /// apart, then a pause, again and again - 1 at the height of a tap, 0 between. With reduced motion it stands at 1.
+    /// </summary>
+    public static double KnockPulse(UiPortraitStates data, double seconds, bool reduceMotion)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (reduceMotion)
+        {
+            return 1;
+        }
+
+        var period = (data.KnockTaps * data.KnockTapS) + ((data.KnockTaps - 1) * data.KnockGapS) + data.KnockPauseS;
+        var t = ((seconds % period) + period) % period;
+        for (var i = 0; i < data.KnockTaps; i++)
+        {
+            var start = i * (data.KnockTapS + data.KnockGapS);
+            if (t >= start && t < start + data.KnockTapS)
+            {
+                return Math.Sin(Math.PI * (t - start) / data.KnockTapS);
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -149,4 +224,23 @@ public static class CornerModel
         ArgumentNullException.ThrowIfNull(row);
         return row.PuzzlingQuestions > 0;
     }
+}
+
+/// <summary>The one state a portrait shows (A1752, B2792), from the least to the most important.</summary>
+public enum PortraitState
+{
+    /// <summary>Nothing to show.</summary>
+    None,
+
+    /// <summary>A question still puzzles it: "?".</summary>
+    Question,
+
+    /// <summary>Something succeeded lately (invented, built, a new word): the ring lights up once, then stays calmly bright; a star.</summary>
+    Aha,
+
+    /// <summary>A need long below its neglect line, or fading: "!", no ring, no motion.</summary>
+    Worry,
+
+    /// <summary>It knocks at the glass: the ring pulses in the knock's rhythm; sound arcs.</summary>
+    Knock,
 }

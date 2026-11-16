@@ -82,6 +82,19 @@ class Climbing(BaseModel):
     fright_delta: float | None = Field(None, ge=0.0, le=1.0)
 
 
+class HoldWhile(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    below: float = Field(..., ge=0.0, le=1.0)
+
+
 class StaySheltered(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -89,6 +102,22 @@ class StaySheltered(BaseModel):
     leaving_factor_permille: int = Field(..., ge=0, le=1000)
     in_precipitation: bool | None = None
     at_levels: list[common_schema.VocabId] | None = Field(None, max_length=8)
+    holds_action: str | None = Field(
+        None,
+        description='A1793 (D1192 #7): this action on a thing under a shelter, done under the shelter, does not end while the rain or the cold of in_precipitation/at_levels lasts there, or while the need of hold_while is still below its line - one action instead of short pieces (no new start, no repetition count, one diary line). Absent = it ends after its duration as any action.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    hold_while: HoldWhile | None = Field(
+        None,
+        description='A need the shelter is taken for and its line: while the need is below it, the shelter holds too (feeling cool is not yet cold). Placeholder value.',
+    )
+    hold_while_needs_above: float | None = Field(
+        None,
+        description='It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class BodyWorn(BaseModel):
@@ -160,6 +189,12 @@ class BodyWetness(BaseModel):
     )
     shelter_radius_cm: int = Field(
         ..., description='How near such a thing must be.', ge=0, le=2000
+    )
+    shelter_still_air_tenth_c: int | None = Field(
+        None,
+        description='How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference.',
+        ge=0,
+        le=200,
     )
 
 

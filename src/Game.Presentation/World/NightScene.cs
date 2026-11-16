@@ -56,6 +56,12 @@ public sealed class NightScene(LookNight data)
     public bool HoldsWorld => SceneShown;
 
     /// <summary>
+    /// A1798: true while the scene lets the rest of the night pass behind the shade (look/night.json pass_night) - the
+    /// service is done, the world runs at the fastest speed and the morning fades in at dawn.
+    /// </summary>
+    public bool PassesNight { get; private set; }
+
+    /// <summary>
     /// One frame. <paramref name="known"/>: the core's compute night runs (null: not decided yet for a new or
     /// loaded world - neither a start nor an end; the first known value is never taken as a change).
     /// <paramref name="serviceDone"/>: the service has nothing left this night (null: unknown - no service or no
@@ -108,7 +114,12 @@ public sealed class NightScene(LookNight data)
                 break;
             case NightStage.Dream:
                 Darkness = _data.Darkness;
-                if (!night || (_inStage >= _data.MinSceneS && serviceDone != false))
+                if (night && _data.PassNight == true && (PassesNight || (_inStage >= _data.MinSceneS && serviceDone != false)))
+                {
+                    // A1798: the service is done - the rest of the night passes behind the shade; dawn ends it.
+                    PassesNight = true;
+                }
+                else if (!night || (_inStage >= _data.MinSceneS && serviceDone != false))
                 {
                     Enter(NightStage.FadingIn);
                 }
@@ -159,6 +170,7 @@ public sealed class NightScene(LookNight data)
 
     private void Enter(NightStage stage)
     {
+        PassesNight = false;
         Stage = stage;
         _inStage = 0;
     }

@@ -98,15 +98,19 @@ public sealed partial class BodySystem : IWorldSystem, IOptionalWorldState
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(inhabitant);
-        // B5 R4: sun, wetness, wind (with shelter) and the warmth of others near.
+        // B5 R4: sun, wetness, wind (with shelter) and the warmth of others near; A1793: the still air under a shelter.
         var cool = (int)((long)_data.Wetness.CoolTenthC * WetPermille(inhabitant.Id) / 1000);
-        var bare = SunTenthC(world, inhabitant.Position) - cool - WindTenthC(world, inhabitant.Position) + OthersWarmthTenthC(inhabitant);
+        var bare = SunTenthC(world, inhabitant.Position) - cool - WindTenthC(world, inhabitant.Position) + OthersWarmthTenthC(inhabitant)
+            + StillAirTenthC(inhabitant.Position);
         var worn = _data.Worn is { } keeps && inhabitant.Worn is { } id && _objects.TryGet(id, out var thing) && _objects.Catalog.HasProperty(thing.TypeId, keeps.Property)
             && (keeps.UpToTenthC is not { } upTo || (AirAt?.Invoke(world, inhabitant.Position)?.TemperatureTenthC ?? 0) + bare < upTo)
             ? keeps.WarmTenthC
             : 0;
         return bare + worn;
     }
+
+    /// <summary>A1793 (B2840): how much warmer it feels under a shelter, where the air stands still (tenths of a degree; 0 in the open).</summary>
+    public int StillAirTenthC(Position at) => _data.Wetness.ShelterStillAirTenthC is > 0 and var still && Sheltered(at) ? still : 0;
 
     /// <summary>
     /// B5 R4: how much colder the wind makes it at a place, in tenths of a degree - its strength times the data's

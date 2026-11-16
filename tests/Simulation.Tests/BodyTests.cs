@@ -69,8 +69,55 @@ public sealed class BodyTests
         // Soaked through, and the wet cools exactly as after rain.
         Assert.Equal(1000, body.WetPermille(inhabitant.Id));
         var cool = Content.Value.Body!.Wetness.CoolTenthC;
-        var expected = body.SunTenthC(host.World, inhabitant.Position) - cool - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant);
+        var expected = body.SunTenthC(host.World, inhabitant.Position) - cool - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant)
+            + body.StillAirTenthC(inhabitant.Position);
         Assert.Equal(expected, body.FeltTenthC(host.World, inhabitant));
+    }
+
+    [Fact]
+    public void UnderAShelterTheStillAirFeelsWarmer()
+    {
+        // A1793 (B2840): under a shelter the air stands still - it feels the data's degrees warmer than in the open.
+        var (host, inhabitant) = Island();
+        var body = host.Body!;
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        var still = Content.Value.Body!.Wetness.ShelterStillAirTenthC!.Value;
+        Assert.True(still > 0);
+        Assert.Equal(0, body.StillAirTenthC(inhabitant.Position));
+
+        host.Objects.Spawn("rock_niche", new Position(inhabitant.Position.X + 1, inhabitant.Position.Z));
+        Assert.Equal(still, body.StillAirTenthC(inhabitant.Position));
+        var expected = body.SunTenthC(host.World, inhabitant.Position) - body.WindTenthC(host.World, inhabitant.Position) + body.OthersWarmthTenthC(inhabitant) + still;
+        Assert.Equal(expected, body.FeltTenthC(host.World, inhabitant));
+    }
+
+    [Fact]
+    public void TheFlatsTheEbbLeavesDryDoNotWet()
+    {
+        // Review GW2 #518: a sea cell wets only while the tide covers it.
+        var (host, _) = Island();
+        var body = host.Body!;
+        var map = host.Map!;
+        var tides = map.Tides!;
+        Assert.True(tides.Active);
+        var lowest = Enumerable.Range(0, tides.PeriodTicks).Min(t => tides.LevelUnitsAt(host.World.Tick + t));
+        var flat = Enumerable.Range(0, map.Map.WidthCells * map.Map.DepthCells)
+            .Select(i => (X: i % map.Map.WidthCells, Z: i / map.Map.WidthCells))
+            .First(c => map.Map.Cell(c.X, c.Z) is { Water: Map.WaterKind.Salt } cell && cell.WalkCost != Map.MapCell.Blocked && cell.WaterDepth + lowest <= 0);
+        var at = map.CentreOf(flat.X, flat.Z);
+        var depth = map.Map.Cell(flat.X, flat.Z).WaterDepth;
+
+        // Over one tide period: wet exactly while the water stands over it.
+        var (dry, wet) = (false, false);
+        for (var t = 0; t < tides.PeriodTicks && !(dry && wet); t++)
+        {
+            var covered = depth + tides.LevelUnitsAt(host.World.Tick) > 0;
+            Assert.Equal(covered, body.InWater!(at));
+            (dry, wet) = (dry || !covered, wet || covered);
+            host.World.Step();
+        }
+
+        Assert.True(dry && wet, "the period has both");
     }
 
     [Fact]

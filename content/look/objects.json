@@ -6,7 +6,7 @@
   "ground_tolerance_m": 0.06,
   "max_lights": 8,
   "turn_tries": 8,
-  "focus": { "seconds": 3.0, "radius_m": 0.6, "margin_m": 0.2, "width_m": 0.08, "color": "cave_inside" },
+  "focus": { "seconds": 3.0, "radius_m": 0.6, "margin_m": 0.2, "width_m": 0.08, "color": "cave_inside", "mark_events": ["built"], "mark_seconds": 30.0 },
   "invention_min_shown_m": 0.4,
   "min_footprint_m": 0.05,
   "fallback": {
@@ -310,6 +310,90 @@
       "rest": "centre",
       "align": "ground",
       "footprint_m": 0.3
+    },
+    {
+      "id": "pit", "reach": "low",
+      "types": [
+        "pit"
+      ],
+      "shape": "pool",
+      "colors": [
+        "ground",
+        "rock_dark"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground_uphill",
+      "footprint_m": 0.75
+    },
+    {
+      "id": "waterhole", "reach": "low",
+      "types": [
+        "waterhole"
+      ],
+      "shape": "pool",
+      "colors": [
+        "fresh_water",
+        "ground",
+        "rock"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground_uphill",
+      "footprint_m": 0.75
+    },
+    {
+      "id": "earth", "reach": "low",
+      "types": [
+        "earth"
+      ],
+      "shape": "stone",
+      "colors": [
+        "ground"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
+    },
+    {
+      "id": "sand_heap", "reach": "low",
+      "types": [
+        "sand"
+      ],
+      "shape": "stone",
+      "colors": [
+        "sand"
+      ],
+      "size_m": 0.5,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
+    },
+    {
+      "id": "ore_chunk", "reach": "low",
+      "types": [
+        "ore_chunk"
+      ],
+      "shape": "stone",
+      "colors": [
+        "rock_dark",
+        "pyrite"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.15,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "clay", "reach": "low",
