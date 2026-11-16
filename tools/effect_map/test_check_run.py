@@ -109,7 +109,11 @@ def test_an_exempt_sensation_may_stay_below_the_return_but_a_need_may_not() -> N
             {"need": "hunger", "below": 0.3, "mood": "frustration", "delta_per_hour": 0.05},
         ],
     }
-    expectation = {"kind": "mood_driver_lift_per_day", "min_lift": 0.3, "exempt_sensations": ["too_cold"]}
+    expectation = {
+        "kind": "mood_driver_lift_per_day",
+        "min_lift": 0.3,
+        "exempt_sensations": ["too_cold"],
+    }
     ok, text = module.check_data(expectation, model)
     assert not ok
     assert "hunger" in text
