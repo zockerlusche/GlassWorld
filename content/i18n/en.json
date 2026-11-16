@@ -2427,6 +2427,10 @@
       "text": "Save, load, settings, quit (Esc)"
     },
     {
+      "key": "msg.hint.answers_at_night",
+      "text": "A day without AI: the inhabitants notice you and answer at night."
+    },
+    {
       "key": "msg.hint.autosaved",
       "text": "Saved automatically. The game saves by itself every game day."
     },
