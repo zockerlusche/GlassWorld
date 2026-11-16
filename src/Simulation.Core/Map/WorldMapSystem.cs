@@ -435,6 +435,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     private bool _obstaclesDirty = true;
     private int _obstacleCount = -1;
     private long _obstacleSignature;
+    private long? _obstaclesCheckedTick;
     private double _widestObstacleM;
 
     // A destination this close to an obstacle's centre is the obstacle itself (positions are the same doubles).
@@ -457,6 +458,17 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         {
             return null;
         }
+
+        // A1813: Connected asks on every step of every walker - the signature below is taken at most once per tick
+        // (an event marks a change at once). A world loaded at a tick boundary takes it at its first call, as one that
+        // ran on does, so both see the same cells.
+        var tick = Clock?.Invoke();
+        if (!_obstaclesDirty && tick is not null && tick == _obstaclesCheckedTick)
+        {
+            return _obstacles;
+        }
+
+        _obstaclesCheckedTick = tick;
 
         // A signature over every obstacle as well - where it stands and whether someone holds it: a move fires no
         // event (a young tree picked up goes with its holder), so the cells must never lag behind the objects, or a
@@ -685,6 +697,91 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     }
 
     private int[]? _areas;
+    private int[]? _obstacleAreas;
+    private bool[]? _obstacleAreasFor;
+
+    /// <summary>
+    /// A1813 (review GW1 #515): the walkable areas as the path search sees them. Without obstacles the terrain's areas;
+    /// with them a flood fill that does not pass an obstacle cell (nor cut its corner), so a pocket closed in by trunks
+    /// is an area of its own and nobody starts a search into it that can only use up the budget. An obstacle cell itself
+    /// joins the area of a neighbour (in fixed order), so the thing standing there stays a goal one can walk to.
+    /// Derived from the objects like the obstacles; built again when they are.
+    /// </summary>
+    private int[] Areas()
+    {
+        _areas ??= PathFinder.WalkableAreas(Map);
+        if (Obstacles() is not { } obstacles)
+        {
+            return _areas;
+        }
+
+        if (_obstacleAreas is not null && ReferenceEquals(_obstacleAreasFor, obstacles))
+        {
+            return _obstacleAreas;
+        }
+
+        int w = Map.WidthCells, d = Map.DepthCells;
+        var areas = new int[w * d];
+        bool Open(int x, int z) => Map.Contains(x, z) && _areas[(z * w) + x] != 0 && !obstacles[(z * w) + x];
+        var next = 0;
+        var queue = new Queue<int>();
+        for (var i = 0; i < w * d; i++)
+        {
+            if (areas[i] != 0 || !Open(i % w, i / w))
+            {
+                continue;
+            }
+
+            areas[i] = ++next;
+            queue.Enqueue(i);
+            while (queue.TryDequeue(out var c))
+            {
+                int cx = c % w, cz = c / w;
+                for (var dz = -1; dz <= 1; dz++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = cx + dx, nz = cz + dz;
+                        if ((dx == 0 && dz == 0) || !Open(nx, nz) || areas[(nz * w) + nx] != 0
+                            || (dx != 0 && dz != 0 && (!Open(cx + dx, cz) || !Open(cx, cz + dz))))
+                        {
+                            continue;
+                        }
+
+                        areas[(nz * w) + nx] = next;
+                        queue.Enqueue((nz * w) + nx);
+                    }
+                }
+            }
+        }
+
+        // Obstacle cells on walkable ground join a neighbour's area - in rounds, so the middle of a wide rock joins too.
+        for (var changed = true; changed;)
+        {
+            changed = false;
+            for (var i = 0; i < w * d; i++)
+            {
+                if (areas[i] != 0 || !obstacles[i] || _areas[i] == 0)
+                {
+                    continue;
+                }
+
+                for (var k = 0; k < 8 && areas[i] == 0; k++)
+                {
+                    int nx = (i % w) + NeighbourX[k], nz = (i / w) + NeighbourZ[k];
+                    if (Map.Contains(nx, nz) && areas[(nz * w) + nx] != 0)
+                    {
+                        areas[i] = areas[(nz * w) + nx];
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        _obstacleAreas = areas;
+        _obstacleAreasFor = obstacles;
+        return areas;
+    }
 
     /// <inheritdoc/>
     public bool Connected(Position a, Position b)
@@ -694,21 +791,44 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             return false;
         }
 
-        _areas ??= PathFinder.WalkableAreas(Map);
+        var areas = Areas();
         var w = Map.WidthCells;
-        var area = _areas[(from.Z * w) + from.X];
-        return area != 0 && area == _areas[(to.Z * w) + to.X];
+        var area = areas[(from.Z * w) + from.X];
+        if (area == 0)
+        {
+            return false;
+        }
+
+        // An obstacle cell borders on more than one area at times (a trunk between two pockets): it is connected to each.
+        return area == areas[(to.Z * w) + to.X] || Borders(areas, from, areas[(to.Z * w) + to.X]) || Borders(areas, to, area);
+    }
+
+    // Whether the cell is an obstacle cell and one of its neighbours lies in the area.
+    private bool Borders(int[] areas, (int X, int Z) cell, int area)
+    {
+        var w = Map.WidthCells;
+        if (area == 0 || _obstacleAreasFor is not { } obstacles || !ReferenceEquals(areas, _obstacleAreas) || !obstacles[(cell.Z * w) + cell.X])
+        {
+            return false;
+        }
+
+        for (var k = 0; k < 8; k++)
+        {
+            int nx = cell.X + NeighbourX[k], nz = cell.Z + NeighbourZ[k];
+            if (Map.Contains(nx, nz) && areas[(nz * w) + nx] == area)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
     /// The walkable area the cell (x, z) belongs to; 0 = it cannot be walked on or lies outside the map.
-    /// Cells of one area can be reached from each other on foot (cheap, no search).
+    /// Cells of one area can be reached from each other on foot (cheap, no search); obstacles count (A1813).
     /// </summary>
-    public int AreaOf(int x, int z)
-    {
-        _areas ??= PathFinder.WalkableAreas(Map);
-        return Map.Contains(x, z) ? _areas[(z * Map.WidthCells) + x] : 0;
-    }
+    public int AreaOf(int x, int z) => Map.Contains(x, z) ? Areas()[(z * Map.WidthCells) + x] : 0;
 
     /// <inheritdoc/>
     public double SpeedFactor(Position at)
