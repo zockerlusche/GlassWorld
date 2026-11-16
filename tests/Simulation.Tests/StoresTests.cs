@@ -1,5 +1,7 @@
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
@@ -74,6 +76,7 @@ public sealed class StoresTests
         var faller = inhabitants.Get("inh-000001");
         var change = content.Body!.Stores!.Health.Events!["slipped"];
 
+        faller.Needs[content.Body!.Stores!.Stamina.SleepNeed] = 1.0;
         inhabitants.Report(new WorldEvent(BodySystem.Slipped, world.Tick, faller.Id, null, null));
 
         Assert.Equal(1 + (change / 1000.0), stores.Health(faller.Id), 9);
@@ -104,8 +107,8 @@ public sealed class StoresTests
 
         var content = On();
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
-        var host = SimulationHost.Assemble(content, settings, new World(5, content.Calendar), new MockDecisionPort(), "de");
-        host.Inhabitants.SpawnStartInhabitants(host.World, [new(0, 0), new(30, 0)]);
+        var host = SimulationHost.Assemble(content, settings, new World(5, content.Calendar), new SilentPort(), "de");
+        host.Inhabitants.SpawnStartInhabitants(host.World, [new(0, 0), new(30, 0), new(60, 60), new(-60, -60)]);
         var first = host.Inhabitants.All.First();
         host.Stores!.Restore([new StoredBody(first.Id, 400, 900)]);
         host.World.Run(5);
@@ -114,7 +117,7 @@ public sealed class StoresTests
         try
         {
             SaveGameStore.Save(path, StateCodec.Capture(host));
-            var loaded = StateCodec.Restore(new SimulationHostFactory(content, settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(content, settings, new SilentPort(), "de"), SaveGameStore.Load(path));
             Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
             Assert.Equal(host.Stores.Stamina(first.Id), loaded.Stores!.Stamina(first.Id));
             Assert.Equal(host.Stores.Health(first.Id), loaded.Stores.Health(first.Id));
@@ -123,6 +126,16 @@ public sealed class StoresTests
         {
             File.Delete(path);
         }
+    }
+
+    /// <summary>A decider that never answers: nothing is in flight when the world is saved.</summary>
+    private sealed class SilentPort : IDecisionPort
+    {
+        public void Send(string requestId, string requestJson)
+        {
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
     }
 
     /// <summary>The content with the switch on.</summary>
@@ -142,7 +155,7 @@ public sealed class StoresTests
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour);
         var stores = new StoresSystem(content.Body!.Stores!, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour);
         world.Add(objects).Add(stores);
-        inhabitants.SpawnStartInhabitants(world, [new(0, 0), new(5, 0)]);
+        inhabitants.SpawnStartInhabitants(world, [new(0, 0), new(5, 0), new(60, 60), new(-60, -60)]);
         return (world, objects, inhabitants, stores, content);
     }
 }
