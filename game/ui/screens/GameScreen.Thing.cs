@@ -37,6 +37,9 @@ public partial class GameScreen
         var window = new GwWindow { Name = "Thing" };
         window.Setup("ui.thing.title", _style);
         window.SetTitleText(name);
+
+        // As wide as the card (zones.card_width), so the lines of who knows what read as lines, not as a column of words.
+        window.Content.CustomMinimumSize = new Vector2(_style.Tokens.Zones.CardWidth, 0);
         Label Line(string text, string? variation = null) => new()
         {
             Text = text,
@@ -80,7 +83,9 @@ public partial class GameScreen
     /// <summary>One belief in words: the property, 'not' when it believes the opposite, and where it has it from.</summary>
     private string FactText(ThingFact fact)
     {
-        var property = Tr(VocabKeys.Property(fact.PropertyId));
+        // A property inside the sentence starts small ('nicht tragbar', 'salzig'); the vocabulary writes it as a heading.
+        var word = Tr(VocabKeys.Property(fact.PropertyId));
+        var property = word.Length > 0 ? char.ToLower(word[0], System.Globalization.CultureInfo.InvariantCulture) + word[1..] : word;
         var what = fact.Value ? property : TextFill.Fill(Tr("ui.thing.fact_not"), new Dictionary<string, string> { ["property"] = property });
         return TextFill.Fill(Tr("ui.thing.fact"), new Dictionary<string, string> { ["fact"] = what, ["source"] = Tr(fact.SourceKey) });
     }

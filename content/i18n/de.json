@@ -216,7 +216,7 @@
     },
     {
       "key": "ui.thing.ground_slow",
-      "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
+      "text": "Boden: {ground} – man kommt langsamer voran ({percent} %)"
     },
     {
       "key": "ui.memory.title",

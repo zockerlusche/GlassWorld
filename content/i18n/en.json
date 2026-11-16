@@ -216,7 +216,7 @@
     },
     {
       "key": "ui.thing.ground_slow",
-      "text": "Ground: {ground} - walking is slower ({percent} %)"
+      "text": "Ground: {ground} - walking is slower ({percent} %)"
     },
     {
       "key": "ui.memory.title",
