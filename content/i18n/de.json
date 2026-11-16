@@ -1499,6 +1499,22 @@
       "text": "Am Körper tragbar"
     },
     {
+      "key": "msg.command.too_far",
+      "text": "So weit reicht die Hand nicht."
+    },
+    {
+      "key": "msg.command.unreachable",
+      "text": "Dorthin kommt niemand."
+    },
+    {
+      "key": "msg.command.place_taken",
+      "text": "Dort ist kein Platz frei."
+    },
+    {
+      "key": "msg.command.not_movable",
+      "text": "Das laesst sich nicht verschieben."
+    },
+    {
       "key": "vocab.property.portable",
       "text": "Tragbar"
     },
@@ -2441,6 +2457,10 @@
     {
       "key": "vocab.event.voice_believed",
       "text": "Hat der Stimme etwas geglaubt"
+    },
+    {
+      "key": "vocab.event.object_moved",
+      "text": "Die Hand hat etwas verschoben"
     },
     {
       "key": "vocab.event.writing_found",

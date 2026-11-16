@@ -50,6 +50,13 @@ namespace GlassWorld.Contracts
         public double UrgentBelow { get; set; } = default!;
 
         /// <summary>
+        /// B6 R22 (A1539): the player's hand moves a thing - only things with the movable property, at most max_move_m from where they lie, onto a place with no other thing within free_radius_m and no inhabitant within min_distance_to_inhabitant_m. Inhabitants are never moved. The cost is the favour intervention 'move'. Placeholders (TL). Absent = no hand.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("hand")]
+        public Hand? Hand { get; set; } = default!;
+
+        /// <summary>
         /// The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("missing_radius_m")]
@@ -60,6 +67,21 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("search_actions")]
         public System.Collections.Generic.ICollection<string> SearchActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Hand
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("movable_property")]
+        public string MovableProperty { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_move_m")]
+        public double MaxMoveM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("free_radius_m")]
+        public double FreeRadiusM { get; set; } = default!;
 
     }
 }

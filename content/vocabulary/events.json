@@ -171,6 +171,10 @@
       "description": "An inhabitant took what the player's voice said about a thing as a weak belief (B6 R20, A1536; target = the type, Detail = property|value)."
     },
     {
+      "id": "object_moved",
+      "description": "The player's hand moved a thing (B6 R22, A1539; target = the thing, Detail = its type). Inhabitants may notice it."
+    },
+    {
       "id": "writing_found",
       "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
     },
