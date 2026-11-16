@@ -927,6 +927,10 @@
       "text": "Ask for help"
     },
     {
+      "key": "vocab.action.build_here",
+      "text": "Build here"
+    },
+    {
       "key": "vocab.action.give_up",
       "text": "Give up"
     },
