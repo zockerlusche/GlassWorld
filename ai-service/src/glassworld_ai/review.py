@@ -554,7 +554,7 @@ def parse_review(
     return result, notes
 
 
-def _feedback(settings: dict[str, Any]) -> str | None:
+def retry_feedback(settings: dict[str, Any]) -> str | None:
     """The prompt's sentence for a refused answer (A1721), or None (v1: ask again, other seed)."""
     retry: object = settings.get("retry")
     if not isinstance(retry, dict):
@@ -597,7 +597,7 @@ class OllamaReviews:
             queue=self._queue,
             settings=self._settings,
             log=self._log,
-            feedback=_feedback(settings),
+            feedback=retry_feedback(settings),
         )
         result, _ = answer.value
         return JobOutcome(
