@@ -211,6 +211,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v14",
         "decider/decide.v15",
         "decider/decide.v16",
+        "decider/decide.v17",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -669,3 +670,38 @@ def test_v16_says_when_the_person_is_wet_or_stands_in_water() -> None:
     dry = _render(_leisure(None), version=16).split("=== user ===")[1]
     body = dry.split("## Your body")[1].split("##")[0]
     assert "You are wet." not in dry and "deep in" not in body
+
+
+def test_v17_says_where_one_could_build_without_saying_which_place_is_better() -> None:
+    """A1373 (GW1 #526): the occasion build_site and each option's place - how far and near what
+    the builder knows by its own name; nothing says which to take (PR2). The rest is v16's."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["occasion"] = "build_site"
+    data["options"] = [
+        {
+            "option_id": "o1",
+            "action": "build_here",
+            "target": None,
+            "partners": [],
+            "place": {
+                "x": 3.0,
+                "z": 4.0,
+                "distance_m": 5,
+                "near": {"de": "Felsnische", "en": "Rock nook"},
+            },
+        },
+        {
+            "option_id": "o2",
+            "action": "build_here",
+            "target": None,
+            "partners": [],
+            "place": {"x": 9.0, "z": 1.0, "distance_m": 11},
+        },
+    ]
+    user = _render(DecisionRequest.model_validate(data), version=17).split("=== user ===")[1]
+    assert "Each option is a place where it could stand" in user
+    assert '(about 5 m from you, near "Felsnische")' in user
+    assert "o2: " in user and "(about 11 m from you)" in user
+    assert "better" not in user.split("## Right now")[1].split("## Possible")[0]
+    plain = _render(_leisure(), version=17).split("=== user ===")[1]
+    assert plain == _render(_leisure(), version=16).split("=== user ===")[1]

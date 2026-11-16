@@ -112,6 +112,7 @@ def build_values(
         "objects": "",
         "options": "\n".join(
             _option_line(request, vocab, o, called, locale if template.version >= 4 else None)
+            + _place(o, settings, locale)
             for o in request.options
         ),
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
@@ -442,6 +443,19 @@ def _option_line(
     together = f" with {', '.join(partners)}" if partners else ""
     about = _topic(getattr(option, "topic", None), called, locale) if locale else ""
     return f"- {option_id}: {action} -> {what}{together}{about}"
+
+
+def _place(option: Any, settings: dict[str, Any], locale: str) -> str:
+    """v17 (A1373, D827 R15): a build_site option's place - how far, and near what the builder
+    knows (its own name); words from the data ([settings.place]), nothing about which is better."""
+    words: object = settings.get("place")
+    place: Any = getattr(option, "place", None)
+    if place is None or not isinstance(words, dict):
+        return ""
+    table = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
+    near: object = getattr(place.near, locale, None) if place.near is not None else None
+    line = table["near"] if near else table["distance"]
+    return line.replace("$distance", f"{place.distance_m:.0f}").replace("$near", str(near or ""))
 
 
 def _topic(topic: Any, called: Callable[[str], str | None] | None, locale: str) -> str:
