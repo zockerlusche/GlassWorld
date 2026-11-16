@@ -79,6 +79,28 @@ public partial class WorldPresenter
     public int ObjectsDrawn => _objectsView?.Drawn ?? 0;
 
     /// <summary>
+    /// A1791 (review GW3 #527): how far a click may lie from a thing to mean it, or null when it cannot be picked - a type
+    /// the island does not draw (sea water, shape none) or a thing carried in a hand (drawn by the figure). A drawn
+    /// invention reaches to half its shown extent, at least <paramref name="leastM"/>.
+    /// </summary>
+    public double? PickRadius(GlassWorld.Simulation.Objects.WorldObject thing, double leastM, IReadOnlySet<string> carried)
+    {
+        ArgumentNullException.ThrowIfNull(thing);
+        ArgumentNullException.ThrowIfNull(carried);
+        if (carried.Contains(thing.Id))
+        {
+            return null;
+        }
+
+        if (_inventionsView?.ShownExtent(thing.Id) is > 0 and var extent)
+        {
+            return Math.Max(leastM, extent / 2);
+        }
+
+        return _objectsView is { } view && view.Looks.For(thing.TypeId).Shape == GlassWorld.Contracts.ObjectLookShape.None ? null : leastM;
+    }
+
+    /// <summary>
     /// Mesh and material of an object type as the world draws it (for the dream images of the night scene,
     /// B2579: "das vorhandene Symbol des Objekt-Typs"); null in the placeholder world or for a type without a shape.
     /// </summary>

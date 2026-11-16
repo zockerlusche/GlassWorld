@@ -45,16 +45,16 @@ public sealed class WorldCalendarTests
     }
 
     [Theory]
-    [InlineData(0, 359, DayPhase.Night)]
-    [InlineData(0, 360, DayPhase.Dawn)]
-    [InlineData(0, 404, DayPhase.Dawn)]
-    [InlineData(0, 405, DayPhase.Day)]
-    [InlineData(0, 1139, DayPhase.Day)]
-    [InlineData(0, 1140, DayPhase.Dusk)]
-    [InlineData(0, 1185, DayPhase.Night)]
-    [InlineData(3, 479, DayPhase.Night)]
-    [InlineData(3, 480, DayPhase.Dawn)]
-    [InlineData(3, 1020, DayPhase.Dusk)]
+    [InlineData(0, 329, DayPhase.Night)]
+    [InlineData(0, 330, DayPhase.Dawn)]
+    [InlineData(0, 374, DayPhase.Dawn)]
+    [InlineData(0, 375, DayPhase.Day)]
+    [InlineData(0, 1244, DayPhase.Day)]
+    [InlineData(0, 1245, DayPhase.Dusk)]
+    [InlineData(0, 1290, DayPhase.Night)]
+    [InlineData(3, 389, DayPhase.Night)]
+    [InlineData(3, 390, DayPhase.Dawn)]
+    [InlineData(3, 1170, DayPhase.Dusk)]
     public void DayPhaseFollowsSeasonalSunriseAndSunset(int seasonIndex, int minuteOfDay, DayPhase expected)
     {
         var tick = (seasonIndex * Calendar.TicksPerSeason) + (minuteOfDay * Calendar.Settings.TicksPerHour / 60);
@@ -80,7 +80,7 @@ public sealed class WorldCalendarTests
     {
         var json = File.ReadAllText(Path.Combine(TestData.Root, "content", "world", "time.json"));
         Assert.Throws<ContractViolationException>(() => WorldCalendar.FromJson(json.Replace("\"days_per_season\": 7", "\"days_per_season\": 0", StringComparison.Ordinal)));
-        Assert.Throws<InvalidDataException>(() => WorldCalendar.FromJson(json.Replace("\"sunset_minute\": 1140", "\"sunset_minute\": 380", StringComparison.Ordinal)));
+        Assert.Throws<InvalidDataException>(() => WorldCalendar.FromJson(json.Replace("\"sunset_minute\": 1245", "\"sunset_minute\": 350", StringComparison.Ordinal)));
     }
 
     [Fact]

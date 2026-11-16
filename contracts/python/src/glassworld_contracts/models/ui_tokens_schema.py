@@ -94,6 +94,12 @@ class UiWindowTokens(BaseModel):
         ge=8,
         le=200,
     )
+    thing_pick_m: float = Field(
+        ...,
+        description='A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).',
+        ge=0.1,
+        le=10.0,
+    )
     side_panel_width: int = Field(
         ...,
         description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',
@@ -629,6 +635,12 @@ class Zones(BaseModel):
     )
     favor_bar_width: int = Field(
         ..., description='Width of the favour bar top right.', ge=60, le=1200
+    )
+    season_bar_width: int = Field(
+        ...,
+        description="A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+        ge=16,
+        le=400,
     )
     middle_share: float = Field(
         ...,

@@ -186,6 +186,7 @@
         "portrait_list_height_share",
         "round_button_px",
         "favor_bar_width",
+        "season_bar_width",
         "middle_share",
         "season_icons",
         "weather_icons",
@@ -269,6 +270,12 @@
           "type": "integer",
           "minimum": 60,
           "maximum": 1200
+        },
+        "season_bar_width": {
+          "description": "A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 400
         },
         "middle_share": {
           "description": "Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).",
@@ -389,6 +396,7 @@
         "bubble_max_chars",
         "list_refresh_ms",
         "pick_radius_px",
+        "thing_pick_m",
         "table_min_height",
         "card_bar_width",
         "mark_height_m",
@@ -454,6 +462,12 @@
           "type": "integer",
           "minimum": 8,
           "maximum": 200
+        },
+        "thing_pick_m": {
+          "description": "A1791: a click on the ground within this distance (metres) of a thing opens its info (when no figure was hit).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
         },
         "side_panel_width": {
           "description": "Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).",

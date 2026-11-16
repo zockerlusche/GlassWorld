@@ -20,4 +20,7 @@ public static class VocabKeys
 
     /// <summary>Name of a weather or weather condition (the weather symbol's tooltip, A1682).</summary>
     public static string Weather(string id) => "vocab.weather." + id;
+
+    /// <summary>Text key of a biome (A1791: the ground under a thing or an inhabitant).</summary>
+    public static string Biome(string id) => "vocab.biome." + id;
 }
