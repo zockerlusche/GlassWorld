@@ -13,6 +13,27 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NatureOveruse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("cell_m")]
+        public int CellM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("window_hours")]
+        public int WindowHours { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("bare_after")]
+        public int BareAfter { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("bare_growth_permille")]
+        public int BareGrowthPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("bare_min_hours")]
+        public int BareMinHours { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class NatureGroup
     {
 
@@ -124,6 +145,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("types")]
         public System.Collections.Generic.ICollection<NatureType> Types { get; set; } = new System.Collections.ObjectModel.Collection<NatureType>();
+
+        /// <summary>
+        /// A1380 N2 (R15): more than bare_after harvests (places eaten or picked) within window_hours in one field cell of cell_m make it bare; while bare its places regrow with bare_growth_permille of their growth (only for the time it is bare). It is green again once all its places have grown back, at the earliest after bare_min_hours. Omitted = no overuse.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("overuse")]
+        public NatureOveruse? Overuse { get; set; } = default!;
 
         /// <summary>
         /// The influence sums for durability (R51); omitted = none kept.

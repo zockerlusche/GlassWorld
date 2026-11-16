@@ -198,6 +198,9 @@ public sealed class SimulationHost
                     .ToDictionary(g => g.Key, g => (g.First().GrowsOn!.ObjectType, g.First().GrowsOn!.WithinCells), StringComparer.Ordinal),
 
                 // D1105 H2: what hangs in a crown, from the spawn data and the plant's height.
+                // A1380 N2: overuse of field cells (nature data).
+                Overuse = content.Nature?.Overuse,
+
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
                     .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
@@ -262,6 +265,7 @@ public sealed class SimulationHost
         {
             nature = new Nature.NatureSystem(natureData, world.Calendar.Settings.TicksPerHour, weather);
             map.Grown = nature.Grown;
+            map.GrowthBetween = nature.GrowthBetween;
             world.Add(nature);
         }
 
@@ -676,6 +680,11 @@ public sealed class SimulationHost
                 CloudPermille = w => bodyWeather.Read(w).CloudPermille,
                 WindAt = bodyWeather.WindAt,
                 HeatFrom = fire.HeatFrom,
+
+                // A1793: a cell with water wets who stands in it - a sea cell only while the tide covers it (review GW2
+                // #518: the flats the ebb leaves dry do not wet; the same rule as the tide's walk layer).
+                InWater = at => map.CellOf(at) is { } at2 && map.Map.Cell(at2.X, at2.Z) is { Water: not WaterKind.None } water
+                    && (water.Water != WaterKind.Salt || map.Tides is not { Active: true } tides || water.WaterDepth + tides.LevelUnitsAt(world.Tick) > 0),
             };
             inhabitants.BodyTenthC = body.FeltTenthC;
             inhabitants.Sheltered = inhabitant => body.Sheltered(inhabitant.Position);

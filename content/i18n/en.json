@@ -671,6 +671,38 @@
       "text": "Open"
     },
     {
+      "key": "ui.settings.invert_turn_x",
+      "text": "Invert turning"
+    },
+    {
+      "key": "ui.settings.invert_turn_x.desc",
+      "text": "Holding the right mouse button turns the view the other way."
+    },
+    {
+      "key": "ui.settings.invert_turn_y",
+      "text": "Invert tilting"
+    },
+    {
+      "key": "ui.settings.invert_turn_y.desc",
+      "text": "Holding the right mouse button tilts the view up and down the other way."
+    },
+    {
+      "key": "ui.settings.invert_pan_x",
+      "text": "Invert moving across"
+    },
+    {
+      "key": "ui.settings.invert_pan_x.desc",
+      "text": "Dragging with the mouse moves the island left and right the other way."
+    },
+    {
+      "key": "ui.settings.invert_pan_y",
+      "text": "Invert moving up and down"
+    },
+    {
+      "key": "ui.settings.invert_pan_y.desc",
+      "text": "Dragging with the mouse moves the island up and down the other way."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
