@@ -252,7 +252,7 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season} {day}/{days}"
+      "text": "{season}"
     },
     {
       "key": "ui.clock.date_tooltip",
@@ -261,6 +261,14 @@
     {
       "key": "ui.clock.day_year",
       "text": "day {game_day} · year {year}"
+    },
+    {
+      "key": "ui.clock.air",
+      "text": "{temp} °C"
+    },
+    {
+      "key": "ui.clock.air_tooltip",
+      "text": "Air temperature on the island"
     },
     {
       "key": "ui.common.cancel",
@@ -2505,6 +2513,10 @@
     {
       "key": "ui.activity.thinking",
       "text": "is thinking"
+    },
+    {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · carrying {thing}"
     },
     {
       "key": "ui.activity.idle",

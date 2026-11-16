@@ -630,6 +630,12 @@ class Zones(BaseModel):
     favor_bar_width: int = Field(
         ..., description='Width of the favour bar top right.', ge=60, le=1200
     )
+    season_bar_width: int = Field(
+        ...,
+        description="A1800 (B2839): width of the short bar after the season name in the time block - how far the season has come; 'day x of y' in its tooltip.",
+        ge=16,
+        le=400,
+    )
     middle_share: float = Field(
         ...,
         description='Width and height share of the rectangle in the middle of the picture that no control may cover (layout check).',
