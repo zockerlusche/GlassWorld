@@ -614,6 +614,7 @@
       "water"
     ]
   },
+  "burning": { "sound": "object.fire", "most": 2, "embers_gain": 0.35 },
   "signals": [
     {
       "signal": "knock",

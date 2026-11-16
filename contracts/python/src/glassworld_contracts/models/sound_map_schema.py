@@ -10,6 +10,31 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+
+class Burning(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sound: str = Field(
+        ...,
+        description='Sound id of the loop (library).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    most: int = Field(
+        ...,
+        description='At most this many burning things sound at once (the nearest).',
+        ge=1,
+        le=8,
+    )
+    embers_gain: float = Field(
+        ...,
+        description='Gain of embers against a full fire (0..1). Placeholder (TL).',
+        ge=0.0,
+        le=1.0,
+    )
+
+
 type Sound = Annotated[
     str,
     Field(
@@ -229,4 +254,8 @@ class SoundMap(BaseModel):
     signals: list[SoundForSignal] | None = Field(
         None,
         description="Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.",
+    )
+    burning: Burning | None = Field(
+        None,
+        description='A1543 (D1237): the sound of a burning thing - a spatial loop at each of the nearest burning things, as loud as the core says it burns (strength), embers quieter. Omitted = burning things are silent.',
     )
