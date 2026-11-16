@@ -149,6 +149,31 @@ public sealed class InhabitantActivityTests
     }
 
     /// <summary>Describes with the unnamed-inhabitant name the screen shows until names exist (B9).</summary>
+    [Theory]
+    [InlineData("de", "steht da · trägt ")]
+    [InlineData("en", "is standing · carrying ")]
+    public void TheLineSaysWhatItCarries(string locale, string start)
+    {
+        // A1784 (Marcel W2231): one sees what an inhabitant carries - in the card, the corner and the list.
+        var berry = new WorldObject("obj-000001", "red_berry", new Position(0, 0));
+        var holding = Inhabitant("inh-000001", null, null) with { Held = berry.Id };
+        var snapshot = Snapshot([holding], [berry]);
+        var index = new SnapshotIndex(snapshot);
+        var type = InhabitantActivity.CarriedType(holding, index);
+        Assert.Equal("red_berry", type);
+        var name = Tr(locale)(VocabKeys.ObjectType(type!));
+        Assert.NotEqual(VocabKeys.ObjectType(type!), name);
+        var small = locale == "en"; // English names start small inside the sentence (review GW3 #516); German nouns keep their capital
+        var shown = small ? char.ToLowerInvariant(name[0]) + name[1..] : name;
+        Assert.Equal(start + shown, InhabitantActivity.WithCarrying(Describe(holding, snapshot, locale), name, Tr(locale), small));
+
+        // Nothing in the hand, the thing gone, or the thing it works on right now: the line alone.
+        Assert.Null(InhabitantActivity.CarriedType(Inhabitant("inh-000001", null, null), index));
+        Assert.Null(InhabitantActivity.CarriedType(holding with { Held = "obj-000009" }, index));
+        Assert.Null(InhabitantActivity.CarriedType(holding with { Action = "eat", TargetId = berry.Id }, index));
+        Assert.Equal("x", InhabitantActivity.WithCarrying("x", null, Tr(locale)));
+    }
+
     private static string Describe(InhabitantSnapshot inhabitant, WorldSnapshot snapshot, string locale) =>
         InhabitantActivity.Describe(inhabitant, new SnapshotIndex(snapshot), Tr(locale), id =>
             Ui.TextFill.Fill(Tr(locale)("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = WorldFeed.NumberOf(id).ToString(CultureInfo.InvariantCulture) }));

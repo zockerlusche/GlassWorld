@@ -44,10 +44,11 @@ public sealed class AnimalCallsTests
         // Spring day on the meadow: bees; spring night in the forest: owls; never a bee in winter.
         var spring = Calls.Between(0, Calendar.TicksPerDay, TicksPerHour, Time, "meadow", new Position(0, 0), 42);
         Assert.Contains(spring, c => c.Animal == "bee" && HourTime.Of(Calendar.At(c.Tick)).TimeOfDay == "day");
-        Assert.All(spring.Where(c => c.Animal == "bee"), c => Assert.Equal("day", HourTime.Of(Calendar.At(c.Tick)).TimeOfDay));
+        Assert.All(spring.Where(c => c.Animal == "bee"), c => Assert.Equal("day", HourTime.Of(Calendar.At(c.Tick - (c.Tick % TicksPerHour))).TimeOfDay));
 
         var forest = Calls.Between(0, Calendar.TicksPerDay, TicksPerHour, Time, "forest", new Position(0, 0), 42);
-        Assert.All(forest.Where(c => c.Animal == "owl"), c => Assert.Equal("night", HourTime.Of(Calendar.At(c.Tick)).TimeOfDay));
+        // Calls are chosen by the time of day at the start of their hour (an owl may still call at 05:35 after a 05:30 sunrise).
+        Assert.All(forest.Where(c => c.Animal == "owl"), c => Assert.Equal("night", HourTime.Of(Calendar.At(c.Tick - (c.Tick % TicksPerHour))).TimeOfDay));
         Assert.Contains(forest, c => c.Animal == "owl");
 
         var winterStart = Calendar.Settings.Seasons.TakeWhile(s => s.Id != "winter").Count() * Calendar.TicksPerSeason;

@@ -159,6 +159,66 @@
       "text": "{name} – favourite"
     },
     {
+      "key": "ui.thing.title",
+      "text": "Thing"
+    },
+    {
+      "key": "ui.thing.built_by",
+      "text": "Built by {name}"
+    },
+    {
+      "key": "ui.thing.invented_by",
+      "text": "Invented by {name}"
+    },
+    {
+      "key": "ui.thing.known",
+      "text": "What the inhabitants know about it"
+    },
+    {
+      "key": "ui.thing.nobody_knows",
+      "text": "Nobody knows anything about it yet."
+    },
+    {
+      "key": "ui.thing.knows",
+      "text": "{name}: {facts}"
+    },
+    {
+      "key": "ui.thing.fact",
+      "text": "{fact} ({source})"
+    },
+    {
+      "key": "ui.thing.fact_not",
+      "text": "not {property}"
+    },
+    {
+      "key": "ui.thing.source.experienced",
+      "text": "own experience"
+    },
+    {
+      "key": "ui.thing.source.seen",
+      "text": "seen"
+    },
+    {
+      "key": "ui.thing.source.heard",
+      "text": "heard"
+    },
+    {
+      "key": "ui.thing.source.read",
+      "text": "read"
+    },
+    {
+      "key": "ui.thing.source.guessed",
+      "text": "guessed"
+    },
+    {
+      "key": "ui.thing.ground",
+      "text": "Ground: {ground}"
+    },
+    {
+      "key": "ui.thing.ground_slow",
+      "text": "Ground: {ground} - walking is slower ({percent} %)"
+    },
+    {
       "key": "ui.memory.title",
       "text": "Memories of {name}"
     },
@@ -252,7 +312,7 @@
     },
     {
       "key": "ui.clock.date",
-      "text": "{season} {day}/{days}"
+      "text": "{season}"
     },
     {
       "key": "ui.clock.date_tooltip",
@@ -261,6 +321,14 @@
     {
       "key": "ui.clock.day_year",
       "text": "day {game_day} · year {year}"
+    },
+    {
+      "key": "ui.clock.air",
+      "text": "{temp} °C"
+    },
+    {
+      "key": "ui.clock.air_tooltip",
+      "text": "Air temperature on the island"
     },
     {
       "key": "ui.common.cancel",
@@ -2503,6 +2571,10 @@
       "text": "is thinking"
     },
     {
+      "key": "ui.activity.carrying",
+      "text": "{activity} · carrying {thing}"
+    },
+    {
       "key": "ui.activity.idle",
       "text": "is resting"
     },
@@ -3845,6 +3917,54 @@
     {
       "key": "vocab.event.arrival",
       "text": "Arrived"
+    },
+    {
+      "key": "vocab.action.dig",
+      "text": "dig"
+    },
+    {
+      "key": "vocab.property.digs",
+      "text": "bites into the ground"
+    },
+    {
+      "key": "vocab.property.ore_bearing",
+      "text": "ore-bearing"
+    },
+    {
+      "key": "vocab.property.dug",
+      "text": "dug"
+    },
+    {
+      "key": "vocab.event.dug",
+      "text": "Dug"
+    },
+    {
+      "key": "vocab.event.dig_failed",
+      "text": "Digging did not work"
+    },
+    {
+      "key": "vocab.event.well_dug",
+      "text": "Water in the hole"
+    },
+    {
+      "key": "vocab.object.pit",
+      "text": "pit"
+    },
+    {
+      "key": "vocab.object.waterhole",
+      "text": "waterhole"
+    },
+    {
+      "key": "vocab.object.earth",
+      "text": "earth"
+    },
+    {
+      "key": "vocab.object.sand",
+      "text": "sand"
+    },
+    {
+      "key": "vocab.object.ore_chunk",
+      "text": "ore lump"
     }
   ]
 }

@@ -95,6 +95,10 @@ class FigureGesture(BaseModel):
         ge=0.0,
         le=10.0,
     )
+    steady: bool | None = Field(
+        None,
+        description='A1785: once risen the gesture holds as long as it is shown (carrying) - no lowering, no rest; missing = it cycles.',
+    )
     hold_s: float = Field(
         ...,
         description='Real seconds the hand stays at the head (mouth).',
@@ -253,12 +257,6 @@ class FigureThinkingDots(BaseModel):
     alpha_min: float = Field(..., description='Least opacity of a dot.', ge=0.0, le=1.0)
     alpha_max: float = Field(
         ..., description='Greatest opacity of a dot.', ge=0.0, le=1.0
-    )
-    question_font_px: int | None = Field(
-        None,
-        description='A1402 (B4a-S7, TL #19921): while a question still puzzles the inhabitant (it has not looked at the thing yet) a calm "?" of this size stands in the dots\' place; once only the effect is open, the dots again. Missing = dots only.',
-        ge=8,
-        le=256,
     )
 
 
