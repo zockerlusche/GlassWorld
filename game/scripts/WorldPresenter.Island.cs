@@ -57,6 +57,8 @@ public partial class WorldPresenter
     private Func<double, double, double> _ground = (_, _) => 0;
     private double _seaLevelM = double.NegativeInfinity;
     private float _cellM = 1;
+    private long _bareSeen = -1; // A1385: the core's BareVersion last shown
+    private Color _bareColor = Colors.Tan;
     private readonly List<int> _groups = [];
     private readonly Dictionary<int, List<Node3D>> _groupMembers = [];
     private int? _observedGroup;
@@ -355,6 +357,23 @@ public partial class WorldPresenter
         return ring;
     }
 
+    /// <summary>
+    /// A1385 (A1380 N2): overused field cells show bare ground; rebuilt only when the core's BareVersion moved (review
+    /// GW3 #533), so a world without overuse costs nothing here.
+    /// </summary>
+    private void ShowBareGround()
+    {
+        if (_host?.Map is not { Overuse: { } overuse } map || _islandView is null || _nature?.Data.Bare is not { } bare || map.BareVersion == _bareSeen)
+        {
+            return;
+        }
+
+        _bareSeen = map.BareVersion;
+        var width = (int)Math.Ceiling(map.Map.WidthCells * _cellM / overuse.CellM);
+        var depth = (int)Math.Ceiling(map.Map.DepthCells * _cellM / overuse.CellM);
+        _islandView.ShowBare(BareGround.Mask(width, depth, map.BareCells), width, depth, overuse.CellM, _bareColor, bare.Strength);
+    }
+
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
     public bool LookAtThing(double x, double z) => LookAt(x, z, _thingFocusM);
 
@@ -493,6 +512,11 @@ public partial class WorldPresenter
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
+        if (_nature.Data.Bare is { } bareLook && palette.Colors.FirstOrDefault(c => c.Id == bareLook.Color) is { } bareColor)
+        {
+            _bareColor = Color.FromHtml(bareColor.Color);
+        }
+
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
 
         // The default quality level (B2-7 R30; which level a hardware tier uses is decided in B7).
@@ -845,6 +869,8 @@ public partial class WorldPresenter
             // The player's view of the core (R25), asked where the snapshot is taken.
             _cover?.Take(exploration, snapshot.ExploredVersion);
         }
+
+        ShowBareGround();
 
         // Inventions with a building plan are drawn from it (A1375): their objects are not the object view's.
         // A world without a building plan (most of the time) costs nothing here.

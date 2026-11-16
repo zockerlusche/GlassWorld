@@ -298,6 +298,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A1385 (A1380 N2): how an overused field cell shows - its ground turns towards a palette colour. Omitted = bare cells do not show. Placeholder values (TL).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NatureBare
+    {
+
+        /// <summary>
+        /// Palette colour id of bare ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        public string Color { get; set; } = default!;
+
+        /// <summary>
+        /// How far the ground turns to that colour in the middle of a bare cell (0..1); the edges blend.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/nature.json: living nature (B2-5 R21, R24): how plants sway in the wind of the core, how snow lies, how grass and small plants are drawn in detail levels and how leaves fall. All of it is set as shader parameters or drawn near the camera; presentation only, not part of the hash. Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -321,6 +342,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("cover")]
         public NatureCover Cover { get; set; } = new NatureCover();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("bare")]
+        public NatureBare? Bare { get; set; } = default!;
 
     }
 }
