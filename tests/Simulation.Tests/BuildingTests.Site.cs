@@ -50,6 +50,22 @@ public sealed partial class BuildingTests
     }
 
     [Fact]
+    public void AnOptionTheQuestionDidNotHaveMovesNothing()
+    {
+        // Review GW2 #526: an answer naming no option of the question closes it; the nearest place stays.
+        var port = new SitePort(_ => "o99");
+        var (host, jobs, _) = Invented(22, decisions: port);
+        host.Inventions.FindSites = (_, _) => Sites;
+        AnswerPlan(jobs, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+
+        Assert.Single(port.Sites);
+        var task = host.Inventions.Builds.Single();
+        Assert.Equal((3.0, 0.0), (task.SiteX, task.SiteZ));
+        Assert.DoesNotContain(host.Decisions.Open, q => q.Kind == DecisionsSystem.BuildSite);
+    }
+
+    [Fact]
     public void OnTheIslandThePlacesAreDryWalkableReachableFreeAndApart()
     {
         var host = SimulationHost.CreateGeneratedWorld(Path.Combine(TestData.Root, "content"), 23, new MockDecisionPort(), "de", "start_island");

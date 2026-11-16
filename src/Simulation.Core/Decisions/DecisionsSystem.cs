@@ -1221,6 +1221,9 @@ public sealed partial class DecisionsSystem : IWorldSystem
         if (kind == BuildSite && SitePlaces?.Invoke(inhabitant.Id, subject) is { } places)
         {
             request.Occasion = BuildSite;
+            // The places follow the options through the same shuffle (review GW2 #526): Shuffled cuts to MaxOptions first and
+            // then shuffles exactly options.Count items with this seed, so shuffling their positions alike gives each sent
+            // option its place - the same coupling InDataOrder undoes (D1025). A changed Shuffled must change both.
             var order = Enumerable.Range(0, options.Count).ToList();
             Shuffle(order, OrderSeed(world.Seed, questionId));
             var sentOptions = request.Options.ToList();
@@ -1761,6 +1764,14 @@ public sealed partial class DecisionsSystem : IWorldSystem
             var order = Enumerable.Range(0, question.Options.Count).ToList();
             Shuffle(order, OrderSeed(world.Seed, question.Id));
             var sent = question.Options.ToList().FindIndex(o => o.OptionId == response.OptionId);
+            if (sent < 0 || sent >= order.Count)
+            {
+                // Review GW2 #526: an option the question did not have moves nothing - closed, the nearest place stays.
+                Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.UnknownOption));
+                Close(world, question, "question_failed", ReplayNotes.UnknownOption);
+                return;
+            }
+
             Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
             Close(world, question, "question_answered");
             SiteAnswered?.Invoke(question.InhabitantId, question.Subject, order[sent]);
