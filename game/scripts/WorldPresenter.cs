@@ -78,6 +78,9 @@ public partial class WorldPresenter : Node3D
     /// <summary>Save game of the running world (null = not saved, e.g. smoke runs).</summary>
     public string? SavePath { get; private set; }
 
+    /// <summary>A1749: when the world saves itself (settings 'Spiel'); every game day by default.</summary>
+    public static string AutoSaveMode { get; set; } = GlassWorld.Presentation.Ui.GameOptions.AutoSaveDay;
+
     /// <summary>Raised after a successful autosave at the day boundary (a calm notice, test feedback F5287).</summary>
     public event Action? AutoSaved;
 
@@ -334,11 +337,16 @@ public partial class WorldPresenter : Node3D
 
         if (savePath is not null)
         {
-            // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
-            // World.Step: it would cost the remaining ticks of the frame and the player would not know.
+            // Autosave every game day (B2487) - or when the compute night begins, or not at all (A1749, the player's
+            // choice). Like AutoSaver, but a failure must not escape into World.Step: it would cost the remaining ticks
+            // of the frame and the player would not know.
+            var wasNight = host.Inventions.IsComputeNight == true;
             host.World.BoundaryReached += (_, boundary) =>
             {
-                if (boundary != TimeBoundary.Day)
+                var night = host.Inventions.IsComputeNight == true;
+                var nightBegan = night && !wasNight;
+                wasNight = night;
+                if (!GlassWorld.Presentation.Ui.GameOptions.SavesNow(AutoSaveMode, boundary == TimeBoundary.Day, nightBegan))
                 {
                     return;
                 }

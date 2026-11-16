@@ -123,6 +123,7 @@ public partial class Main : Node3D
             {
                 QualityLevels = [.. quality.Levels.Select(l => l.Id)],
                 QualityDefault = quality.DefaultLevel,
+                SpeedChoices = [.. ScreenModel.TimeChoices(Simulation.Time.WorldCalendar.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "world", "time.json"))).Settings).Select(c => (int)c.Speed)],
             };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
@@ -324,6 +325,9 @@ public partial class Main : Node3D
         // A1748: the graphics - window, V-Sync, frame rate now; the quality level when the next world is built.
         DisplaySettings.Apply(settings);
         WorldPresenter.QualityChoice = settings.Quality;
+
+        // A1749: when the world saves itself.
+        WorldPresenter.AutoSaveMode = settings.AutoSave;
 
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
@@ -602,6 +606,12 @@ public partial class Main : Node3D
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
             _world.Faulted += (_, _) => _screen?.ShowHint(new ToastMessage("msg.world.faulted", new Dictionary<string, string>(), null));
             _screen.PauseRequested += OpenPause;
+
+            // A1749: the speed a world starts with, when the player chose one (else as it was saved).
+            if (_settings.StartSpeed is { } speed)
+            {
+                _world.Speed = speed;
+            }
         }
 
         return spatialReady;

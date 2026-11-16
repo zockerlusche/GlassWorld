@@ -142,6 +142,9 @@ public partial class GameScreen : CanvasLayer
     private readonly HashSet<string> _askedHelp = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<(string Key, IReadOnlyList<HelpCard>? Cards, string? Problem)> _helpAnswers = new();
     private string? _placing;
+
+    // A1749: a knock pauses the world (settings 'Spiel').
+    private bool _pauseOnKnock;
     private ClickGate? _click;
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
@@ -708,6 +711,12 @@ public partial class GameScreen : CanvasLayer
             foreach (var knock in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
             {
                 KnockAt(knock.InhabitantId);
+
+                // A1749 (settings 'Spiel'): the player wants to be stopped by a knock - the world pauses, the knock stays.
+                if (_pauseOnKnock && _presenter.Speed != 0 && !_worldHeld)
+                {
+                    _presenter.Speed = 0;
+                }
             }
         }
 
@@ -911,6 +920,7 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
+        _pauseOnKnock = settings.PauseOnKnock;
         _worldTheme = UiTheme.BuildWorld(style);
         _windowTheme = UiTheme.BuildWindowOnWorld(style);
         ApplyWorldTheme();

@@ -6,6 +6,9 @@
       "rows": [
         "language",
         "player_name",
+        "autosave",
+        "start_speed",
+        "pause_on_knock",
         "data_folder",
         "log_folder"
       ]

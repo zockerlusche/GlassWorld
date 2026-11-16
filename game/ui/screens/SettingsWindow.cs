@@ -245,6 +245,30 @@ public partial class SettingsWindow : GwWindow
                 // The AI tab is filled by AddAi (it needs the running world's service).
                 break;
 
+            // A1749 (D957 v4 section 10): the game options.
+            case "autosave":
+                Row("ui.settings.autosave", Choice(
+                    [.. GameOptions.AutoSaveModes.Select(m => ((string?)m, GameOptions.AutoSaveKey(m)))],
+                    s => s.AutoSave, v => _settings with { AutoSave = v ?? GameOptions.AutoSaveDay }), "ui.settings.autosave.desc");
+                break;
+
+            case "start_speed":
+                string SpeedText(int speed) => speed switch
+                {
+                    0 => Tr("ui.time.pause"),
+                    1 => Tr("ui.time.normal"),
+                    _ => TextFill.Fill(Tr("ui.time.fast"), new Dictionary<string, string> { ["factor"] = speed.ToString(System.Globalization.CultureInfo.InvariantCulture) }),
+                };
+                Row("ui.settings.start_speed", Choice(
+                    [(null, "ui.settings.start_speed.saved"), .. limits.SpeedChoices.Select(c => ((string?)c.ToString(System.Globalization.CultureInfo.InvariantCulture), SpeedText(c)))],
+                    s => s.StartSpeed?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    v => _settings with { StartSpeed = v is null ? null : int.Parse(v, System.Globalization.CultureInfo.InvariantCulture) }), "ui.settings.start_speed.desc");
+                break;
+
+            case "pause_on_knock":
+                Row("ui.settings.pause_on_knock", Toggle(settings.PauseOnKnock, v => _settings with { PauseOnKnock = v }, s => s.PauseOnKnock), "ui.settings.pause_on_knock.desc");
+                break;
+
             case "data_folder":
                 // A1787 (B2824, GW1 #27301): where this game keeps worlds, settings and logs - one click opens it; the path in
                 // the tooltip. Nothing to restore: it is no setting.
@@ -337,6 +361,9 @@ public partial class SettingsWindow : GwWindow
                 "window_mode" => s with { WindowMode = d.WindowMode },
                 "resolution" => s with { Resolution = d.Resolution },
                 "vsync" => s with { Vsync = d.Vsync },
+                "autosave" => s with { AutoSave = d.AutoSave },
+                "start_speed" => s with { StartSpeed = d.StartSpeed },
+                "pause_on_knock" => s with { PauseOnKnock = d.PauseOnKnock },
                 "invert_turn_x" => s with { InvertTurnX = d.InvertTurnX },
                 "invert_turn_y" => s with { InvertTurnY = d.InvertTurnY },
                 "invert_pan_x" => s with { InvertPanX = d.InvertPanX },

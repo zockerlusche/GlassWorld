@@ -703,6 +703,46 @@
       "text": "Beim Ziehen mit der Maus wandert die Insel nach oben und unten andersherum."
     },
     {
+      "key": "ui.settings.autosave",
+      "text": "Automatisch speichern"
+    },
+    {
+      "key": "ui.settings.autosave.desc",
+      "text": "Wann die Welt sich selbst speichert. Ohne Speichern geht beim Beenden nichts verloren, nur bei einem Absturz."
+    },
+    {
+      "key": "ui.settings.autosave.off",
+      "text": "Aus"
+    },
+    {
+      "key": "ui.settings.autosave.day",
+      "text": "Jeden Spieltag"
+    },
+    {
+      "key": "ui.settings.autosave.night",
+      "text": "Jede Rechennacht"
+    },
+    {
+      "key": "ui.settings.start_speed",
+      "text": "Tempo beim Start"
+    },
+    {
+      "key": "ui.settings.start_speed.desc",
+      "text": "Mit welchem Tempo eine Welt beginnt, wenn du sie startest oder lädst."
+    },
+    {
+      "key": "ui.settings.start_speed.saved",
+      "text": "Wie zuletzt"
+    },
+    {
+      "key": "ui.settings.pause_on_knock",
+      "text": "Anhalten, wenn jemand klopft"
+    },
+    {
+      "key": "ui.settings.pause_on_knock.desc",
+      "text": "Klopft ein Bewohner an die Scheibe, hält die Welt an, bis du weitermachst."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Spielsprache"
     },

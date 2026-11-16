@@ -703,6 +703,46 @@
       "text": "Dragging with the mouse moves the island up and down the other way."
     },
     {
+      "key": "ui.settings.autosave",
+      "text": "Save automatically"
+    },
+    {
+      "key": "ui.settings.autosave.desc",
+      "text": "When the world saves itself. Without it nothing is lost when you quit, only after a crash."
+    },
+    {
+      "key": "ui.settings.autosave.off",
+      "text": "Off"
+    },
+    {
+      "key": "ui.settings.autosave.day",
+      "text": "Every game day"
+    },
+    {
+      "key": "ui.settings.autosave.night",
+      "text": "Every compute night"
+    },
+    {
+      "key": "ui.settings.start_speed",
+      "text": "Speed at start"
+    },
+    {
+      "key": "ui.settings.start_speed.desc",
+      "text": "The speed a world begins with when you start or load it."
+    },
+    {
+      "key": "ui.settings.start_speed.saved",
+      "text": "As last time"
+    },
+    {
+      "key": "ui.settings.pause_on_knock",
+      "text": "Pause when someone knocks"
+    },
+    {
+      "key": "ui.settings.pause_on_knock.desc",
+      "text": "When an inhabitant knocks at the glass, the world pauses until you go on."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
