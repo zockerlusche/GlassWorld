@@ -141,7 +141,7 @@ Doppelklick auf Schnelldurchlauf.cmd. Es fragt:
 - Seed (leer = zufaellig).
 
 Die Welt laeuft ohne Grafik, so schnell der Rechner kann. Sie speichert nach jedem Spieltag und am
-Ende und schreibt Lern-Protokoll und Ablauf-Protokoll neben den Spielstand.
+Ende und schreibt Lern-Protokoll und Ablauf-Protokoll nach log\welten\<Welt> neben dem Spiel.
 Ohne KI rechnet nur der Prozessor (gemessen 16.11.2026: etwa 8 Spieltage je Minute, dazu etwa 20 s Start). Mit KI arbeitet die
 Grafikkarte fuer die KI (etwa 1 Spieltag je Minute).
 
