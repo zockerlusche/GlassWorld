@@ -24,7 +24,8 @@
     "wet_from_permille": 200,
     "cool_tenth_c": 50,
     "shelter_property": "sheltering",
-    "shelter_radius_cm": 300
+    "shelter_radius_cm": 300,
+    "shelter_still_air_tenth_c": 30
   },
   "sun": {
     "warm_tenth_c": 30,

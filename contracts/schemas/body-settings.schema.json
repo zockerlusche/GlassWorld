@@ -125,7 +125,8 @@
         "wet_from_permille": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "From this wetness on an inhabitant counts as wet in its request to the AI (environment.wet). Omitted = 1." },
         "cool_tenth_c": { "type": "integer", "minimum": 0, "maximum": 300, "description": "How much colder it feels when fully wet, in tenths of a degree (linear with the wetness)." },
         "shelter_property": { "$ref": "common.schema.json#/$defs/VocabId", "description": "The TRUE property of things that keep the rain off whoever stands at them." },
-        "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." }
+        "shelter_radius_cm": { "type": "integer", "minimum": 0, "maximum": 2000, "description": "How near such a thing must be." },
+        "shelter_still_air_tenth_c": { "type": "integer", "minimum": 0, "maximum": 200, "description": "How much warmer it feels under such a shelter, where the air stands still, in tenths of a degree (A1793, B2840). Omitted = no difference." }
       }
     },
     "BodyDryingBand": {
