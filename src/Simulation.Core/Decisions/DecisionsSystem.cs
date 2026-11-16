@@ -1360,7 +1360,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(world);
         // A1587 S2 (review GW2 #526): the hour's budget holds for where to build as for a stuck building; without room the nearest place stays.
-        if (!MaySend(world) || !HasBudget(world, BuildSite) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
+        if (!MaySend(world) || !HasBudget(world, inhabitantId, BuildSite) || SiteOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildSite && q.Subject == typeId) == true)
         {
             return false;
         }
