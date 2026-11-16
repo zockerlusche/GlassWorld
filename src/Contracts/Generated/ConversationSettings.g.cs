@@ -279,5 +279,17 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max")]
         public double Max { get; set; } = default!;
 
+        /// <summary>
+        /// Spec 31 acceptance 15: trust change toward the player when the inhabitant's own doing proves a tip true (placeholder). Omitted = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("proven_trust")]
+        public double? ProvenTrust { get; set; } = default!;
+
+        /// <summary>
+        /// The same when its doing shows the tip false (placeholder, negative). Omitted = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("failed_trust")]
+        public double? FailedTrust { get; set; } = default!;
+
     }
 }

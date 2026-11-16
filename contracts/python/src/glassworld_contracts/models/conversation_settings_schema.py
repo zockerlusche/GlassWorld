@@ -18,6 +18,18 @@ class Tip(BaseModel):
     awe: float = Field(..., ge=-1.0, le=1.0)
     fear: float = Field(..., ge=-1.0, le=1.0)
     max: float = Field(..., ge=0.0, le=1.0)
+    proven_trust: float | None = Field(
+        None,
+        description="Spec 31 acceptance 15: trust change toward the player when the inhabitant's own doing proves a tip true (placeholder). Omitted = 0.",
+        ge=-1.0,
+        le=1.0,
+    )
+    failed_trust: float | None = Field(
+        None,
+        description='The same when its doing shows the tip false (placeholder, negative). Omitted = 0.',
+        ge=-1.0,
+        le=1.0,
+    )
 
 
 class Outcome(StrEnum):
