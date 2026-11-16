@@ -615,6 +615,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("not_understood_expression")]
         public string? NotUnderstoodExpression { get; set; } = default!;
 
+        /// <summary>
+        /// A1802 (Marcel W2245): the mouth moves this long per character of a spoken sentence, at least talk_s and at most talk_max_s. Omitted = always talk_s. Placeholder value (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("talk_per_char_s")]
+        public double? TalkPerCharS { get; set; } = default!;
+
+        /// <summary>
+        /// A1802: the longest the mouth moves for one sentence (seconds). Omitted = no limit beyond the sentence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("talk_max_s")]
+        public double? TalkMaxS { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -700,6 +714,40 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("focus_within_m")]
         public double? FocusWithinM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A1802: one mood's resting face.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureMoodFace
+    {
+
+        /// <summary>
+        /// Mood id (vocabulary moods).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string Mood { get; set; } = default!;
+
+        /// <summary>
+        /// Mouth shape of the figure model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("face")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FigureMoodFaceFace>))]
+        public FigureMoodFaceFace Face { get; set; } = default!;
+
+        /// <summary>
+        /// How strongly the shape shows (0..1): a resting face, not a grimace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weight")]
+        public double Weight { get; set; } = default!;
+
+        /// <summary>
+        /// The mood shows from this value (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shows_from")]
+        public double ShowsFrom { get; set; } = default!;
 
     }
 
@@ -837,6 +885,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("crown_fade")]
         public FigureCrownFade CrownFade { get; set; } = new FigureCrownFade();
 
+        /// <summary>
+        /// A1802 (Marcel W2245): the resting face by mood - the mood furthest above its 'shows_from' shows its mouth shape ('smile', 'sad', 'surprised') at 'weight' (0..1) while no expression or talking shows and the figure is awake. Omitted = a neutral face. Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mood_faces")]
+        public System.Collections.Generic.ICollection<FigureMoodFace>? MoodFaces { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -871,6 +926,24 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("skin")]
         Skin = 3,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum FigureMoodFaceFace
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("smile")]
+        Smile = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("sad")]
+        Sad = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("surprised")]
+        Surprised = 2,
 
 
     }

@@ -163,6 +163,12 @@
   },
   "walk_min_step_m": 0.05,
   "wet_shade": 0.72,
+  "mood_faces": [
+    { "mood": "joy", "face": "smile", "shows_from": 0.55, "weight": 0.45 },
+    { "mood": "sadness", "face": "sad", "shows_from": 0.5, "weight": 0.5 },
+    { "mood": "frustration", "face": "sad", "shows_from": 0.6, "weight": 0.35 },
+    { "mood": "fear", "face": "surprised", "shows_from": 0.6, "weight": 0.4 }
+  ],
   "turn_rate_deg_s": 360,
   "turn_back_after_steps": 6,
   "gait_time_scale": {
@@ -290,6 +296,8 @@
     ],
     "wave_s": 2.5,
     "talk_s": 2.0,
+    "talk_per_char_s": 0.07,
+    "talk_max_s": 8.0,
     "express_s": 3.0,
     "decline_expression": "look_around",
     "not_understood_expression": "ponder"

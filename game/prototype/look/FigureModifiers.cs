@@ -241,6 +241,12 @@ public partial class FaceDriver : Node
     /// <summary>Current expression: neutral, smile, sad, surprised or talk.</summary>
     public string Expression { get; set; } = "neutral";
 
+    /// <summary>A1802: the mouth shape the face rests in while the expression is neutral (by mood), or null.</summary>
+    public string? Rest { get; set; }
+
+    /// <summary>A1802: how strongly the resting shape shows (0..1).</summary>
+    public float RestWeight { get; set; }
+
     /// <summary>Whether the eyes blink.</summary>
     public bool Blinking { get; set; } = true;
 
@@ -265,7 +271,7 @@ public partial class FaceDriver : Node
                 continue;
             }
 
-            var target = mouth == "talk" ? talkOpen : (Expression == mouth ? 1f : 0f);
+            var target = mouth == "talk" ? talkOpen : (Expression == mouth ? 1f : (Expression == "neutral" && Rest == mouth ? RestWeight : 0f));
             var current = Body.GetBlendShapeValue(index);
             Body.SetBlendShapeValue(index, Mathf.MoveToward(current, target, (float)delta * (mouth == "talk" ? 14f : 4f)));
         }

@@ -473,6 +473,18 @@ class FigureGreeting(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    talk_per_char_s: float | None = Field(
+        None,
+        description='A1802 (Marcel W2245): the mouth moves this long per character of a spoken sentence, at least talk_s and at most talk_max_s. Omitted = always talk_s. Placeholder value (TL).',
+        gt=0.0,
+        le=1.0,
+    )
+    talk_max_s: float | None = Field(
+        None,
+        description='A1802: the longest the mouth moves for one sentence (seconds). Omitted = no limit beyond the sentence.',
+        gt=0.0,
+        le=30.0,
+    )
 
 
 class Color1(StrEnum):
@@ -545,6 +557,34 @@ class FigureCrownFade(BaseModel):
         description='While the camera is at most this far from what it looks at (following, a spot the player looks at), crowns between it and that spot on the ground fade too, so a thing under a tree is seen (A1599, finding D855). Omitted = only figures keep crowns faded; the wide view keeps its trees.',
         ge=0.0,
         le=200.0,
+    )
+
+
+class Face(StrEnum):
+    smile = 'smile'
+    sad = 'sad'
+    surprised = 'surprised'
+
+
+class FigureMoodFace(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    mood: str = Field(
+        ...,
+        description='Mood id (vocabulary moods).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    face: Face = Field(..., description='Mouth shape of the figure model.')
+    weight: float = Field(
+        ...,
+        description='How strongly the shape shows (0..1): a resting face, not a grimace.',
+        ge=0.0,
+        le=1.0,
+    )
+    shows_from: float = Field(
+        ..., description='The mood shows from this value (0..1).', ge=0.0, le=1.0
     )
 
 
@@ -743,4 +783,9 @@ class LookFigures(BaseModel):
     crown_fade: FigureCrownFade = Field(
         ...,
         description='Tree crowns between the camera and the followed inhabitant fade semi-transparent (W1689).',
+    )
+    mood_faces: list[FigureMoodFace] | None = Field(
+        None,
+        description="A1802 (Marcel W2245): the resting face by mood - the mood furthest above its 'shows_from' shows its mouth shape ('smile', 'sad', 'surprised') at 'weight' (0..1) while no expression or talking shows and the figure is awake. Omitted = a neutral face. Placeholder values (TL).",
+        max_length=10,
     )
