@@ -13,6 +13,9 @@ public partial class GwWindow : PanelContainer
 {
     private const string CloseSymbol = "×";
 
+    // A1789: the kind of window (its title key), the key of its remembered place.
+    private string? _placeKey;
+
     private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel, ClipText = false };
     private readonly Button _close = new() { Text = CloseSymbol, TooltipText = "ui.common.close", FocusMode = FocusModeEnum.All };
     private readonly ScrollContainer _scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
@@ -53,10 +56,20 @@ public partial class GwWindow : PanelContainer
         AddChild(column);
     }
 
+    /// <summary>
+    /// A1789 (B2826): where the player put each kind of window (by its title key) - set from the settings at the start;
+    /// a window shows there again, pulled into the safe area when it no longer fits.
+    /// </summary>
+    public static Dictionary<string, Vector2> Remembered { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>A1789: raised when the player has moved a window (its title key and new place), for the settings.</summary>
+    public static event Action<string, Vector2>? PlaceChosen;
+
     /// <summary>Sets title key and style (tokens for safe area and maximum size).</summary>
     public void Setup(string titleKey, UiStyle style)
     {
         _title.Text = titleKey;
+        _placeKey = titleKey;
         _style = style;
 
         // B2791: every window - settings, pause, forms, messages, down to the deepest dialog - stands on the dark ground
@@ -173,6 +186,14 @@ public partial class GwWindow : PanelContainer
 
         Size = new Vector2(Math.Min(wanted.X, limit.X), Math.Min(wanted.Y, limit.Y));
         Position = ((area - Size) / 2).Floor();
+
+        // A1789 (B2826): where the player put this kind of window last, kept inside the safe area.
+        if (_placeKey is not null && Remembered.TryGetValue(_placeKey, out var place))
+        {
+            var (x, y) = WindowPlacement.Restore((place.X, place.Y), (Size.X, Size.Y), (area.X, area.Y), _style.Tokens.Window.SafeMargin);
+            Position = new Vector2(x, y).Floor();
+        }
+
         _fittedAt = Position;
         Settle(area);
     }
@@ -323,6 +344,14 @@ public partial class GwWindow : PanelContainer
         switch (@event)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left } button:
+                // A1789 (B2826): a drag that moved the window is remembered for this kind of window.
+                if (!button.Pressed && _dragging && _placeKey is not null && Position != _fittedAt)
+                {
+                    Remembered[_placeKey] = Position;
+                    _fittedAt = Position;
+                    PlaceChosen?.Invoke(_placeKey, Position);
+                }
+
                 _dragging = button.Pressed;
                 break;
             case InputEventMouseMotion motion when _dragging && GetParent() is Control parent:

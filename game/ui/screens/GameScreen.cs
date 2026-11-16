@@ -1583,8 +1583,15 @@ public partial class GameScreen : CanvasLayer
                 line.AddThemeConstantOverride("icon_max_width", InventionIconPx);
             }
             var who = entry.InhabitantId;
+            var thing = entry.TargetId;
             line.Pressed += () =>
             {
+                // A1789 (B2826): an entry about a thing that still stands leads the camera to the thing ('hat gebaut: ...').
+                if (thing is not null && _presenter?.FocusThing(thing) == true)
+                {
+                    return;
+                }
+
                 // One who has died has no card any more: its memory page opens (B8 R16).
                 if (!Lives(who))
                 {
@@ -3349,7 +3356,7 @@ public partial class GameScreen : CanvasLayer
         about.AddChild(_cardGround);
 
         // The player's favourite (B6 R19): a switch; a logged command, the player's own mark.
-        var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
+        var favourite = new CheckButton { Text = "ui.card.favourite", TooltipText = "ui.card.favourite_tooltip", ButtonPressed = card.Row.Favourite };
         favourite.Toggled += on => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
             on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
         about.AddChild(favourite);
