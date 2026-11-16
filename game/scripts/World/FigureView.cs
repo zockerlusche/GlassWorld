@@ -168,7 +168,7 @@ public partial class FigureView : Node3D
             _ground = groundHeight,
             _groundM = (x, z) => groundHeight(x, z),
             _scale = spec.Scale,
-            _motion = new FigureMotion(start, figures.TurnRateDegS, figures.TurnBackAfterSteps ?? 1),
+            _motion = new FigureMotion(start, figures.TurnRateDegS),
             _cadence = new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, inhabitant.Id, figures.Lying),
             _seats = seats ?? (() => []),
             _wave = figure.Wave,
@@ -240,7 +240,7 @@ public partial class FigureView : Node3D
         }
         else
         {
-            _motion.Retarget(to, Math.Max(1, ticks), _shared.GameSecondsPerTick, _shared.RealSecondsPerTick, figures.WalkMinStepM);
+            _motion.Retarget(to, Math.Max(1, ticks), _shared.GameSecondsPerTick, _shared.RealSecondsPerTick, figures.WalkMinStepM, inhabitant.GivingWay);
         }
 
         var chooser = _shared.Chooser;

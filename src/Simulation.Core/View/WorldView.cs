@@ -41,6 +41,12 @@ public sealed record InhabitantSnapshot(
     public string? Gait { get; init; }
 
     /// <summary>
+    /// A1795: the inhabitant stepped back this tick to give way on a narrow path (W1726); its figure keeps facing the
+    /// way it goes. Any other step backwards turns the figure round. Read-only view, not part of the state hash.
+    /// </summary>
+    public bool GivingWay { get; init; }
+
+    /// <summary>
     /// What an action aimed at another inhabitant is about (object type id of the belief it would pass on),
     /// null otherwise; the inhabitant list says "shows Toma the spring water" with it (W1687).
     /// </summary>
@@ -158,6 +164,7 @@ public static class WorldView
             {
                 Appearance = i.Appearance,
                 Gait = inhabitants.GaitOf(i),
+                GivingWay = inhabitants.GaveWay(i),
                 Topic = inhabitants.TopicOf(i),
                 Facing = inhabitants.FacingOf(i),
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
