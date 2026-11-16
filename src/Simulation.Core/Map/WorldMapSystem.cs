@@ -113,7 +113,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         }
     }
 
-    private (int X, int Z) FieldOf(Position at, Contracts.NatureOveruse o) =>
+    private static (int X, int Z) FieldOf(Position at, Contracts.NatureOveruse o) =>
         ((int)Math.Floor(at.X / o.CellM), (int)Math.Floor(at.Z / o.CellM));
 
     private (int X, int Z) FieldOf(Occurrence place, Contracts.NatureOveruse o) => FieldOf(CentreOf(place.X, place.Z), o);
