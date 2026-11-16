@@ -4,6 +4,7 @@
   "suggestion_expiry_hours": 24,
   "max_open_suggestions": 3,
   "min_distance_to_inhabitant_m": 1.5,
+  "hand": { "movable_property": "portable", "max_move_m": 12, "free_radius_m": 0.4 },
   "urgent_below": 0.3,
   "missing_radius_m": 100,
   "search_actions": [
