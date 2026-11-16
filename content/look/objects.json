@@ -6,7 +6,7 @@
   "ground_tolerance_m": 0.06,
   "max_lights": 8,
   "turn_tries": 8,
-  "focus": { "seconds": 3.0, "radius_m": 0.6, "margin_m": 0.2, "width_m": 0.08, "color": "cave_inside" },
+  "focus": { "seconds": 3.0, "radius_m": 0.6, "margin_m": 0.2, "width_m": 0.08, "color": "cave_inside", "mark_events": ["built"], "mark_seconds": 30.0 },
   "invention_min_shown_m": 0.4,
   "min_footprint_m": 0.05,
   "fallback": {
