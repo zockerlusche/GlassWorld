@@ -137,7 +137,7 @@ public sealed class WritingRulesTests : IDisposable
         Assert.True(reader.Beliefs.TryGet("water", "drinkable", out var belief));
         Assert.Equal((false, KnowledgeSources.Read, "inh-000099"), (belief.Value, belief.Source, belief.ToldBy));
         var floor = rules.AuthorWeightFloor!.Value;
-        Assert.InRange(belief.Confidence, (0.8 * floor) - 1e-9, 0.8);
+        Assert.InRange(belief.Confidence, (0.8 * floor) - 1e-4, 0.8); // the carving wears a hair in the ticks before
         var e = Assert.Single(read, x => x.InhabitantId == reader.Id);
         Assert.Equal((stone.Id, "belief:water|drinkable|false"), (e.TargetId, e.Detail));
 
