@@ -372,6 +372,32 @@ public sealed class PlayerTests : IDisposable
         Assert.Equal(new Position(6, 0), host.Objects.TryGet(stone.Id, out var still) ? still.Position : default);
     }
 
+    [Fact]
+    public void NeitherAGiftNorAMovedThingLandsWhereNobodyCanWalk()
+    {
+        // Review GW3 #577: on an island the sea (or a cliff top) is no place for a gift or a moved stone.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 23, new MockDecisionPort(), "de", "start_island");
+        var map = host.Map!;
+        var who = host.Inhabitants.All.First();
+        Position? sea = null;
+        for (var z = 0; z < map.Map.DepthCells && sea is null; z += 4)
+        {
+            for (var x = 0; x < map.Map.WidthCells && sea is null; x += 4)
+            {
+                if (map.Map.Cell(x, z).Water == Map.WaterKind.Salt && map.AreaOf(x, z) == 0)
+                {
+                    sea = map.CentreOf(x, z);
+                }
+            }
+        }
+
+        Assert.NotNull(sea);
+        var gift = host.Decisions.Submit(new PlayerCommand(PlayerSystem.PlaceGift, null) { TypeId = "apple", X = sea!.Value.X, Z = sea.Value.Z });
+        Assert.Equal(PlayerSystem.ReasonUnreachable, gift.ReasonKey);
+        var stone = host.Objects.Spawn("fieldstone", new Position(who.Position.X + 3, who.Position.Z));
+        Assert.True(host.Player.Reachable!(stone.Position));
+    }
+
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");

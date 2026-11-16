@@ -1463,6 +1463,10 @@
       "text": "So weit reicht die Hand nicht."
     },
     {
+      "key": "msg.command.unreachable",
+      "text": "Dorthin kommt niemand."
+    },
+    {
       "key": "msg.command.place_taken",
       "text": "Dort ist kein Platz frei."
     },

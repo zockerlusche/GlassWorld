@@ -419,6 +419,12 @@ public sealed class SimulationHost
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.MoveObject, player.CheckMove, player.ApplyMove);
+
+        // Review GW3 #577: gifts and moved things land only where some inhabitant can walk.
+        if (map is not null)
+        {
+            player.Reachable = to => inhabitants.All.Any(i => map.Connected(i.Position, to));
+        }
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
 
         // The player's weather (B2-5 R13): a logged command that costs favour; start and end of storm and

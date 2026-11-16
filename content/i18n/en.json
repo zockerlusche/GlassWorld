@@ -1463,6 +1463,10 @@
       "text": "The hand does not reach that far."
     },
     {
+      "key": "msg.command.unreachable",
+      "text": "Nobody can get there."
+    },
+    {
       "key": "msg.command.place_taken",
       "text": "There is no free place there."
     },

@@ -59,6 +59,15 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Reason: another thing lies at the target.</summary>
     public const string ReasonPlaceTaken = "msg.command.place_taken";
 
+    /// <summary>Reason: nobody can walk to the target (the sea, a cliff top) - review GW3 #577.</summary>
+    public const string ReasonUnreachable = "msg.command.unreachable";
+
+    /// <summary>
+    /// Whether some inhabitant can walk to a place (the map's walkable areas, set by the host); null = no map, every place.
+    /// A gift or a moved thing never lands where nobody can reach it (review GW3 #577).
+    /// </summary>
+    public Func<Position, bool>? Reachable { get; set; }
+
     /// <summary>
     /// Command kind: the start favour of a new world (Amount), allowed only before the first tick. As a
     /// command it is in the log, so a replay from seed and log starts with the same favour (GW1 #67 N1).
@@ -188,6 +197,11 @@ public sealed class PlayerSystem : IWorldSystem
             return new CommandResult(false, ReasonTooClose);
         }
 
+        if (Reachable?.Invoke(new Position(x, z)) == false)
+        {
+            return new CommandResult(false, ReasonUnreachable);
+        }
+
         return Favor + 1e-9 < CostOf(GiftIntervention) ? new CommandResult(false, ReasonNoFavor) : new CommandResult(true, null);
     }
 
@@ -215,6 +229,11 @@ public sealed class PlayerSystem : IWorldSystem
         if (DistanceSquared(thing.Position, to) > hand.MaxMoveM * hand.MaxMoveM)
         {
             return new CommandResult(false, ReasonTooFar);
+        }
+
+        if (Reachable?.Invoke(to) == false)
+        {
+            return new CommandResult(false, ReasonUnreachable);
         }
 
         var min = _rules.MinDistanceToInhabitantM;
