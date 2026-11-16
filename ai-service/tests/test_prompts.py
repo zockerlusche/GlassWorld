@@ -655,3 +655,16 @@ def test_v16_says_what_failed_and_why_never_what_would_work() -> None:
     user = _render(DecisionRequest.model_validate(data), version=16).split("=== user ===")[1]
     assert "You just tried to talk to, and it did not work: voice lost." in user
     assert "## Right now" not in _render(_leisure(None), version=16).split("=== user ===")[1]
+
+
+def test_v16_says_when_the_person_is_wet_or_stands_in_water() -> None:
+    """A1793 (Marcel 15a): the core sends environment.wet and in_water; v15 never showed them."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["environment"]["wet"] = True
+    data["environment"]["in_water"] = "shallow"
+    request = DecisionRequest.model_validate(data)
+    v16 = _render(request, version=16).split("=== user ===")[1]
+    assert "- You stand knee-deep in something wet." in v16 and "- You are wet." in v16
+    assert "You are wet." not in _render(request, version=15)
+    dry = _render(_leisure(None), version=16).split("=== user ===")[1]
+    assert "You are wet." not in dry and "deep in" not in dry.split("## Your body")[1].split("##")[0]

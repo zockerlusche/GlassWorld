@@ -344,6 +344,16 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
     felt = inhabitant.felt_temperature_c
     if felt is not None:
         lines.append(f"- You feel {_word(_bands(settings, 'felt_words'), float(felt))}.")
+    # v16 (A1793, Marcel 15a 'Waten bei Kaelte'): the core sends wet and in_water; earlier
+    # versions never said them. Words from the data ([settings.body_lines]); no line = not shown.
+    body_raw: object = settings.get("body_lines")
+    body_lines = cast(dict[str, str], body_raw) if isinstance(body_raw, dict) else {}
+    env: Any = request.environment
+    depth = _id(env.in_water) if getattr(env, "in_water", None) is not None else "none"
+    if depth != "none" and f"in_water_{depth}" in body_lines:
+        lines.append(f"- {body_lines[f'in_water_{depth}']}")
+    if getattr(env, "wet", None) is True and "wet" in body_lines:
+        lines.append(f"- {body_lines['wet']}")
     slots_raw: object = settings.get("slot_names", {})
     slots = cast(dict[str, str], slots_raw) if isinstance(slots_raw, dict) else {}
     if inhabitant.worn == []:  # sent and empty: wears nothing (absent = unknown, no line)
