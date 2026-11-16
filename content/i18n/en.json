@@ -767,6 +767,10 @@
       "text": "Click the key, then press the new one. Esc cancels. Mouse buttons and the wheel stay."
     },
     {
+      "key": "ui.settings.key.fixed",
+      "text": "{key} is taken by the game and stays as it is."
+    },
+    {
       "key": "ui.settings.key.press",
       "text": "Press a key …"
     },

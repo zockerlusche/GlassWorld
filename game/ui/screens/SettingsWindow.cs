@@ -359,8 +359,10 @@ public partial class SettingsWindow : GwWindow
                 key.KeyChosen += physical =>
                 {
                     var name = InputDefaults.NameOf(physical);
-                    if (KeyBindings.Reserved.Contains(name))
+                    if (KeyBindings.Reserved.Contains(name) || InputDefaults.FixedKeys(limits.KeyActions).Contains(name))
                     {
+                        // Escape and the keys of actions that cannot be laid anew (F12: debug view) stay theirs - said in words.
+                        _keyConflicts.Text = TextFill.Fill(Tr("ui.settings.key.fixed"), new Dictionary<string, string> { ["key"] = InputDefaults.Shown(name) });
                         return;
                     }
 

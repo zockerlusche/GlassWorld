@@ -29,6 +29,15 @@ public partial class GwKeyButton : Button
             AutoTranslateMode = AutoTranslateModeEnum.Always;
             Text = WaitingText;
         };
+
+        // A click elsewhere ends the wait (review GW3 #564): the button shows its key again.
+        FocusExited += () =>
+        {
+            if (_waiting)
+            {
+                ShowKey();
+            }
+        };
         ShowKey();
     }
 

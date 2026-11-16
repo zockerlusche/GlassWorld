@@ -767,6 +767,10 @@
       "text": "Klicke auf die Taste und drücke dann die neue. Esc bricht ab. Maustasten und das Mausrad bleiben."
     },
     {
+      "key": "ui.settings.key.fixed",
+      "text": "{key} ist fest vergeben und bleibt, wie es ist."
+    },
+    {
       "key": "ui.settings.key.press",
       "text": "Taste drücken …"
     },

@@ -42,6 +42,16 @@ public static class InputDefaults
             .ToDictionary(a => a, a => (IReadOnlyList<string>)[.. KeysOf(a)], StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// The keys of the game's other actions - those the player cannot lay anew (e.g. F12 for the debug view): fixed, so no
+    /// chosen key may take them (review GW3 #564).
+    /// </summary>
+    public static IReadOnlySet<string> FixedKeys(IEnumerable<string> layable)
+    {
+        var free = layable.ToHashSet(StringComparer.Ordinal);
+        return (_defaults ?? []).Where(d => !free.Contains(d.Key)).SelectMany(d => d.Value).ToHashSet(StringComparer.Ordinal);
+    }
+
     /// <summary>The default keys of these actions (in their order); an action the game does not know has none.</summary>
     public static IReadOnlyList<(string Action, IReadOnlyList<string> Keys)> Defaults(IEnumerable<string> actions) =>
         [.. actions.Select(a => (a, _defaults?.GetValueOrDefault(a) ?? (IReadOnlyList<string>)[]))];
