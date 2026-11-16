@@ -26,7 +26,7 @@ public sealed class MaterialIdeasSystem : IWorldSystem
     private readonly InhabitantsSystem _inhabitants;
     private readonly WorldObjects _objects;
     private readonly HashSet<string> _actions;
-    private readonly List<(string Who, string TargetId)> _pending = [];
+    private readonly List<(string Who, string TypeId)> _pending = [];
 
     /// <summary>Creates the system.</summary>
     public MaterialIdeasSystem(KnowledgeMaterialIdeas data, KnowledgeReview review, InhabitantsSystem inhabitants, WorldObjects objects)
@@ -36,18 +36,30 @@ public sealed class MaterialIdeasSystem : IWorldSystem
         _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
         _objects = objects ?? throw new ArgumentNullException(nameof(objects));
         _actions = [.. data.Actions];
+
+        // The daily cap finds today's ideas by the text before {type} (review GW2 #571): the type must follow some words.
+        if (data.Text.IndexOf("{type}", StringComparison.Ordinal) <= 0)
+        {
+            throw new InvalidDataException("knowledge material_ideas.text must contain {type}, after some words.");
+        }
     }
 
     /// <inheritdoc/>
     public string Name => "material_ideas";
 
-    /// <summary>An inhabitant event: a finished action of the data on a thing is looked at in this tick's step.</summary>
+    /// <summary>
+    /// An inhabitant event: a finished action of the data on a thing is looked at in this tick's step. The thing's type is
+    /// taken now (review GW2 #571): combining or using may use the thing up before the step. Only the inhabitants' step
+    /// reports such events, and it runs before this system - one reported later would wait for the next tick and is not
+    /// saved, so no other system may report action_finished after this one.
+    /// </summary>
     public void Observe(WorldEvent e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (e.Kind == InhabitantsSystem.ActionFinished && e.Action is { } action && _actions.Contains(action) && e.TargetId is { } target)
+        if (e.Kind == InhabitantsSystem.ActionFinished && e.Action is { } action && _actions.Contains(action) && e.TargetId is { } target
+            && (e.TargetType ?? (_objects.TryGet(target, out var thing) ? thing.TypeId : null)) is { } typeId)
         {
-            _pending.Add((e.InhabitantId, target));
+            _pending.Add((e.InhabitantId, typeId));
         }
     }
 
@@ -55,11 +67,11 @@ public sealed class MaterialIdeasSystem : IWorldSystem
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        foreach (var (who, targetId) in _pending)
+        foreach (var (who, typeId) in _pending)
         {
-            if (_inhabitants.TryGet(who, out var inhabitant) && _objects.TryGet(targetId, out var thing))
+            if (_inhabitants.TryGet(who, out var inhabitant) && _objects.Catalog.Contains(typeId))
             {
-                Sprout(world, inhabitant, thing.TypeId);
+                Sprout(world, inhabitant, typeId);
             }
         }
 

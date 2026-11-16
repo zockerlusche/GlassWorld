@@ -48,6 +48,32 @@ public sealed class MaterialIdeasTests
     }
 
     [Fact]
+    public void AThingUsedUpByTheActionStillLetsTheIdeaSprout()
+    {
+        // Review GW2 #571: combining uses the things up - the idea needs only their type, taken when the action ends.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 2, new MockDecisionPort(), "de");
+        var data = host.Content.Knowledge.MaterialIdeas!;
+        var who = host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First();
+        who.Traits["curiosity"] = 0.9;
+        who.Traits["drive"] = 0.9;
+        var material = host.Content.Objects.TypeIds.First(t => data.Properties.Any(p => host.Objects.Catalog.HasProperty(t, p)));
+        who.Beliefs.Set(material, data.Properties.First(), true, 0.8, KnowledgeSources.Experienced);
+        var perHour = host.World.Calendar.Settings.TicksPerHour;
+        for (var hour = 0; hour < 10 * host.World.Calendar.Settings.HoursPerDay && !Rooted(who, material); hour++)
+        {
+            var thing = host.Objects.Spawn(material, who.Position);
+            host.Inhabitants.Report(new WorldEvent(InhabitantsSystem.ActionFinished, host.World.Tick, who.Id, data.Actions.Last(), thing.Id) { TargetType = material });
+            host.Objects.Remove(thing.Id); // used up in the same step, before this system looks
+            host.World.Run(perHour);
+        }
+
+        Assert.True(Rooted(who, material), "an idea on the used-up material");
+    }
+
+    private static bool Rooted(Inhabitant who, string material) =>
+        who.Ideas.Ideas.Any(i => i.Roots.Any(r => r.Kind == IdeaRootKinds.Type && r.Id == material));
+
+    [Fact]
     public void TheSameSeedSproutsTheSameIdeasOnTheSameDay()
     {
         long? Sprouted()
