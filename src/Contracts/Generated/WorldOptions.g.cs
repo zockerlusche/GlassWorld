@@ -19,8 +19,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("island_radius_m")]
-        public double IslandRadiusM { get; set; } = default!;
+        /// <summary>
+        /// A1768 (B2805): width and depth of the island's grid in cells - the generator builds the island in this area (a multiple of the preset's chunk_cells). Placeholder (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("grid_cells")]
+        public int GridCells { get; set; } = default!;
 
     }
 

@@ -32,6 +32,15 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// world: the host keeps it and the save game carries it.
     /// </summary>
     public string? Climate { get; init; }
+
+    /// <summary>
+    /// A1768 (B2805): the island's grid size the player chose (cells per side, content/player/world_options.json); null = the
+    /// preset's grid. Only a new world is generated with it - a save game carries its island.
+    /// </summary>
+    public int? GridCells { get; init; }
+
+    /// <summary>A1768 (B2805): the world specification of the new-world form, kept in the save game; null = none (older saves, tests).</summary>
+    public State.WorldSpec? Spec { get; init; }
 }
 
 /// <summary>
@@ -172,7 +181,7 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
+            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");

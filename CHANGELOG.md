@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The island size of the new-world form works (A1768, B2805): each size option names the island's grid (`content/player/world_options.json` `grid_cells`, small 192 as before, medium 256 - placeholder), the generator builds the island in that area. Every value of the form (size, grid, climate, start favour) is kept as the world specification in the save game (`world_spec`).
 - A burning fire crackles (A1543 step 2, D1237): the recorded crackle that lay unused plays as a spatial loop at the nearest burning things, as loud as the core says it burns, embers quietly (`sound_map.json` `burning`).
 - A fire looks as strong as it burns (A1823, B5-8 rest, B2736): it is drawn and lights up as big as the core's strength says - small while it kindles and fades, full while it burns; as embers it lies low with a red glow and a calmer flicker (`look/objects.json` glow `min_scale`, `embers_scale`, `embers_light_color`, `embers_energy`).
 - Ideas from material (A1581, Marcel W2243, D1212 c): when an inhabitant inspects, picks up, uses or combines a thing of a material kind it knows something about, an idea may sprout - 'what could I make from it?' - in its own ideas; it grows there at night and may ripen into a wish to invent. How often follows curiosity and drive (`knowledge/settings.json` `material_ideas`, placeholders); never twice for the same material, at most one a day.
