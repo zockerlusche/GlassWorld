@@ -1584,12 +1584,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             // B2778 (A1711): by day a sleeper wakes once rested - a nap is not the whole night's sleep; and after the
-            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %).
+            // data's nap hours at most, rested or not (A1498, B2828: Kira slept six hours of the afternoon at 81 %) - only a
+            // sleep that began by day is a nap: the night's sleep is not cut at dawn (A1798's earlier sunrise showed it).
             var sleptTicks = timingNow.DurationTicks - activity.RemainingTicks.Value;
             if (IsAsleep(inhabitant) && sleptTicks >= timingNow.WakeAfterTicks
                 && _model.Togetherness?.WakeRested is { } rested && world.Calendar.MinutesSinceNightfall(world.Tick) is null
                 && ((inhabitant.Needs.TryGetValue(rested.Need, out var slept) && slept >= rested.At)
-                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour))))
+                    || (rested.MaxNapHours is { } nap && sleptTicks >= (long)Math.Round(nap * _ticksPerHour)
+                    && world.Calendar.MinutesSinceNightfall(Math.Max(0, world.Tick - sleptTicks)) is null)))
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenRested });
                 inhabitant.Activity = null;

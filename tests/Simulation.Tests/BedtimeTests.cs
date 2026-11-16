@@ -189,21 +189,97 @@ public sealed class BedtimeTests
     }
 
     [Fact]
+    public void TheNightsSleepIsNoNapAndIsNotCutAtDawn()
+    {
+        // A1498 review (CI of #517): a sleep begun in the night runs on past sunrise until rested - max_nap_hours is for naps.
+        var rested = Content.InhabitantModel.Togetherness!.WakeRested!;
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de");
+        var sleeper = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(sleeper);
+        var calendar = host.World.Calendar;
+        var lateNight = FirstNightTick(calendar) + (6 * calendar.Settings.TicksPerHour);
+        host.World.Run(lateNight - host.World.Tick);
+        Assert.NotNull(calendar.MinutesSinceNightfall(host.World.Tick));
+        foreach (var need in sleeper.Needs.Keys.ToList())
+        {
+            sleeper.Needs[need] = 1.0;
+        }
+
+        sleeper.Needs[rested.Need] = 0.05;
+        sleeper.Activity = new Activity("sleep", null, sleeper.Position, null);
+        sleeper.Planned = null;
+        (string? Detail, double Slept)? end = null;
+        host.Inhabitants.Reported += e =>
+        {
+            if (e.InhabitantId == sleeper.Id && e.Action == "sleep" && e.Kind is InhabitantsSystem.ActionFinished or InhabitantsSystem.ActionCancelled)
+            {
+                end ??= (e.Detail, sleeper.Needs[rested.Need]);
+            }
+        };
+        host.World.Run(12 * calendar.Settings.TicksPerHour);
+
+        // It ends with the sleep's own length, or woken once rested - never woken unrested by the nap hours at dawn.
+        Assert.NotNull(end);
+        Assert.False(end!.Value.Detail == InhabitantsSystem.WokenRested && end.Value.Slept < rested.At, $"woken at {end.Value.Slept:0.000}");
+    }
+
+    [Fact]
     public void TheServiceHearsNightWhenAllSleepOrAtTheLimitNotAtNightfall()
     {
         var port = new PhasePort();
         var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de", port);
         var thirsty = Person("inh-000001", new Position(0, 0));
-        thirsty.Needs["thirst"] = 0.01;
         host.Inhabitants.Add(thirsty);
         var nightfall = FirstNightTick(host.World.Calendar);
         host.World.Run(nightfall + 2 - host.World.Tick);
+
+        // Thirsty from nightfall on (set earlier, the long first day would end it before the night - A1798's later nightfall).
+        thirsty.Needs["thirst"] = 0.01;
         Assert.NotEqual(JobPhase.Night, port.Phases[^1].Phase);
 
-        // The thirsty one stays awake: night comes at the limit.
-        host.World.Run((long)(Wait * host.World.Calendar.Settings.TicksPerHour));
+        // The thirsty one stays awake: night comes at the limit - but not before the data's clock minute (B2839).
+        host.World.Run((long)((Wait + 2) * host.World.Calendar.Settings.TicksPerHour));
         var night = port.Phases.Last(p => p.Phase == JobPhase.Night);
-        Assert.Equal((int)(Wait * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value);
+        var since = host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value;
+        var at = host.World.Calendar.At(night.Tick);
+        var clock = (at.Hour * 60) + at.Minute;
+        Assert.True(since >= (int)(Wait * 60), $"night after {since} min");
+        Assert.True(clock >= Content.Inventions.Build.NotBeforeMinute!.Value || clock < 12 * 60, $"night at {clock}");
+        Assert.True(since == (int)(Wait * 60) || clock == Content.Inventions.Build.NotBeforeMinute!.Value, $"night at {clock}, {since} min after nightfall");
+    }
+
+    [Fact]
+    public void AllAsleepEarlyTheComputeNightStillWaitsForItsHour()
+    {
+        // A1798 (Marcel W2243): the compute night falls about midnight - not right at nightfall when all lie down early.
+        var notBeforeMinute = Content.Inventions.Build.NotBeforeMinute!.Value;
+        var port = new PhasePort();
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de", port);
+        var sleeper = Person("inh-000001", new Position(0, 0));
+        host.Inhabitants.Add(sleeper);
+        var nightfall = FirstNightTick(host.World.Calendar);
+        host.World.Run(nightfall + 2 - host.World.Tick);
+        var atNightfall = host.World.Calendar.At(nightfall);
+        var notBefore = (notBeforeMinute - ((atNightfall.Hour * 60) + atNightfall.Minute)) / 60.0;
+        Assert.True(notBefore > 0.5, $"nightfall {atNightfall.Hour}:{atNightfall.Minute:00} lies before {notBeforeMinute} minutes");
+
+        // Fed and tired after the long first day: nothing but the clock decides the night here.
+        foreach (var need in sleeper.Needs.Keys.ToList())
+        {
+            sleeper.Needs[need] = 1.0;
+        }
+
+        sleeper.Needs["sleep"] = 0.3;
+        sleeper.Activity = new Activity("sleep", null, sleeper.Position, null);
+        sleeper.Planned = null;
+        host.World.Run((long)((notBefore - 0.25) * host.World.Calendar.Settings.TicksPerHour));
+        Assert.True(host.Inhabitants.IsAsleep(sleeper));
+        Assert.NotEqual(JobPhase.Night, port.Phases[^1].Phase);
+
+        host.World.Run((long)(0.5 * host.World.Calendar.Settings.TicksPerHour));
+        var night = port.Phases.Last(p => p.Phase == JobPhase.Night);
+        var at = host.World.Calendar.At(night.Tick);
+        Assert.Equal(notBeforeMinute, (at.Hour * 60) + at.Minute);
     }
 
     [Fact]
