@@ -839,6 +839,14 @@
       "text": "Fast (second step)"
     },
     {
+      "key": "ui.card.favourite_tooltip",
+      "text": "Favourites stand at the top of the corner, and you hear from them sooner."
+    },
+    {
+      "key": "ui.memory.export_tooltip",
+      "text": "Saves the memories as a page to read and as text into the data folder."
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
