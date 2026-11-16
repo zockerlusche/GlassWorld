@@ -567,6 +567,98 @@
       "text": "Open"
     },
     {
+      "key": "ui.settings.window_mode",
+      "text": "Window mode"
+    },
+    {
+      "key": "ui.settings.window_mode.desc",
+      "text": "In a window, full screen (the game alone) or borderless across the whole screen. After a change the game asks whether to keep it."
+    },
+    {
+      "key": "ui.settings.window_mode.start",
+      "text": "As at start"
+    },
+    {
+      "key": "ui.settings.window_mode.windowed",
+      "text": "Window"
+    },
+    {
+      "key": "ui.settings.window_mode.fullscreen",
+      "text": "Full screen"
+    },
+    {
+      "key": "ui.settings.window_mode.borderless",
+      "text": "Borderless"
+    },
+    {
+      "key": "ui.settings.resolution",
+      "text": "Window size"
+    },
+    {
+      "key": "ui.settings.resolution.desc",
+      "text": "How large the window is in window mode. Full screen uses the screen's size."
+    },
+    {
+      "key": "ui.settings.resolution.start",
+      "text": "As at start"
+    },
+    {
+      "key": "ui.settings.vsync",
+      "text": "V-Sync"
+    },
+    {
+      "key": "ui.settings.vsync.desc",
+      "text": "Waits for the screen so the picture does not tear. Off can be smoother but less steady."
+    },
+    {
+      "key": "ui.settings.max_fps",
+      "text": "Frame rate limit"
+    },
+    {
+      "key": "ui.settings.max_fps.desc",
+      "text": "At most this many frames per second. A limit spares the computer and its fans."
+    },
+    {
+      "key": "ui.settings.max_fps.none",
+      "text": "No limit"
+    },
+    {
+      "key": "ui.settings.quality",
+      "text": "Quality"
+    },
+    {
+      "key": "ui.settings.quality.desc",
+      "text": "Shadows, grass and view distance. Takes effect when a world is next loaded."
+    },
+    {
+      "key": "ui.settings.quality.low",
+      "text": "Low"
+    },
+    {
+      "key": "ui.settings.quality.medium",
+      "text": "Medium"
+    },
+    {
+      "key": "ui.settings.quality.high",
+      "text": "High"
+    },
+    {
+      "key": "ui.settings.keep.title",
+      "text": "Keep?"
+    },
+    {
+      "key": "ui.settings.keep.text",
+      "text": "Does the picture look right? Without an answer it goes back in {seconds} s."
+    },
+    {
+      "key": "ui.settings.keep.keep",
+      "text": "Keep"
+    },
+    {
+      "key": "ui.settings.keep.back",
+      "text": "Back"
+    },
+    {
       "key": "ui.settings.language",
       "text": "Game language"
     },
