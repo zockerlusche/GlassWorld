@@ -467,6 +467,46 @@
       "text": "Temperate"
     },
     {
+      "key": "ui.new_world.climate.cool",
+      "text": "Cool"
+    },
+    {
+      "key": "ui.new_world.resources",
+      "text": "Resources"
+    },
+    {
+      "key": "ui.new_world.resources.poor",
+      "text": "Sparse"
+    },
+    {
+      "key": "ui.new_world.resources.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.new_world.resources.rich",
+      "text": "Rich"
+    },
+    {
+      "key": "ui.new_world.start_pairs",
+      "text": "Inhabitants at the start"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_1",
+      "text": "2 (one pair)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_2",
+      "text": "4 (two pairs)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_3",
+      "text": "6 (three pairs)"
+    },
+    {
+      "key": "ui.new_world.start_pairs.pairs_4",
+      "text": "8 (four pairs)"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },

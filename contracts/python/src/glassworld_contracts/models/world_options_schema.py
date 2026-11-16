@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+type StartPair = Annotated[int, Field(..., ge=1, le=8)]
 
 
 class SizeOption(BaseModel):
@@ -38,6 +40,23 @@ class ClimateOption(BaseModel):
     )
 
 
+class ResourceOption(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Option id (text key ui.new_world.resources.<id>).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    factor: float = Field(
+        ...,
+        description='Factor on spawn density and upper limits (1.0 = the data as written).',
+        ge=0.2,
+        le=3.0,
+    )
+
+
 class WorldOptions(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -66,4 +85,20 @@ class WorldOptions(BaseModel):
         description='Longest player name in the settings (B2535: used only outside the aquarium; inhabitants learn it only when the player tells them).',
         ge=1,
         le=64,
+    )
+    resources: list[ResourceOption] | None = Field(
+        None,
+        description="A1770 (B2805 'Einfach'): how much grows and lies on the island - a factor on every spawn rule's density and upper limit (start supplies stay guaranteed). Missing = normal (1.0).",
+        min_length=1,
+    )
+    default_resources: str | None = Field(
+        None, description='A1770: id of the preselected resources option.'
+    )
+    start_pairs: list[StartPair] | None = Field(
+        None,
+        description='A1770 (B2805): how many pairs of inhabitants a new world starts with (each pair gets its start place).',
+        min_length=1,
+    )
+    default_start_pairs: int | None = Field(
+        None, description='A1770: the preselected number of start pairs.', ge=1, le=8
     )
