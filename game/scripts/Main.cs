@@ -123,11 +123,14 @@ public partial class Main : Node3D
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
+            // A1815: the camera and time keys exist from the start - the settings lay them anew also in the main menu.
+            InputDefaults.Ensure(ScreenModel.TimeChoices(Simulation.Time.WorldCalendar.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "world", "time.json"))).Settings).Count);
             var quality = ContractSerializer.Deserialize<LookQuality>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "look", "quality.json")));
             _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard, _mix.DefaultsVersion)
             {
                 QualityLevels = [.. quality.Levels.Select(l => l.Id)],
                 QualityDefault = quality.DefaultLevel,
+                KeyActions = [.. SettingsWindow.KeyActions()],
             };
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
@@ -338,6 +341,12 @@ public partial class Main : Node3D
 
         // A1749: when the world saves itself.
         WorldPresenter.AutoSaveMode = settings.AutoSave;
+
+        // A1815: the player's keys.
+        if (_limits is not null)
+        {
+            InputDefaults.Apply(_limits.KeyActions, settings.KeyBindings);
+        }
 
         // A1749 (B2825): the mouse axes of the camera.
         GlassWorld.Game.World.CameraRig.Axes = settings.ToMouseAxes();
@@ -601,7 +610,7 @@ public partial class Main : Node3D
             _audio.Hearing = _world.Hearing;
         }
 
-        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
+        var soundFolder = GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, System.Environment.GetEnvironmentVariable("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT"));
         var spatialReady = _audio.Setup(host, host.World.Seed, soundFolder);
         if (_mix is not null)
         {
@@ -990,7 +999,7 @@ public partial class Main : Node3D
         try
         {
             _collection ??= new GlassWorld.Presentation.World.MadeObjectStore(GameData.At("collection"));
-            var pictures = OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
+            var pictures = System.Environment.GetEnvironmentVariable("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images
                 ? System.IO.Path.GetFullPath(images)
                 : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(soundFolder) ?? string.Empty, "images");
             var world = GlassWorld.Presentation.World.MadeObjectStore.WorldOf(_meta?.Id ?? "world", host.World.Seed);

@@ -19,6 +19,14 @@ class NatureOveruse(BaseModel):
     bare_min_hours: int = Field(..., ge=0, le=8760)
 
 
+class NatureSpread(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    chance_per_day_permille: int = Field(..., ge=0, le=1000)
+    max_per_cell: int = Field(..., ge=1, le=64)
+
+
 class SeasonGrowth(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -109,6 +117,10 @@ class NatureGroup(BaseModel):
         description="Growth during a drought, in permille of the season's growth; omitted = 1000 (the drought does not matter).",
         ge=0,
         le=1000,
+    )
+    spread: NatureSpread | None = Field(
+        None,
+        description='A1380 N2b (R15): every grown place of a type of this group sows with this chance per day into a neighbouring field cell (overuse cell_m) - a cell whose biome the spawn table lists the type in, not bare, without a place there yet and with fewer than max_per_cell places of the type. The new place grows like any other. Fruits on a plant (grows_on) never spread. Omitted = the group does not spread. Placeholder values.',
     )
 
 

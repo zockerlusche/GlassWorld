@@ -191,7 +191,7 @@ public partial class GameScreen : CanvasLayer
         // Pictures the service made lie in its output folder, like the made sounds (GW2 #206).
         _dreamFolder = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(
             presenter.ContentDirectory, null, OS.GetEnvironment("GLASSWORLD_AI_ROOT")))!, "images");
-        if (OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images)
+        if (System.Environment.GetEnvironmentVariable("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images)
         {
             _dreamFolder = System.IO.Path.GetFullPath(images);
         }

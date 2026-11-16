@@ -201,6 +201,28 @@ public sealed class SimulationHost
                 // A1380 N2: overuse of field cells (nature data).
                 Overuse = content.Nature?.Overuse,
 
+                // A1380 N2b (R15): the types that spread - a group's spread from the nature data, the biomes that list
+                // the type in the spawn table as a regrowing place of its own (never a fruit on a plant).
+                Spreads = content.Nature is { } spreading
+                    ? spreading.Types
+                        .Where(t => spreading.Groups.FirstOrDefault(g => g.Id == t.Group)?.Spread is { } s && s.ChancePerDayPermille > 0)
+                        .ToDictionary(
+                            t => t.Type,
+                            t =>
+                            {
+                                var s = spreading.Groups.First(g => g.Id == t.Group).Spread!;
+                                IReadOnlySet<int> biomes = content.WorldGen.Spawns.Spawns
+                                    .Where(r => r.ObjectType == t.Type && r.RegrowHours is not null && r.GrowsOn is null)
+                                    .Select(r => island.Map.BiomeIds.ToList().IndexOf(r.Biome))
+                                    .Where(i => i >= 0)
+                                    .ToHashSet();
+                                return (s.ChancePerDayPermille, s.MaxPerCell, biomes);
+                            },
+                            StringComparer.Ordinal)
+                        .Where(kv => kv.Value.biomes.Count > 0)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal)
+                    : new Dictionary<string, (int, int, IReadOnlySet<int>)>(StringComparer.Ordinal),
+
                 Hangs = content.WorldGen.Spawns.Spawns
                     .Where(r => r.GrowsOn?.Hangs is not null)
                     .GroupBy(r => r.ObjectType, StringComparer.Ordinal)

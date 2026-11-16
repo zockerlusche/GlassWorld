@@ -45,7 +45,8 @@
           "permille": 0
         }
       ],
-      "drought_permille": 300
+      "drought_permille": 300,
+      "spread": { "chance_per_day_permille": 20, "max_per_cell": 3 }
     },
     {
       "id": "herb",
@@ -67,7 +68,8 @@
           "permille": 100
         }
       ],
-      "drought_permille": 300
+      "drought_permille": 300,
+      "spread": { "chance_per_day_permille": 50, "max_per_cell": 4 }
     },
     {
       "id": "grass",
@@ -89,7 +91,8 @@
           "permille": 300
         }
       ],
-      "drought_permille": 300
+      "drought_permille": 300,
+      "spread": { "chance_per_day_permille": 50, "max_per_cell": 4 }
     },
     {
       "id": "nesting",

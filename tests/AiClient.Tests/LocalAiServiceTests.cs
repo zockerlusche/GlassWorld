@@ -61,4 +61,26 @@ public sealed class LocalAiServiceTests : IDisposable
         Assert.Equal(Path.GetFullPath(_folder), LocalAiService.RepositoryRoot(Path.Combine(_folder, "content"), null));
         Assert.Equal(Path.GetFullPath("elsewhere"), LocalAiService.RepositoryRoot(Path.Combine(_folder, "content"), "elsewhere"));
     }
+
+    [Fact]
+    public void APackageNextToTheGameIsFoundOnlyWithPythonAndConfig()
+    {
+        // A1421 (B10-S2): <game>/ai-service/python/python.exe and config.toml (tools/package_ai_service.py).
+        Assert.Null(LocalAiService.PackagedService(_folder));
+        var package = Path.Combine(_folder, LocalAiService.PackageFolder);
+        Directory.CreateDirectory(Path.Combine(package, "python"));
+        File.WriteAllText(Path.Combine(package, "python", "python.exe"), "x");
+        Assert.Null(LocalAiService.PackagedService(_folder));
+        File.WriteAllText(Path.Combine(package, "config.toml"), "x");
+        Assert.Equal(Path.GetFullPath(package), LocalAiService.PackagedService(_folder));
+    }
+
+    [Fact]
+    public void ThePackagedServiceWritesOnlyIntoTheDataFolder()
+    {
+        var folders = LocalAiService.PackagedFolders(_folder);
+        Assert.Contains("GW_AI_SOUND_OUTPUT_DIR", folders.Keys);
+        Assert.Contains("GW_AI_IMAGE_OUTPUT_DIR", folders.Keys);
+        Assert.All(folders.Values, f => Assert.StartsWith(_folder, f, StringComparison.Ordinal));
+    }
 }
