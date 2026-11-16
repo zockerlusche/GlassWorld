@@ -108,6 +108,9 @@ public sealed record SaveState(
     /// </summary>
     public string? Climate { get; init; }
 
+    /// <summary>A1768 (B2805): every value of the new-world form (size, grid, climate, start favour); null in save games from before.</summary>
+    public WorldSpec? Spec { get; init; }
+
     /// <summary>
     /// The look epoch (B2-5 R16); null while the world is in its first epoch and in save games from before,
     /// which load in the first epoch.
@@ -273,6 +276,7 @@ public static class StateCodec
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
             Climate = host.Options.Climate,
+            Spec = host.Options.Spec,
             LookEpoch = host.LookEpoch.Capture(),
             Exploration = host.Exploration?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
@@ -312,7 +316,7 @@ public static class StateCodec
         var world = World.Restore(state.Seed, factory.Content.Calendar, state.Tick, state.Streams);
         // Saves with island data load that island (B2 R11); older saves generate it again and are
         // checked against their island hash below.
-        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null, state.Climate);
+        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null, state.Climate, state.Spec);
 
         // The island is generated again from the current data; if data or generator changed since the
         // save, the world would differ silently, so such a save is refused (review GW2 #56).
@@ -509,9 +513,10 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
 
     /// <summary>
     /// Assembles the systems around <paramref name="world"/> with exactly the climate of a save game (B5 R1):
-    /// null means the preset's climate, whatever the factory's options say (review GW1 #318).
+    /// null means the preset's climate, whatever the factory's options say (review GW1 #318). The world specification
+    /// (A1768) comes with it, so the next save keeps it.
     /// </summary>
-    public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland, string? climate) =>
+    public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland, string? climate, WorldSpec? spec = null) =>
         SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland,
-            (options ?? new SimulationHostOptions()) with { Climate = climate });
+            (options ?? new SimulationHostOptions()) with { Climate = climate, Spec = spec });
 }

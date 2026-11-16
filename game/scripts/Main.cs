@@ -404,7 +404,7 @@ public partial class Main : Node3D
         _menu.NewWorldRequested += choice =>
         {
             var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate), meta, created: true);
+            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         };
         _menu.LoadRequested += meta => Enter(presenter => presenter.Load(_contentDirectory, _library.SavePath(meta.Id)), meta);
         _menu.SettingsRequested += () => OpenSettings(_menu.ShowWindow);
@@ -554,7 +554,7 @@ public partial class Main : Node3D
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
         GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} save={_library.SavePath(meta.Id)}");
-        EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate), meta, created: true);
+        EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         if (_world?.Host is null)
         {
             GD.PushError("NEW_WORLD_FAIL the world did not start");
@@ -576,6 +576,14 @@ public partial class Main : Node3D
             _ = RunThenQuitAsync(_runS);
         }
     }
+
+    /// <summary>A1768 (B2805): the world specification of a filled-in form, with the grid size of its size option (none known = the preset's grid).</summary>
+    private Simulation.State.WorldSpec SpecOf(NewWorldChoice choice) =>
+        new(
+            choice.Size,
+            _menuData?.Options?.Sizes.FirstOrDefault(o => string.Equals(o.Id, choice.Size, StringComparison.Ordinal)) is { } option ? option.GridCells : null,
+            choice.Climate,
+            choice.StartFavor);
 
     private async Task RunThenQuitAsync(double seconds)
     {
