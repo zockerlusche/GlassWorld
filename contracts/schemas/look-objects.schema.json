@@ -103,7 +103,9 @@
         "radius_m": { "description": "Least ring radius; a drawn invention gets half its extent plus the margin if that is more.", "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
         "margin_m": { "description": "Room between a drawn thing and its ring.", "type": "number", "minimum": 0, "maximum": 5 },
         "width_m": { "description": "Width of the ring.", "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
-        "color": { "description": "Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).", "$ref": "common.schema.json#/$defs/VocabId" }
+        "color": { "description": "Palette colour id of the ring - dark, so it stands out from every ground by brightness, not by hue alone (Marcel, TL #25522; review GW5 #450).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "mark_events": { "description": "A1796 (D1114, Marcel 15a): events whose thing (the event's target, if it is in the world) gets the same calm ring where it is, without moving the camera - so one finds a thing just built. Omitted = none.", "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "mark_seconds": { "description": "A1796: how long such a place mark takes to fade (real seconds); omitted = seconds. Placeholder value (TL).", "type": "number", "exclusiveMinimum": 0, "maximum": 120 }
       }
     },
     "ObjectLookShape": {

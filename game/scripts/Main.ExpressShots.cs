@@ -86,7 +86,15 @@ public partial class Main
 
                 // Let the calm pause of earlier moments run out, so the event shows (a knock skips it anyway).
                 await ToSignal(GetTree().CreateTimer(1.5), SceneTreeTimer.SignalName.Timeout);
-                var shown = _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
+                if (spec == "mark")
+                {
+                    // A1796: the calm place mark a thing just built gets - laid at the thing nearest the followed figure.
+                    var near = _world.Host.Snapshot().Objects.OrderBy(o => Math.Pow(o.Position.X - who.Position.X, 2) + Math.Pow(o.Position.Z - who.Position.Z, 2)).FirstOrDefault();
+                    var marked = near is not null && _world.MarkThing(new Simulation.Inhabitants.WorldEvent(Simulation.Inventions.InventionSystem.Built, _world.Host.World.Tick, who.Id, null, near.Id));
+                    GD.Print($"EXPRESS_SHOT_MARK {(marked ? near!.Id + " " + near.TypeId : "none")}");
+                }
+
+                var shown = spec == "mark" ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
                 GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {who.Name ?? who.Id} shown={shown ?? "-"}");
                 var waited = 0.0;
                 foreach (var at in ExpressShotTimes)

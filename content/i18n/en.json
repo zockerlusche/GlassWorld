@@ -183,6 +183,10 @@
       "text": "Export"
     },
     {
+      "key": "ui.memory.go_to_thing",
+      "text": "Look where it is"
+    },
+    {
       "key": "ui.card.memory",
       "text": "Memories"
     },

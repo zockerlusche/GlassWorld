@@ -183,6 +183,10 @@
       "text": "Exportieren"
     },
     {
+      "key": "ui.memory.go_to_thing",
+      "text": "Hinschauen, wo es ist"
+    },
+    {
       "key": "ui.card.memory",
       "text": "Erinnerungen"
     },

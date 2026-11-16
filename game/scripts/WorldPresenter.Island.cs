@@ -37,6 +37,8 @@ public partial class WorldPresenter
     private Contracts.LookFocus? _focusLook;
     private Color _focusColor = Colors.White;
     private MeshInstance3D? _focusRing;
+    // A1796: calm place marks at things just built, one per thing (the camera stays where it is).
+    private readonly Dictionary<string, MeshInstance3D> _marks = new(StringComparer.Ordinal);
     private GrassView? _grassView;
     private AmbientFaunaView? _faunaView;
     private Presentation.Audio.HourTime? _livingAt;
@@ -257,6 +259,51 @@ public partial class WorldPresenter
             return true;
         }
 
+        MeshInstance3D? ring = null;
+        ring = Ring(objectId, thing.Position.X, thing.Position.Z, look, look.Seconds, () =>
+        {
+            if (_focusRing == ring)
+            {
+                _focusRing = null;
+            }
+        });
+        _focusRing = ring;
+        return true;
+    }
+
+    /// <summary>
+    /// A1796 (D1114, Marcel 15a): an event of the look's mark kinds leaves the calm ring at its thing, where it is, for
+    /// the look's mark seconds - the camera stays. False when the event is no such kind or its thing is not in the world.
+    /// </summary>
+    public bool MarkThing(Simulation.Inhabitants.WorldEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (_host is null || _focusLook is not { MarkEvents: { } kinds } look || !kinds.Contains(e.Kind)
+            || e.TargetId is not { Length: > 0 } id || !_host.Objects.TryGet(id, out var thing))
+        {
+            return false;
+        }
+
+        if (_marks.Remove(id, out var old) && IsInstanceValid(old))
+        {
+            old.QueueFree();
+        }
+
+        MeshInstance3D? mark = null;
+        mark = Ring(id, thing.Position.X, thing.Position.Z, look, look.MarkSeconds ?? look.Seconds, () =>
+        {
+            if (_marks.TryGetValue(id, out var now) && now == mark)
+            {
+                _marks.Remove(id);
+            }
+        });
+        _marks[id] = mark;
+        return true;
+    }
+
+    /// <summary>The calm ring on the ground around a thing, fading over <paramref name="seconds"/>; <paramref name="gone"/> runs when it is gone.</summary>
+    private MeshInstance3D Ring(string objectId, double x, double z, Contracts.LookFocus look, double seconds, Action gone)
+    {
         var radius = (float)InventionLooks.FocusRadiusM(_inventionsView?.ShownExtent(objectId) ?? 0, look.RadiusM, look.MarginM);
         var material = new StandardMaterial3D
         {
@@ -264,8 +311,7 @@ public partial class WorldPresenter
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             AlbedoColor = _focusColor,
         };
-        var (x, z) = (thing.Position.X, thing.Position.Z);
-        _focusRing = new MeshInstance3D
+        var ring = new MeshInstance3D
         {
             Name = "FocusRing",
             Mesh = new TorusMesh { InnerRadius = Math.Max(0.01f, radius - (float)look.WidthM), OuterRadius = radius },
@@ -273,23 +319,18 @@ public partial class WorldPresenter
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Position = new Vector3((float)x, (float)_ground(x, z) + 0.05f, (float)z),
         };
-        AddChild(_focusRing);
-        var ring = _focusRing;
+        AddChild(ring);
         var fade = CreateTween();
-        fade.TweenProperty(material, "albedo_color:a", 0f, look.Seconds);
+        fade.TweenProperty(material, "albedo_color:a", 0f, seconds);
         fade.TweenCallback(Callable.From(() =>
         {
-            if (ring == _focusRing)
-            {
-                _focusRing = null;
-            }
-
             if (IsInstanceValid(ring))
             {
+                gone();
                 ring.QueueFree();
             }
         }));
-        return true;
+        return ring;
     }
 
     /// <summary>A1715: the camera goes to a thing at (x, z), at the look's distance for things.</summary>
