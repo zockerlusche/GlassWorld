@@ -687,7 +687,7 @@ def test_v17_says_where_one_could_build_without_saying_which_place_is_better() -
                 "x": 3.0,
                 "z": 4.0,
                 "distance_m": 5,
-                "near": {"de": "Felsnische", "en": "Rock nook"},
+                "near": {"de": '"Felsnische"', "en": "Rock nook"},
             },
         },
         {

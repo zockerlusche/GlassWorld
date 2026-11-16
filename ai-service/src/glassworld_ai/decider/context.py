@@ -455,7 +455,9 @@ def _place(option: Any, settings: dict[str, Any], locale: str) -> str:
     table = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
     near: object = getattr(place.near, locale, None) if place.near is not None else None
     line = table["near"] if near else table["distance"]
-    return line.replace("$distance", f"{place.distance_m:.0f}").replace("$near", str(near or ""))
+    # Review GW3 #539: the name sits in quotes of the line - quotes of its own would double them.
+    name = str(near or "").replace('"', "").strip()
+    return line.replace("$distance", f"{place.distance_m:.0f}").replace("$near", name)
 
 
 def _topic(topic: Any, called: Callable[[str], str | None] | None, locale: str) -> str:
