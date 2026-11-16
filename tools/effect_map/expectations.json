@@ -35,9 +35,11 @@
   "data": [
     {
       "id": "mood_drivers_move_their_mood",
-      "source": "B2772",
+      "source": "B2772, B2839",
       "kind": "mood_driver_lift_per_day",
-      "min_lift": 0.3
+      "min_lift": 0.3,
+      "exempt_sensations": ["too_cold", "too_warm"],
+      "exempt_reason": "A1786: feeling cold or hot alone makes no lasting frustration - only together with a neglected need"
     }
   ]
 }
