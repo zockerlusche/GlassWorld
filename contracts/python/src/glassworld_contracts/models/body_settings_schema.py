@@ -197,7 +197,7 @@ class OnNeedItem(BaseModel):
     chance_per_hour_permille: int = Field(..., ge=0, le=1000)
 
 
-class From(BaseModel):
+class GrowsFrom(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -259,9 +259,8 @@ class BodyCondition(BaseModel):
         description='It may begin while a need stays below a level (cold and wet), with a chance per game hour in permille.',
         max_length=16,
     )
-    from_: From | None = Field(
+    grows_from: GrowsFrom | None = Field(
         None,
-        alias='from',
         description='It may grow out of another complaint held for at least after_hours, with a chance per game hour (a cold becomes a fever).',
     )
     contagion: Contagion | None = Field(

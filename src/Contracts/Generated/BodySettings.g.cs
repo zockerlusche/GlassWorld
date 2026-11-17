@@ -95,8 +95,8 @@ namespace GlassWorld.Contracts
         /// It may grow out of another complaint held for at least after_hours, with a chance per game hour (a cold becomes a fever).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("from")]
-        public From? From { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("grows_from")]
+        public GrowsFrom? GrowsFrom { get; set; } = default!;
 
         /// <summary>
         /// It may pass to someone within radius_cm of one who has it, with a chance per game hour and person.
@@ -546,7 +546,7 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class From
+    public partial class GrowsFrom
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("condition")]
