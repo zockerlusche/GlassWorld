@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Complaints behind the body switch (A1816 step 2, B5 R23): with `body.stores.enabled` on, an inhabitant can catch a cold (cold for long, or from someone near who has one), a belly ache (after eating something poisonous) or a fever (out of a cold). Each runs its course of the data, costs health per hour and heals faster at rest or asleep and near a thing with the property `healing` - what helps is for the inhabitants to find out. The decider sees how it feels (`conditions`), never the cause. Chances are rolled from the seed. Saved and hashed; values are placeholders.
 - The hand (A1832, B6-16): a thing's window offers to move it when the core lets the hand take it; a line near the pointer then says the core's answer for the spot (here, or why not), a click puts it there (command `move_object`, costs favour), Esc lets go.
 - Lifting has a limit (A1816 E10, behind the body switch): an action that takes a thing into the hand fails when the thing weighs more than `body.stores.lift_max_share` of the inhabitant's carrying strength (its life phase). The try is cancelled with the reason `too_heavy` and reported (`cannot_lift`); what the inhabitant makes of it is its own.
 - Game screen evidence (A1338, B6-6): the layout check times refilling the inhabitants table with 100 rows (`UI_TABLE`, at most a quarter frame; measured below 2 ms), and a test shows question marks stay while unanswered, several at once, and come back after loading.

@@ -163,6 +163,14 @@
       "description": "An inhabitant who can read read a text in passing and learned what it says (B8 R15, A1357; target = the carrier, Detail = the knowledge ref)."
     },
     {
+      "id": "condition_began",
+      "description": "A complaint began (A1816, R23; target = the condition). Its cause is the world's; the inhabitant only feels it."
+    },
+    {
+      "id": "condition_ended",
+      "description": "A complaint is over (A1816, R23; target = the condition)."
+    },
+    {
       "id": "cannot_lift",
       "description": "An inhabitant could not lift a thing - heavier than its carrying strength (A1816 E10; target = the thing, Detail = too_heavy)."
     },

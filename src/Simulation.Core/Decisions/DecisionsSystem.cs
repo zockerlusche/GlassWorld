@@ -723,6 +723,19 @@ public sealed partial class DecisionsSystem : IWorldSystem
         }
     }
 
+    /// <summary>A1816 step 2: how an inhabitant feels (complaints, contract FeltCondition), set by the host; null = nothing felt.</summary>
+    public Func<string, IReadOnlyList<FeltCondition>>? FeltOf { get; set; }
+
+    private InhabitantState WithFelt(InhabitantState state, string inhabitantId)
+    {
+        if (FeltOf?.Invoke(inhabitantId) is { Count: > 0 } felt)
+        {
+            state.Conditions = [.. felt.Take(8)];
+        }
+
+        return state;
+    }
+
     /// <inheritdoc/>
     public void WriteState(StateHasher hasher)
     {
@@ -1694,7 +1707,7 @@ public sealed partial class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = Budget?.DeadlineMs(_settings.DeadlineMs) ?? _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf),
+            Inhabitant = WithFelt(InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf, _inhabitants.UnsureOf), inhabitant.Id),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),

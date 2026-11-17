@@ -47,6 +47,78 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("lift_max_share")]
         public double? LiftMaxShare { get; set; } = default!;
 
+        /// <summary>
+        /// A1816 step 2 (B5 R23, A1381): complaints (vocabulary condition) - how they begin, run, cost health and heal. Chances are rolled from the seed. Absent = none. Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
+        public System.Collections.Generic.ICollection<BodyCondition>? Conditions { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyCondition
+    {
+
+        /// <summary>
+        /// Condition id (vocabulary condition).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// How long its course runs at normal pace, in game hours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hours")]
+        public int Hours { get; set; } = default!;
+
+        /// <summary>
+        /// Health change per hour while it lasts, permille (negative = it costs).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("health_per_hour")]
+        public int HealthPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// How strongly it is felt (FeltCondition.severity).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severity")]
+        public double Severity { get; set; } = default!;
+
+        /// <summary>
+        /// It may begin after an event of the inhabitant: the event kind, optionally the action and a property of the target's type (world truth), with a chance in permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("on_events")]
+        public System.Collections.Generic.ICollection<On_events>? OnEvents { get; set; } = default!;
+
+        /// <summary>
+        /// It may begin while a need stays below a level (cold and wet), with a chance per game hour in permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("on_need")]
+        public System.Collections.Generic.ICollection<On_need>? OnNeed { get; set; } = default!;
+
+        /// <summary>
+        /// It may grow out of another complaint held for at least after_hours, with a chance per game hour (a cold becomes a fever).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("grows_from")]
+        public GrowsFrom? GrowsFrom { get; set; } = default!;
+
+        /// <summary>
+        /// It may pass to someone within radius_cm of one who has it, with a chance per game hour and person.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("contagion")]
+        public Contagion? Contagion { get; set; } = default!;
+
+        /// <summary>
+        /// What speeds the course (truth the inhabitants find out themselves): resting or asleep, and a thing with near_property within near_radius_cm. Each adds permille to the pace (1000 = twice as fast).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heal")]
+        public Heal? Heal { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -444,6 +516,93 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("cover")]
         public System.Collections.Generic.ICollection<BodyCover>? Cover { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class On_events
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("event")]
+        public string Event { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string? Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("target_property")]
+        public string? TargetProperty { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_permille")]
+        public int ChancePermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class On_need
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("below")]
+        public double Below { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_per_hour_permille")]
+        public int ChancePerHourPermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class GrowsFrom
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("condition")]
+        public string Condition { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("after_hours")]
+        public int AfterHours { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_per_hour_permille")]
+        public int ChancePerHourPermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Contagion
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cm")]
+        public int RadiusCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("chance_per_hour_permille")]
+        public int ChancePerHourPermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Heal
+    {
+
+        /// <summary>
+        /// Added while resting: asleep, doing nothing, or doing one of rest_actions (review GW4 #597).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_permille")]
+        public int RestPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Actions that count as rest (e.g. idle); absent = only asleep or doing nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_actions")]
+        public System.Collections.Generic.ICollection<string>? RestActions { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("near_property")]
+        public string? NearProperty { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("near_radius_cm")]
+        public int? NearRadiusCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("near_permille")]
+        public int? NearPermille { get; set; } = default!;
 
     }
 
