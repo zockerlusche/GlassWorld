@@ -10,6 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class StormDamage(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    weather: list[common_schema.VocabId] = Field(..., max_length=8, min_length=1)
+    per_hour_permille: int = Field(..., ge=1, le=1000)
+
+
 class QualityLife(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -95,6 +103,10 @@ class DurabilitySettings(BaseModel):
         None,
         description='A1576 (plan D1008 H2): actions whose end counts as one use of their target thing (use_permille of its class). Omitted = nothing wears by use.',
         max_length=16,
+    )
+    storm_damage: StormDamage | None = Field(
+        None,
+        description='A1382 S2 (D998, R24): each full hour of one of these weathers wears every built thing (one with a build quality, A1376) not in a hand by per_hour_permille of its plain life; its quality stretches the life as always, so a solid building lasts longer. Omitted = storms damage nothing. Placeholder values (TL).',
     )
     quality: list[QualityLife] | None = Field(
         None,

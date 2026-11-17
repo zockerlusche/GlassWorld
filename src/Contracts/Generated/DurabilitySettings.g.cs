@@ -111,6 +111,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string>? UseActions { get; set; } = default!;
 
         /// <summary>
+        /// A1382 S2 (D998, R24): each full hour of one of these weathers wears every built thing (one with a build quality, A1376) not in a hand by per_hour_permille of its plain life; its quality stretches the life as always, so a solid building lasts longer. Omitted = storms damage nothing. Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("storm_damage")]
+        public StormDamage? StormDamage { get; set; } = default!;
+
+        /// <summary>
         /// A1576 (H2): how a made thing's quality tier (build quality, A1376) stretches its life - permille of the plain life (1500 = half again as long). A tier without an entry, or a thing without quality: 1000.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -123,6 +130,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("end_event_if")]
         public string? EndEventIf { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StormDamage
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public System.Collections.Generic.ICollection<string> Weather { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour_permille")]
+        public int PerHourPermille { get; set; } = default!;
 
     }
 }

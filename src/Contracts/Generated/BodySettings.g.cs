@@ -40,6 +40,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("default_carry_kg")]
         public double DefaultCarryKg { get; set; } = default!;
 
+        /// <summary>
+        /// A1816 E10: an action that takes a thing into the hand fails (too_heavy) when its weight is more than this share of the carrying strength. Absent = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lift_max_share")]
+        public double? LiftMaxShare { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

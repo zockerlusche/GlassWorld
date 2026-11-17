@@ -116,6 +116,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of <see cref="OutOfReach"/>: what one tried to climb gives no grip (D1105 H3b).</summary>
     public const string TooSmooth = "too_smooth";
 
+    /// <summary>A1816 E10: why an action on a thing cannot start for its weight (the body stores), or null; null hook = never.</summary>
+    public Func<Inhabitant, string, WorldObject, string?>? LiftRefusal { get; set; }
+
+    /// <summary>A1816 E10: event - an inhabitant could not lift a thing (target = the thing, detail = why).</summary>
+    public const string CannotLift = "cannot_lift";
+
     /// <summary>D1105 H3b: why an action on a thing cannot start (the body's climbing check), or null; null hook = never.</summary>
     public Func<Inhabitant, string, WorldObject, string?>? ClimbRefusal { get; set; }
 
@@ -325,7 +331,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <param name="count">
     /// How many inhabitants the world starts with; null = those the data lists. See <see cref="StartersFor"/>.
     /// </param>
-    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null)
+    /// <param name="design">
+    /// A1774: the start inhabitants the player designed, in start order (null = all drawn). The draws of traits, needs,
+    /// sex and appearance stay as without a design; names are drawn for the undesigned from the names not yet taken, so a
+    /// designed name can change which names the others get (review GW3 #598).
+    /// </param>
+    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null, IReadOnlyList<State.StartInhabitantSpec>? design = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(positions);
@@ -348,12 +359,36 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             var moods = _model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
             var sex = starters[i].Sex == StartInhabitantSex.Female ? "female" : "male";
+
+            // A1774 (B2805): what the player designed replaces what was drawn (the draws stay, so the others keep theirs);
+            // character values as a share of the data's range, so they stay within the frame.
+            var own = design is not null && i < design.Count ? design[i] : null;
+            if (own?.Sex is "female" or "male")
+            {
+                sex = own.Sex;
+            }
+
+            foreach (var range in _model.Start.Traits)
+            {
+                if (own?.Traits is { } shares && shares.TryGetValue(range.Id, out var share))
+                {
+                    traits[range.Id] = range.Min + ((range.Max - range.Min) * Math.Clamp(share, 0.0, 1.0));
+                }
+            }
+
             var inhabitant = new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start);
             if (Looks is { } looks)
             {
                 // Own stream, not kept among the world's streams: the record is drawn once and saved.
                 var place = ClothingAt?.Invoke(world, positions[i]) ?? ClothingContext.Unknown;
                 inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays, sex, place);
+            }
+
+            // A designed name only in the shape of the name data (review GW3 #598: it reaches the AI prompts; a save or a
+            // later command line could carry anything) - otherwise one is drawn.
+            if (own?.Name?.Trim() is { } designedName && Content.ContentSet.IsProperName(designedName))
+            {
+                inhabitant.Name = designedName;
             }
 
             Add(inhabitant);
@@ -1541,6 +1576,17 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
             // D1105 H3b: climbing what is too smooth fails honestly as well (why, never how).
+            // A1816 E10: a thing heavier than the inhabitant can lift - a cancelled try with its reason, counted like a use without
+            // effect (the action rests on that thing after repeats); what it makes of it is its own.
+            if (target is not null && LiftRefusal?.Invoke(inhabitant, activity.Action, target) is { } heavy)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = heavy });
+                Report(new WorldEvent(CannotLift, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = heavy });
+                CountRepeat(world, inhabitant, activity, changed: false);
+                inhabitant.Activity = null;
+                return;
+            }
+
             if (target is not null && ClimbRefusal?.Invoke(inhabitant, activity.Action, target) is { } refused)
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = refused });

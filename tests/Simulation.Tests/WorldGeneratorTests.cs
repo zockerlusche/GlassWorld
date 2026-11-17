@@ -1,6 +1,7 @@
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Map;
+using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Tests;
 
@@ -64,6 +65,32 @@ public sealed class WorldGeneratorTests
             Assert.NotSame(shown.Island, fresh.Map!.Island);
             Assert.Equal((other.GridCells ?? 192, other.GridCells ?? 192), (fresh.Map.Island.Map.WidthCells, fresh.Map.Island.Map.DepthCells));
         }
+    }
+
+    [Fact]
+    public void DesignedStartInhabitantsKeepTheirNameSexAndValuesTheOthersStayDrawn()
+    {
+        // A1774 (B2805): a designed inhabitant has its name, sex and character values (as a share of the data's range);
+        // what is left out is drawn from the seed exactly as before.
+        var contentDir = Path.Combine(TestData.Root, "content");
+        var drawn = SimulationHost.CreateGeneratedWorld(contentDir, 31, new MockDecisionPort(), "de", "start_island");
+        var range = Content.Value.InhabitantModel.Start.Traits.First();
+        var design = new[] { new StartInhabitantSpec("Mira", "male", new Dictionary<string, double> { [range.Id] = 1.0 }), new StartInhabitantSpec() };
+        var spec = new WorldSpec(Inhabitants: design);
+        var made = SimulationHost.CreateGeneratedWorld(contentDir, 31, new MockDecisionPort(), "de", "start_island", options: new SimulationHostOptions { Spec = spec });
+        var first = made.Inhabitants.All.First();
+        Assert.Equal("Mira", first.Name);
+        Assert.Equal("male", first.Sex);
+        Assert.Equal(range.Max, first.Traits[range.Id], 6);
+        var otherTrait = Content.Value.InhabitantModel.Start.Traits.Skip(1).First().Id;
+        Assert.Equal(drawn.Inhabitants.All.First().Traits[otherTrait], first.Traits[otherTrait], 9);
+        Assert.Equal(drawn.Inhabitants.All.Skip(1).First().Traits, made.Inhabitants.All.Skip(1).First().Traits);
+        Assert.Equal(drawn.Inhabitants.All.Skip(1).First().Sex, made.Inhabitants.All.Skip(1).First().Sex);
+
+        // A name outside the shape of the name data is not taken (review GW3 #598) - one is drawn instead.
+        var odd = SimulationHost.CreateGeneratedWorld(contentDir, 31, new MockDecisionPort(), "de", "start_island",
+            options: new SimulationHostOptions { Spec = new WorldSpec(Inhabitants: [new StartInhabitantSpec(new string('x', 200))]) });
+        Assert.True(ContentSet.IsProperName(odd.Inhabitants.All.First().Name!));
     }
 
     [Fact]
