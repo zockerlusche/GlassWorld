@@ -37,8 +37,31 @@ public sealed class WorldCodeTests
     }
 
     [Fact]
+    public void TheCodeCarriesResourcesPairsTerrainAndDistribution()
+    {
+        // A1854 (review GW2 #595): a shared code gives the same island - every 'Einfach' and 'Erweitert' choice of the data.
+        foreach (var resources in Options.Resources!)
+        {
+            foreach (var terrain in Options.Terrains!)
+            {
+                foreach (var distribution in Options.Distributions!)
+                {
+                    var start = new WorldStart(987_654, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First(), resources.Id, Options.StartPairs!.Last(), terrain.Id, distribution.Id);
+                    Assert.True(WorldCode.TryDecode(WorldCode.Encode(start, Options, Favor), Options, Favor, out var back));
+                    Assert.Equal(start, back);
+                }
+            }
+        }
+
+        // Not chosen stays not chosen (the data's defaults apply when the world is made).
+        var plain = new WorldStart(5, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First());
+        Assert.True(WorldCode.TryDecode(WorldCode.Encode(plain, Options, Favor), Options, Favor, out var back2));
+        Assert.Equal(plain, back2);
+    }
+
+    [Fact]
     public void SmallSeedsGiveShortCodes()
-        => Assert.True(WorldCode.Encode(new WorldStart(42, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor).Length <= 17);
+        => Assert.True(WorldCode.Encode(new WorldStart(42, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor).Length <= 26);
 
     [Fact]
     public void ReadingIsForgiving()
