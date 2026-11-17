@@ -23,4 +23,7 @@ public static class VocabKeys
 
     /// <summary>Text key of a biome (A1791: the ground under a thing or an inhabitant).</summary>
     public static string Biome(string id) => "vocab.biome." + id;
+
+    /// <summary>A1774: text key of a character value (content/inhabitants/model.json start.traits).</summary>
+    public static string Trait(string id) => "vocab.trait." + id;
 }

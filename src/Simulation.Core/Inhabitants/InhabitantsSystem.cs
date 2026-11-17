@@ -325,7 +325,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <param name="count">
     /// How many inhabitants the world starts with; null = those the data lists. See <see cref="StartersFor"/>.
     /// </param>
-    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null)
+    /// <param name="design">A1774: the start inhabitants the player designed, in start order (null = all drawn).</param>
+    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null, IReadOnlyList<State.StartInhabitantSpec>? design = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(positions);
@@ -348,12 +349,34 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             var moods = _model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
             var sex = starters[i].Sex == StartInhabitantSex.Female ? "female" : "male";
+
+            // A1774 (B2805): what the player designed replaces what was drawn (the draws stay, so the others keep theirs);
+            // character values as a share of the data's range, so they stay within the frame.
+            var own = design is not null && i < design.Count ? design[i] : null;
+            if (own?.Sex is "female" or "male")
+            {
+                sex = own.Sex;
+            }
+
+            foreach (var range in _model.Start.Traits)
+            {
+                if (own?.Traits is { } shares && shares.TryGetValue(range.Id, out var share))
+                {
+                    traits[range.Id] = range.Min + ((range.Max - range.Min) * Math.Clamp(share, 0.0, 1.0));
+                }
+            }
+
             var inhabitant = new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start);
             if (Looks is { } looks)
             {
                 // Own stream, not kept among the world's streams: the record is drawn once and saved.
                 var place = ClothingAt?.Invoke(world, positions[i]) ?? ClothingContext.Unknown;
                 inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays, sex, place);
+            }
+
+            if (!string.IsNullOrWhiteSpace(own?.Name))
+            {
+                inhabitant.Name = own.Name.Trim();
             }
 
             Add(inhabitant);
