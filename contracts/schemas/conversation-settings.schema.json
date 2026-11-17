@@ -89,6 +89,21 @@
       "description": "A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.",
       "$ref": "#/$defs/NamingEffect"
     },
+    "tip": {
+      "description": "A1536 (B6 R20, B2830, D1203 section 4): how sure an inhabitant is of what the player's voice says a thing is like - base + trust x its trust in the player + awe x its awe + fear x its fear, at most max (a guess, never sure). A belief it holds more surely stays. Placeholders (TL). Absent = a tip changes no belief.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "trust", "awe", "fear", "max"],
+      "properties": {
+        "base": { "type": "number", "minimum": 0, "maximum": 1 },
+        "trust": { "type": "number", "minimum": -1, "maximum": 1 },
+        "awe": { "type": "number", "minimum": -1, "maximum": 1 },
+        "fear": { "type": "number", "minimum": -1, "maximum": 1 },
+        "max": { "type": "number", "minimum": 0, "maximum": 1 },
+        "proven_trust": { "description": "Spec 31 acceptance 15: trust change toward the player when the inhabitant's own doing proves a tip true (placeholder). Omitted = 0.", "type": "number", "minimum": -1, "maximum": 1 },
+        "failed_trust": { "description": "The same when its doing shows the tip false (placeholder, negative). Omitted = 0.", "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
     "dialogue": {
       "description": "A1735 (B2782, D1119): a talk between two inhabitants. When one starts one of the actions with another inhabitant as target (awake and in reach - the core checked), the core sends a job of kind dialogue; the turns that pass its checks become said events of both, with target, turn and turns. A talk has no effect on the world: needs and relationship work through the action as before. Omitted = no dialogue jobs (talking stays without words).",
       "$ref": "#/$defs/DialogueSettings"

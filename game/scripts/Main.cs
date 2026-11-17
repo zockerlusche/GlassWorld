@@ -401,10 +401,13 @@ public partial class Main : Node3D
         _menu = new MainMenu { Name = "MainMenu" };
         AddChild(_menu);
         _menu.Setup(LoadMenuData(_library), _style);
-        _menu.NewWorldRequested += choice =>
+        _menu.NewWorldRequested += (choice, shown) =>
         {
             var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
+
+            // A1771 (B2805): the start takes over the island the preview showed; the host checks that it is still this
+            // choice's island (seed, preset, grid, resources, pairs) and generates otherwise.
+            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice), shown?.Island), meta, created: true);
         };
         _menu.LoadRequested += meta => Enter(presenter => presenter.Load(_contentDirectory, _library.SavePath(meta.Id)), meta);
         _menu.SettingsRequested += () => OpenSettings(_menu.ShowWindow);
@@ -452,7 +455,27 @@ public partial class Main : Node3D
             TextGuard.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "safety", "rules.json"))))
         {
             Sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "sharing.json"))),
+            Preview = PreviewMaker(),
         };
+    }
+
+    /// <summary>
+    /// A1771 (B2805): the new-world window's preview - the content is loaded once, on the first preview (off the main
+    /// thread), and every preview generates exactly the island the start would.
+    /// </summary>
+    private Func<NewWorldChoice, (Simulation.Map.PreviewIsland Island, Presentation.World.PreviewImage Image)> PreviewMaker()
+    {
+        var directory = _contentDirectory;
+        var maker = new Lazy<Presentation.World.NewWorldPreview>(
+            () =>
+            {
+                var content = Simulation.Content.ContentSet.Load(directory);
+                T Read<T>(string file)
+                    where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(directory, "look", file)));
+                return new Presentation.World.NewWorldPreview(content.WorldGen, content.Objects, Read<LookWorld>("world.json").IslandPreset, Read<LookTerrain>("terrain.json"), Read<LookPalette>("palette.json"));
+            },
+            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        return choice => maker.Value.Make(choice.Seed, SpecOf(choice));
     }
 
     /// <summary>Leaves the menu for a world; if the world cannot be built, the menu stays with a message.</summary>
@@ -508,7 +531,7 @@ public partial class Main : Node3D
         var parts = value.Split(',');
         if (!ulong.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seed))
         {
-            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR[,RESOURCES[,PAIRS]]]]])");
+            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR[,RESOURCES[,PAIRS[,TERRAIN[,DISTRIBUTION]]]]]]])");
             return null;
         }
 
@@ -522,7 +545,9 @@ public partial class Main : Node3D
             parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null,
             parts.Length > 5 && parts[5].Length > 0
                 ? (int.TryParse(parts[5], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pairs) ? pairs : 0)
-                : null);
+                : null,
+            parts.Length > 6 && parts[6].Length > 0 ? parts[6] : null,
+            parts.Length > 7 && parts[7].Length > 0 ? parts[7] : null);
     }
 
     /// <summary>
@@ -550,19 +575,23 @@ public partial class Main : Node3D
                 Climate = choice.Climate.Length > 0 ? choice.Climate : options.DefaultClimate,
                 Resources = choice.Resources ?? options.DefaultResources,
                 StartPairs = choice.StartPairs ?? options.DefaultStartPairs,
+                Terrain = choice.Terrain ?? options.DefaultTerrain,
+                Distribution = choice.Distribution ?? options.DefaultDistribution,
             };
+            var terrainOk = choice.Terrain is null || (options.Terrains?.Any(o => o.Id == choice.Terrain) ?? false);
+            var distributionOk = choice.Distribution is null || (options.Distributions?.Any(o => o.Id == choice.Distribution) ?? false);
             var resourcesOk = choice.Resources is null || (options.Resources?.Any(o => o.Id == choice.Resources) ?? false);
             var pairsOk = choice.StartPairs is null || (options.StartPairs?.Contains(choice.StartPairs.Value) ?? false);
-            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate) || !resourcesOk || !pairsOk)
+            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate) || !resourcesOk || !pairsOk || !terrainOk || !distributionOk)
             {
-                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}', climate '{choice.Climate}', resources '{choice.Resources}' or pairs '{choice.StartPairs}' is not an option of content/player/world_options.json");
+                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}', climate '{choice.Climate}', resources '{choice.Resources}', pairs '{choice.StartPairs}', terrain '{choice.Terrain}' or distribution '{choice.Distribution}' is not an option of content/player/world_options.json");
                 GetTree().Quit(1);
                 return;
             }
         }
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} resources={choice.Resources} pairs={choice.StartPairs} save={_library.SavePath(meta.Id)}");
+        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} resources={choice.Resources} pairs={choice.StartPairs} terrain={choice.Terrain} distribution={choice.Distribution} save={_library.SavePath(meta.Id)}");
         EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         if (_world?.Host is null)
         {
@@ -595,7 +624,11 @@ public partial class Main : Node3D
             choice.StartFavor,
             choice.Resources,
             _menuData?.Options?.Resources?.FirstOrDefault(r => string.Equals(r.Id, choice.Resources, StringComparison.Ordinal)) is { } resources ? resources.Factor : null,
-            choice.StartPairs);
+            choice.StartPairs,
+            choice.Terrain,
+            _menuData?.Options?.Terrains?.FirstOrDefault(t => string.Equals(t.Id, choice.Terrain, StringComparison.Ordinal)) is { } terrain ? terrain.HeightFactor : null,
+            choice.Distribution,
+            _menuData?.Options?.Distributions?.FirstOrDefault(t => string.Equals(t.Id, choice.Distribution, StringComparison.Ordinal)) is { } distribution ? distribution.ClusterFactor : null);
 
     private async Task RunThenQuitAsync(double seconds)
     {

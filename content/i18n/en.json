@@ -507,6 +507,46 @@
       "text": "8 (four pairs)"
     },
     {
+      "key": "ui.new_world.preview",
+      "text": "Preview"
+    },
+    {
+      "key": "ui.new_world.advanced",
+      "text": "Advanced"
+    },
+    {
+      "key": "ui.new_world.terrain",
+      "text": "Terrain"
+    },
+    {
+      "key": "ui.new_world.terrain.flat",
+      "text": "Flat"
+    },
+    {
+      "key": "ui.new_world.terrain.hilly",
+      "text": "Hilly"
+    },
+    {
+      "key": "ui.new_world.terrain.mountainous",
+      "text": "Mountainous"
+    },
+    {
+      "key": "ui.new_world.distribution",
+      "text": "Distribution"
+    },
+    {
+      "key": "ui.new_world.distribution.scattered",
+      "text": "Scattered"
+    },
+    {
+      "key": "ui.new_world.distribution.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.new_world.distribution.clustered",
+      "text": "Clustered"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -1835,6 +1875,10 @@
       "text": "Praise"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "tip"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Other"
     },
@@ -2427,6 +2471,10 @@
       "text": "guessed"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "the voice"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "read"
     },
@@ -2457,6 +2505,14 @@
     {
       "key": "vocab.event.text_read",
       "text": "Read some writing"
+    },
+    {
+      "key": "vocab.event.voice_tested",
+      "text": "Tried a tip of the voice"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Believed the voice"
     },
     {
       "key": "vocab.event.object_moved",

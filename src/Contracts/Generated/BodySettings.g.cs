@@ -13,6 +13,103 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BodyStores
+    {
+
+        /// <summary>
+        /// The switch of the new body layer (D1203 v3 section 5, stage 2). Off: nothing of this block is in the world.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("stamina")]
+        public StaminaRules Stamina { get; set; } = new StaminaRules();
+
+        [System.Text.Json.Serialization.JsonPropertyName("health")]
+        public HealthRules Health { get; set; } = new HealthRules();
+
+        /// <summary>
+        /// Carrying strength by life phase (content/life/aging.json phase ids), in kg (E10).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("carry_kg")]
+        public System.Collections.Generic.IDictionary<string, double> CarryKg { get; set; } = new System.Collections.Generic.Dictionary<string, double>();
+
+        /// <summary>
+        /// Carrying strength without a life phase, in kg.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_carry_kg")]
+        public double DefaultCarryKg { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StaminaRules
+    {
+
+        /// <summary>
+        /// Stamina used per hour of walking by gait id (behaviour/gaits.json), permille of full. A gait not named uses none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gait_per_hour")]
+        public System.Collections.Generic.IDictionary<string, int> GaitPerHour { get; set; } = new System.Collections.Generic.Dictionary<string, int>();
+
+        /// <summary>
+        /// Added per hour of walking at a full load (load share 1), scaled by the load share squared.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("load_per_hour")]
+        public int LoadPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Comes back per hour while not walking and awake.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recover_rest_per_hour")]
+        public int RecoverRestPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Comes back per hour asleep.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recover_sleep_per_hour")]
+        public int RecoverSleepPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// The need whose level lowers the cap (inhabitants/model.json).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sleep_need")]
+        public string SleepNeed { get; set; } = default!;
+
+        /// <summary>
+        /// Cap = 1000 - this x (1 - sleep need) - cap_health_permille x (1 - health).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cap_sleep_permille")]
+        public int CapSleepPermille { get; set; } = default!;
+
+        /// <summary>
+        /// See cap_sleep_permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cap_health_permille")]
+        public int CapHealthPermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class HealthRules
+    {
+
+        /// <summary>
+        /// Health that comes back per hour, permille of full.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recover_per_hour")]
+        public int RecoverPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Change of health by an event of the inhabitant (vocabulary events), permille; e.g. slipped (a fall, D1105 H3b). Complaints come with A1381 (GW4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.IDictionary<string, int>? Events { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BodyWorn
     {
 
@@ -277,6 +374,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("climbing")]
         public Climbing? Climbing { get; set; } = default!;
+
+        /// <summary>
+        /// A1816 (D1203 v3 layer 2, E10, E13; A1799 D1236): the body's stores behind a switch. Stamina falls while walking (by gait, and by the load carried: weight over the carrying strength of the life phase, squared) and comes back at rest and asleep up to a cap that sinks with the sleep need and with health (D1202). Health changes by the events named in the data and comes back slowly. enabled false = the stores are not in the world (hashes unchanged). Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stores")]
+        public BodyStores? Stores { get; set; } = default!;
 
         /// <summary>
         /// A1731 (B2716 1): a reflex from the world, without AI - an inhabitant closer than radius_cm to something that gives off heat (a burning fire, a spark) steps back at once to step_back_cm from it, reports flinched (for the gesture), feels fear by the data and knows at once that the thing is hot (the experience of the warmth, without waiting). Gentle: no injury is shown (B2466). Absent = no reflex. Placeholder values.

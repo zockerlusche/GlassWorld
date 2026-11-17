@@ -8,6 +8,36 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class Preview(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_side_px: int = Field(
+        ...,
+        description='Longest side of the picture in pixels; a larger island is sampled down.',
+        ge=32,
+        le=512,
+    )
+    relief_gain: float = Field(
+        ...,
+        description='Brightness change per height unit towards the north-west neighbour.',
+        ge=0.0,
+        le=0.5,
+    )
+    height_gain: float = Field(
+        ...,
+        description='Extra brightness from the lowest to the highest land (0 = flat colours).',
+        ge=0.0,
+        le=1.0,
+    )
+    water_shade: float = Field(
+        ...,
+        description="Brightness of water against its game colour (the palette's sea is about as bright as grass; darker water keeps land and water apart without hue).",
+        ge=0.2,
+        le=1.0,
+    )
+
+
 class TerrainBiomeColor(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -458,4 +488,8 @@ class LookTerrain(BaseModel):
         description='Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long. Every cycle of the water shaders is rounded to a whole number of rounds per period (at least one) and every scrolling pattern repeats after the steps it scrolls per period, so the wrap does not show - with any period; a short one (10) is the quick way to look for a jump, it only makes slow cycles run faster. Absent = 3600.',
         ge=1.0,
         le=86400.0,
+    )
+    preview: Preview | None = Field(
+        None,
+        description="A1769 (B2805): the new-world window's island preview - picture size and how height and relief brighten the ground colours.",
     )

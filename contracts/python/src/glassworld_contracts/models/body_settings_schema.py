@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,6 +33,31 @@ class OthersWarmth(BaseModel):
     )
     tenth_c: int = Field(..., ge=0, le=100)
     radius_cm: int = Field(..., ge=0, le=1000)
+
+
+type CarryKg = Annotated[float, Field(..., gt=0.0, le=500.0)]
+
+
+type GaitPerHour = Annotated[int, Field(..., ge=0, le=100000)]
+
+
+type Events = Annotated[int, Field(..., ge=-1000, le=1000)]
+
+
+class HealthRules(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    recover_per_hour: int = Field(
+        ...,
+        description='Health that comes back per hour, permille of full.',
+        ge=0,
+        le=100000,
+    )
+    events: dict[common_schema.VocabId, Events] | None = Field(
+        None,
+        description='Change of health by an event of the inhabitant (vocabulary events), permille; e.g. slipped (a fall, D1105 H3b). Complaints come with A1381 (GW4).',
+    )
 
 
 class BodyDryingBand(BaseModel):
@@ -132,6 +157,46 @@ class StaySheltered(BaseModel):
         description='It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.',
         ge=0.0,
         le=1.0,
+    )
+
+
+class StaminaRules(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    gait_per_hour: dict[common_schema.VocabId, GaitPerHour] = Field(
+        ...,
+        description='Stamina used per hour of walking by gait id (behaviour/gaits.json), permille of full. A gait not named uses none.',
+    )
+    load_per_hour: int = Field(
+        ...,
+        description='Added per hour of walking at a full load (load share 1), scaled by the load share squared.',
+        ge=0,
+        le=100000,
+    )
+    recover_rest_per_hour: int = Field(
+        ...,
+        description='Comes back per hour while not walking and awake.',
+        ge=0,
+        le=100000,
+    )
+    recover_sleep_per_hour: int = Field(
+        ..., description='Comes back per hour asleep.', ge=0, le=100000
+    )
+    sleep_need: str = Field(
+        ...,
+        description='The need whose level lowers the cap (inhabitants/model.json).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    cap_sleep_permille: int = Field(
+        ...,
+        description='Cap = 1000 - this x (1 - sleep need) - cap_health_permille x (1 - health).',
+        ge=0,
+        le=1000,
+    )
+    cap_health_permille: int = Field(
+        ..., description='See cap_sleep_permille.', ge=0, le=1000
     )
 
 
@@ -353,6 +418,28 @@ class SunPosition(BaseModel):
     )
 
 
+class BodyStores(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    enabled: bool = Field(
+        ...,
+        description='The switch of the new body layer (D1203 v3 section 5, stage 2). Off: nothing of this block is in the world.',
+    )
+    stamina: StaminaRules
+    health: HealthRules
+    carry_kg: dict[common_schema.VocabId, CarryKg] = Field(
+        ...,
+        description='Carrying strength by life phase (content/life/aging.json phase ids), in kg (E10).',
+    )
+    default_carry_kg: float = Field(
+        ...,
+        description='Carrying strength without a life phase, in kg.',
+        gt=0.0,
+        le=500.0,
+    )
+
+
 class BodySun(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -387,6 +474,10 @@ class BodySettings(BaseModel):
     climbing: Climbing | None = Field(
         None,
         description="D1105 H3b: climbing what gives grip (a thing with grip_permille and shade_height_cm). The action climbs the thing itself or, aimed at a thing up high, the nearest plant of the kind it grows on (spawn data). Below min_grip_permille the try fails honestly (out_of_reach, too_smooth). The height reached comes from height_by_grip (linear between its points), at most the thing's height; while the climber stays within stay_within_m of it (up_minutes at most) its reach grows by that height, for that thing and what grows on it. Above the reach height every metre adds slip_permille_per_m to the chance of slipping (stream body/<inhabitant>): it slides gently down (event slipped) with a fright (mood + delta), never hurt. Absent = nobody climbs.",
+    )
+    stores: BodyStores | None = Field(
+        None,
+        description="A1816 (D1203 v3 layer 2, E10, E13; A1799 D1236): the body's stores behind a switch. Stamina falls while walking (by gait, and by the load carried: weight over the carrying strength of the life phase, squared) and comes back at rest and asleep up to a cap that sinks with the sleep need and with health (D1202). Health changes by the events named in the data and comes back slowly. enabled false = the stores are not in the world (hashes unchanged). Placeholder values (TL).",
     )
     reflex: Reflex | None = Field(
         None,

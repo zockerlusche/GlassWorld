@@ -45,6 +45,19 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// <summary>A1770 (B2805): pairs of start inhabitants (each pair its start place); null = the preset's pairs.</summary>
     public int? StartPairs { get; init; }
 
+    /// <summary>A1833 (B2805): factor on the height noise (terrain flat/hilly/mountainous); null = the preset as written.</summary>
+    public double? TerrainFactor { get; init; }
+
+    /// <summary>A1833 (B2805): factor on the spawn group sizes (scattered/clustered); null = the data as written.</summary>
+    public double? ClusterFactor { get; init; }
+
+    /// <summary>
+    /// A1769 (B2805): the island the new-world window's preview generated, taken over as it is instead of generating it
+    /// again (the start shows exactly the island the player saw) - but only when seed, preset, grid, resource factor and
+    /// pairs are this world's (review GW2 #584); otherwise, or null, the island is generated.
+    /// </summary>
+    public Map.PreviewIsland? Island { get; init; }
+
     /// <summary>A1768 (B2805): the world specification of the new-world form, kept in the save game; null = none (older saves, tests).</summary>
     public State.WorldSpec? Spec { get; init; }
 }
@@ -193,7 +206,8 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
+            var shown = options.Island is { } preview && preview.Fits(world.Seed, worldPreset, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs, options.TerrainFactor ?? 1.0, options.ClusterFactor ?? 1.0) ? preview.Island : null;
+            var island = savedIsland?.Island ?? shown ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs, options.TerrainFactor ?? 1.0, options.ClusterFactor ?? 1.0);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -706,6 +720,8 @@ public sealed class SimulationHost
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
+        conversation.PropertyKnown = objects.Catalog.PropertyVocabulary.Contains;
+        inhabitants.Reported += conversation.Observe;
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns
@@ -816,6 +832,17 @@ public sealed class SimulationHost
             agingSystem = aging;
             decisions.ActionAllowed = aging.Allows;
         }
+        // A1816 (D1203 v3 layer 2): the body's stores - only with the switch on; off, the world and its hashes stay as they were.
+        StoresSystem? stores = null;
+        if (content.Body?.Stores is { Enabled: true } storesData)
+        {
+            stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
+            {
+                RootOf = typeId => processes?.RootOf(typeId),
+            };
+            world.Add(stores);
+        }
+
         memory.Remembered = forgetting.Remembered;
         inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
@@ -859,6 +886,7 @@ public sealed class SimulationHost
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
+            Stores = stores,
             Milestones = milestones,
             Nature = nature,
             Animals = animals,
@@ -1234,6 +1262,9 @@ public sealed class SimulationHost
 
     /// <summary>Rain, drying and sun on the inhabitants' bodies (B5-11); null without body data or off islands.</summary>
     public BodySystem? Body { get; private init; }
+
+    /// <summary>A1816: the body's stores (stamina, health); null while the switch body.stores.enabled is off.</summary>
+    public StoresSystem? Stores { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;

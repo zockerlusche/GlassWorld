@@ -129,14 +129,15 @@
       }
     },
     "KnowledgeSource": {
-      "description": "How the inhabitant came to know it (concept): experienced = tried it, sure; heard = as sure as the trust in the teller; guessed = a guess (AI, or from what one has seen); read = as sure as the source seems; seen = looked at it closely, only what can be seen (TL #19921, added in 0.2 without breaking older readers).",
+      "description": "How the inhabitant came to know it (concept): experienced = tried it, sure; heard = as sure as the trust in the teller; guessed = a guess (AI, or from what one has seen); read = as sure as the source seems; seen = looked at it closely, only what can be seen (TL #19921, added in 0.2 without breaking older readers); voice = the player's voice said it, weak (B6 R20, A1536).",
       "type": "string",
       "enum": [
         "experienced",
         "heard",
         "guessed",
         "read",
-        "seen"
+        "seen",
+        "voice"
       ]
     },
     "Subject": {

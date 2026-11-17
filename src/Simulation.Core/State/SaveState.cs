@@ -192,6 +192,9 @@ public sealed record SaveState(
     /// <summary>A1576: things worn by use (null = none, older saves).</summary>
     public IReadOnlyList<Objects.UsedThing>? Used { get; init; }
 
+    /// <summary>A1816: the body stores that are not full (stamina, health); null = all full or the switch off.</summary>
+    public IReadOnlyList<Inhabitants.StoredBody>? Stores { get; init; }
+
     /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
 
@@ -298,6 +301,7 @@ public static class StateCodec
             Dug = host.Digging is { HasState: true } digging ? digging.Capture() : null,
             Used = host.Durability?.CaptureUses() is { Count: > 0 } used ? used : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
+            Stores = host.Stores is { HasState: true } stores ? stores.Capture() : null,
             Overuse = host.Map?.CaptureOveruse() is { Count: > 0 } overuse ? overuse : null,
             Climbed = host.Body is { HasState: true } up ? up.CaptureUp() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
@@ -326,7 +330,10 @@ public static class StateCodec
                 $"The island of this save game (preset '{state.WorldPreset}', hash {state.IslandHash[..12]}) differs from the island the current data generate ({host.Map?.IslandHash[..12] ?? "none"}): world data or generator changed since the save.");
         }
 
-        // Runtime types first: objects of invented types are restored right after.
+        // Runtime types first: objects of invented types are restored right after. The variants of processing come before
+        // the inventions (GW2 #28573): an invention made of a processed material takes the variant's properties, and they
+        // are only known once the variant is registered - otherwise a loaded invention lost them (B4b runs 1 and 7).
+        host.Processes?.Restore(state.Processes);
         if (state.Inventions is not null)
         {
             host.Inventions.Restore(state.Inventions);
@@ -475,7 +482,6 @@ public static class StateCodec
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
-        host.Processes?.Restore(state.Processes);
         host.Fire.Restore(state.Burning, state.Tick);
         host.Forgetting.Restore(state.Forgetting);
         host.Nature?.Restore(state.Nature);
@@ -483,6 +489,7 @@ public static class StateCodec
         host.Durability?.Restore(state.Placed, state.Tick, state.Used);
         host.Digging?.Restore(state.Dug);
         host.Body?.Restore(state.Wet);
+        host.Stores?.Restore(state.Stores);
         host.Map?.RestoreOveruse(state.Overuse);
         host.Body?.RestoreUp(state.Climbed);
         host.Milestones.Restore(state.Milestones);
