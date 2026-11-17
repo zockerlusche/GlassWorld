@@ -1135,7 +1135,7 @@ public sealed class SimulationHost
             positions.Add(map.CentreOf(cells.Current.X, cells.Current.Z));
         }
 
-        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants);
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants, options?.Spec?.Inhabitants);
         host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {
