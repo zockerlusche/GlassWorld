@@ -21,7 +21,7 @@
       "id": "close",
       "target_x_permille": 500,
       "target_z_permille": 500,
-      "yaw_deg": 120,
+      "yaw_deg": 145,
       "distance_m": 30,
       "pitch_deg": 8,
       "revealed_permille": 1000
