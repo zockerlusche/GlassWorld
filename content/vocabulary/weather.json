@@ -19,6 +19,10 @@
       "description": "Strong wind with heavy rain."
     },
     {
+      "id": "thunderstorm",
+      "description": "A dry thunderstorm: strong wind and lightning, but no rain (a summer extreme, A1382)."
+    },
+    {
       "id": "fog",
       "description": "Thick fog, little can be seen."
     },

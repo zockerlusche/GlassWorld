@@ -350,7 +350,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.
+    /// A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season (or at start_hour) it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ClimateExtremeWeather
@@ -373,6 +373,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("hours_max")]
         public int HoursMax { get; set; } = default!;
+
+        /// <summary>
+        /// A1382 (review GW1 #591): the hour of the day at which it may begin (a dry thunderstorm in the afternoon); absent = at the start of the day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("start_hour")]
+        public int? StartHour { get; set; } = default!;
 
     }
 

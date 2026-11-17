@@ -1767,6 +1767,10 @@
       "text": "Storm"
     },
     {
+      "key": "vocab.weather.thunderstorm",
+      "text": "Dry thunderstorm"
+    },
+    {
       "key": "vocab.process.heat",
       "text": "Heat"
     },

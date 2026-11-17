@@ -92,6 +92,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     private long? _calmUntil;
     private readonly AirTemperature _air;
     private readonly long _changeTicks;
+    private readonly HashSet<string> _extremeOnly;
     private readonly long _droughtTicks;
     private readonly long _gustTicks;
     private readonly long _transitionTicks;
@@ -131,6 +132,11 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
                 throw new InvalidDataException($"Climate '{climate.Id}': extreme weather '{extreme.Weather}' is unknown or its hours are reversed.");
             }
         }
+        // A1382 (review GW1 #591): a weather only an extreme leads to (the dry thunderstorm) - not wished, and it ends
+        // with its extreme.
+        var table = _data.Seasons.SelectMany(s => s.Transitions).SelectMany(t => t.To.Select(x => x.Weather).Append(t.FromWeather))
+            .Append(_data.SnowWeather).Append(_data.DroughtWeather).ToHashSet(StringComparer.Ordinal);
+        _extremeOnly = (_data.Extremes?.Weather ?? []).Select(e => e.Weather).Where(w => !table.Contains(w)).ToHashSet(StringComparer.Ordinal);
         _windSeed = seed ^ RandomStreams.Fnv1a64("weather/wind");
         _signalRules = [.. (_data.Signals ?? []).OrderBy(s => s.Condition, StringComparer.Ordinal)];
         Current = _data.States.First().Weather;
@@ -168,7 +174,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     public IReadOnlyList<KeyValuePair<string, long>> Signals => [.. _signals];
 
     /// <summary>The weathers of the climate in the data's order (read only; the player's weather wish lists them, A1340).</summary>
-    public IReadOnlyList<string> Weathers => [.. _data.States.Select(s => s.Weather)];
+    public IReadOnlyList<string> Weathers => [.. _data.States.Select(s => s.Weather).Where(w => !_extremeOnly.Contains(w))];
 
     /// <summary>Whether the climate has this weather (a state with values).</summary>
     public bool Has(string weather) => weather is not null && _states.ContainsKey(weather);
@@ -267,6 +273,12 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         {
             _extremeUntil = null;
             _calmUntil = tick + ((_data.Extremes?.CooldownDays ?? 0) * _ticksPerDay);
+
+            // A weather only an extreme leads to does not outlast it: the table goes on at once (review GW1 #591).
+            if (_extremeOnly.Contains(Current))
+            {
+                ChangeByTable(world, tick);
+            }
         }
 
         if (_heatUntil is { } heatEnd && tick >= heatEnd)
@@ -276,15 +288,24 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
             _calmUntil = tick + ((_data.Extremes?.CooldownDays ?? 0) * _ticksPerDay);
         }
 
-        if (_data.Extremes is not { } extremes || tick == 0 || tick % _ticksPerDay != 0
+        if (_data.Extremes is not { } extremes || tick == 0 || tick % _ticksPerHour != 0
             || _extremeUntil is not null || _heatUntil is not null || (_calmUntil is { } calm && tick < calm))
         {
             return;
         }
 
+        // A1382 (review GW1 #591): an extreme may begin at its start hour (absent = the start of the day, as before -
+        // the stream is drawn only when one is due, so climates without start hours keep their hashes).
+        var hourOfDay = (int)(tick % _ticksPerDay / _ticksPerHour);
         var season = world.Now.SeasonId;
+        var due = extremes.Weather.Where(e => e.Season == season && (e.StartHour ?? 0) == hourOfDay).ToList();
+        if (due.Count == 0 && hourOfDay != 0)
+        {
+            return;
+        }
+
         var rng = world.Random.Get("weather/extreme");
-        foreach (var extreme in extremes.Weather.Where(e => e.Season == season))
+        foreach (var extreme in due)
         {
             if (rng.NextInt(0, 1000) < extreme.ChancePermille)
             {
@@ -299,7 +320,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
             }
         }
 
-        foreach (var wave in extremes.HeatWaves.Where(h => h.Season == season))
+        foreach (var wave in extremes.HeatWaves.Where(h => h.Season == season && hourOfDay == 0))
         {
             if (rng.NextInt(0, 1000) < wave.ChancePermille)
             {
@@ -347,17 +368,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         Extremes(world, tick);
         if (tick > 0 && tick % _changeTicks == 0 && _extremeUntil is null)
         {
-            var next = Draw(world.Now.SeasonId, world.Random.Get("weather/change"));
-            // Snow or rain is decided by the temperature without the new weather's own offset.
-            if (_states[next].PrecipitationPermille > 0 && TemperatureAt(world.Now, null) < _data.SnowBelowTenthC && _states.ContainsKey(_data.SnowWeather))
-            {
-                next = _data.SnowWeather;
-            }
-
-            if (next != Current)
-            {
-                Change(next, tick);
-            }
+            ChangeByTable(world, tick);
         }
 
         _dryTicks = _states[Current].PrecipitationPermille == 0 ? _dryTicks + 1 : 0;
@@ -580,6 +591,22 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// Draws the next weather from the season's row for the current weather; a weather without a row in this
     /// season (e.g. heat in winter) uses the season's first row.
     /// </summary>
+    /// <summary>The usual change: the next weather by the season's table (rain turns into snow when it is cold).</summary>
+    private void ChangeByTable(World world, long tick)
+    {
+        var next = Draw(world.Now.SeasonId, world.Random.Get("weather/change"));
+        // Snow or rain is decided by the temperature without the new weather's own offset.
+        if (_states[next].PrecipitationPermille > 0 && TemperatureAt(world.Now, null) < _data.SnowBelowTenthC && _states.ContainsKey(_data.SnowWeather))
+        {
+            next = _data.SnowWeather;
+        }
+
+        if (next != Current)
+        {
+            Change(next, tick);
+        }
+    }
+
     private string Draw(string season, Random.Pcg32 rng)
     {
         var table = _data.Seasons.FirstOrDefault(s => s.Season == season) ?? _data.Seasons.First();

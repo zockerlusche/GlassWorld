@@ -75,6 +75,7 @@
     "cloudy",
     "rain",
     "storm",
-    "fog"
+    "fog",
+    "thunderstorm"
   ]
 }

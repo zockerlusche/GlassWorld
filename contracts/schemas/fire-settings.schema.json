@@ -19,6 +19,10 @@
       "maxItems": 8,
       "items": { "$ref": "#/$defs/FireDryingBand" }
     },
+    "lightning": {
+      "description": "A1382 (R24, TL #28525): in one of these weathers (a dry thunderstorm) lightning may strike once each full hour with per_hour_permille - one dry, burnable thing at least min_height_cm tall (its shade height: a tree), not in a hand, chosen by the stream fire/lightning, becomes a fire as if the fire had spread to it. Absent = no lightning. Placeholder values (TL).",
+      "$ref": "#/$defs/FireLightning"
+    },
     "spread": {
       "description": "A fire takes hold of dry burnable things near it. Absent = fires never spread.",
       "$ref": "#/$defs/FireSpread"
@@ -41,6 +45,15 @@
     }
   },
   "$defs": {
+    "FireLightning": {
+        "type": "object", "additionalProperties": false, "required": ["weather", "per_hour_permille", "min_height_cm", "becomes"],
+        "properties": {
+          "weather": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+          "per_hour_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "min_height_cm": { "type": "integer", "minimum": 0, "maximum": 10000 },
+          "becomes": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      },
     "FireDryingBand": {
       "type": "object",
       "additionalProperties": false,

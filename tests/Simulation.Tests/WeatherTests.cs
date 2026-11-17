@@ -52,7 +52,14 @@ public sealed class WeatherTests : IDisposable
     {
         var hours = Climate().Weather.ChangeEveryHours;
         var step = (long)hours * Content.Value.Calendar.Settings.TicksPerHour;
-        Assert.All(Year(3), p => Assert.Equal(0, p.Tick % step));
+        // A1382 (review GW1 #591): a weather only an extreme leads to (the dry thunderstorm) begins at its start hour and
+        // ends with its extreme - those two changes are off the step; every change of the table stays on it.
+        var table = TableWeathers();
+        var extremeOnly = (Climate().Weather.Extremes?.Weather ?? []).Select(e => e.Weather).Where(w => !table.Contains(w)).ToHashSet(StringComparer.Ordinal);
+        var phases = Year(3).ToList();
+        var byTable = phases.Where((p, i) => !extremeOnly.Contains(p.Weather) && (i == 0 || !extremeOnly.Contains(phases[i - 1].Weather))).ToList();
+        Assert.NotEmpty(byTable);
+        Assert.All(byTable, p => Assert.Equal(0, p.Tick % step));
     }
 
     /// <summary>
@@ -121,7 +128,9 @@ public sealed class WeatherTests : IDisposable
         // drought_after_dry_days days in a row without precipitation (the rule:
         // DryDaysAddTheDroughtConditionFromTheData). So it is seen exactly when a dry spell was that long;
         // whether one is, with the repository's values, is TheDroughtConditionOccursOver20Seeds.
-        Assert.Equal([data.DroughtWeather], data.States.Select(s => s.Weather).Where(w => !table.Contains(w)));
+        // A1382: a state only an extreme leads to (the dry thunderstorm) is no weather of the table either.
+        var extremeOnly = (data.Extremes?.Weather ?? []).Select(e => e.Weather).Where(w => !table.Contains(w)).ToHashSet(StringComparer.Ordinal);
+        Assert.Equal([data.DroughtWeather], data.States.Select(s => s.Weather).Where(w => !table.Contains(w) && !extremeOnly.Contains(w)));
         var droughtTicks = (long)data.DroughtAfterDryDays * Content.Value.Calendar.TicksPerDay;
         Assert.True(
             seen.Contains(data.DroughtWeather) == (longestDry >= droughtTicks),
@@ -168,6 +177,9 @@ public sealed class WeatherTests : IDisposable
         {
             row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
         }
+
+        // Only the table changes: no extreme weather (A1382) comes in between.
+        climate.Weather.Extremes = null;
 
         // Warm enough everywhere that the rain never turns into snow.
         var phases = Year(9, climate, heightOffsetTenthC: 2000);

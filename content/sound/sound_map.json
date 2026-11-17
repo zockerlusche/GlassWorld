@@ -297,6 +297,10 @@
       "sound": "weather.storm"
     },
     {
+      "weather": "thunderstorm",
+      "sound": "weather.storm"
+    },
+    {
       "weather": "fog",
       "sound": "weather.fog"
     },
