@@ -408,6 +408,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Fixed
 
+- Loading a world (GW2 #28573, B4b runs 1 and 7): an invention made of a processed material kept fewer properties after a load, so the hash after loading differed. The variants of processing are now restored before the inventions.
 - Inhabitants no longer walk backwards when their way turns back (A1795, Marcel W2242): a figure turned round only after six backward steps in a row (`turn_back_after_steps`, meant for giving way on a narrow path, W1726), so a real turn showed as a few metres walked backwards. Now every step turns the figure, except the core's give-way step (`InhabitantSnapshot.GivingWay`, a view of the tick, not saved or hashed). `turn_back_after_steps` is gone from `look/figures.json`.
 - An action that repeats without effect on the same thing rests 6 hours instead of 2 (A1794, B2831; Marcel 15a: 'rock niche used' over and over) - like an action out of reach (`behaviour/utility.json` `repetition.rest_hours`).
 - The night (A1798, Marcel W2243, 15a): it gets dark later - in spring about 21:30 to 05:30 (season sunrise and sunset in `world/time.json`); the compute night does not begin before 23:30 even when all lie down early (`jobs/phases.json` `not_before_minute`, B2839); once the service is done the rest of the night passes behind the dream shade and the morning fades in at dawn (`look/night.json` `pass_night`) - before, the same night came back at 21-22 o'clock and looked like a skipped day.
