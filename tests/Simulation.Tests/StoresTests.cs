@@ -85,6 +85,40 @@ public sealed class StoresTests
     }
 
     [Fact]
+    public void AThingOutsideTheCatalogWeighsAsItsRootOrNothingAndAStalledWalkIsNoWalking()
+    {
+        // Review GW4 #589: a process variant or an invention in the hand must not break the stores.
+        var content = On();
+        var world = new World(3, content.Calendar);
+        var types = new WorldTypeCatalog(content.Objects);
+        var objects = new WorldObjects(types);
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour);
+        var heavy = content.Objects.TypeIds.First(t => content.Objects.Params(t).WeightKg is > 0);
+        types.Register("variant_of_heavy", content.Objects.TrueProperties(heavy));
+        types.Register("invented_thing", ["crafted"]);
+        var stores = new StoresSystem(content.Body!.Stores!, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
+        {
+            RootOf = t => t == "variant_of_heavy" ? heavy : null,
+        };
+        world.Add(objects).Add(stores);
+        inhabitants.SpawnStartInhabitants(world, [new(0, 0), new(5, 0), new(60, 60), new(-60, -60)]);
+        var carrier = inhabitants.Get("inh-000001");
+        var maker = inhabitants.Get("inh-000002");
+        carrier.Held = objects.Spawn("variant_of_heavy", carrier.Position).Id;
+        maker.Held = objects.Spawn("invented_thing", maker.Position).Id;
+
+        Assert.Equal(content.Objects.Params(heavy).WeightKg!.Value / stores.CarryKg(carrier), stores.LoadShare(carrier), 9);
+        Assert.Equal(0, stores.LoadShare(maker));
+
+        // Walking with them works; standing stalled on a walk costs nothing.
+        carrier.Activity = new Activity("explore", null, new Position(10_000, 0), null);
+        maker.Activity = new Activity("explore", null, new Position(10_000, 0), null, StallSinceTick: 0, StallFromM: 10_000);
+        world.Run(10);
+        Assert.True(stores.Stamina(carrier.Id) < 1);
+        Assert.Equal(1.0, stores.Stamina(maker.Id));
+    }
+
+    [Fact]
     public void TheCarryingStrengthIsTheDataOfTheLifePhase()
     {
         var (_, _, inhabitants, stores, content) = Bare();

@@ -44,6 +44,12 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
         _inhabitants.Reported += Observe;
     }
 
+    /// <summary>
+    /// The content type a runtime type comes from (a process variant: its root; set by the host from the processes). A type
+    /// outside the catalog without a root (an invention) has no weight here (review GW4 #589).
+    /// </summary>
+    public Func<string, string?>? RootOf { get; init; }
+
     /// <inheritdoc/>
     public string Name => "stores";
 
@@ -70,13 +76,20 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
     public double LoadShare(Inhabitant inhabitant)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
-        if (inhabitant.Held is not { } held || !_objects.TryGet(held, out var thing) || _catalog.Params(thing.TypeId).WeightKg is not { } kg)
+        if (inhabitant.Held is not { } held || !_objects.TryGet(held, out var thing) || WeightOf(thing.TypeId) is not { } kg)
         {
             return 0;
         }
 
         var carry = CarryKg(inhabitant);
         return carry > 0 ? kg / carry : 0;
+    }
+
+    /// <summary>The weight of a type in kg: its catalog value, for a process variant the value of its root; null = none known.</summary>
+    private double? WeightOf(string typeId)
+    {
+        var source = _catalog.Contains(typeId) ? typeId : RootOf?.Invoke(typeId);
+        return source is not null && _catalog.Contains(source) ? _catalog.Params(source).WeightKg : null;
     }
 
     /// <summary>The highest stamina the inhabitant can recover to now, permille (D1202: sinks with the sleep need and health).</summary>
@@ -98,7 +111,8 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
         {
             var (stamina, health) = _stores.TryGetValue(inhabitant.Id, out var s) ? s : (Full, Full);
 
-            if (inhabitant.Activity is { RemainingTicks: null } walk)
+            // Walking: on its way and getting on (A1751: standing stalled on a walk is no walking, review GW4 #589).
+            if (inhabitant.Activity is { RemainingTicks: null, StallSinceTick: null } walk)
             {
                 // Walking: the gait of the walk, and what is carried (load share squared, at most the full rate).
                 var gait = _gaits.GaitFor(inhabitant, walk.Action);
@@ -108,6 +122,7 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
             }
             else
             {
+                // D1202: it recovers only up to the cap; above it (it grew sleepy while fresh) it keeps what it has.
                 var perHour = _inhabitants.IsAsleep(inhabitant) ? rule.RecoverSleepPerHour : rule.RecoverRestPerHour;
                 var cap = Cap(inhabitant);
                 if (stamina < cap)

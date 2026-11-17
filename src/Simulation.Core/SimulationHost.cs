@@ -827,7 +827,10 @@ public sealed class SimulationHost
         StoresSystem? stores = null;
         if (content.Body?.Stores is { Enabled: true } storesData)
         {
-            stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour);
+            stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
+            {
+                RootOf = typeId => processes?.RootOf(typeId),
+            };
             world.Add(stores);
         }
 
