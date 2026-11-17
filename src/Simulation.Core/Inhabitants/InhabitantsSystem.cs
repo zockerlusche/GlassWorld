@@ -325,7 +325,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <param name="count">
     /// How many inhabitants the world starts with; null = those the data lists. See <see cref="StartersFor"/>.
     /// </param>
-    /// <param name="design">A1774: the start inhabitants the player designed, in start order (null = all drawn).</param>
+    /// <param name="design">
+    /// A1774: the start inhabitants the player designed, in start order (null = all drawn). The draws of traits, needs,
+    /// sex and appearance stay as without a design; names are drawn for the undesigned from the names not yet taken, so a
+    /// designed name can change which names the others get (review GW3 #598).
+    /// </param>
     public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null, IReadOnlyList<State.StartInhabitantSpec>? design = null)
     {
         ArgumentNullException.ThrowIfNull(world);
@@ -374,9 +378,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays, sex, place);
             }
 
-            if (!string.IsNullOrWhiteSpace(own?.Name))
+            // A designed name only in the shape of the name data (review GW3 #598: it reaches the AI prompts; a save or a
+            // later command line could carry anything) - otherwise one is drawn.
+            if (own?.Name?.Trim() is { } designedName && Content.ContentSet.IsProperName(designedName))
             {
-                inhabitant.Name = own.Name.Trim();
+                inhabitant.Name = designedName;
             }
 
             Add(inhabitant);

@@ -604,7 +604,7 @@
     },
     {
       "key": "ui.new_world.problem.inhabitant_name",
-      "text": "Ein Name passt nicht: zu lang, leer oder nicht erlaubt."
+      "text": "Ein Name passt nicht: 2 bis 16 Buchstaben ohne Umlaute und Leerzeichen, großer Anfangsbuchstabe, jeder Name nur einmal."
     },
     {
       "key": "ui.new_world.climate.warm",

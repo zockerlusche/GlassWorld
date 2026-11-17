@@ -86,6 +86,11 @@ public sealed class WorldGeneratorTests
         Assert.Equal(drawn.Inhabitants.All.First().Traits[otherTrait], first.Traits[otherTrait], 9);
         Assert.Equal(drawn.Inhabitants.All.Skip(1).First().Traits, made.Inhabitants.All.Skip(1).First().Traits);
         Assert.Equal(drawn.Inhabitants.All.Skip(1).First().Sex, made.Inhabitants.All.Skip(1).First().Sex);
+
+        // A name outside the shape of the name data is not taken (review GW3 #598) - one is drawn instead.
+        var odd = SimulationHost.CreateGeneratedWorld(contentDir, 31, new MockDecisionPort(), "de", "start_island",
+            options: new SimulationHostOptions { Spec = new WorldSpec(Inhabitants: [new StartInhabitantSpec(new string('x', 200))]) });
+        Assert.True(ContentSet.IsProperName(odd.Inhabitants.All.First().Name!));
     }
 
     [Fact]

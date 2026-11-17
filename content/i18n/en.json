@@ -604,7 +604,7 @@
     },
     {
       "key": "ui.new_world.problem.inhabitant_name",
-      "text": "A name does not fit: too long, empty or not allowed."
+      "text": "A name does not fit: 2 to 16 plain letters without spaces, a capital first, each name only once."
     },
     {
       "key": "ui.new_world.climate.warm",

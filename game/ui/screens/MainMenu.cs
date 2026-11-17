@@ -618,6 +618,7 @@ public partial class MainMenu : CanvasLayer
         window.AddAction("ui.new_world.design_apply").Pressed += () =>
         {
             var chosen = new List<GlassWorld.Simulation.State.StartInhabitantSpec>();
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (design, name, sex, traits) in rows)
             {
                 if (!design.ButtonPressed)
@@ -627,7 +628,11 @@ public partial class MainMenu : CanvasLayer
                 }
 
                 var text = name.Text.Trim();
-                if (text.Length > 0 && NewWorldModel.InputProblem(text, data.Options.PlayerNameMaxLength, data.Guard) is not null)
+                // The shape of the name data (2-16 letters, capital first) and the content guard; each name once (review GW3 #598).
+                var bad = text.Length > 0
+                    && (NewWorldModel.InputProblem(text, data.Options.PlayerNameMaxLength, data.Guard) is not null
+                        || !GlassWorld.Simulation.Content.ContentSet.IsProperName(text) || !names.Add(text));
+                if (bad)
                 {
                     problem.Text = "ui.new_world.problem.inhabitant_name";
                     problem.Visible = true;
