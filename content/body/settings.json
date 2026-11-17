@@ -597,7 +597,8 @@
     },
     "health": { "recover_per_hour": 5, "events": { "slipped": -100 } },
     "carry_kg": { "child": 5, "youth": 15, "adult": 25, "elder": 15 },
-    "default_carry_kg": 25
+    "default_carry_kg": 25,
+    "lift_max_share": 1.0
   },
   "reflex": { "radius_cm": 50, "step_back_cm": 150, "fear": 0.1, "property": "hot" },
   "stay_sheltered": { "leaving_factor_permille": 300, "in_precipitation": true, "at_levels": ["cold"], "holds_action": "use", "hold_while": { "need": "warmth", "below": 0.8 }, "hold_while_needs_above": 0.15 },

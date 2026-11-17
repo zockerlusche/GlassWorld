@@ -839,8 +839,10 @@ public sealed class SimulationHost
             stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
             {
                 RootOf = typeId => processes?.RootOf(typeId),
+                Holds = action => content.Actions.HasTiming(action) && content.Actions.Timing(action).Holds,
             };
             world.Add(stores);
+            inhabitants.LiftRefusal = stores.LiftRefusal;
         }
 
         memory.Remembered = forgetting.Remembered;
@@ -1133,7 +1135,7 @@ public sealed class SimulationHost
             positions.Add(map.CentreOf(cells.Current.X, cells.Current.Z));
         }
 
-        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants);
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants, options?.Spec?.Inhabitants);
         host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {

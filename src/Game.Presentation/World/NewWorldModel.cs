@@ -14,7 +14,8 @@ namespace GlassWorld.Presentation.World;
 /// <param name="StartPairs">A1770: pairs of inhabitants at the start, or null = the preset's pairs.</param>
 /// <param name="Terrain">A1833: terrain option id (flat/hilly/mountainous), or null = the data's default.</param>
 /// <param name="Distribution">A1833: distribution option id (scattered/normal/clustered), or null = the data's default.</param>
-public sealed record NewWorldChoice(string Name, ulong Seed, string Size, string Climate, int StartFavor, string? Resources = null, int? StartPairs = null, string? Terrain = null, string? Distribution = null);
+/// <param name="Inhabitants">A1774: the start inhabitants the player designed, in start order, or null = all drawn from the seed.</param>
+public sealed record NewWorldChoice(string Name, ulong Seed, string Size, string Climate, int StartFavor, string? Resources = null, int? StartPairs = null, string? Terrain = null, string? Distribution = null, IReadOnlyList<Simulation.State.StartInhabitantSpec>? Inhabitants = null);
 
 /// <summary>
 /// Checks of the "new world" form without Godot: the name is a player input with a length limit from
