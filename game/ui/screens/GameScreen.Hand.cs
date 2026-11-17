@@ -15,7 +15,8 @@ public partial class GameScreen
 {
     private string? _moving; // the thing the hand holds, or null
     private Label? _handHover;
-    private ulong _handHoverAt;
+    private Vector2? _handPointer; // where the pointer is now (set on motion)
+    private Vector2? _handShownAt; // where the line was last worked out
 
     /// <summary>Whether the core would let the hand take this thing at all (anything but 'not movable' means yes).</summary>
     private bool HandCanTake(string objectId) =>
@@ -38,6 +39,7 @@ public partial class GameScreen
     private void LetGo()
     {
         _moving = null;
+        _handShownAt = null;
         if (_handHover is not null)
         {
             _handHover.Visible = false;
@@ -54,25 +56,22 @@ public partial class GameScreen
 
         var answer = host.Player.CheckMove(MoveCommand(id, spot.X, spot.Z));
         return answer.Accepted
-            ? TextFill.Fill(Tr("ui.hand.here"), new Dictionary<string, string> { ["cost"] = Number((long)Math.Ceiling(host.Player.CostOf("move"))) })
+            ? TextFill.Fill(Tr("ui.hand.here"), new Dictionary<string, string> { ["cost"] = Number((long)Math.Ceiling(host.Player.CostOf(PlayerSystem.MoveIntervention))) })
             : Tr(answer.ReasonKey ?? "msg.command.unknown");
     }
 
-    /// <summary>While the hand holds a thing, the line near the pointer follows it (a few times a second).</summary>
-    private void HoverHand(Vector2 position)
+    /// <summary>
+    /// While the hand holds a thing, the line near the pointer follows it: worked out once per frame when the pointer has
+    /// moved (review GW1 #593: never the line of an earlier spot, also when the pointer rests after a quick move).
+    /// </summary>
+    private void HoverHand()
     {
-        if (_moving is null)
+        if (_moving is null || _handPointer is not { } position || position == _handShownAt)
         {
             return;
         }
 
-        var now = Time.GetTicksMsec();
-        if (now - _handHoverAt < 100)
-        {
-            return;
-        }
-
-        _handHoverAt = now;
+        _handShownAt = position;
         if (_handHover is null)
         {
             _handHover = new Label { Name = "HandHover", AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, ThemeTypeVariation = UiTheme.SmallLabel, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -132,15 +131,43 @@ public partial class GameScreen
             return "the button did not hand the thing over";
         }
 
-        var far = host.Player.CheckMove(MoveCommand(movable.Id, movable.Position.X + (hand.MaxMoveM * 2), movable.Position.Z));
-        LetGo();
-        if (far.ReasonKey != PlayerSystem.ReasonTooFar || Tr(far.ReasonKey) == far.ReasonKey)
+        // Through the controls (review GW1 #593): the line for a spot beside the thing, then a click there.
+        if (GetViewport().GetCamera3D() is not { } camera)
         {
-            return $"a spot beyond the reach gave '{far.ReasonKey}' (expected a translated too_far)";
+            LetGo();
+            return "no camera for the hand's line";
         }
 
+        var far = camera.UnprojectPosition(new Vector3((float)(movable.Position.X + (hand.MaxMoveM * 2)), 0, (float)movable.Position.Z));
+        // Off the picture there is no ground under the pointer and no line; on it, a refusal in words (not a key, not 'here').
+        var farLine = HandLine(far);
+        var here = TextFill.Fill(Tr("ui.hand.here"), new Dictionary<string, string> { ["cost"] = Number((long)Math.Ceiling(host.Player.CostOf(PlayerSystem.MoveIntervention))) });
+        if (farLine is not null && (farLine == here || farLine.StartsWith("msg.", StringComparison.Ordinal)))
+        {
+            LetGo();
+            return $"the line for a spot beyond the reach was '{farLine}'";
+        }
+
+        var near = camera.UnprojectPosition(new Vector3((float)movable.Position.X + 2, 0, (float)movable.Position.Z + 2));
+        var nearLine = HandLine(near);
+        var favour = host.Player.Favor;
+        PutDown(near);
+        var answered = _moving is null ? "taken" : "kept";
+        LetGo();
+        if (nearLine is null || nearLine.StartsWith("msg.", StringComparison.Ordinal) || nearLine.StartsWith("ui.", StringComparison.Ordinal))
+        {
+            return $"the line for a spot beside the thing was '{nearLine}'";
+        }
+
+        GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"HAND_LINES far='{farLine}' near='{nearLine}' put_down={answered} favour_before={favour:0.#}"));
+
         var fixedThing = host.Objects.All.FirstOrDefault(o => !HandCanTake(o.Id));
-        if (fixedThing is not null && OpenThing(fixedThing.Id) is { } other && other.FindChild(HandButtonName, true, false) is not null)
+        if (fixedThing is null)
+        {
+            return "no thing the hand may not take (the check would pass for nothing)";
+        }
+
+        if (OpenThing(fixedThing.Id) is { } other && other.FindChild(HandButtonName, true, false) is not null)
         {
             return $"{fixedThing.TypeId} cannot be moved but its window offers it";
         }

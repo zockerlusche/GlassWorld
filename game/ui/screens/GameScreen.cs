@@ -657,6 +657,8 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        HoverHand(); // A1832
+
         while (_helpAnswers.TryDequeue(out var answer))
         {
             if (answer.Cards is not null)
@@ -815,7 +817,7 @@ public partial class GameScreen : CanvasLayer
         if (@event is InputEventMouseMotion hover && !_worldHeld && _click is not { Pressed: true })
         {
             HoverWriting(hover.Position);
-            HoverHand(hover.Position); // A1832
+            _handPointer = hover.Position; // A1832: the line follows in _Process, once per frame
         }
 
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
@@ -1783,6 +1785,7 @@ public partial class GameScreen : CanvasLayer
                 };
                 button.Pressed += () =>
                 {
+                    LetGo(); // review GW1 #593: one mode at a time
                     _placing = type;
                     ShowHint(new ToastMessage("msg.hint.place_gift", new Dictionary<string, string>(), null));
                 };
@@ -3443,6 +3446,7 @@ public partial class GameScreen : CanvasLayer
         _pointButton = new Button { Text = "ui.card.point", TooltipText = "ui.card.point_tooltip", ToggleMode = true };
         _pointButton.Pressed += () =>
         {
+            LetGo(); // review GW1 #593: one mode at a time
             _pointingFor = _pointingFor is null ? inhabitantId : null;
             UpdatePointing();
         };

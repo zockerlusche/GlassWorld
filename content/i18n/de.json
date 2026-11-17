@@ -2144,7 +2144,7 @@
     },
     {
       "key": "msg.hint.object_moved",
-      "text": "Die Hand hat es verschoben."
+      "text": "Die Hand legt es beim nächsten Takt dorthin."
     },
     {
       "key": "msg.hint.gift_placed",

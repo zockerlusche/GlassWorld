@@ -2144,7 +2144,7 @@
     },
     {
       "key": "msg.hint.object_moved",
-      "text": "The hand moved it."
+      "text": "The hand puts it there with the next tick."
     },
     {
       "key": "msg.hint.gift_placed",
