@@ -253,7 +253,7 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
         var tall = _objects.All
             .Where(o => IsFuel(o.TypeId) && (ParamsOf(o.TypeId)?.ShadeHeightCm ?? 0) >= lightning.MinHeightCm && !_until.ContainsKey(o.Id)
-                && _objects.HeldBy(o.Id) is null && !IsWet(world, o.Position))
+                && _objects.HeldBy(o.Id) is null && !Spared(o.TypeId) && !IsWet(world, o.Position))
             .OrderBy(o => o.Id, StringComparer.Ordinal)
             .ToList();
         if (tall.Count == 0)
@@ -270,6 +270,10 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         _caught.Add(fire.Id);
         Caught?.Invoke(world, thing, fire);
     }
+
+    /// <summary>A1382 (review GW1 #591): what the spreading fire spares (spread.spares, e.g. what was built) lightning spares too.</summary>
+    private bool Spared(string typeId) =>
+        Settings?.Spread?.Spares is { Count: > 0 } spares && _objects.Catalog.Contains(typeId) && spares.Any(p => _objects.Catalog.TrueProperties(typeId).Contains(p));
 
     /// <summary>Whether a thing feeds a fire and can catch one: its type has the fuel property (TRUE properties).</summary>
     private bool IsFuel(string typeId) =>

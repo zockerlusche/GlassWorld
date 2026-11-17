@@ -459,7 +459,7 @@
       }
     },
     "ClimateExtremeWeather": {
-      "description": "A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.",
+      "description": "A weather state held for a while (a storm, a long heavy rain): at the start of a day of the season (or at start_hour) it begins with chance_permille and lasts a whole number of hours between hours_min and hours_max; the usual weather changes rest meanwhile.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -491,6 +491,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 240
+        },
+        "start_hour": {
+          "description": "A1382 (review GW1 #591): the hour of the day at which it may begin (a dry thunderstorm in the afternoon); absent = at the start of the day.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
         }
       }
     },

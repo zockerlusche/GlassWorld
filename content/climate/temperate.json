@@ -628,7 +628,8 @@
           "weather": "thunderstorm",
           "chance_permille": 150,
           "hours_min": 2,
-          "hours_max": 4
+          "hours_max": 4,
+          "start_hour": 14
         },
         {
           "season": "spring",

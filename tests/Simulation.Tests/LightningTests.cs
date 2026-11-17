@@ -1,6 +1,9 @@
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Weather;
 
 namespace GlassWorld.Simulation.Tests;
 
@@ -38,17 +41,50 @@ public sealed class LightningTests
     }
 
     [Fact]
-    public void InAStormWithRainLightningNeverStrikes()
+    public void LightningSparesAWetTreeAndTheWishNeverOffersADryThunderstorm()
     {
+        // Review GW1 #591 (3): in a dry thunderstorm right after rain everything is still wet - no tree catches fire.
+        var thunder = Content.Value.Fire!.Lightning!.Weather.First();
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        var hour = host.World.Calendar.Settings.TicksPerHour;
+        host.WeatherSystem!.Force("rain", host.World.Tick);
+        host.World.Run(hour);
         var trees = TallBurnable(host).Select(o => o.Id).ToList();
-        for (var hour = 0; hour < 12; hour++)
+        host.WeatherSystem.Force(thunder, host.World.Tick);
+        host.World.Run(hour);
+        Assert.All(trees, id => Assert.True(host.Objects.TryGetExists(id), $"{id} was struck while wet"));
+
+        // (1) The player's wish offers only weathers of the tables, never one only an extreme leads to.
+        Assert.DoesNotContain(thunder, host.WeatherSystem.Weathers);
+    }
+
+    [Fact]
+    public void ADryThunderstormComesAtItsHourAndEndsWithItsExtreme()
+    {
+        // Review GW1 #591 (2): it begins at start_hour and lasts exactly its hours - the table goes on at once after.
+        var climate = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Content.Value.WorldGen.Climates["temperate"]));
+        var extremes = climate.Weather.Extremes!;
+        var thunder = extremes.Weather.First(e => e.Weather == Content.Value.Fire!.Lightning!.Weather.First());
+        thunder.ChancePermille = 1000;
+        thunder.HoursMin = thunder.HoursMax;
+        extremes.Weather = [thunder];
+        extremes.HeatWaves = [];
+        var world = new World(5, Content.Value.Calendar);
+        var settings = world.Calendar.Settings;
+        var weather = new WeatherSystem(climate, 0, settings.TicksPerHour, settings.HoursPerDay, 5);
+        world.Add(weather);
+
+        for (var i = 0; i < world.Calendar.TicksPerDay * 28 && weather.Current != thunder.Weather; i++)
         {
-            host.WeatherSystem!.Force("storm", host.World.Tick);
-            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+            world.Step();
         }
 
-        Assert.All(trees, id => Assert.True(host.Objects.TryGetExists(id), $"{id} was struck in the rain"));
+        Assert.Equal(thunder.Weather, weather.Current);
+        Assert.Equal(thunder.StartHour ?? 0, (int)(world.Tick % world.Calendar.TicksPerDay / settings.TicksPerHour));
+        world.Run((thunder.HoursMax * settings.TicksPerHour) - 1);
+        Assert.Equal(thunder.Weather, weather.Current);
+        world.Run(1);
+        Assert.NotEqual(thunder.Weather, weather.Current);
     }
 
     private static List<WorldObject> TallBurnable(SimulationHost host)

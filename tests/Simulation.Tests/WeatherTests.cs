@@ -52,7 +52,14 @@ public sealed class WeatherTests : IDisposable
     {
         var hours = Climate().Weather.ChangeEveryHours;
         var step = (long)hours * Content.Value.Calendar.Settings.TicksPerHour;
-        Assert.All(Year(3), p => Assert.Equal(0, p.Tick % step));
+        // A1382 (review GW1 #591): a weather only an extreme leads to (the dry thunderstorm) begins at its start hour and
+        // ends with its extreme - those two changes are off the step; every change of the table stays on it.
+        var table = TableWeathers();
+        var extremeOnly = (Climate().Weather.Extremes?.Weather ?? []).Select(e => e.Weather).Where(w => !table.Contains(w)).ToHashSet(StringComparer.Ordinal);
+        var phases = Year(3).ToList();
+        var byTable = phases.Where((p, i) => !extremeOnly.Contains(p.Weather) && (i == 0 || !extremeOnly.Contains(phases[i - 1].Weather))).ToList();
+        Assert.NotEmpty(byTable);
+        Assert.All(byTable, p => Assert.Equal(0, p.Tick % step));
     }
 
     /// <summary>

@@ -182,6 +182,12 @@ class ClimateExtremeWeather(BaseModel):
     chance_permille: int = Field(..., ge=0, le=1000)
     hours_min: int = Field(..., ge=1, le=240)
     hours_max: int = Field(..., ge=1, le=240)
+    start_hour: int | None = Field(
+        None,
+        description='A1382 (review GW1 #591): the hour of the day at which it may begin (a dry thunderstorm in the afternoon); absent = at the start of the day.',
+        ge=0,
+        le=23,
+    )
 
 
 class ClimateHeatWave(BaseModel):
