@@ -2583,6 +2583,14 @@
       "text": "Geschriebenes gelesen"
     },
     {
+      "key": "vocab.event.condition_began",
+      "text": "Fuehlt sich krank"
+    },
+    {
+      "key": "vocab.event.condition_ended",
+      "text": "Ist wieder gesund"
+    },
+    {
       "key": "vocab.event.cannot_lift",
       "text": "Konnte etwas nicht anheben"
     },
