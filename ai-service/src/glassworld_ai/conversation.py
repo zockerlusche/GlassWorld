@@ -24,6 +24,7 @@ from glassworld_ai.calllog import CallLog
 from glassworld_ai.grounding import (
     checks_nouns,
     known_words,
+    noun_list,
     settings_words,
     spoken_names,
     unknown_nouns,
@@ -423,7 +424,8 @@ def grounding_check(
     words = known_words(
         request, texts, locale, names, settings_words(settings, "general_words", locale)
     )
-    return lambda reply: unknown_nouns(reply, words)
+    nouns = noun_list(texts, locale)
+    return lambda reply: unknown_nouns(reply, words, nouns=nouns)
 
 
 def grounded(request: ConversationRequest, data: dict[str, Any]) -> dict[str, Any]:

@@ -23,6 +23,7 @@ from glassworld_ai.calllog import CallLog
 from glassworld_ai.grounding import (
     checks_nouns,
     judged_things,
+    noun_list,
     request_words,
     settings_words,
     unknown_nouns,
@@ -159,6 +160,7 @@ class Checks:
             general |= {word for label in _labels(payload) for word in label.split()}
             self._words = request_words(job.model_dump(mode="json"), texts, locale, general)
             self._world = judged_things(settings, texts, locale)
+            self._nouns = noun_list(texts, locale)
 
     def problem(self, text: str) -> str | None:
         verdict = self._guard.check(text)
@@ -168,7 +170,9 @@ class Checks:
         if any(_ID_LIKE.fullmatch(i) and i in lowered for i in self._ids):
             return "raw id"
         if self._words is not None:
-            unknown = unknown_nouns(text, self._words, heads=True, only=self._world)
+            unknown = unknown_nouns(
+                text, self._words, heads=True, only=self._world, nouns=self._nouns
+            )
             if unknown:
                 return f"names what it was not given: {', '.join(unknown[:3])}"
         return None

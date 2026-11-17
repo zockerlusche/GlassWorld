@@ -26,6 +26,7 @@ from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem, wrong
 from glassworld_ai.grounding import (
     checks_nouns,
     judged_things,
+    noun_list,
     request_words,
     settings_words,
     unknown_nouns,
@@ -177,7 +178,11 @@ class OllamaDecider:
                 settings_words(settings, "general_words", locale),
             )
             unknown = unknown_nouns(
-                choice.thought, words, heads=True, only=judged_things(settings, self._texts, locale)
+                choice.thought,
+                words,
+                heads=True,
+                only=judged_things(settings, self._texts, locale),
+                nouns=noun_list(self._texts, locale),
             )
             if unknown:
                 return replace(choice, thought=None), (

@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
 
-from glassworld_ai.texts import TextCatalog
+from glassworld_ai.texts import NounList, TextCatalog
 from glassworld_ai.words import own_names, plain_id
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
 
@@ -105,23 +105,25 @@ def known_words(
 
 
 def unknown_nouns(
-    text: str, words: set[str], heads: bool = False, only: set[str] | None = None
+    text: str,
+    words: set[str],
+    heads: bool = False,
+    only: set[str] | None = None,
+    nouns: NounList | None = None,
 ) -> list[str]:
     """Capitalised words inside a sentence that name nothing the inhabitant may name. With
     `heads` a word counts as known only as itself, as a compound containing a known word, or as
     the head of a known compound ('Stein' for 'Feuerstein') - never as its first part ('Feuer'
-    for 'Feuerstein', W1937)."""
+    for 'Feuerstein', W1937). With `nouns` (English, A1818): every word the noun list knows is
+    judged, wherever it stands, by its base form ('baskets' as 'basket')."""
     found: list[str] = []
     start = True
     for match in re.finditer(r"\S+", text):
         token = match.group(0)
         for word in _WORD.findall(token):
-            if (
-                not start
-                and word[:1].isupper()
-                and (only is None or stem(word) in only)
-                and not _known(word, words, heads)
-            ):
+            noun = nouns.is_noun(word) if nouns is not None else not start and word[:1].isupper()
+            judged = nouns.base(word) if nouns is not None else word
+            if noun and (only is None or stem(judged) in only) and not _known(judged, words, heads):
                 found.append(word)
             start = False
         if _SENTENCE_END.search(token):
@@ -217,6 +219,11 @@ def settings_words(settings: dict[str, Any], key: str, locale: str) -> list[str]
     if not isinstance(lists, dict):
         return []
     return [str(w) for w in cast(dict[str, list[Any]], lists).get(locale, [])]
+
+
+def noun_list(texts: TextCatalog | None, locale: str) -> NounList | None:
+    """A1818: the noun list for judging a language without capitalised nouns (English)."""
+    return texts.nouns(locale) if texts is not None else None
 
 
 def checks_nouns(settings: dict[str, Any], locale: str) -> bool:
