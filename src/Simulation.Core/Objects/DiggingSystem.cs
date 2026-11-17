@@ -9,7 +9,8 @@ namespace GlassWorld.Simulation.Objects;
 /// <param name="X">Cell x.</param>
 /// <param name="Z">Cell z.</param>
 /// <param name="DepthCm">Depth dug so far, centimetres.</param>
-public sealed record DugCell(int X, int Z, int DepthCm);
+/// <param name="SinceTick">A1460: the last dig or overgrowing step there (it grows over from then); null in older saves = the load tick.</param>
+public sealed record DugCell(int X, int Z, int DepthCm, long? SinceTick = null);
 
 /// <summary>
 /// Digging (A1578, B4b K5, R33, D711 section 6; design GW1 #27049): an inhabitant digs where it stands; each dig deepens the
@@ -47,6 +48,7 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
     private readonly Func<string, (Position At, string? HeldType)?> _digger;
     private readonly Action<WorldEvent> _report;
     private readonly SortedDictionary<(int X, int Z), int> _depth = [];
+    private readonly SortedDictionary<(int X, int Z), long> _since = [];
     private readonly List<string> _pending = [];
     private readonly List<WorldObject> _near = [];
 
@@ -75,6 +77,9 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public bool HasState => _depth.Count > 0;
 
+    /// <summary>A1460: game ticks per hour (the overgrowing is looked at on the full hour; set by the host).</summary>
+    public int TicksPerHour { get; set; } = 60;
+
     /// <summary>How deep the hole of a cell goes, centimetres (0 = untouched).</summary>
     public int DepthAt(int x, int z) => _depth.GetValueOrDefault((x, z));
 
@@ -98,6 +103,7 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
         }
 
         _pending.Clear();
+        Overgrow(world);
     }
 
     /// <inheritdoc/>
@@ -107,20 +113,25 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
         hasher.Write(_depth.Count);
         foreach (var ((x, z), depth) in _depth)
         {
-            hasher.Write(x).Write(z).Write(depth);
+            hasher.Write(x).Write(z).Write(depth).Write(_since.GetValueOrDefault((x, z), -1));
         }
     }
 
     /// <summary>The dug cells, for a save game.</summary>
-    public IReadOnlyList<DugCell> Capture() => [.. _depth.Select(d => new DugCell(d.Key.X, d.Key.Z, d.Value))];
+    public IReadOnlyList<DugCell> Capture() => [.. _depth.Select(d => new DugCell(d.Key.X, d.Key.Z, d.Value, _since.TryGetValue(d.Key, out var since) ? since : null))];
 
     /// <summary>Restores the dug cells (pits and wells are objects and come back with them).</summary>
     public void Restore(IReadOnlyList<DugCell>? cells)
     {
         _depth.Clear();
+        _since.Clear();
         foreach (var cell in cells ?? [])
         {
             _depth[(cell.X, cell.Z)] = cell.DepthCm;
+            if (cell.SinceTick is { } since)
+            {
+                _since[(cell.X, cell.Z)] = since;
+            }
         }
     }
 
@@ -144,6 +155,7 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
             {
                 // Wet ground: the groundwater lies at the surface - the first dig is a waterhole at once (review GW4 #506).
                 _depth[cell] = depth;
+                _since[cell] = world.Tick;
                 var wet = _objects.Spawn(_data.WellType, at);
                 _report(new WorldEvent(WellDug, world.Tick, who, _data.Action, wet.Id) { TargetType = wet.TypeId });
                 return;
@@ -164,6 +176,7 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
 
         var deeper = Math.Min(depth + _data.StepCm, water);
         _depth[cell] = deeper;
+        _since[cell] = world.Tick;
         pit ??= _objects.Spawn(_data.PitType, at);
 
         // What comes up lies beside the hole.
@@ -180,6 +193,64 @@ public sealed class DiggingSystem : IWorldSystem, IOptionalWorldState
             _objects.Remove(pit.Id);
             var well = _objects.Spawn(_data.WellType, at);
             _report(new WorldEvent(WellDug, world.Tick, who, _data.Action, well.Id) { TargetType = well.TypeId });
+        }
+    }
+
+    /// <summary>
+    /// A1460 Z1 (R49, D1248): on the full hour every hole grows over a little - once its biome's hours of growth have passed
+    /// since the last dig or step (growing like the data's type: its group's seasons, else by the clock), it gets one
+    /// step shallower; at depth 0 the pit is gone and the cell untouched. Holes of the data's kept types (a well) stay; a
+    /// biome with 0 hours never grows over. A cell without a time yet (an older save) starts at this hour.
+    /// </summary>
+    private void Overgrow(World world)
+    {
+        if (_data.Overgrow is not { } overgrow || _depth.Count == 0 || world.Tick % Math.Max(1, TicksPerHour) != 0)
+        {
+            return;
+        }
+
+        foreach (var cell in _depth.Keys.ToList())
+        {
+            if (!_since.TryGetValue(cell, out var since))
+            {
+                _since[cell] = world.Tick;
+                continue;
+            }
+
+            var pit = PitAt(cell);
+            if (pit is not null && overgrow.Keeps?.Contains(pit.TypeId) == true)
+            {
+                continue;
+            }
+
+            var biome = _map.Map.BiomeIds[_map.Map.Cell(cell.X, cell.Z).Biome];
+            var hours = overgrow.HoursPerStep is { } byBiome && byBiome.TryGetValue(biome, out var h) ? h : overgrow.DefaultHoursPerStep;
+            if (hours <= 0)
+            {
+                continue;
+            }
+
+            var ticks = (long)hours * TicksPerHour;
+            var grown = overgrow.GrowsLike is { } like && _map.Grown is { } growth ? growth(like, since, world.Tick, ticks) : world.Tick - since >= ticks;
+            if (!grown)
+            {
+                continue;
+            }
+
+            var shallower = _depth[cell] - _data.StepCm;
+            if (shallower > 0)
+            {
+                _depth[cell] = shallower;
+                _since[cell] = world.Tick;
+                continue;
+            }
+
+            _depth.Remove(cell);
+            _since.Remove(cell);
+            if (pit is not null)
+            {
+                _objects.Remove(pit.Id);
+            }
         }
     }
 

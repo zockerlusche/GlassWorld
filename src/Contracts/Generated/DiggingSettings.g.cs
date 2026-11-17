@@ -78,6 +78,13 @@ namespace GlassWorld.Contracts
     public partial class DiggingSettings
     {
 
+        /// <summary>
+        /// A1460 Z1 (R49, D1248): dug earth grows over - after hours_per_step of growth (by the biome, else the default; 0 = never, e.g. rock) a pit gets one step_cm shallower, and at depth 0 it is gone. It grows like the type grows_like of the nature data (its group's seasons), else by the clock. Holes of the types in keeps (a well) stay. Absent = holes stay for ever. Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("overgrow")]
+        public Overgrow? Overgrow { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("contract_version")]
         public string ContractVersion { get; set; } = default!;
 
@@ -120,6 +127,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("ore")]
         public DigOre? Ore { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Overgrow
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("default_hours_per_step")]
+        public int DefaultHoursPerStep { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hours_per_step")]
+        public System.Collections.Generic.IDictionary<string, int>? HoursPerStep { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("grows_like")]
+        public string? GrowsLike { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("keeps")]
+        public System.Collections.Generic.ICollection<string>? Keeps { get; set; } = default!;
 
     }
 }

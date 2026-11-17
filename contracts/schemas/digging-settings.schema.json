@@ -15,6 +15,16 @@
     "layers"
   ],
   "properties": {
+    "overgrow": {
+      "description": "A1460 Z1 (R49, D1248): dug earth grows over - after hours_per_step of growth (by the biome, else the default; 0 = never, e.g. rock) a pit gets one step_cm shallower, and at depth 0 it is gone. It grows like the type grows_like of the nature data (its group's seasons), else by the clock. Holes of the types in keeps (a well) stay. Absent = holes stay for ever. Placeholder values (TL).",
+      "type": "object", "additionalProperties": false, "required": ["default_hours_per_step"],
+      "properties": {
+        "default_hours_per_step": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "hours_per_step": { "type": "object", "maxProperties": 32, "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100000 } },
+        "grows_like": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "keeps": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+      }
+    },
     "contract_version": {
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },

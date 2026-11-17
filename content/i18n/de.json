@@ -2191,6 +2191,22 @@
       "text": "Klicke in die Welt, wo die Gabe liegen soll (Esc bricht ab)."
     },
     {
+      "key": "ui.thing.move",
+      "text": "Mit der Hand verschieben ({cost} Gunst)"
+    },
+    {
+      "key": "ui.hand.here",
+      "text": "Hier ablegen ({cost} Gunst)"
+    },
+    {
+      "key": "msg.hint.move_object",
+      "text": "Zeige, wohin es soll, und klicke (Esc lässt los)."
+    },
+    {
+      "key": "msg.hint.object_moved",
+      "text": "Die Hand legt es beim nächsten Takt dorthin."
+    },
+    {
       "key": "msg.hint.gift_placed",
       "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
     },

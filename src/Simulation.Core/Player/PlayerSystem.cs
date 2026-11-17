@@ -90,7 +90,8 @@ public sealed class PlayerSystem : IWorldSystem
     public const string ReasonNoPosition = "msg.command.no_position";
 
     private const string GiftIntervention = "gift";
-    private const string MoveIntervention = "move";
+    /// <summary>The favour intervention of the hand (its cost in favor.json; the controls show it).</summary>
+    public const string MoveIntervention = "move";
 
     private readonly GiftRules _rules;
     private readonly FavorSettings _favor;
