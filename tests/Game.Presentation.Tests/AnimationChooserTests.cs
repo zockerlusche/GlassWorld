@@ -188,4 +188,17 @@ public sealed class AnimationChooserTests
         Assert.Equal("handle", chooser.ForAction("inspect", AnimationMappingTarget.Object).ClipId);
         Assert.Equal("talk", chooser.ForAction("show", AnimationMappingTarget.Inhabitant, AnimationMappingReach.Low).ClipId);
     }
+
+    [Fact]
+    public void PickingUpAndPuttingDownAtTheGroundStoopsElseAtTheTable()
+    {
+        // A1634 (D958 D3): a thing on the ground is picked up and put down with a stoop (our own clip, built from the CC0
+        // poses), no longer at table height; a thing higher up still with the table clip.
+        var library = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "animation", "library.json")));
+        var chooser = new AnimationChooser(library);
+        Assert.Equal("stoop_pick_up", chooser.ForAction("pick_up", AnimationMappingTarget.Object, AnimationMappingReach.Low).ClipId);
+        Assert.Equal("stoop_pick_up", chooser.ForAction("drop", AnimationMappingTarget.Object, AnimationMappingReach.Low).ClipId);
+        Assert.Equal("pick_up", chooser.ForAction("pick_up", AnimationMappingTarget.Object, AnimationMappingReach.Mid).ClipId);
+        Assert.False(chooser.ForAction("pick_up", AnimationMappingTarget.Object, AnimationMappingReach.Low).FellBack);
+    }
 }

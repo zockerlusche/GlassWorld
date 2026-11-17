@@ -132,6 +132,12 @@
       "speed": 0.7
     },
     {
+      "id": "stoop_pick_up",
+      "source": "asset",
+      "loop": false,
+      "asset": "Stoop_PickUp"
+    },
+    {
       "id": "ponder",
       "source": "asset",
       "loop": true,
@@ -306,6 +312,20 @@
       "target": "object",
       "reach": "low",
       "clip": "crouch_act"
+    },
+    {
+      "kind": "action",
+      "id": "pick_up",
+      "target": "object",
+      "reach": "low",
+      "clip": "stoop_pick_up"
+    },
+    {
+      "kind": "action",
+      "id": "drop",
+      "target": "object",
+      "reach": "low",
+      "clip": "stoop_pick_up"
     },
     {
       "kind": "action",

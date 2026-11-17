@@ -11,6 +11,10 @@ public partial class ClipCheck : Node3D
 {
     private static readonly string[] Bodies = ["adult_female", "adult_male", "child"];
 
+    // A1634 (D958 D3): clips of our own that tools/figures/build_figures.py bakes into every body (GROUND_CLIPS) - they
+    // are checked like the source's (present on every body, they move the skeleton).
+    private static readonly string[] OwnClips = ["Lift_Heavy", "Stoop_PickUp"];
+
     private readonly List<(string Body, AnimationPlayer Player, Skeleton3D Skeleton, string[] Clips)> _subjects = [];
     private readonly List<string> _failures = [];
     private string[] _expected = [];
@@ -37,7 +41,7 @@ public partial class ClipCheck : Node3D
         // Reference: the clips of the Quaternius source library, not one of the rebuilt bodies.
         var source = GD.Load<PackedScene>("res://assets/characters/quaternius-ual1/ual1_standard.glb").Instantiate<Node3D>();
         var sourcePlayer = source.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
-        _expected = sourcePlayer.GetAnimationList().Where(c => c != "A_TPose").Order(StringComparer.Ordinal).ToArray();
+        _expected = [.. sourcePlayer.GetAnimationList().Where(c => c != "A_TPose").Concat(OwnClips).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
         source.Free();
         if (_expected.Length == 0)
         {
