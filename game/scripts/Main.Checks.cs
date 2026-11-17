@@ -674,7 +674,26 @@ public partial class Main
                 menu.Setup(LoadMenuData(_library), style);
                 await Take("01_hauptmenue");
                 menu.OpenNewWorld();
+
+                // A1771: the island preview appears some time after the window opens (debounce + generator off the main thread).
+                await ToSignal(GetTree().CreateTimer(4.0), Godot.Timer.SignalName.Timeout);
                 await Take("02_neue_welt");
+
+                // A1833/A1774: 'Erweitert' unfolded (terrain, distribution, start inhabitants), then the design window.
+                if (menu.FindChild("Advanced", true, false) is FoldableContainer advanced)
+                {
+                    advanced.Folded = false;
+                    await Frames(2);
+                    await Take("02b_neue_welt_erweitert");
+                    if (advanced.FindChild("DesignInhabitants", true, false) is Button design)
+                    {
+                        design.EmitSignal(BaseButton.SignalName.Pressed);
+                        await Frames(2);
+                        await Take("02c_bewohner_gestalten");
+                        (menu.FindChild("DesignWindow", true, false) as GwWindow)?.Close();
+                    }
+                }
+
                 menu.OpenWorlds();
                 await Take("03_welten_laden");
                 menu.ShowLoading("Meine Welt");
