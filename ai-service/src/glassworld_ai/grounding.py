@@ -27,12 +27,26 @@ _WORD = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")
 _SENTENCE_END = re.compile(r"[.!?…:]+[\"'»«)]*\s*$")
 
 
+_UMLAUTS = str.maketrans({"ä": "a", "ö": "o", "ü": "u", "ß": "ss"})
+
+
 def _stem(word: str) -> str:
-    """Lower case without common endings, so 'Blaubeeren' meets 'Blaubeere' and 'Beere'."""
-    low = word.lower()
-    for ending in ("en", "n", "e", "s"):
-        if len(low) > 4 and low.endswith(ending):
-            return low[: -len(ending)]
+    """Lower case without umlauts and common endings, so 'Blaubeeren' meets 'Blaubeere' and 'Beere',
+    'Nüsse' meets 'Haselnuss' and 'Heilkräuter' meets 'Heilkraut' (night
+    measurements A1735/A1582: inflected forms of known things were taken for unknown ones). Both
+    sides of a comparison go through here, so folding the same way keeps them equal. At least four
+    letters stay ('Gras' and 'Gräser' both 'gras')."""
+    low = word.lower().translate(_UMLAUTS)
+    for endings in (("en", "er", "em", "es", "n", "e", "s"), ("en", "er", "em", "n", "e")):
+        # The second round takes no genitive -s: 'Feuers' meets 'Feuer', and
+        # 'Feldstein-Vase' keeps its 's' like 'Vasen'.
+        for ending in endings:
+            double_s = ending == "s" and low.endswith("ss")
+            if len(low) - len(ending) >= 4 and low.endswith(ending) and not double_s:
+                low = low[: -len(ending)]
+                break
+        else:
+            break
     return low
 
 

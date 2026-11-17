@@ -228,3 +228,29 @@ def test_v16_a_thought_naming_a_thing_from_elsewhere_is_left_out(
         assert body["option_id"] == "o1"  # the action runs either way (B2644)
         said = body["thought"]["text"] if body["thought"] else None
         assert (said == thought) is shown, (version, thought)
+
+
+@pytest.mark.parametrize(
+    ("word", "known"),
+    [
+        ("Nüsse", "Haselnuss"),  # A1735 night 16./17.11.: a talk ended at its first sentence
+        ("Haselnüsse", "Haselnuss"),
+        ("Heilkräuter", "Heilkraut"),  # A1582 night measurement
+        ("Gräser", "Gras"),
+        ("Nadelbäume", "Nadelbaum"),
+        ("Feuers", "Feuer"),
+        ("Pilze", "Pilz"),
+    ],
+)
+def test_an_inflected_form_of_a_known_thing_is_known(word: str, known: str) -> None:
+    from glassworld_ai.grounding import _stem, unknown_nouns
+
+    assert unknown_nouns(f"Ich sehe die {word} hier.", {_stem(known)}, heads=True) == []
+
+
+def test_a_thing_from_elsewhere_stays_unknown_in_every_form() -> None:
+    from glassworld_ai.grounding import _stem, unknown_nouns
+
+    words = {_stem(w) for w in ("Haselnuss", "Stein", "Nadelbaum")}
+    found = unknown_nouns("Ich sehe Kiefern und einen Topf.", words, heads=True)
+    assert found == ["Kiefern", "Topf"]
