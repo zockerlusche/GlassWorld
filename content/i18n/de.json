@@ -507,6 +507,46 @@
       "text": "8 (vier Paare)"
     },
     {
+      "key": "ui.new_world.preview",
+      "text": "Voransicht"
+    },
+    {
+      "key": "ui.new_world.advanced",
+      "text": "Erweitert"
+    },
+    {
+      "key": "ui.new_world.terrain",
+      "text": "Gelände"
+    },
+    {
+      "key": "ui.new_world.terrain.flat",
+      "text": "Flach"
+    },
+    {
+      "key": "ui.new_world.terrain.hilly",
+      "text": "Hügelig"
+    },
+    {
+      "key": "ui.new_world.terrain.mountainous",
+      "text": "Bergig"
+    },
+    {
+      "key": "ui.new_world.distribution",
+      "text": "Verteilung"
+    },
+    {
+      "key": "ui.new_world.distribution.scattered",
+      "text": "Verstreut"
+    },
+    {
+      "key": "ui.new_world.distribution.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.new_world.distribution.clustered",
+      "text": "Gehäuft"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -1835,6 +1875,10 @@
       "text": "Lob"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "Hinweis"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Anderes"
     },
@@ -2427,6 +2471,10 @@
       "text": "vermutet"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "die Stimme"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "gelesen"
     },
@@ -2457,6 +2505,14 @@
     {
       "key": "vocab.event.text_read",
       "text": "Geschriebenes gelesen"
+    },
+    {
+      "key": "vocab.event.voice_tested",
+      "text": "Hat einen Rat der Stimme ausprobiert"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Hat der Stimme etwas geglaubt"
     },
     {
       "key": "vocab.event.object_moved",

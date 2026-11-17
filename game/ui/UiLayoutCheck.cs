@@ -438,6 +438,29 @@ public static class UiLayoutCheck
         panel.Content.AddChild(table);
         stage.AddChild(panel);
 
+        // A1338 (B6-6, KR5): 100 inhabitants in the list without stutter - the game refills the table on every refresh; the
+        // table (a Tree) draws only the visible rows, so refilling 100 must stay well inside one frame (a quarter of 16.7 ms).
+        var hundred = Enumerable.Range(1, 100).Select(i => new GwRow($"inh-{i}", [$"Name {i}", "…", $"{(i * 7) % 100}", $"{i % 3}"], [i, 0, (i * 7) % 100, i % 3])).ToList();
+        // The median of five blocks of ten refills, so one busy moment of the machine does not decide (review GW2 #596).
+        var blocks = new List<double>();
+        for (var block = 0; block < 5; block++)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < 10; i++)
+            {
+                table.SetRows(hundred);
+            }
+
+            blocks.Add(clock.Elapsed.TotalMilliseconds / 10);
+        }
+
+        var refillMs = blocks.Order().ElementAt(blocks.Count / 2);
+        GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"UI_TABLE rows=100 refill_ms={refillMs:0.00}"));
+        if (refillMs > 16.7 / 4)
+        {
+            problems.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"table: refilling 100 rows takes {refillMs:0.00} ms (more than a quarter frame)"));
+        }
+
         var board = new ToastBoard(style.Tokens.Toast, new ToastSettings(1, UntilDismissed: true));
         board.Push(new ToastMessage("ui.inhabitants.empty", new Dictionary<string, string>(), null), fastForward: false);
         board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "knock"), fastForward: false);

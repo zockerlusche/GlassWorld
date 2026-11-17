@@ -519,5 +519,42 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("water_time_wrap_seconds")]
         public double? WaterTimeWrapSeconds { get; set; } = default!;
 
+        /// <summary>
+        /// A1769 (B2805): the new-world window's island preview - picture size and how height and relief brighten the ground colours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("preview")]
+        public Preview? Preview { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Preview
+    {
+
+        /// <summary>
+        /// Longest side of the picture in pixels; a larger island is sampled down.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_side_px")]
+        public int MaxSidePx { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness change per height unit towards the north-west neighbour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relief_gain")]
+        public double ReliefGain { get; set; } = default!;
+
+        /// <summary>
+        /// Extra brightness from the lowest to the highest land (0 = flat colours).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("height_gain")]
+        public double HeightGain { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness of water against its game colour (the palette's sea is about as bright as grass; darker water keeps land and water apart without hue).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("water_shade")]
+        public double WaterShade { get; set; } = default!;
+
     }
 }

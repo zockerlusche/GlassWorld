@@ -86,6 +86,43 @@
       "type": "number",
       "minimum": 1,
       "maximum": 86400
+    },
+    "preview": {
+      "description": "A1769 (B2805): the new-world window's island preview - picture size and how height and relief brighten the ground colours.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_side_px",
+        "relief_gain",
+        "height_gain",
+        "water_shade"
+      ],
+      "properties": {
+        "max_side_px": {
+          "description": "Longest side of the picture in pixels; a larger island is sampled down.",
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 512
+        },
+        "relief_gain": {
+          "description": "Brightness change per height unit towards the north-west neighbour.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "height_gain": {
+          "description": "Extra brightness from the lowest to the highest land (0 = flat colours).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "water_shade": {
+          "description": "Brightness of water against its game colour (the palette's sea is about as bright as grass; darker water keeps land and water apart without hue).",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 1
+        }
+      }
     }
   },
   "$defs": {

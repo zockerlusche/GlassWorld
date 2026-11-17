@@ -73,6 +73,12 @@
     "wall_foot_shade_permille": 250,
     "scree_permille": 450
   },
+  "preview": {
+    "max_side_px": 192,
+    "relief_gain": 0.05,
+    "height_gain": 0.3,
+    "water_shade": 0.5
+  },
   "open_sea_size_factor": 8.0,
   "tide_follow_real_seconds": 2.0,
   "water_shader": {

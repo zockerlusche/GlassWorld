@@ -1,4 +1,5 @@
 using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Map;
 
 namespace GlassWorld.Simulation.Tests;
@@ -38,6 +39,31 @@ public sealed class WorldGeneratorTests
         var island = WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed, null, factor, pairs);
         Assert.True(island.Passed, string.Join(", ", island.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
         Assert.Equal(pairs * 2, island.Starts.Count);
+    }
+
+    [Fact]
+    public void ANewWorldTakesOverTheIslandThePreviewGenerated()
+    {
+        // A1769 (B2805): the start uses exactly the island the preview showed - not generated again - but only when it is
+        // this world's island (review GW2 #584): another seed, size, resource factor or pair count generates anew.
+        var contentDir = Path.Combine(TestData.Root, "content");
+        var shown = new PreviewIsland(WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", 77, null, 1.5, 3), null, 1.5, 3);
+        var options = new SimulationHostOptions { Island = shown, ResourceFactor = 1.5, StartPairs = 3 };
+        var host = SimulationHost.CreateGeneratedWorld(contentDir, 77, new MockDecisionPort(), "de", "start_island", options: options);
+        Assert.Same(shown.Island, host.Map!.Island);
+        Assert.Equal(6, host.Inhabitants.All.Count());
+        foreach (var (seed, other) in new[]
+        {
+            (78UL, options),
+            (77UL, options with { GridCells = 256 }),
+            (77UL, options with { ResourceFactor = 0.6 }),
+            (77UL, options with { StartPairs = 2 }),
+        })
+        {
+            var fresh = SimulationHost.CreateGeneratedWorld(contentDir, seed, new MockDecisionPort(), "de", "start_island", options: other);
+            Assert.NotSame(shown.Island, fresh.Map!.Island);
+            Assert.Equal((other.GridCells ?? 192, other.GridCells ?? 192), (fresh.Map.Island.Map.WidthCells, fresh.Map.Island.Map.DepthCells));
+        }
     }
 
     [Fact]
@@ -213,7 +239,7 @@ public sealed class WorldGeneratorTests
     /// check counts drinkable, not salty objects.
     /// </summary>
     [Fact]
-    public void AMissingDrinkSupplyFailsTheAttemptAndRegenerates()
+    public void AStartShortOfDrinkGetsSpringsAndOnlyAnImpossibleNeedFails()
     {
         var island = Generate(42);
         var water = Assert.Single(island.Check, c => c.Id == "drinking_water");
@@ -225,7 +251,14 @@ public sealed class WorldGeneratorTests
         var preset = content.WorldGen.Presets["start_island"];
         var drink = preset.Start.Supply.Resources.Single(r => r.Id == "drink");
         Assert.True(drink.Mandatory);
-        drink.Min = 100;
+        // A1833 (B2808 step 4, the generator always builds): a start short of drink gets springs in its reach - the drink
+        // spots' fixed limits no longer fail an island.
+        drink.Min = 30;
+        var supplied = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42);
+        Assert.True(supplied.Passed, string.Join(", ", supplied.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
+
+        // Only a need no reach can hold (more springs than cells) still fails the attempt and regenerates, as before.
+        drink.Min = 100_000;
         var starved = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42);
         Assert.False(starved.Passed);
         Assert.Equal(preset.Start.MaxAttempts, starved.Attempts);

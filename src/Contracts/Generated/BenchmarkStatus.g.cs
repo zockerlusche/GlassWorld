@@ -95,7 +95,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// How the inhabitant came to know it (concept): experienced = tried it, sure; heard = as sure as the trust in the teller; guessed = a guess (AI, or from what one has seen); read = as sure as the source seems; seen = looked at it closely, only what can be seen (TL #19921, added in 0.2 without breaking older readers).
+    /// How the inhabitant came to know it (concept): experienced = tried it, sure; heard = as sure as the trust in the teller; guessed = a guess (AI, or from what one has seen); read = as sure as the source seems; seen = looked at it closely, only what can be seen (TL #19921, added in 0.2 without breaking older readers); voice = the player's voice said it, weak (B6 R20, A1536).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public enum KnowledgeSource
@@ -119,6 +119,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("seen")]
         Seen = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("voice")]
+        Voice = 5,
 
 
     }
