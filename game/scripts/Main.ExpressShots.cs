@@ -77,6 +77,15 @@ public partial class Main
                     continue;
                 }
 
+                if (parts[0] == "clip" && parts.Length == 2 && who is not null)
+                {
+                    // A1634 (check runs only): the figure shows a library clip at once (a stoop, a lift) - clips of actions
+                    // that are rare in a young world can be looked at without waiting for them.
+                    _world.ClipForShots(who.Id, parts[1]);
+                    await Frames(2);
+                    GD.Print($"EXPRESS_SHOT_CLIP {who.Name ?? who.Id} clip={parts[1]}");
+                }
+
                 if (spec == "ground_seat")
                 {
                     // A1466: sitting on the ground is a rare idle variant - each awake inhabitant in turn is made to show the
@@ -185,6 +194,14 @@ public partial class Main
                 var label = who?.Name ?? who?.Id ?? "island";
                 var shown = spec is "mark" or "ore" or "written" || who is null ? null : _world.ExpressFor(who.Id, parts[0], parts.Length > 1 ? parts[1] : null);
                 GD.Print($"EXPRESS_SHOT_EVENT {number} {spec} {label} shown={shown ?? "-"}");
+                if (parts[0] == "clip" && parts.Length == 2 && who is not null)
+                {
+                    // A1634: a short clip starts again now, with the camera in place, so the pictures catch its middle.
+                    _world.ClipForShots(who.Id, null);
+                    await Frames(1);
+                    _world.ClipForShots(who.Id, parts[1]);
+                }
+
                 var waited = 0.0;
                 foreach (var at in ExpressShotTimes)
                 {

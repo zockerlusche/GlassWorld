@@ -31,7 +31,7 @@ import sys
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Euler, Vector
 
 SKIN, TOP, BOTTOM, SHOES, HAIR, SHIN, FOREARM, THIGH, EYES, LOWER_THIGH = (
     1,
@@ -231,6 +231,134 @@ def reshape_rig(armature, spec):
         bones[name].head = move(name, h)
         bones[name].tail = move(name, tl)
     bpy.ops.object.mode_set(mode="OBJECT")
+
+
+# A1634 (D958 D3, handed over by GW1 #28720): two clips of our own, made from the CC0 clips'
+# poses and baked with IK. 'Stoop_PickUp': crouch, back bent, one wrist to the ground in front of
+# the feet, up again. 'Lift_Heavy': squat, both wrists to the ground, rise holding at the hips.
+# Legs and hips come from Crouch_Idle_Loop, so the feet stay planted; the IK chain runs from the
+# forearm over the shoulder into the spine, so the back bends with the reach. Targets in metres
+# for the UAL1 body (hips 0.877 m above the soles), scaled by each body's hip height; -Y is forward.
+UAL_HIPS_Z = 0.877
+GROUND_CLIPS = {
+    "Stoop_PickUp": (
+        ["DEF-hand.R"],
+        [
+            (0, "stand", None, 0, {}),
+            (10, "reach", "crouch", 35, {"DEF-hand.R": (-0.12, -0.46, 0.11)}),
+            (16, "reach", "crouch", 35, {"DEF-hand.R": (-0.12, -0.46, 0.11)}),
+            (30, "stand", None, 0, {}),
+        ],
+    ),
+    "Lift_Heavy": (
+        ["DEF-hand.R", "DEF-hand.L"],
+        [
+            (0, "stand", None, 0, {}),
+            (
+                12,
+                "crouch",
+                "crouch",
+                30,
+                {"DEF-hand.R": (-0.17, -0.42, 0.16), "DEF-hand.L": (0.17, -0.42, 0.16)},
+            ),
+            (
+                20,
+                "crouch",
+                "crouch",
+                30,
+                {"DEF-hand.R": (-0.17, -0.42, 0.16), "DEF-hand.L": (0.17, -0.42, 0.16)},
+            ),
+            (
+                36,
+                "stand",
+                None,
+                5,
+                {"DEF-hand.R": (-0.17, -0.30, 0.86), "DEF-hand.L": (0.17, -0.30, 0.86)},
+            ),
+            (44, "stand", None, 0, {}),
+        ],
+    ),
+}
+CLIP_POSES = {
+    "stand": ("Idle_Loop", 0),
+    "crouch": ("Crouch_Idle_Loop", 0),
+    "reach": ("PickUp_Table", 10),
+}
+LOWER_BODY = ("thigh", "shin", "foot", "toe")
+
+
+def sampled_pose(armature, action_name, frame):
+    """Every pose bone's local matrix in a CC0 clip at a frame."""
+    action = next(a for a in bpy.data.actions if a.name.split("|")[-1].split(".")[0] == action_name)
+    armature.animation_data.action = action
+    bpy.context.scene.frame_set(int(frame))
+    return {b.name: b.matrix_basis.copy() for b in armature.pose.bones}
+
+
+def set_pose(armature, base, lower, spine_deg):
+    """The base pose, hips and legs from 'lower', the spine bent forward by spine_deg."""
+    for bone in armature.pose.bones:
+        # Keyed as location + quaternion below: every bone in quaternion mode (review GW1 #606).
+        bone.rotation_mode = "QUATERNION"
+        use_lower = lower is not None and (
+            bone.name in ("DEF-hips", "root") or any(k in bone.name for k in LOWER_BODY)
+        )
+        bone.matrix_basis = (lower if use_lower else base)[bone.name]
+    for name in ("DEF-spine.001", "DEF-spine.002", "DEF-spine.003"):
+        bone = armature.pose.bones[name]
+        bone.rotation_mode = "QUATERNION"
+        bend = Euler((math.radians(spine_deg / 3), 0, 0)).to_quaternion()
+        bone.rotation_quaternion = bone.rotation_quaternion @ bend
+
+
+def add_ground_clips(armature):
+    """Bakes GROUND_CLIPS into this body's rig (after reshape_rig: the reach fits its size)."""
+    armature.animation_data_create()
+    poses = {key: sampled_pose(armature, name, frame) for key, (name, frame) in CLIP_POSES.items()}
+    hips = armature.matrix_world @ armature.data.bones["DEF-hips"].head_local
+    scale = hips.z / UAL_HIPS_Z
+    for clip, (hands, keys) in GROUND_CLIPS.items():
+        raw = bpy.data.actions.new(clip + "_raw")
+        armature.animation_data.action = raw
+        targets = {}
+        for hand in hands:
+            empty = bpy.data.objects.new(f"target_{clip}_{hand}", None)
+            bpy.context.scene.collection.objects.link(empty)
+            ik = armature.pose.bones[hand.replace("hand", "forearm")].constraints.new("IK")
+            ik.target = empty
+            ik.chain_count = 5
+            targets[hand] = (empty, ik)
+        for frame, base, lower, spine, where in keys:
+            set_pose(armature, poses[base], poses[lower] if lower else None, spine)
+            for bone in armature.pose.bones:
+                bone.keyframe_insert("location", frame=frame)
+                bone.keyframe_insert("rotation_quaternion", frame=frame)
+            for hand, (empty, ik) in targets.items():
+                ik.influence = 1.0 if hand in where else 0.0
+                ik.keyframe_insert("influence", frame=frame)
+                if hand in where:
+                    # World coordinates: right while the armature sits at the origin unrotated,
+                    # as the import leaves it (review GW1 #606); a moved rig moves the reach.
+                    empty.location = Vector(where[hand]) * scale
+                    empty.keyframe_insert("location", frame=frame)
+        bpy.context.view_layer.objects.active = armature
+        armature.select_set(True)
+        bpy.ops.object.mode_set(mode="POSE")
+        bpy.ops.pose.select_all(action="SELECT")
+        bpy.ops.nla.bake(
+            frame_start=0,
+            frame_end=keys[-1][0],
+            only_selected=False,
+            visual_keying=True,
+            clear_constraints=True,
+            bake_types={"POSE"},
+        )
+        bpy.ops.object.mode_set(mode="OBJECT")
+        armature.animation_data.action.name = clip
+        bpy.data.actions.remove(raw)
+        for empty, _ in targets.values():
+            bpy.data.objects.remove(empty, do_unlink=True)
+    armature.animation_data.action = None
 
 
 class Rig:
@@ -1064,6 +1192,7 @@ def main():
         for obj in [o for o in bpy.data.objects if o.type == "MESH"]:
             bpy.data.objects.remove(obj, do_unlink=True)
         reshape_rig(armature, spec)
+        add_ground_clips(armature)
         rig = Rig(armature)
         body_parts, centre, r = build_body(rig, spec)
         body = make_object("Body", body_parts, armature)
