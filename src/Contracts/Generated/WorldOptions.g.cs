@@ -54,6 +54,42 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainOption
+    {
+
+        /// <summary>
+        /// Option id (text key ui.new_world.terrain.&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the height noise (1.0 = the preset as written).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("height_factor")]
+        public double HeightFactor { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DistributionOption
+    {
+
+        /// <summary>
+        /// Option id (text key ui.new_world.distribution.&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on every spawn rule's group size (1.0 = the data as written).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cluster_factor")]
+        public double ClusterFactor { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Choices offered in New World (B6 R3): world sizes and climates (B2514 FT3: at least temperate and warm). Display texts: ui.new_world.size.&lt;id&gt;, ui.new_world.climate.&lt;id&gt;. All numbers are placeholders until Marcel decides (PR4, F5231).
     /// </summary>
@@ -112,6 +148,34 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("default_start_pairs")]
         public int? DefaultStartPairs { get; set; } = default!;
+
+        /// <summary>
+        /// A1833 (B2805 'Erweitert'): terrain flat/hilly/mountainous - a factor on the island's height noise. The range is what the generator test matrix proves to build (B2808); flatter islands lack the rock edges shelters need.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("terrains")]
+        public System.Collections.Generic.ICollection<TerrainOption>? Terrains { get; set; } = default!;
+
+        /// <summary>
+        /// A1833: id of the preselected terrain option.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("default_terrain")]
+        public string? DefaultTerrain { get; set; } = default!;
+
+        /// <summary>
+        /// A1833 (B2805 'Erweitert'): how things lie - a factor on every spawn rule's group size (scattered below 1, clustered above); the amount stays.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("distributions")]
+        public System.Collections.Generic.ICollection<DistributionOption>? Distributions { get; set; } = default!;
+
+        /// <summary>
+        /// A1833: id of the preselected distribution option.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("default_distribution")]
+        public string? DefaultDistribution { get; set; } = default!;
 
     }
 }

@@ -531,7 +531,7 @@ public partial class Main : Node3D
         var parts = value.Split(',');
         if (!ulong.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seed))
         {
-            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR[,RESOURCES[,PAIRS]]]]])");
+            GD.PushWarning($"NEW_WORLD ignored '{value}' (expected --new-world=SEED[,SIZE[,CLIMATE[,FAVOR[,RESOURCES[,PAIRS[,TERRAIN[,DISTRIBUTION]]]]]]])");
             return null;
         }
 
@@ -545,7 +545,9 @@ public partial class Main : Node3D
             parts.Length > 4 && parts[4].Length > 0 ? parts[4] : null,
             parts.Length > 5 && parts[5].Length > 0
                 ? (int.TryParse(parts[5], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var pairs) ? pairs : 0)
-                : null);
+                : null,
+            parts.Length > 6 && parts[6].Length > 0 ? parts[6] : null,
+            parts.Length > 7 && parts[7].Length > 0 ? parts[7] : null);
     }
 
     /// <summary>
@@ -573,19 +575,23 @@ public partial class Main : Node3D
                 Climate = choice.Climate.Length > 0 ? choice.Climate : options.DefaultClimate,
                 Resources = choice.Resources ?? options.DefaultResources,
                 StartPairs = choice.StartPairs ?? options.DefaultStartPairs,
+                Terrain = choice.Terrain ?? options.DefaultTerrain,
+                Distribution = choice.Distribution ?? options.DefaultDistribution,
             };
+            var terrainOk = choice.Terrain is null || (options.Terrains?.Any(o => o.Id == choice.Terrain) ?? false);
+            var distributionOk = choice.Distribution is null || (options.Distributions?.Any(o => o.Id == choice.Distribution) ?? false);
             var resourcesOk = choice.Resources is null || (options.Resources?.Any(o => o.Id == choice.Resources) ?? false);
             var pairsOk = choice.StartPairs is null || (options.StartPairs?.Contains(choice.StartPairs.Value) ?? false);
-            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate) || !resourcesOk || !pairsOk)
+            if (!options.Sizes.Any(o => o.Id == choice.Size) || !options.Climates.Any(o => o.Id == choice.Climate) || !resourcesOk || !pairsOk || !terrainOk || !distributionOk)
             {
-                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}', climate '{choice.Climate}', resources '{choice.Resources}' or pairs '{choice.StartPairs}' is not an option of content/player/world_options.json");
+                GD.PushError($"NEW_WORLD_FAIL size '{choice.Size}', climate '{choice.Climate}', resources '{choice.Resources}', pairs '{choice.StartPairs}', terrain '{choice.Terrain}' or distribution '{choice.Distribution}' is not an option of content/player/world_options.json");
                 GetTree().Quit(1);
                 return;
             }
         }
 
         var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} resources={choice.Resources} pairs={choice.StartPairs} save={_library.SavePath(meta.Id)}");
+        GD.Print($"NEW_WORLD id={meta.Id} seed={choice.Seed} size={choice.Size} climate={choice.Climate} favor={choice.StartFavor} resources={choice.Resources} pairs={choice.StartPairs} terrain={choice.Terrain} distribution={choice.Distribution} save={_library.SavePath(meta.Id)}");
         EnterNow(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, choice.StartFavor, _library.SavePath(meta.Id), choice.Climate, SpecOf(choice)), meta, created: true);
         if (_world?.Host is null)
         {
@@ -618,7 +624,11 @@ public partial class Main : Node3D
             choice.StartFavor,
             choice.Resources,
             _menuData?.Options?.Resources?.FirstOrDefault(r => string.Equals(r.Id, choice.Resources, StringComparison.Ordinal)) is { } resources ? resources.Factor : null,
-            choice.StartPairs);
+            choice.StartPairs,
+            choice.Terrain,
+            _menuData?.Options?.Terrains?.FirstOrDefault(t => string.Equals(t.Id, choice.Terrain, StringComparison.Ordinal)) is { } terrain ? terrain.HeightFactor : null,
+            choice.Distribution,
+            _menuData?.Options?.Distributions?.FirstOrDefault(t => string.Equals(t.Id, choice.Distribution, StringComparison.Ordinal)) is { } distribution ? distribution.ClusterFactor : null);
 
     private async Task RunThenQuitAsync(double seconds)
     {
