@@ -284,6 +284,10 @@ public partial class MainMenu : CanvasLayer
 
         // A1770 (B2805 'Einfach'): how much grows and lies on the island, and how many pairs start; from the data.
         var resources = Options((data.Options.Resources ?? []).Select(r => r.Id), "ui.new_world.resources.", data.Options.DefaultResources ?? "normal");
+
+        // A1833 (B2805 'Erweitert'): the island's terrain and how things lie on it.
+        var terrain = Options((data.Options.Terrains ?? []).Select(t => t.Id), "ui.new_world.terrain.", data.Options.DefaultTerrain ?? "hilly");
+        var distribution = Options((data.Options.Distributions ?? []).Select(t => t.Id), "ui.new_world.distribution.", data.Options.DefaultDistribution ?? "normal");
         var pairs = Options((data.Options.StartPairs ?? []).Select(p => "pairs_" + p.ToString(CultureInfo.InvariantCulture)), "ui.new_world.start_pairs.", "pairs_" + (data.Options.DefaultStartPairs ?? 2).ToString(CultureInfo.InvariantCulture));
         var favor = new OptionButton();
         foreach (var option in data.Favor.StartOptions)
@@ -375,6 +379,16 @@ public partial class MainMenu : CanvasLayer
         var advanced = new FoldableContainer { Name = "Advanced", Title = "ui.new_world.advanced", Folded = true };
         var advancedRows = new VBoxContainer();
         advanced.AddChild(advancedRows);
+        if (terrain.ItemCount > 0)
+        {
+            Row(advancedRows, "ui.new_world.terrain", terrain);
+        }
+
+        if (distribution.ItemCount > 0)
+        {
+            Row(advancedRows, "ui.new_world.distribution", distribution);
+        }
+
         Row(advancedRows, "ui.new_world.code", codeRow);
         Row(advancedRows, "ui.new_world.seed", seed);
         Row(advancedRows, "ui.new_world.start_favor", favor);
@@ -468,6 +482,8 @@ public partial class MainMenu : CanvasLayer
         size.ItemSelected += _ => Changed();
         resources.ItemSelected += _ => Changed();
         pairs.ItemSelected += _ => Changed();
+        terrain.ItemSelected += _ => Changed();
+        distribution.ItemSelected += _ => Changed();
         window.AddAction("ui.common.cancel").Pressed += window.Close;
         window.AddAction("ui.new_world.create").Pressed += () =>
         {
@@ -495,7 +511,9 @@ public partial class MainMenu : CanvasLayer
                 climate.GetItemMetadata(climate.Selected).AsString(),
                 favor.GetItemMetadata(favor.Selected).AsInt32(),
                 resources.ItemCount > 0 ? resources.GetItemMetadata(resources.Selected).AsString() : null,
-                pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null);
+                pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null,
+                terrain.ItemCount > 0 ? terrain.GetItemMetadata(terrain.Selected).AsString() : null,
+                distribution.ItemCount > 0 ? distribution.GetItemMetadata(distribution.Selected).AsString() : null);
         name.CallDeferred(Control.MethodName.GrabFocus);
         return window;
     }

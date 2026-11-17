@@ -36,10 +36,40 @@
     }
   ],
   "start_pairs": [1, 2, 3, 4],
+  "terrains": [
+    {
+      "id": "flat",
+      "height_factor": 0.75
+    },
+    {
+      "id": "hilly",
+      "height_factor": 1.0
+    },
+    {
+      "id": "mountainous",
+      "height_factor": 1.4
+    }
+  ],
+  "distributions": [
+    {
+      "id": "scattered",
+      "cluster_factor": 0.5
+    },
+    {
+      "id": "normal",
+      "cluster_factor": 1.0
+    },
+    {
+      "id": "clustered",
+      "cluster_factor": 2.0
+    }
+  ],
   "default_size": "small",
   "default_climate": "temperate",
   "default_resources": "normal",
   "default_start_pairs": 2,
+  "default_terrain": "hilly",
+  "default_distribution": "normal",
   "name_max_length": 32,
   "player_name_max_length": 24
 }

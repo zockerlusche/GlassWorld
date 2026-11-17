@@ -100,7 +100,9 @@ public static partial class WorldGenerator
     /// <exception cref="ArgumentException">Unknown preset, or a grid size that is not a multiple of the preset's chunk size.</exception>
     /// <param name="resourceFactor">A1770 (B2805 'Einfach'): factor on every spawn rule's density and upper limit (poor/normal/rich).</param>
     /// <param name="startPairs">A1770 (B2805): pairs of start places; null = the preset's.</param>
-    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed, int? gridCells = null, double resourceFactor = 1.0, int? startPairs = null)
+    /// <param name="terrainFactor">A1833 (B2805 'Erweitert'): factor on the height noise (flat below 1, mountainous above).</param>
+    /// <param name="clusterFactor">A1833 (B2805 'Erweitert'): factor on every spawn rule's group size (scattered below 1, clustered above).</param>
+    public static GeneratedIsland Generate(WorldGenContent content, ObjectCatalog catalog, string presetId, ulong seed, int? gridCells = null, double resourceFactor = 1.0, int? startPairs = null, double terrainFactor = 1.0, double clusterFactor = 1.0)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -109,8 +111,8 @@ public static partial class WorldGenerator
             throw new ArgumentException($"unknown world preset '{presetId}'", nameof(presetId));
         }
 
-        preset = Paired(Sized(preset, gridCells), startPairs);
-        var spawns = Rich(content.Spawns, resourceFactor);
+        preset = Shaped(Paired(Sized(preset, gridCells), startPairs), terrainFactor);
+        var spawns = Grouped(Rich(content.Spawns, resourceFactor), clusterFactor);
 
         GeneratedIsland? last = null;
         for (var attempt = 1; attempt <= preset.Start.MaxAttempts; attempt++)
@@ -146,6 +148,49 @@ public static partial class WorldGenerator
         var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
         copy.Grid.WidthCells = cells;
         copy.Grid.DepthCells = cells;
+        return copy;
+    }
+
+    /// <summary>
+    /// A1833 (B2805 'Erweitert', terrain flat/hilly/mountainous): the preset with every height-noise amplitude times the
+    /// factor (a copy); the sea level and the highest height stay, so a mountainous island is cut at the same top.
+    /// </summary>
+    public static WorldPreset Shaped(WorldPreset preset, double factor)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (Math.Abs(factor - 1.0) < 1e-9)
+        {
+            return preset;
+        }
+
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldPreset>(System.Text.Json.JsonSerializer.Serialize(preset))!;
+        foreach (var octave in copy.Terrain.Noise)
+        {
+            octave.Amplitude = (int)Math.Round(octave.Amplitude * factor);
+        }
+
+        return copy;
+    }
+
+    /// <summary>
+    /// A1833 (B2805 'Erweitert', distribution scattered/clustered): every spawn rule's group size times the factor (a
+    /// copy; at least one per group). The density and upper limit stay, so the same amount lies in fewer or more places.
+    /// </summary>
+    public static SpawnTable Grouped(SpawnTable spawns, double factor)
+    {
+        ArgumentNullException.ThrowIfNull(spawns);
+        if (Math.Abs(factor - 1.0) < 1e-9)
+        {
+            return spawns;
+        }
+
+        var copy = System.Text.Json.JsonSerializer.Deserialize<SpawnTable>(System.Text.Json.JsonSerializer.Serialize(spawns))!;
+        foreach (var rule in copy.Spawns)
+        {
+            rule.Cluster.Min = Math.Max(1, (int)Math.Round(rule.Cluster.Min * factor));
+            rule.Cluster.Max = Math.Max(rule.Cluster.Min, (int)Math.Round(rule.Cluster.Max * factor));
+        }
+
         return copy;
     }
 
@@ -954,7 +999,10 @@ public static partial class WorldGenerator
                         }
                     }
 
-                    var place = shore.Count > 0 ? shore : dry;
+                    // On dry ground a spring wells up low, not on a hill (review GW2 #590): the lowest quarter of the cells.
+                    var place = shore.Count > 0
+                        ? shore
+                        : [.. dry.OrderBy(c => map.Cell(c.X, c.Z).Height).ThenBy(c => c.Z).ThenBy(c => c.X).Take(Math.Max(1, dry.Count / 4))];
                     for (var k = have; k < resource.Min && place.Count > 0; k++)
                     {
                         var at = place[rng.NextInt(0, place.Count)];
