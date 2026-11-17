@@ -438,6 +438,12 @@ class BodyStores(BaseModel):
         gt=0.0,
         le=500.0,
     )
+    lift_max_share: float | None = Field(
+        None,
+        description='A1816 E10: an action that takes a thing into the hand fails (too_heavy) when its weight is more than this share of the carrying strength. Absent = no limit.',
+        gt=0.0,
+        le=10.0,
+    )
 
 
 class BodySun(BaseModel):

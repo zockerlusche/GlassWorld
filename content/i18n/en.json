@@ -2567,6 +2567,10 @@
       "text": "Read some writing"
     },
     {
+      "key": "vocab.event.cannot_lift",
+      "text": "Could not lift something"
+    },
+    {
       "key": "vocab.event.voice_tested",
       "text": "Tried a tip of the voice"
     },

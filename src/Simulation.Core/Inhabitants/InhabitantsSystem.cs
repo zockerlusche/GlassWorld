@@ -116,6 +116,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of <see cref="OutOfReach"/>: what one tried to climb gives no grip (D1105 H3b).</summary>
     public const string TooSmooth = "too_smooth";
 
+    /// <summary>A1816 E10: why an action on a thing cannot start for its weight (the body stores), or null; null hook = never.</summary>
+    public Func<Inhabitant, string, WorldObject, string?>? LiftRefusal { get; set; }
+
+    /// <summary>A1816 E10: event - an inhabitant could not lift a thing (target = the thing, detail = why).</summary>
+    public const string CannotLift = "cannot_lift";
+
     /// <summary>D1105 H3b: why an action on a thing cannot start (the body's climbing check), or null; null hook = never.</summary>
     public Func<Inhabitant, string, WorldObject, string?>? ClimbRefusal { get; set; }
 
@@ -1570,6 +1576,17 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             // D1105 H3: hands on a thing that hangs above one's reach - the rule checker says why, never how.
             // D1105 H3b: climbing what is too smooth fails honestly as well (why, never how).
+            // A1816 E10: a thing heavier than the inhabitant can lift - a cancelled try with its reason, counted like a use without
+            // effect (the action rests on that thing after repeats); what it makes of it is its own.
+            if (target is not null && LiftRefusal?.Invoke(inhabitant, activity.Action, target) is { } heavy)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = heavy });
+                Report(new WorldEvent(CannotLift, world.Tick, inhabitant.Id, activity.Action, target.Id) { TargetType = target.TypeId, Detail = heavy });
+                CountRepeat(world, inhabitant, activity, changed: false);
+                inhabitant.Activity = null;
+                return;
+            }
+
             if (target is not null && ClimbRefusal?.Invoke(inhabitant, activity.Action, target) is { } refused)
             {
                 Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, target.Id) { Detail = refused });

@@ -2567,6 +2567,10 @@
       "text": "Geschriebenes gelesen"
     },
     {
+      "key": "vocab.event.cannot_lift",
+      "text": "Konnte etwas nicht anheben"
+    },
+    {
       "key": "vocab.event.voice_tested",
       "text": "Hat einen Rat der Stimme ausprobiert"
     },

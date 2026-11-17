@@ -119,6 +119,36 @@ public sealed class StoresTests
     }
 
     [Fact]
+    public void AThingHeavierThanTheCarryingStrengthCannotBeLiftedAndTheTryIsCancelledWithItsReason()
+    {
+        // A1816 E10: only an action that takes the thing into the hand; a light thing is lifted as before.
+        var content = On();
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var host = SimulationHost.Assemble(content, settings, new World(5, content.Calendar), new SilentPort(), "de");
+        host.Inhabitants.SpawnStartInhabitants(host.World, [new(0, 0), new(30, 0), new(60, 60), new(-60, -60)]);
+        var lifter = host.Inhabitants.All.First();
+        var stores = host.Stores!;
+        var carry = stores.CarryKg(lifter);
+        var holding = content.Actions.Actions.First(a => content.Actions.Timing(a).Holds);
+        var heavy = content.Objects.TypeIds.Where(t => content.Objects.Params(t).WeightKg is { } kg && kg > carry * content.Body!.Stores!.LiftMaxShare!.Value).OrderBy(t => t, StringComparer.Ordinal).First();
+        var light = content.Objects.TypeIds.Where(t => content.Objects.Params(t).WeightKg is { } kg && kg < carry / 4).OrderBy(t => t, StringComparer.Ordinal).First();
+        var big = host.Objects.Spawn(heavy, lifter.Position);
+        var small = host.Objects.Spawn(light, lifter.Position);
+
+        Assert.Equal(StoresSystem.TooHeavy, stores.LiftRefusal(lifter, holding, big));
+        Assert.Null(stores.LiftRefusal(lifter, holding, small));
+        var other = content.Actions.Actions.First(a => !content.Actions.Timing(a).Holds);
+        Assert.Null(stores.LiftRefusal(lifter, other, big));
+
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        lifter.Activity = new Activity(holding, big.Id, lifter.Position, null);
+        host.World.Run(3);
+        Assert.Null(lifter.Held);
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.CannotLift && e.TargetId == big.Id && e.Detail == StoresSystem.TooHeavy);
+    }
+
+    [Fact]
     public void TheCarryingStrengthIsTheDataOfTheLifePhase()
     {
         var (_, _, inhabitants, stores, content) = Bare();
