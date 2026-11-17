@@ -13,6 +13,24 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FireLightning
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public System.Collections.Generic.ICollection<string> Weather { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour_permille")]
+        public int PerHourPermille { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("min_height_cm")]
+        public int MinHeightCm { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("becomes")]
+        public string Becomes { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FireDryingBand
     {
 
@@ -191,6 +209,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("drying")]
         public System.Collections.Generic.ICollection<FireDryingBand> Drying { get; set; } = new System.Collections.ObjectModel.Collection<FireDryingBand>();
+
+        /// <summary>
+        /// A1382 (R24, TL #28525): in one of these weathers (a dry thunderstorm) lightning may strike once each full hour with per_hour_permille - one dry, burnable thing at least min_height_cm tall (its shade height: a tree), not in a hand, chosen by the stream fire/lightning, becomes a fire as if the fire had spread to it. Absent = no lightning. Placeholder values (TL).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lightning")]
+        public FireLightning? Lightning { get; set; } = default!;
 
         /// <summary>
         /// A fire takes hold of dry burnable things near it. Absent = fires never spread.

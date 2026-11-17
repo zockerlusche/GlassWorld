@@ -118,6 +118,12 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
 
         _now = world.Tick;
 
+        // A1382 (TL #28525): lightning in a dry thunderstorm - before the early end, it lights the first fire.
+        if (Settings?.Lightning is { } lightning)
+        {
+            Lightning(world, lightning);
+        }
+
         if (_until.Count == 0)
         {
             return;
@@ -220,6 +226,49 @@ public sealed class FireSystem : IWorldSystem, IOptionalWorldState
         }
 
         return false;
+    }
+
+    /// <summary>A1382: the main weather now (lightning comes in a dry thunderstorm); null = no weather.</summary>
+    public Func<string?>? WeatherNow { get; init; }
+
+    /// <summary>
+    /// A1382 (R24, TL #28525 A): at each full hour of a weather of the data (a dry thunderstorm - no rain, so the fire
+    /// can take hold) lightning strikes with the data's chance: one dry burnable thing at least the data's height
+    /// (its shade height: a tree), not in a hand and not burning, chosen by the stream fire/lightning, becomes a fire
+    /// as if the fire had spread to it (seen as caught_fire). Not while the most burning things burn already.
+    /// </summary>
+    private void Lightning(World world, FireLightning lightning)
+    {
+        if (world.Tick % _ticksPerHour != 0 || WeatherNow?.Invoke() is not { } now || !lightning.Weather.Contains(now)
+            || (Settings?.Spread is { } spread && _until.Count >= spread.MaxBurning))
+        {
+            return;
+        }
+
+        var rng = world.Random.Get("fire/lightning");
+        if (rng.NextInt(0, 1000) >= lightning.PerHourPermille)
+        {
+            return;
+        }
+
+        var tall = _objects.All
+            .Where(o => IsFuel(o.TypeId) && (ParamsOf(o.TypeId)?.ShadeHeightCm ?? 0) >= lightning.MinHeightCm && !_until.ContainsKey(o.Id)
+                && _objects.HeldBy(o.Id) is null && !IsWet(world, o.Position))
+            .OrderBy(o => o.Id, StringComparer.Ordinal)
+            .ToList();
+        if (tall.Count == 0)
+        {
+            return;
+        }
+
+        var thing = tall[rng.NextInt(0, tall.Count)];
+        _objects.Remove(thing.Id);
+        var fire = _objects.Spawn(lightning.Becomes, thing.Position);
+        var minutes = ParamsOf(fire.TypeId)?.BurnMinutes ?? 0;
+        _until[fire.Id] = world.Tick + Math.Max(1L, (long)minutes * _ticksPerHour / 60);
+        _since[fire.Id] = world.Tick;
+        _caught.Add(fire.Id);
+        Caught?.Invoke(world, thing, fire);
     }
 
     /// <summary>Whether a thing feeds a fire and can catch one: its type has the fuel property (TRUE properties).</summary>

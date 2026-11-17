@@ -1675,6 +1675,10 @@
       "text": "Sturm"
     },
     {
+      "key": "vocab.weather.thunderstorm",
+      "text": "Trockengewitter"
+    },
+    {
       "key": "vocab.process.heat",
       "text": "Erhitzen"
     },

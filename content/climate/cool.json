@@ -55,6 +55,14 @@
         "sight_permille": 500
       },
       {
+        "weather": "thunderstorm",
+        "wind_permille": 700,
+        "gust_permille": 200,
+        "precipitation_permille": 0,
+        "cloud_permille": 900,
+        "sight_permille": 800
+      },
+      {
         "weather": "fog",
         "wind_permille": 50,
         "gust_permille": 30,
@@ -507,6 +515,10 @@
           "offset_tenth_c": -40
         },
         {
+          "weather": "thunderstorm",
+          "offset_tenth_c": 20
+        },
+        {
           "weather": "fog",
           "offset_tenth_c": -20
         },
@@ -611,6 +623,13 @@
     "extremes": {
       "cooldown_days": 3,
       "weather": [
+        {
+          "season": "summer",
+          "weather": "thunderstorm",
+          "chance_permille": 150,
+          "hours_min": 2,
+          "hours_max": 4
+        },
         {
           "season": "spring",
           "weather": "storm",

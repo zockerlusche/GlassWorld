@@ -10,6 +10,21 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class FireLightning(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    weather: list[common_schema.VocabId] = Field(..., max_length=8, min_length=1)
+    per_hour_permille: int = Field(..., ge=0, le=1000)
+    min_height_cm: int = Field(..., ge=0, le=10000)
+    becomes: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class FireDryingBand(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -176,6 +191,10 @@ class FireSettings(BaseModel):
         description='How long a thing stays wet after the last rain on the island, by the air temperature at its place: the first band whose below_tenth_c is above the temperature applies; the last band (below_tenth_c null) takes the rest. Wet things neither catch fire nor feed one.',
         max_length=8,
         min_length=1,
+    )
+    lightning: FireLightning | None = Field(
+        None,
+        description='A1382 (R24, TL #28525): in one of these weathers (a dry thunderstorm) lightning may strike once each full hour with per_hour_permille - one dry, burnable thing at least min_height_cm tall (its shade height: a tree), not in a hand, chosen by the stream fire/lightning, becomes a fire as if the fire had spread to it. Absent = no lightning. Placeholder values (TL).',
     )
     spread: FireSpread | None = Field(
         None,

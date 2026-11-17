@@ -514,6 +514,7 @@ public sealed class SimulationHost
             Settings = map is null ? null : content.Fire,
             Nature = nature,
             WindAt = weather is null ? null : weather.WindAt,
+            WeatherNow = weather is null ? null : () => weather.Current,
             HeatRaise = content.Processes?.HeatRaise is { Count: > 0 } raise ? [.. raise] : null,
         };
         inhabitants.HeatAt = fire.HeatAt;

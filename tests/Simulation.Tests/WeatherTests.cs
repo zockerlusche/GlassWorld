@@ -121,7 +121,9 @@ public sealed class WeatherTests : IDisposable
         // drought_after_dry_days days in a row without precipitation (the rule:
         // DryDaysAddTheDroughtConditionFromTheData). So it is seen exactly when a dry spell was that long;
         // whether one is, with the repository's values, is TheDroughtConditionOccursOver20Seeds.
-        Assert.Equal([data.DroughtWeather], data.States.Select(s => s.Weather).Where(w => !table.Contains(w)));
+        // A1382: a state only an extreme leads to (the dry thunderstorm) is no weather of the table either.
+        var extremeOnly = (data.Extremes?.Weather ?? []).Select(e => e.Weather).Where(w => !table.Contains(w)).ToHashSet(StringComparer.Ordinal);
+        Assert.Equal([data.DroughtWeather], data.States.Select(s => s.Weather).Where(w => !table.Contains(w) && !extremeOnly.Contains(w)));
         var droughtTicks = (long)data.DroughtAfterDryDays * Content.Value.Calendar.TicksPerDay;
         Assert.True(
             seen.Contains(data.DroughtWeather) == (longestDry >= droughtTicks),
@@ -168,6 +170,9 @@ public sealed class WeatherTests : IDisposable
         {
             row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
         }
+
+        // Only the table changes: no extreme weather (A1382) comes in between.
+        climate.Weather.Extremes = null;
 
         // Warm enough everywhere that the rain never turns into snow.
         var phases = Year(9, climate, heightOffsetTenthC: 2000);
