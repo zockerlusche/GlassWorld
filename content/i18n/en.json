@@ -2099,6 +2099,22 @@
       "text": "Click in the world where the gift should lie (Esc cancels)."
     },
     {
+      "key": "ui.thing.move",
+      "text": "Move it with the hand ({cost} favour)"
+    },
+    {
+      "key": "ui.hand.here",
+      "text": "Put it here ({cost} favour)"
+    },
+    {
+      "key": "msg.hint.move_object",
+      "text": "Point where it should go and click (Esc lets go)."
+    },
+    {
+      "key": "msg.hint.object_moved",
+      "text": "The hand moved it."
+    },
+    {
       "key": "msg.hint.gift_placed",
       "text": "The gift now lies in the world. It belongs to nobody."
     },

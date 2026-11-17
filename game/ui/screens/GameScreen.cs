@@ -760,6 +760,14 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        if (@event.IsActionPressed("ui_cancel") && _moving is not null)
+        {
+            // A1832: Esc first lets the hand go (nothing moved).
+            LetGo();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event.IsActionPressed("ui_cancel") && _placing is not null)
         {
             // Esc first ends placing a gift.
@@ -807,6 +815,7 @@ public partial class GameScreen : CanvasLayer
         if (@event is InputEventMouseMotion hover && !_worldHeld && _click is not { Pressed: true })
         {
             HoverWriting(hover.Position);
+            HoverHand(hover.Position); // A1832
         }
 
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
@@ -847,6 +856,12 @@ public partial class GameScreen : CanvasLayer
 
             _pointingFor = null;
             UpdatePointing();
+            return;
+        }
+
+        if (_moving is not null)
+        {
+            PutDown(position); // A1832: the hand puts the thing there (the core checks)
             return;
         }
 
