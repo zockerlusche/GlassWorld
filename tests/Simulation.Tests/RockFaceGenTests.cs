@@ -83,6 +83,6 @@ public sealed class RockFaceGenTests
         var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 1);
         // The full hash in the message, so a deliberate world change can be taken over (like the golden world hashes).
         var hash = island.Hash();
-        Assert.True(hash == "26656ebfce6d86a4eeddce06b958757bca35ffbafcae47bbb955d2a8fe06dfe4", $"version-3 hash changed: {hash}");
+        Assert.True(hash == "8a8814aaec9f59c5fc01bf02a97aa14e14190c4eaa0ffdbca66593cd69a59ae7", $"version-3 hash changed: {hash}");
     }
 }

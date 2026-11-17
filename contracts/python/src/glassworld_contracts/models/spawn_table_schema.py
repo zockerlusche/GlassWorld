@@ -11,6 +11,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class InWater(StrEnum):
+    shallow = 'shallow'
+
+
 class SpawnHangs(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -133,6 +137,10 @@ class SpawnRule(BaseModel):
         le=100000,
     )
     grows_on: SpawnGrowsOn | None = None
+    in_water: InWater | None = Field(
+        None,
+        description='A1842 (R43, D1250): shallow = the rule takes the walkable water cells of its biome (the shallow sea of the beach) instead of its dry cells; such rules come after all others with a random stream of their own (worldgen/shallows), so adding one moves nothing else on the island. Absent = dry cells as before.',
+    )
     min_ore_permille: int | None = Field(
         None,
         description='A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.',

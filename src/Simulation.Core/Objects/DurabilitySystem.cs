@@ -326,9 +326,14 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
     {
         var material = ClassOf(thing.TypeId)!;
         var life = (long)material.BaseHours!.Value * _ticksPerHour;
-        // The rest of the life, stretched by quality (A1576); use only ever brings the end nearer and is looked at when it happens.
-        var rest = Math.Max(1L, (1000 - wear) * life / 1000 * LifePermille(thing.TypeId) / 1000);
         var fastest = 1000L + (material.WetPermille ?? 0) + (material.FrostPermille ?? 0) + (material.HeatPermille ?? 0) + (material.WetFrostPermille ?? 0);
+
+        // The rest of the life, stretched by quality (A1576); use only ever brings the end nearer and is looked at when it happens.
+        // A1842: a true lower bound, so the end is never passed by: the wear is a permille rounded down (one more is
+        // assumed), and the nature takt counts a whole takt's influence at once (that much ageing is taken off). Else a
+        // loaded world, queued from another tick, ended a thing a tick or two apart from the running one.
+        var takt = Nature?.TaktTicks ?? 0;
+        var rest = Math.Max(0L, (Math.Max(0L, 999 - wear) * life / 1000 * LifePermille(thing.TypeId) / 1000) - (takt * (fastest - 1000) / 1000));
         // In its last hour it is looked at every tick, so its end is the first tick its wear reaches 1000 - the same in a
         // running and a loaded world, whenever it was queued (GW2 #492: before, the end came a tick or two apart).
         var delay = Math.Max(1L, rest * 1000 / fastest);

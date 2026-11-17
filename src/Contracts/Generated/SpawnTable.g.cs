@@ -49,6 +49,14 @@ namespace GlassWorld.Contracts
         public SpawnGrowsOn? GrowsOn { get; set; } = default!;
 
         /// <summary>
+        /// A1842 (R43, D1250): shallow = the rule takes the walkable water cells of its biome (the shallow sea of the beach) instead of its dry cells; such rules come after all others with a random stream of their own (worldgen/shallows), so adding one moves nothing else on the island. Absent = dry cells as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("in_water")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SpawnRuleInWater>))]
+        public SpawnRuleInWater? InWater { get; set; } = default!;
+
+        /// <summary>
         /// A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -197,6 +205,16 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_per_rule")]
         public int MinPerRule { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum SpawnRuleInWater
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("shallow")]
+        Shallow = 0,
+
 
     }
 
