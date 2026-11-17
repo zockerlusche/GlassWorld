@@ -71,7 +71,9 @@ public sealed class PerfTests
         var paced = PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"]));
         Assert.True(flood.Answers > 20, $"{flood.Answers} answers");
         Assert.InRange(paced.Answers, 15, 20);
-        Assert.True(paced.Requests < flood.Requests);
+        // The day's AI budget (decider throughput day_share, A1824: 0.5) can cap both runs at the same number of
+        // requests; a slow model never gets more of them, and it answers fewer (above, below).
+        Assert.True(paced.Requests <= flood.Requests);
         // A slow model leaves more questions out with it (sent, not yet answered). Open questions as a whole can
         // meet at the data's limit in both runs, since questions that only wait count there as well (A1551).
         Assert.True(paced.Requests - paced.Answers > flood.Requests - flood.Answers);
