@@ -215,7 +215,17 @@ class Heal(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    rest_permille: int = Field(..., ge=0, le=10000)
+    rest_permille: int = Field(
+        ...,
+        description='Added while resting: asleep, doing nothing, or doing one of rest_actions (review GW4 #597).',
+        ge=0,
+        le=10000,
+    )
+    rest_actions: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Actions that count as rest (e.g. idle); absent = only asleep or doing nothing.',
+        max_length=16,
+    )
     near_property: common_schema.VocabId | None = None
     near_radius_cm: int | None = Field(None, ge=0, le=5000)
     near_permille: int | None = Field(None, ge=0, le=10000)
