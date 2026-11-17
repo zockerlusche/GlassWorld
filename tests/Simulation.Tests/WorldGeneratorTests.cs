@@ -239,7 +239,7 @@ public sealed class WorldGeneratorTests
     /// check counts drinkable, not salty objects.
     /// </summary>
     [Fact]
-    public void AMissingDrinkSupplyFailsTheAttemptAndRegenerates()
+    public void AStartShortOfDrinkGetsSpringsAndOnlyAnImpossibleNeedFails()
     {
         var island = Generate(42);
         var water = Assert.Single(island.Check, c => c.Id == "drinking_water");
@@ -251,7 +251,14 @@ public sealed class WorldGeneratorTests
         var preset = content.WorldGen.Presets["start_island"];
         var drink = preset.Start.Supply.Resources.Single(r => r.Id == "drink");
         Assert.True(drink.Mandatory);
-        drink.Min = 100;
+        // A1833 (B2808 step 4, the generator always builds): a start short of drink gets springs in its reach - the drink
+        // spots' fixed limits no longer fail an island.
+        drink.Min = 30;
+        var supplied = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42);
+        Assert.True(supplied.Passed, string.Join(", ", supplied.Check.Where(c => !c.Passed).Select(c => $"{c.Id} {c.Reachable}/{c.Min}")));
+
+        // Only a need no reach can hold (more springs than cells) still fails the attempt and regenerates, as before.
+        drink.Min = 100_000;
         var starved = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42);
         Assert.False(starved.Passed);
         Assert.Equal(preset.Start.MaxAttempts, starved.Attempts);
