@@ -303,7 +303,7 @@ public partial class Main
             settings.ShowTab("ui.settings.tab.game");
             return
             [
-                ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),
+                ("new world", MainMenu.NewWorldWindow(data, style, (_, _) => { })),
                 ("worlds", MainMenu.WorldsWindow(data, style, _ => { })),
                 ("settings", settings),
                 ("settings graphics", Tab("ui.settings.tab.graphics")),

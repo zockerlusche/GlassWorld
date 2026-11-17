@@ -23,11 +23,33 @@ namespace GlassWorld.Contracts
         public string Kind { get; set; } = default!;
 
         /// <summary>
+        /// A1536 (B6 R20, B2830): only with kind tip - what the player says a thing IS, in the fixed form of a belief: a plain type id of speaker.sees or speaker.knowledge, a property of the vocabulary, true or false. The core checks it and makes it a weak belief with the source voice.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tip")]
+        public VoiceTip? Tip { get; set; } = default!;
+
+        /// <summary>
         /// Only with kind naming: the type of the thing (a plain type id of speaker.sees) and the word as the player wrote it (1-3 words). The same word in both languages: it is the inhabitant's own word, not a translation.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("naming")]
         public VoiceNaming? Naming { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class VoiceTip
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
 
     }
 

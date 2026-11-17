@@ -18,6 +18,25 @@ class Outcome(StrEnum):
     decline = 'decline'
 
 
+class VoiceTip(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+
+
 class VoiceNaming(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -40,6 +59,10 @@ class VoiceClass(BaseModel):
         description='Vocabulary voice_kind (naming, praise).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    tip: VoiceTip | None = Field(
+        None,
+        description='A1536 (B6 R20, B2830): only with kind tip - what the player says a thing IS, in the fixed form of a belief: a plain type id of speaker.sees or speaker.knowledge, a property of the vocabulary, true or false. The core checks it and makes it a weak belief with the source voice.',
     )
     naming: VoiceNaming | None = Field(
         None,

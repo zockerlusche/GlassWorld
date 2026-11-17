@@ -93,6 +93,7 @@ Character:
 - ore bearing (Heavy, with glinting veins in the stone.)
 - poisonous (Makes ill whoever eats or drinks it.)
 - portable (Small and light enough to be carried.)
+- rooted (Grows in the ground and stays where it is (a standing tree); only felling takes it away (A1830).)
 - salty (Salty; drinking it makes thirstier instead of quenching thirst.)
 - scratchable (Marks can be scratched into it.)
 - sharp (Has a sharp edge or point; cuts or pricks.)

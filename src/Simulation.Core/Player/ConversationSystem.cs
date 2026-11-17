@@ -538,6 +538,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         Change(inhabitant, outcome, reply is null ? null : new ConversationLineState(false, world.Tick, reply.Locale.ToString().ToLowerInvariant(), reply.Text));
         Praise(world, inhabitant, response, outcome);
         TakeNaming(world, inhabitant, open.PointedAt, response, outcome);
+        TakeTip(world, inhabitant, response, outcome);
         switch (outcome)
         {
             case OutcomeChangeOutcome.Reply:
@@ -640,6 +641,72 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         var memory = MemoryOf(inhabitant.Id);
         _memories[inhabitant.Id] = memory with { Understanding = Math.Clamp(memory.Understanding + naming.Understanding, 0, _settings.UnderstandingMax) };
         _inhabitants.Report(new WorldEvent(WordHeard, world.Tick, inhabitant.Id, null, named.Type) { Detail = named.Word.Trim() });
+    }
+
+    /// <summary>The voice kind of a tip about a thing (vocabulary voice_kind, A1536).</summary>
+    public const string TipKind = "tip";
+
+    /// <summary>Event: an inhabitant took a tip of the voice as a belief (target = type, detail = property|value).</summary>
+    public const string VoiceBelieved = "voice_believed";
+
+    /// <summary>The knowledge source of what the voice said (vocabulary knowledge_source, B6 R20).</summary>
+    public const string VoiceSource = KnowledgeSources.Voice;
+
+    /// <summary>
+    /// A1536 (B6 R20, spec 31 acceptance 15): an inhabitant's own doing tested a tip of the voice - proven, its trust in the
+    /// player rises by the data; false, it falls. A tip nobody tries changes nothing. Subscribed by the host.
+    /// </summary>
+    public void Observe(WorldEvent e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (e.Kind != InhabitantsSystem.VoiceTested || _settings.Tip is not { } rule || Find(e.InhabitantId) is not { } inhabitant)
+        {
+            return;
+        }
+
+        var proven = e.Detail?.EndsWith("/" + InhabitantsSystem.VoiceProven, StringComparison.Ordinal) == true;
+        var change = proven ? rule.ProvenTrust ?? 0 : rule.FailedTrust ?? 0;
+        if (change == 0)
+        {
+            return;
+        }
+
+        var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+        var r = inhabitant.Relationships.Get(PlayerId, start);
+        inhabitant.Relationships.Set(PlayerId, r with { Trust = Math.Clamp(r.Trust + change, 0, 1) });
+    }
+
+    /// <summary>Whether an id is a property of the vocabulary (set by the host from the object catalog; null = any).</summary>
+    public Func<string, bool>? PropertyKnown { get; set; }
+
+    /// <summary>
+    /// A1536 (B6 R20, B2830): what the player says a thing is like becomes a weak belief with the source voice. The core
+    /// checks again (B2462): understood (reply or gesture); a type the inhabitant sees or knows something about (what is
+    /// foreign to its world falls out, as A1797); a property of the vocabulary. How sure: the data's rule over its trust,
+    /// awe and fear toward the player, never above the data's max; a belief it holds more surely stays. The truth is not
+    /// touched - a wrong tip is a wrong belief, and experience corrects it.
+    /// </summary>
+    private void TakeTip(World world, Inhabitant inhabitant, ConversationResponse response, OutcomeChangeOutcome outcome)
+    {
+        if (_settings.Tip is not { } rule || response.Voice is not { Kind: TipKind, Tip: { } tip }
+            || outcome is not (OutcomeChangeOutcome.Reply or OutcomeChangeOutcome.Gesture)
+            || PropertyKnown?.Invoke(tip.Property) == false
+            || !(inhabitant.Beliefs.About(tip.Type).Any() || _decisions.PerceivedTypes(inhabitant).Contains(tip.Type, StringComparer.Ordinal)))
+        {
+            return;
+        }
+
+        var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+        var relation = inhabitant.Relationships.Get(PlayerId, start);
+        var fear = MemoryOf(inhabitant.Id).Fear;
+        var confidence = Math.Clamp(rule.Base + (rule.Trust * relation.Trust) + (rule.Awe * relation.Respect) + (rule.Fear * fear), 0, rule.Max);
+        if (confidence <= 0 || (inhabitant.Beliefs.TryGet(tip.Type, tip.Property, out var held) && held.Confidence >= confidence))
+        {
+            return;
+        }
+
+        inhabitant.Beliefs.Set(tip.Type, tip.Property, tip.Value, confidence, VoiceSource, PlayerId, world.Tick);
+        _inhabitants.Report(new WorldEvent(VoiceBelieved, world.Tick, inhabitant.Id, null, tip.Type) { Detail = tip.Property + "|" + (tip.Value ? "true" : "false") });
     }
 
     /// <summary>Applies the data's changes for an outcome (never numbers from the answer, B2462).</summary>

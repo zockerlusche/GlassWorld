@@ -12,6 +12,7 @@
     { "gap": "property:wearable", "reason": "Only an invention with the base function worn has it (B2752, base_functions.json); the analysis does not model inventions." },
     { "gap": "property:digs", "reason": "A1578: only a made digging tool has it (an invention, like wearable); the analysis does not model inventions." },
     { "gap": "type:waterhole", "reason": "A1578: the groundwater lies below what bare hands can dig in the analysis; it needs a tool with digs (see property:digs). In the game shallow groundwater can be reached by hand." },
+    { "gap": "type:tree_stump", "reason": "A1830: what a felled tree leaves behind (catalog leaves_behind of the trees, fell_tree uses the tree up); the analysis follows produced types only, not remains." },
     { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
 
     { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },

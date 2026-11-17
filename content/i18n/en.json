@@ -507,6 +507,14 @@
       "text": "8 (four pairs)"
     },
     {
+      "key": "ui.new_world.preview",
+      "text": "Preview"
+    },
+    {
+      "key": "ui.new_world.advanced",
+      "text": "Advanced"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -1519,6 +1527,10 @@
       "text": "Portable"
     },
     {
+      "key": "vocab.property.rooted",
+      "text": "Rooted"
+    },
+    {
       "key": "vocab.property.salty",
       "text": "Salty"
     },
@@ -1695,6 +1707,10 @@
       "text": "Split"
     },
     {
+      "key": "vocab.process.fell",
+      "text": "Fell"
+    },
+    {
       "key": "vocab.process.bind",
       "text": "Bind"
     },
@@ -1827,6 +1843,10 @@
       "text": "Praise"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "tip"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Other"
     },
@@ -1917,6 +1937,14 @@
     {
       "key": "vocab.object.dry_wood",
       "text": "Dry wood"
+    },
+    {
+      "key": "vocab.object.tree_stump",
+      "text": "Tree stump"
+    },
+    {
+      "key": "vocab.object.felled_trunk",
+      "text": "Felled trunk"
     },
     {
       "key": "vocab.object.dry_grass",
@@ -2411,6 +2439,10 @@
       "text": "guessed"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "the voice"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "read"
     },
@@ -2441,6 +2473,14 @@
     {
       "key": "vocab.event.text_read",
       "text": "Read some writing"
+    },
+    {
+      "key": "vocab.event.voice_tested",
+      "text": "Tried a tip of the voice"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Believed the voice"
     },
     {
       "key": "vocab.event.object_moved",

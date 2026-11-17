@@ -63,6 +63,15 @@
   "naming": {
     "understanding": 0.01
   },
+  "tip": {
+    "base": 0.05,
+    "trust": 0.2,
+    "awe": 0.05,
+    "fear": 0.05,
+    "max": 0.3,
+    "proven_trust": 0.05,
+    "failed_trust": -0.08
+  },
   "dialogue": {
     "actions": [
       "talk_to"

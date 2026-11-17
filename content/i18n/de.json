@@ -507,6 +507,14 @@
       "text": "8 (vier Paare)"
     },
     {
+      "key": "ui.new_world.preview",
+      "text": "Voransicht"
+    },
+    {
+      "key": "ui.new_world.advanced",
+      "text": "Erweitert"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -1519,6 +1527,10 @@
       "text": "Tragbar"
     },
     {
+      "key": "vocab.property.rooted",
+      "text": "Verwurzelt"
+    },
+    {
       "key": "vocab.property.salty",
       "text": "Salzig"
     },
@@ -1695,6 +1707,10 @@
       "text": "Spalten"
     },
     {
+      "key": "vocab.process.fell",
+      "text": "Fällen"
+    },
+    {
       "key": "vocab.process.bind",
       "text": "Binden"
     },
@@ -1827,6 +1843,10 @@
       "text": "Lob"
     },
     {
+      "key": "vocab.voice_kind.tip",
+      "text": "Hinweis"
+    },
+    {
       "key": "vocab.voice_kind.other",
       "text": "Anderes"
     },
@@ -1917,6 +1937,14 @@
     {
       "key": "vocab.object.dry_wood",
       "text": "Trockenes Holz"
+    },
+    {
+      "key": "vocab.object.tree_stump",
+      "text": "Baumstumpf"
+    },
+    {
+      "key": "vocab.object.felled_trunk",
+      "text": "Gefällter Stamm"
     },
     {
       "key": "vocab.object.dry_grass",
@@ -2411,6 +2439,10 @@
       "text": "vermutet"
     },
     {
+      "key": "vocab.knowledge_source.voice",
+      "text": "die Stimme"
+    },
+    {
       "key": "vocab.knowledge_source.read",
       "text": "gelesen"
     },
@@ -2441,6 +2473,14 @@
     {
       "key": "vocab.event.text_read",
       "text": "Geschriebenes gelesen"
+    },
+    {
+      "key": "vocab.event.voice_tested",
+      "text": "Hat einen Rat der Stimme ausprobiert"
+    },
+    {
+      "key": "vocab.event.voice_believed",
+      "text": "Hat der Stimme etwas geglaubt"
     },
     {
       "key": "vocab.event.object_moved",

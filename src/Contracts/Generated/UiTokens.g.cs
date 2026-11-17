@@ -254,6 +254,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("card_talk_lines")]
         public int CardTalkLines { get; set; } = default!;
 
+        /// <summary>
+        /// A1771 (B2805): side of the island preview in the new-world window (pixels before UI scale).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("preview_px")]
+        public int PreviewPx { get; set; } = default!;
+
+        /// <summary>
+        /// A1771 (B2805): the preview is generated this long after the last change of a control.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("preview_debounce_ms")]
+        public int PreviewDebounceMs { get; set; } = default!;
+
+        /// <summary>
+        /// A1771 (B2805): a quiet progress bar shows when the preview takes longer than this.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("preview_progress_after_ms")]
+        public int PreviewProgressAfterMs { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

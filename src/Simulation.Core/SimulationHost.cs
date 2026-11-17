@@ -45,6 +45,13 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// <summary>A1770 (B2805): pairs of start inhabitants (each pair its start place); null = the preset's pairs.</summary>
     public int? StartPairs { get; init; }
 
+    /// <summary>
+    /// A1769 (B2805): the island the new-world window's preview generated, taken over as it is instead of generating it
+    /// again (the start shows exactly the island the player saw) - but only when seed, preset, grid, resource factor and
+    /// pairs are this world's (review GW2 #584); otherwise, or null, the island is generated.
+    /// </summary>
+    public Map.PreviewIsland? Island { get; init; }
+
     /// <summary>A1768 (B2805): the world specification of the new-world form, kept in the save game; null = none (older saves, tests).</summary>
     public State.WorldSpec? Spec { get; init; }
 }
@@ -140,6 +147,12 @@ public sealed class SimulationHost
         return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, null, jobPort, null, options);
     }
 
+    /// <summary>A1830: the catalog's leaves_behind per type (a felled tree leaves its stump).</summary>
+    private static Dictionary<string, string> LeavesBehindOf(ContentSet content) =>
+        content.Objects.TypeIds
+            .Where(t => content.Objects.Params(t).LeavesBehind is not null)
+            .ToDictionary(t => t, t => content.Objects.Params(t).LeavesBehind!, StringComparer.Ordinal);
+
     /// <summary>Assembles the systems around a given world (new or restored) in the fixed order.</summary>
     public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale) =>
         Assemble(content, settings, world, port, displayLocale, null, null);
@@ -187,7 +200,8 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
+            var shown = options.Island is { } preview && preview.Fits(world.Seed, worldPreset, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs) ? preview.Island : null;
+            var island = savedIsland?.Island ?? shown ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -251,6 +265,9 @@ public sealed class SimulationHost
                         },
                         StringComparer.Ordinal),
                 NodeBudget = preset.Pathfinding.NodeBudget,
+
+                // A1830: what a used-up thing leaves behind (a stump) goes again when it grows back there.
+                LeavesBehind = LeavesBehindOf(content),
 
                 // A1790: trunks and rocks nobody walks through, from the catalogue; a walker keeps half the spacing from them.
                 ObstacleRadiusCm = content.Objects.TypeIds
@@ -470,6 +487,7 @@ public sealed class SimulationHost
             {
                 ValidateRequests = options.ValidateRequests,
                 Implied = [.. content.Inventions.Settings.ImpliedProperties],
+                LeavesBehind = LeavesBehindOf(content),
             }
             : null;
         if (processes is not null)
@@ -693,6 +711,8 @@ public sealed class SimulationHost
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
+        conversation.PropertyKnown = objects.Catalog.PropertyVocabulary.Contains;
+        inhabitants.Reported += conversation.Observe;
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // A1735 (B2782): a talk between two inhabitants - one dialogue job when a talking action starts, its turns

@@ -509,6 +509,124 @@ public sealed class ConversationTests : IDisposable
         Assert.Null(ContractSerializer.Deserialize<ConversationRequest>(json).PointedAt);
     }
 
+    [Fact]
+    public void ATipOfTheVoiceIsBelievedWeaklyAndLessWithLessTrust()
+    {
+        // A1536, spec 31 acceptance 14 (B6 R20, B2830): the same tip, two inhabitants - the one with little trust in the
+        // player believes it measurably less; both only as a guess (at most the data's max), source voice.
+        var rule = ContentSet.Load(ContentDirectory).Conversation.Tip!;
+        double Believed(double trust)
+        {
+            var (host, id) = Host();
+            var who = host.Inhabitants.Get(id);
+            var near = host.Objects.Spawn("flint", new GlassWorld.Simulation.Objects.Position(who.Position.X + 1, who.Position.Z));
+            who.Relationships.Set(ConversationSystem.PlayerId, new GlassWorld.Simulation.Objects.Relation(0.5, trust, 0.3));
+            host.World.Step();
+            var events = Collect(host);
+            host.Conversation.Port = new TipPort(near.TypeId, "edible", true);
+            Say(host, id, "Den kann man essen.");
+            host.World.Run(2);
+            Assert.True(who.Beliefs.TryGet(near.TypeId, "edible", out var belief));
+            Assert.Equal((true, ConversationSystem.VoiceSource, ConversationSystem.PlayerId), (belief.Value, belief.Source, belief.ToldBy));
+            Assert.Contains(events, e => e.Kind == ConversationSystem.VoiceBelieved && e.InhabitantId == id && e.TargetId == near.TypeId);
+            return belief.Confidence;
+        }
+
+        var low = Believed(0.1);
+        var high = Believed(0.9);
+        Assert.True(low < high, $"low trust {low:0.000} < high trust {high:0.000}");
+        Assert.True(high <= rule.Max + 1e-9, $"a guess, never sure: {high:0.000}");
+    }
+
+    [Fact]
+    public void ATipAboutAThingItNeitherSeesNorKnowsOrAgainstASurerBeliefChangesNothing()
+    {
+        // B2830 (3): what is foreign to its world falls out; a surer belief of its own stays.
+        var (host, id) = Host();
+        var who = host.Inhabitants.Get(id);
+        host.World.Step();
+        host.Conversation.Port = new TipPort("rock_niche_never_seen_here", "edible", true);
+        Say(host, id, "Das kann man essen.");
+        host.World.Run(2);
+        Assert.False(who.Beliefs.TryGet("rock_niche_never_seen_here", "edible", out _));
+
+        var near = host.Objects.Spawn("flint", new GlassWorld.Simulation.Objects.Position(who.Position.X + 1, who.Position.Z));
+        who.Beliefs.Set(near.TypeId, "edible", false, 0.9, GlassWorld.Simulation.Objects.KnowledgeSources.Experienced);
+        host.World.Run(2);
+        host.Conversation.Port = new TipPort(near.TypeId, "edible", true);
+        Say(host, id, "Den kann man essen.");
+        host.World.Run(2);
+        Assert.True(who.Beliefs.TryGet(near.TypeId, "edible", out var kept));
+        Assert.Equal((false, GlassWorld.Simulation.Objects.KnowledgeSources.Experienced), (kept.Value, kept.Source));
+    }
+
+    [Fact]
+    public void AnAdviceThatProvesTrueAndOneThatProvesFalseChangeTheTrustInOppositeDirections()
+    {
+        // A1536, spec 31 acceptance 15 (R20): only its own doing counts - eating an apple the voice called edible raises the
+        // trust in the player, eating a flint the voice called edible lowers it; a tip nobody tries changes nothing.
+        double TrustAfter(string type)
+        {
+            var (host, id) = Host();
+            var who = host.Inhabitants.Get(id);
+            who.Relationships.Set(ConversationSystem.PlayerId, new GlassWorld.Simulation.Objects.Relation(0.5, 0.5, 0.3));
+            who.Beliefs.Set(type, "edible", true, 0.25, ConversationSystem.VoiceSource, ConversationSystem.PlayerId, host.World.Tick);
+            var tested = new List<WorldEvent>();
+            host.Inhabitants.Reported += e =>
+            {
+                if (e.Kind == InhabitantsSystem.VoiceTested)
+                {
+                    tested.Add(e);
+                }
+            };
+            host.Inhabitants.Experience(host.World.Tick, who, "eat", type, ["edible"]);
+            Assert.Single(tested);
+            return who.Relationships.Get(ConversationSystem.PlayerId, default).Trust;
+        }
+
+        var proven = TrustAfter("apple");
+        var failed = TrustAfter("flint");
+        Assert.True(proven > 0.5, $"proven: {proven:0.000}");
+        Assert.True(failed < 0.5, $"failed: {failed:0.000}");
+
+        // Untried: the trust stays.
+        var (h, i) = Host();
+        var untouched = h.Inhabitants.Get(i);
+        untouched.Relationships.Set(ConversationSystem.PlayerId, new GlassWorld.Simulation.Objects.Relation(0.5, 0.5, 0.3));
+        untouched.Beliefs.Set("apple", "edible", true, 0.25, ConversationSystem.VoiceSource, ConversationSystem.PlayerId, h.World.Tick);
+        h.World.Run(2);
+        Assert.Equal(0.5, untouched.Relationships.Get(ConversationSystem.PlayerId, default).Trust, 9);
+    }
+
+    private sealed class TipPort(string type, string property, bool value) : IConversationPort
+    {
+        private readonly Queue<PortMessage> _ready = new();
+
+        public void Send(string requestId, string requestJson)
+        {
+            var request = ContractSerializer.Deserialize<ConversationRequest>(requestJson);
+            var response = new ConversationResponse
+            {
+                ContractVersion = request.ContractVersion,
+                RequestId = request.RequestId,
+                Tick = request.Tick,
+                Outcome = ConversationResponseOutcome.Reply,
+                Reply = new GeneratedText { Locale = request.DisplayLocale, Text = "Hm." },
+                Voice = new VoiceClass { Kind = ConversationSystem.TipKind, Tip = new VoiceTip { Type = type, Property = property, Value = value } },
+                Rationale = "test",
+                Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "test", LatencyMs = 0, Attempts = 1 },
+            };
+            _ready.Enqueue(new PortMessage(requestId, ContractSerializer.Serialize(response), IsError: false));
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var messages = _ready.ToList();
+            _ready.Clear();
+            return messages;
+        }
+    }
+
     private static CommandResult Say(SimulationHost host, string id, string text) =>
         host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = text });
 
