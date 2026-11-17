@@ -3995,6 +3995,26 @@
       "text": "Favour {value} of {max}. It grows back slowly; gifts cost favour."
     },
     {
+      "key": "ui.family.title",
+      "text": "Family tree"
+    },
+    {
+      "key": "ui.zone.tab.family",
+      "text": "Family tree"
+    },
+    {
+      "key": "ui.family.placeholder",
+      "text": "There are no families yet. This is the first generation - parents and children join as soon as there are any."
+    },
+    {
+      "key": "ui.family.generation",
+      "text": "Generation {n}"
+    },
+    {
+      "key": "ui.family.deceased",
+      "text": "{name} (deceased)"
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Timeline"
     },

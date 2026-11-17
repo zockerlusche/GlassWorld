@@ -219,6 +219,16 @@ public sealed class WorldFeed
     /// <summary>The own name of an inhabitant (W1698), or null if it has none or is no longer there.</summary>
     public string? OwnName(string inhabitantId) => Snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId)?.Name;
 
+    /// <summary>
+    /// A1343 8a (D957 section 8): the family tree around the chosen inhabitant, three generations back and forth, from the
+    /// core's family view; before families exist, everyone living as one generation.
+    /// </summary>
+    public FamilyTreeView FamilyTree(string? chosenId) =>
+        World.FamilyTree.Of(
+            chosenId is null ? [] : _host.FamilyView.Tree(chosenId, 3),
+            chosenId,
+            [.. Snapshot.Inhabitants.Select(i => (i.Id, i.Name))]);
+
     /// <summary>The inhabitant's sex (<c>female</c> or <c>male</c>), or null if it is no longer there; for texts that speak of it (she/he).</summary>
     public string? SexOf(string inhabitantId) => Snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId)?.Sex;
 

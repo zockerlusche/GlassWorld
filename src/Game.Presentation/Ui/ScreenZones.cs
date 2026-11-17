@@ -26,6 +26,9 @@ public static class ScreenZones
     /// <summary>The side window with the timeline over seasons and years (a tab of the chronicle theme).</summary>
     public const string Timeline = "timeline";
 
+    /// <summary>A1343 8a (D957 section 8): the family tree tab of the people theme.</summary>
+    public const string Family = "family";
+
     /// <summary>Help and gifts: opened from the menu, not by a round button (TL #23224, D957 section 7).</summary>
     public const string FromMenu = "help";
 
@@ -38,7 +41,7 @@ public static class ScreenZones
         new("questions", "ui.zone.questions", ["questions"], UiIconChoiceIcon.Question),
         new("mailbox", "ui.zone.mailbox", ["mailbox"], UiIconChoiceIcon.Letter),
         new("chronicle", "ui.zone.chronicle", ["chronicle", Timeline], UiIconChoiceIcon.Book),
-        new("people", "ui.zone.people", ["inhabitants", Card], UiIconChoiceIcon.Person),
+        new("people", "ui.zone.people", ["inhabitants", Card, Family], UiIconChoiceIcon.Person),
     ];
 
     /// <summary>Text key of a side window's title (also its tab).</summary>

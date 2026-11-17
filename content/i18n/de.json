@@ -3995,6 +3995,26 @@
       "text": "Gunst {value} von {max}. Sie wächst langsam nach; Gaben kosten Gunst."
     },
     {
+      "key": "ui.family.title",
+      "text": "Stammbaum"
+    },
+    {
+      "key": "ui.zone.tab.family",
+      "text": "Stammbaum"
+    },
+    {
+      "key": "ui.family.placeholder",
+      "text": "Noch gibt es keine Familien. Hier steht die erste Generation - Eltern und Kinder kommen dazu, sobald es sie gibt."
+    },
+    {
+      "key": "ui.family.generation",
+      "text": "Generation {n}"
+    },
+    {
+      "key": "ui.family.deceased",
+      "text": "{name} (verstorben)"
+    },
+    {
       "key": "ui.timeline.title",
       "text": "Zeitleiste"
     },

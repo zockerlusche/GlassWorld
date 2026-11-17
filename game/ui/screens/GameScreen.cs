@@ -47,6 +47,9 @@ public partial class GameScreen : CanvasLayer
     private double _nightDarkness = 1;
     private bool _nightAsking;
     private readonly VBoxContainer _timelineList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+
+    // A1343 8a (D957 section 8): the family tree tab of the people theme.
+    private readonly VBoxContainer _familyList = new() { Name = "FamilyTree", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Dictionary<string, Button> _themeButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _lastOfTheme = new(StringComparer.Ordinal);
     private readonly List<(bool Own, Button Tab)> _zoneTabs = [];
@@ -317,6 +320,9 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add(ScreenZones.Timeline, ScreenZones.TitleKey(ScreenZones.Timeline)).Content.AddChild(_timelineList);
         _sideBar.ButtonOf(ScreenZones.Timeline).Visible = false;
         _root.AddChild(_sideBar.PanelOf(ScreenZones.Timeline));
+        _sideBar.Add(ScreenZones.Family, ScreenZones.TitleKey(ScreenZones.Family)).Content.AddChild(_familyList);
+        _sideBar.ButtonOf(ScreenZones.Family).Visible = false;
+        _root.AddChild(_sideBar.PanelOf(ScreenZones.Family));
         BuildZones();
 
         _toasts.Board = _board;
@@ -2801,6 +2807,7 @@ public partial class GameScreen : CanvasLayer
         RefreshChronicle();
         RefreshHelp();
         RefreshMail();
+        RefreshFamily();
 
         var rows = _feed.Inhabitants();
         _activities = Activities(rows);
@@ -3211,6 +3218,56 @@ public partial class GameScreen : CanvasLayer
     {
         OpenCard(inhabitantId);
         _presenter?.ChooseFigure(inhabitantId);
+    }
+
+    /// <summary>
+    /// A1343 8a (D957 section 8): the family tree around the chosen inhabitant - one row per generation, oldest first; a
+    /// name chooses that inhabitant like the list. Before families exist (B9) everyone stands in one generation and the tab
+    /// says so. Only built while the tab is open.
+    /// </summary>
+    private void RefreshFamily()
+    {
+        if (_feed is null || !_sideBar.PanelOf(ScreenZones.Family).Visible)
+        {
+            return;
+        }
+
+        foreach (var child in _familyList.GetChildren())
+        {
+            _familyList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        var view = _feed.FamilyTree(_lastCardId);
+        if (view.Placeholder)
+        {
+            _familyList.AddChild(new Label { Text = "ui.family.placeholder", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        }
+
+        foreach (var generation in view.Generations)
+        {
+            _familyList.AddChild(new Label
+            {
+                Text = TextFill.Fill(Tr("ui.family.generation"), new Dictionary<string, string> { ["n"] = Number(generation.Index + 1) }),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            });
+            var row = new HFlowContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            foreach (var member in generation.Members)
+            {
+                var id = member.Id;
+                var person = new Button
+                {
+                    Text = member.Alive ? member.Name : TextFill.Fill(Tr("ui.family.deceased"), new Dictionary<string, string> { ["name"] = member.Name }),
+                    ToggleMode = true,
+                    ButtonPressed = member.Chosen,
+                    AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                };
+                person.Pressed += () => ShowInhabitant(id);
+                row.AddChild(person);
+            }
+
+            _familyList.AddChild(row);
+        }
     }
 
     private void OpenCard(string inhabitantId)
