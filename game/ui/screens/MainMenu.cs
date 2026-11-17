@@ -23,6 +23,9 @@ public sealed record MenuData(WorldLibrary Worlds, WorldOptions Options, FavorSe
     /// (the layout check).
     /// </summary>
     public Func<NewWorldChoice, (GlassWorld.Simulation.Map.PreviewIsland Island, PreviewImage Image)>? Preview { get; init; }
+
+    /// <summary>A1774: the character value ids a start inhabitant can be designed with (content/inhabitants/model.json).</summary>
+    public IReadOnlyList<string> Traits { get; init; } = [];
 }
 
 /// <summary>
@@ -284,6 +287,10 @@ public partial class MainMenu : CanvasLayer
 
         // A1770 (B2805 'Einfach'): how much grows and lies on the island, and how many pairs start; from the data.
         var resources = Options((data.Options.Resources ?? []).Select(r => r.Id), "ui.new_world.resources.", data.Options.DefaultResources ?? "normal");
+
+        // A1833 (B2805 'Erweitert'): the island's terrain and how things lie on it.
+        var terrain = Options((data.Options.Terrains ?? []).Select(t => t.Id), "ui.new_world.terrain.", data.Options.DefaultTerrain ?? "hilly");
+        var distribution = Options((data.Options.Distributions ?? []).Select(t => t.Id), "ui.new_world.distribution.", data.Options.DefaultDistribution ?? "normal");
         var pairs = Options((data.Options.StartPairs ?? []).Select(p => "pairs_" + p.ToString(CultureInfo.InvariantCulture)), "ui.new_world.start_pairs.", "pairs_" + (data.Options.DefaultStartPairs ?? 2).ToString(CultureInfo.InvariantCulture));
         var favor = new OptionButton();
         foreach (var option in data.Favor.StartOptions)
@@ -307,7 +314,7 @@ public partial class MainMenu : CanvasLayer
             var (ok, value) = NewWorldModel.ParseSeed(seed.Text);
             updating = true;
             code.Text = ok && value is { } s
-                ? WorldCode.Encode(new WorldStart(s, size.GetItemMetadata(size.Selected).AsString(), climate.GetItemMetadata(climate.Selected).AsString(), favor.GetItemMetadata(favor.Selected).AsInt32()), data.Options, data.Favor)
+                ? WorldCode.Encode(new WorldStart(s, size.GetItemMetadata(size.Selected).AsString(), climate.GetItemMetadata(climate.Selected).AsString(), favor.GetItemMetadata(favor.Selected).AsInt32(), SelectedId(resources), SelectedPairs(pairs), SelectedId(terrain), SelectedId(distribution)), data.Options, data.Favor)
                 : string.Empty;
             updating = false;
         }
@@ -325,6 +332,26 @@ public partial class MainMenu : CanvasLayer
             Select(size, start.Size);
             Select(climate, start.Climate);
             Select(favor, start.StartFavor);
+            if (start.Resources is { } r)
+            {
+                Select(resources, r);
+            }
+
+            if (start.StartPairs is { } p)
+            {
+                Select(pairs, "pairs_" + p.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (start.Terrain is { } t)
+            {
+                Select(terrain, t);
+            }
+
+            if (start.Distribution is { } d)
+            {
+                Select(distribution, d);
+            }
+
             updating = false;
             ShowCode();
         }
@@ -375,6 +402,35 @@ public partial class MainMenu : CanvasLayer
         var advanced = new FoldableContainer { Name = "Advanced", Title = "ui.new_world.advanced", Folded = true };
         var advancedRows = new VBoxContainer();
         advanced.AddChild(advancedRows);
+        if (terrain.ItemCount > 0)
+        {
+            Row(advancedRows, "ui.new_world.terrain", terrain);
+        }
+
+        if (distribution.ItemCount > 0)
+        {
+            Row(advancedRows, "ui.new_world.distribution", distribution);
+        }
+
+        // A1774 (B2805): design the start inhabitants or leave them to the seed - in a window of its own.
+        IReadOnlyList<GlassWorld.Simulation.State.StartInhabitantSpec>? designed = null;
+        var designButton = new Button { Text = "ui.new_world.inhabitants_random" };
+        designButton.Pressed += () =>
+        {
+            var count = (pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : 2) * 2;
+            var design = DesignWindow(data, style, count, designed, chosen =>
+            {
+                designed = chosen;
+                designButton.Text = chosen is null ? "ui.new_world.inhabitants_random" : "ui.new_world.inhabitants_designed";
+            });
+            window.GetParent().AddChild(design);
+            design.FitInto(window.GetViewport().GetVisibleRect().Size);
+        };
+        if (data.Traits.Count > 0)
+        {
+            Row(advancedRows, "ui.new_world.inhabitants", designButton);
+        }
+
         Row(advancedRows, "ui.new_world.code", codeRow);
         Row(advancedRows, "ui.new_world.seed", seed);
         Row(advancedRows, "ui.new_world.start_favor", favor);
@@ -463,11 +519,17 @@ public partial class MainMenu : CanvasLayer
             }
         }
 
+        resources.ItemSelected += _ => ShowCode();
+        pairs.ItemSelected += _ => ShowCode();
+        terrain.ItemSelected += _ => ShowCode();
+        distribution.ItemSelected += _ => ShowCode();
         seed.TextChanged += _ => Changed();
         code.TextChanged += _ => Changed();
         size.ItemSelected += _ => Changed();
         resources.ItemSelected += _ => Changed();
         pairs.ItemSelected += _ => Changed();
+        terrain.ItemSelected += _ => Changed();
+        distribution.ItemSelected += _ => Changed();
         window.AddAction("ui.common.cancel").Pressed += window.Close;
         window.AddAction("ui.new_world.create").Pressed += () =>
         {
@@ -495,10 +557,132 @@ public partial class MainMenu : CanvasLayer
                 climate.GetItemMetadata(climate.Selected).AsString(),
                 favor.GetItemMetadata(favor.Selected).AsInt32(),
                 resources.ItemCount > 0 ? resources.GetItemMetadata(resources.Selected).AsString() : null,
-                pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null);
+                pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null,
+                terrain.ItemCount > 0 ? terrain.GetItemMetadata(terrain.Selected).AsString() : null,
+                distribution.ItemCount > 0 ? distribution.GetItemMetadata(distribution.Selected).AsString() : null,
+                designed);
         name.CallDeferred(Control.MethodName.GrabFocus);
         return window;
     }
+
+    /// <summary>
+    /// A1774 (B2805 'Erweitert'): the start inhabitants to design - per inhabitant whether to design it, its name, sex and
+    /// character values (a share of the data's range, 0..1); what is not designed is drawn from the seed. Names go through
+    /// the content guard (R13). <paramref name="done"/> gets the design, or null for "all random".
+    /// </summary>
+    public static GwWindow DesignWindow(MenuData data, UiStyle style, int count, IReadOnlyList<GlassWorld.Simulation.State.StartInhabitantSpec>? current, Action<IReadOnlyList<GlassWorld.Simulation.State.StartInhabitantSpec>?> done)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(done);
+        var window = new GwWindow();
+        window.Setup("ui.new_world.design_title", style);
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        scroll.AddChild(list);
+        window.Content.AddChild(scroll);
+        var rows = new List<(CheckBox Design, LineEdit Name, OptionButton Sex, List<(string Id, HSlider Slider)> Traits)>();
+        for (var i = 0; i < count; i++)
+        {
+            var had = current is not null && i < current.Count ? current[i] : null;
+            var designedBefore = had is not null && (had.Name is not null || had.Sex is not null || had.Traits is not null);
+            var section = new FoldableContainer
+            {
+                Title = TextFill.Fill(TranslationServer.Translate("ui.new_world.inhabitant_n"), new Dictionary<string, string> { ["n"] = (i + 1).ToString(CultureInfo.InvariantCulture) }),
+                Folded = i > 0 && !designedBefore,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+            };
+            var body = new VBoxContainer();
+            section.AddChild(body);
+            var design = new CheckBox { Text = "ui.new_world.design_this", ButtonPressed = designedBefore };
+            body.AddChild(design);
+            var name = new LineEdit { MaxLength = data.Options.PlayerNameMaxLength, PlaceholderText = "ui.new_world.name_random", Text = had?.Name ?? string.Empty };
+            Row(body, "ui.new_world.inhabitant_name", name);
+            var sex = new OptionButton();
+            sex.AddItem("ui.new_world.sex_random");
+            sex.SetItemMetadata(0, string.Empty);
+            sex.AddItem("ui.new_world.sex_female");
+            sex.SetItemMetadata(1, "female");
+            sex.AddItem("ui.new_world.sex_male");
+            sex.SetItemMetadata(2, "male");
+            sex.Selected = had?.Sex switch { "female" => 1, "male" => 2, _ => 0 };
+            Row(body, "ui.new_world.inhabitant_sex", sex);
+            var traits = new List<(string Id, HSlider Slider)>();
+            foreach (var id in data.Traits)
+            {
+                var slider = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.05, Value = had?.Traits is { } t && t.TryGetValue(id, out var v) ? v : 0.5 };
+                Row(body, VocabKeys.Trait(id), slider);
+                traits.Add((id, slider));
+            }
+
+            void Enable()
+            {
+                name.Editable = design.ButtonPressed;
+                sex.Disabled = !design.ButtonPressed;
+                foreach (var (_, slider) in traits)
+                {
+                    slider.Editable = design.ButtonPressed;
+                }
+            }
+
+            design.Toggled += _ => Enable();
+            Enable();
+            list.AddChild(section);
+            rows.Add((design, name, sex, traits));
+        }
+
+        var problem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        window.Content.AddChild(problem);
+        window.AddAction("ui.common.cancel").Pressed += window.Close;
+        window.AddAction("ui.new_world.design_all_random").Pressed += () =>
+        {
+            window.Close();
+            done(null);
+        };
+        window.AddAction("ui.new_world.design_apply").Pressed += () =>
+        {
+            var chosen = new List<GlassWorld.Simulation.State.StartInhabitantSpec>();
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (design, name, sex, traits) in rows)
+            {
+                if (!design.ButtonPressed)
+                {
+                    chosen.Add(new GlassWorld.Simulation.State.StartInhabitantSpec());
+                    continue;
+                }
+
+                var text = name.Text.Trim();
+                // The shape of the name data (2-16 letters, capital first) and the content guard; each name once (review GW3 #598).
+                var bad = text.Length > 0
+                    && (NewWorldModel.InputProblem(text, data.Options.PlayerNameMaxLength, data.Guard) is not null
+                        || !GlassWorld.Simulation.Content.ContentSet.IsProperName(text) || !names.Add(text));
+                if (bad)
+                {
+                    problem.Text = "ui.new_world.problem.inhabitant_name";
+                    problem.Visible = true;
+                    window.FitInto(window.GetViewport().GetVisibleRect().Size);
+                    return;
+                }
+
+                var sexId = sex.GetItemMetadata(sex.Selected).AsString();
+                chosen.Add(new GlassWorld.Simulation.State.StartInhabitantSpec(
+                    text.Length > 0 ? text : null,
+                    sexId.Length > 0 ? sexId : null,
+                    traits.ToDictionary(t => t.Id, t => t.Slider.Value, StringComparer.Ordinal)));
+            }
+
+            window.Close();
+            done(chosen.Any(c => c.Name is not null || c.Sex is not null || c.Traits is not null) ? chosen : null);
+        };
+        return window;
+    }
+
+    /// <summary>A1854: the selected option id, or null when the data has no such options.</summary>
+    private static string? SelectedId(OptionButton options) => options.ItemCount > 0 ? options.GetItemMetadata(options.Selected).AsString() : null;
+
+    /// <summary>A1854: the selected number of start pairs (items carry "pairs_N"), or null.</summary>
+    private static int? SelectedPairs(OptionButton pairs) =>
+        pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null;
 
     /// <summary>Builds the list of saved worlds (also for the layout check).</summary>
     public static GwWindow WorldsWindow(MenuData data, UiStyle style, Action<WorldMeta> load)
@@ -534,8 +718,11 @@ public partial class MainMenu : CanvasLayer
             // Unknown values (older worlds, edited files) give a calm message instead of nothing.
             try
             {
-                var seed = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id)).Seed;
-                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+                var state = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id));
+
+                // A1854 (review GW2 #605): the world's own resources, pairs, terrain and distribution from its specification.
+                var spec = state.Spec;
+                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(state.Seed, world.Size, world.Climate, world.StartFavor, spec?.Resources, spec?.StartPairs, spec?.Terrain, spec?.Distribution), data.Options, data.Favor));
                 copyProblem.Visible = false;
             }
             catch (Exception e) when (e is ArgumentException or InvalidDataException or IOException or Microsoft.Data.Sqlite.SqliteException)

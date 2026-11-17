@@ -27,8 +27,10 @@ public sealed record NewWorldPreview(WorldGenContent WorldGen, ObjectCatalog Cat
     {
         ArgumentNullException.ThrowIfNull(spec);
         var factor = spec.ResourceFactor ?? 1.0;
-        var island = WorldGenerator.Generate(WorldGen, Catalog, PresetId, seed, spec.GridCells, factor, spec.StartPairs);
+        var terrain = spec.TerrainFactor ?? 1.0;
+        var cluster = spec.ClusterFactor ?? 1.0;
+        var island = WorldGenerator.Generate(WorldGen, Catalog, PresetId, seed, spec.GridCells, factor, spec.StartPairs, terrain, cluster);
         var look = TerrainLook.From(Terrain, Palette, island.Map, WorldGen.Presets[PresetId]);
-        return (new PreviewIsland(island, spec.GridCells, factor, spec.StartPairs), IslandPreview.Draw(island.Map, look, PreviewLook.From(Terrain)));
+        return (new PreviewIsland(island, spec.GridCells, factor, spec.StartPairs, terrain, cluster), IslandPreview.Draw(island.Map, look, PreviewLook.From(Terrain)));
     }
 }

@@ -155,6 +155,37 @@ public sealed class DurabilityTests
     }
 
     [Fact]
+    public void AStormHourWearsWhatWasBuiltAndCalmWeatherDoesNot()
+    {
+        // A1382 S2 (D998, R24): each full storm hour wears every built thing by the data's permille; its quality
+        // stretches the life as always (QualityStretchesTheLife...).
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var built = host.Objects.Spawn("dry_grass", new Position(host.Inhabitants.All.First().Position.X + 30, host.Inhabitants.All.First().Position.Z));
+        host.Durability!.QualityOf = t => t == "dry_grass" ? "simple" : null;
+        var perHour = Content.Value.Durability!.StormDamage!.PerHourPermille;
+        var hour = host.World.Calendar.Settings.TicksPerHour;
+
+        host.WeatherSystem!.Force("clear", host.World.Tick);
+        RunToNextHour(host, hour);
+        Assert.Equal(0, host.Durability.ExtraWearOf(built.Id));
+
+        host.WeatherSystem.Force("storm", host.World.Tick);
+        RunToNextHour(host, hour);
+        Assert.Equal("storm", host.WeatherSystem.Current);
+        Assert.Equal(perHour, host.Durability.ExtraWearOf(built.Id));
+    }
+
+    private static void RunToNextHour(SimulationHost host, int ticksPerHour)
+    {
+        do
+        {
+            host.World.Step();
+        }
+        while (host.World.Tick % ticksPerHour != 1);
+    }
+
+    [Fact]
     public void QualityStretchesTheLifeAndUsesSurviveSavingAndLoading()
     {
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");

@@ -50,6 +50,9 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     public Func<string, string?>? RootOf { get; init; }
 
+    /// <summary>A1816 step 2: whether an inhabitant has a complaint now - health comes back only without one (set by the host).</summary>
+    public Func<string, bool>? Ill { get; set; }
+
     /// <inheritdoc/>
     public string Name => "stores";
 
@@ -61,6 +64,26 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>Health of an inhabitant, 0..1 (full while it has no entry yet).</summary>
     public double Health(string inhabitantId) => (_stores.TryGetValue(inhabitantId, out var s) ? s.Health : Full) / (double)Full;
+
+    /// <summary>Changes an inhabitant's health by permille now (complaints, A1816 step 2); clamped to 0..1000.</summary>
+    public void ChangeHealth(string inhabitantId, int change)
+    {
+        if (change == 0)
+        {
+            return;
+        }
+
+        var (stamina, health) = _stores.TryGetValue(inhabitantId, out var s) ? s : (Full, Full);
+        health = Math.Clamp(health + change, 0, Full);
+        if (stamina == Full && health == Full)
+        {
+            _stores.Remove(inhabitantId);
+        }
+        else
+        {
+            _stores[inhabitantId] = (stamina, health);
+        }
+    }
 
     /// <summary>The carrying strength of an inhabitant in kg: the data's value for its life phase, else the default.</summary>
     public double CarryKg(Inhabitant inhabitant)
@@ -90,6 +113,30 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
     {
         var source = _catalog.Contains(typeId) ? typeId : RootOf?.Invoke(typeId);
         return source is not null && _catalog.Contains(source) ? _catalog.Params(source).WeightKg : null;
+    }
+
+    /// <summary>Detail of a cancelled action: the thing is heavier than the inhabitant can lift (E10).</summary>
+    public const string TooHeavy = "too_heavy";
+
+    /// <summary>Whether an action takes its target into the hand (actions data timing; set by the host). Null = none does.</summary>
+    public Func<string, bool>? Holds { get; init; }
+
+    /// <summary>
+    /// E10: why an inhabitant cannot do an action on a thing - <see cref="TooHeavy"/> when the action takes it into the hand and
+    /// its weight is more than the data's share of the carrying strength - or null. A thing without a known weight is never
+    /// too heavy. The inhabitants find out by trying; no option is hidden (frame, not outcome).
+    /// </summary>
+    public string? LiftRefusal(Inhabitant inhabitant, string action, WorldObject target)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(target);
+        if (_data.LiftMaxShare is not { } max || Holds?.Invoke(action) != true || WeightOf(target.TypeId) is not { } kg)
+        {
+            return null;
+        }
+
+        var carry = CarryKg(inhabitant);
+        return carry > 0 && kg / carry > max ? TooHeavy : null;
     }
 
     /// <summary>The highest stamina the inhabitant can recover to now, permille (D1202: sinks with the sleep need and health).</summary>
@@ -131,7 +178,7 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
                 }
             }
 
-            if (health < Full && _data.Health.RecoverPerHour > 0)
+            if (health < Full && _data.Health.RecoverPerHour > 0 && Ill?.Invoke(inhabitant.Id) != true)
             {
                 health = Math.Min(Full, health + Step(world.Tick, _data.Health.RecoverPerHour));
             }

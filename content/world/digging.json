@@ -1,6 +1,7 @@
 {
   "contract_version": "0.2",
   "action": "dig",
+  "overgrow": { "default_hours_per_step": 96, "hours_per_step": { "meadow": 72, "field": 72, "forest": 120, "beach_sea": 48, "rocks_hills": 0 }, "grows_like": "dry_grass", "keeps": ["waterhole"] },
   "step_cm": 25,
   "pit_type": "pit",
   "well_type": "waterhole",
