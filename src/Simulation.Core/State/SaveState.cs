@@ -330,7 +330,10 @@ public static class StateCodec
                 $"The island of this save game (preset '{state.WorldPreset}', hash {state.IslandHash[..12]}) differs from the island the current data generate ({host.Map?.IslandHash[..12] ?? "none"}): world data or generator changed since the save.");
         }
 
-        // Runtime types first: objects of invented types are restored right after.
+        // Runtime types first: objects of invented types are restored right after. The variants of processing come before
+        // the inventions (GW2 #28573): an invention made of a processed material takes the variant's properties, and they
+        // are only known once the variant is registered - otherwise a loaded invention lost them (B4b runs 1 and 7).
+        host.Processes?.Restore(state.Processes);
         if (state.Inventions is not null)
         {
             host.Inventions.Restore(state.Inventions);
@@ -479,7 +482,6 @@ public static class StateCodec
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
-        host.Processes?.Restore(state.Processes);
         host.Fire.Restore(state.Burning, state.Tick);
         host.Forgetting.Restore(state.Forgetting);
         host.Nature?.Restore(state.Nature);
