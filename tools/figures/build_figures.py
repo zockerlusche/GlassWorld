@@ -298,6 +298,8 @@ def sampled_pose(armature, action_name, frame):
 def set_pose(armature, base, lower, spine_deg):
     """The base pose, hips and legs from 'lower', the spine bent forward by spine_deg."""
     for bone in armature.pose.bones:
+        # Keyed as location + quaternion below: every bone in quaternion mode (review GW1 #606).
+        bone.rotation_mode = "QUATERNION"
         use_lower = lower is not None and (
             bone.name in ("DEF-hips", "root") or any(k in bone.name for k in LOWER_BODY)
         )
@@ -335,6 +337,8 @@ def add_ground_clips(armature):
                 ik.influence = 1.0 if hand in where else 0.0
                 ik.keyframe_insert("influence", frame=frame)
                 if hand in where:
+                    # World coordinates: right while the armature sits at the origin unrotated,
+                    # as the import leaves it (review GW1 #606); a moved rig moves the reach.
                     empty.location = Vector(where[hand]) * scale
                     empty.keyframe_insert("location", frame=frame)
         bpy.context.view_layer.objects.active = armature

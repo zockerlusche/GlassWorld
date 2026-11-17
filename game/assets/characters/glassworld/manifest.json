@@ -1,13 +1,13 @@
 {
   "tool": "tools/figures/build_figures.py",
-  "tool_sha256": "8c5e0ac78953b2b62a73a9b5f714e39a61a65744a4d3e11084f46a42aa95497b",
+  "tool_sha256": "0ac892de29dd3b4ec3f26a5b8d7c94fec402ec9666c4648b4bebd1d4076633a2",
   "blender": "4.5.15 LTS",
   "source": "F:/GlassWorld-gw3/game/assets/characters/quaternius-ual1/ual1_standard.glb",
   "source_sha256": "1b7bf67866360665426bb99e4c71bd619f19b408453c24e30f0c3071601eee5c",
   "config_sha256": "a350e2746bd019ae2e2bbe92e5667ff100b9240652b5554d8837a9265842a0a4",
   "bodies": {
-    "adult_female": "e484aaebd63fa3b0780c782e370dd0d32ae5d8dde91bb804abaf527b6f3dd4c2",
-    "adult_male": "2524081348d3548fad854cc25b18011db889c1643244508dba1adc0fbdbf0d57",
-    "child": "47577a22a8ee0c4674318b3057a91bec0451e5b1c29c4dddc89a0b1e9eb076c4"
+    "adult_female": "85d10daa8d06b1a7846b78d0a657d3c64755b6337268004cb3628fa89270a822",
+    "adult_male": "f0d34aa9f6251a022e30b9ed9adf3b014ade8e5c13f7ca3cb6c15324cf0b4d1a",
+    "child": "7f919cc75cf7228dcc6476542ec668f5ef6b14aa3ce4331dee5aad6ff1a68031"
   }
 }
