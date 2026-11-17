@@ -515,6 +515,38 @@
       "text": "Advanced"
     },
     {
+      "key": "ui.new_world.terrain",
+      "text": "Terrain"
+    },
+    {
+      "key": "ui.new_world.terrain.flat",
+      "text": "Flat"
+    },
+    {
+      "key": "ui.new_world.terrain.hilly",
+      "text": "Hilly"
+    },
+    {
+      "key": "ui.new_world.terrain.mountainous",
+      "text": "Mountainous"
+    },
+    {
+      "key": "ui.new_world.distribution",
+      "text": "Distribution"
+    },
+    {
+      "key": "ui.new_world.distribution.scattered",
+      "text": "Scattered"
+    },
+    {
+      "key": "ui.new_world.distribution.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.new_world.distribution.clustered",
+      "text": "Clustered"
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
