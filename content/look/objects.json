@@ -91,6 +91,24 @@
       "footprint_m": 0.0
     },
     {
+      "id": "seaweed", "reach": "low",
+      "types": [
+        "seaweed"
+      ],
+      "shape": "reeds",
+      "colors": [
+        "foliage_dark",
+        "bark"
+      ],
+      "size_m": 0.5,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.3
+    },
+    {
       "id": "young_tree", "reach": "mid",
       "types": [
         "young_tree"

@@ -280,7 +280,7 @@ public static partial class WorldGenerator
         var objects = new List<IslandObject>();
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         DrinkSpots(preset, map, objects, Stream(attemptSeed, "worldgen/drink"));
-        Spawn(spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"), Stream(attemptSeed, "worldgen/outcrops"));
+        Spawn(spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"), Stream(attemptSeed, "worldgen/outcrops"), Stream(attemptSeed, "worldgen/shallows"));
         var supply = preset.Start.Supply;
         var feasible = SupplyFeasible(supply, spawns, catalog, map, objects);
 
@@ -894,13 +894,15 @@ public static partial class WorldGenerator
     {
         var areas = PathFinder.WalkableAreas(map);
         var w = map.WidthCells;
-        var cellsOf = SpawnCells(map);
+        var cellsOf = SpawnCells(map, out var waterOf);
+        // A1842: a rule in the shallow water places only on its biome's water cells.
+        List<(int X, int Z)>? CellsFor(SpawnRule rule) => (rule.InWater is not null ? waterOf : cellsOf).GetValueOrDefault(rule.Biome);
         var rules = spawns.Spawns.ToList();
 
         // Room left in each rule: its max_total minus the objects of its type already on its cells.
         var room = rules.Select(rule =>
         {
-            var cells = cellsOf.GetValueOrDefault(rule.Biome) ?? [];
+            var cells = CellsFor(rule) ?? [];
             var on = cells.ToHashSet();
             return rule.MaxTotal - objects.Count(o => o.TypeId == rule.ObjectType && on.Contains((o.X, o.Z)));
         }).ToArray();
@@ -926,7 +928,7 @@ public static partial class WorldGenerator
                 var options = new List<(int Rule, int X, int Z)>();
                 for (var r = 0; r < rules.Count; r++)
                 {
-                    if (room[r] <= 0 || !Matches(rules[r].ObjectType) || cellsOf.GetValueOrDefault(rules[r].Biome) is not { } cells)
+                    if (room[r] <= 0 || !Matches(rules[r].ObjectType) || CellsFor(rules[r]) is not { } cells)
                     {
                         continue;
                     }
@@ -959,7 +961,7 @@ public static partial class WorldGenerator
                 have = objects.Count(o => Near(o.X, o.Z) && Reachable(o.X, o.Z) && Matches(o.TypeId));
                 for (var k = have; k < resource.Min; k++)
                 {
-                    var pairs = PlantAndFruit(rules, room, cellsOf, objects, (start.X, start.Z), Near, Reachable, Matches);
+                    var pairs = PlantAndFruit(rules, room, CellsFor, objects, (start.X, start.Z), Near, Reachable, Matches);
                     if (pairs.Count == 0)
                     {
                         break;
@@ -1020,14 +1022,14 @@ public static partial class WorldGenerator
     /// the radius; reachable pairs first, then any. Data order of rules and cells (deterministic).
     /// </summary>
     private static List<(int FruitRule, int PlantRule, (int X, int Z) Plant, (int X, int Z) Fruit)> PlantAndFruit(
-        List<SpawnRule> rules, int[] room, Dictionary<string, List<(int X, int Z)>> cellsOf, List<IslandObject> objects, (int X, int Z) start,
+        List<SpawnRule> rules, int[] room, Func<SpawnRule, List<(int X, int Z)>?> cellsOf, List<IslandObject> objects, (int X, int Z) start,
         Func<int, int, bool> near, Func<int, int, bool> reachable, Func<string, bool> matches)
     {
         var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
         var all = new List<(int, int, (int X, int Z), (int X, int Z))>();
         for (var r = 0; r < rules.Count; r++)
         {
-            if (room[r] <= 0 || rules[r].GrowsOn is not { } grows || !matches(rules[r].ObjectType) || cellsOf.GetValueOrDefault(rules[r].Biome) is not { } fruitCells)
+            if (room[r] <= 0 || rules[r].GrowsOn is not { } grows || !matches(rules[r].ObjectType) || cellsOf(rules[r]) is not { } fruitCells)
             {
                 continue;
             }
@@ -1035,7 +1037,7 @@ public static partial class WorldGenerator
             var fruitAllowed = fruitCells.ToHashSet();
             for (var pr = 0; pr < rules.Count; pr++)
             {
-                if (room[pr] <= 0 || rules[pr].GrowsOn is not null || rules[pr].ObjectType != grows.ObjectType || cellsOf.GetValueOrDefault(rules[pr].Biome) is not { } plantCells)
+                if (room[pr] <= 0 || rules[pr].GrowsOn is not null || rules[pr].ObjectType != grows.ObjectType || cellsOf(rules[pr]) is not { } plantCells)
                 {
                     continue;
                 }
@@ -1257,19 +1259,22 @@ public static partial class WorldGenerator
     /// are its dry walkable cells; a water biome (stream, lake, swamp) uses its banks, and if it has
     /// none, its shallow water (reed in the swamp, clay at the stream).
     /// </summary>
-    private static void Spawn(SpawnTable spawns, WorldMap map, List<IslandObject> objects, Pcg32 rng, Pcg32 outcrops)
+    private static void Spawn(SpawnTable spawns, WorldMap map, List<IslandObject> objects, Pcg32 rng, Pcg32 outcrops, Pcg32 shallows)
     {
-        var byBiome = SpawnCells(map);
+        var byBiome = SpawnCells(map, out var waterOf);
         var taken = new HashSet<(int, int)>(objects.Select(o => (o.X, o.Z)));
 
         // W1936: what grows on a plant comes after all plants, each in data order. A1578 (B2827): outcrops (rules with
         // min_ore_permille) come last with their own random stream, so adding one moves nothing else on the island.
-        var main = spawns.Spawns.Where(r => r.MinOrePermille is null).ToList();
+        // A1842 (R43): rules in the shallow water come after those with their own stream too.
+        var main = spawns.Spawns.Where(r => r.MinOrePermille is null && r.InWater is null).ToList();
         var ordered = main.Where(r => r.GrowsOn is null).Concat(main.Where(r => r.GrowsOn is not null)).Select(r => (Rule: r, Draw: rng))
-            .Concat(spawns.Spawns.Where(r => r.MinOrePermille is not null).Select(r => (Rule: r, Draw: outcrops)));
+            .Concat(spawns.Spawns.Where(r => r.MinOrePermille is not null && r.InWater is null).Select(r => (Rule: r, Draw: outcrops)))
+            .Concat(spawns.Spawns.Where(r => r.InWater is not null).Select(r => (Rule: r, Draw: shallows)));
         foreach (var (rule, draw) in ordered)
         {
-            if (!byBiome.TryGetValue(rule.Biome, out var biomeCells) || biomeCells.Count == 0)
+            var source = rule.InWater is not null ? waterOf : byBiome;
+            if (!source.TryGetValue(rule.Biome, out var biomeCells) || biomeCells.Count == 0)
             {
                 continue;
             }
@@ -1324,9 +1329,10 @@ public static partial class WorldGenerator
 
     /// <summary>
     /// The cells each biome spawns on: a land biome its dry walkable cells; a water biome (stream, lake,
-    /// swamp) its banks, and if it has none, its shallow water.
+    /// swamp) its banks, and if it has none, its shallow water. <paramref name="water"/>: each biome's walkable
+    /// water cells (A1842, rules with in_water).
     /// </summary>
-    private static Dictionary<string, List<(int X, int Z)>> SpawnCells(WorldMap map)
+    private static Dictionary<string, List<(int X, int Z)>> SpawnCells(WorldMap map, out Dictionary<string, List<(int X, int Z)>> water)
     {
         var dry = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
         var bank = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
@@ -1373,6 +1379,8 @@ public static partial class WorldGenerator
             }
         }
 
+        // A1842 (R43): every biome's walkable water cells, for rules in the shallow water.
+        water = shallow;
         var byBiome = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
         foreach (var biome in map.BiomeIds)
         {
@@ -1494,7 +1502,9 @@ public static partial class WorldGenerator
     {
         int w = map.WidthCells, d = map.DepthCells;
         var areas = PathFinder.WalkableAreas(map);
-        var cellsOf = SpawnCells(map);
+        var cellsOf = SpawnCells(map, out var waterOf);
+        // A1842: a rule in the shallow water places only on its biome's water cells.
+        List<(int X, int Z)>? CellsFor(SpawnRule rule) => (rule.InWater is not null ? waterOf : cellsOf).GetValueOrDefault(rule.Biome);
         var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
         var rules = spawns.Spawns.ToList();
 
@@ -1509,9 +1519,9 @@ public static partial class WorldGenerator
                 offer[(o.Z * w) + o.X]++;
             }
 
-            foreach (var rule in rules.Where(r => Matches(r.ObjectType) && cellsOf.ContainsKey(r.Biome)))
+            foreach (var rule in rules.Where(r => Matches(r.ObjectType) && CellsFor(r) is not null))
             {
-                var cells = cellsOf[rule.Biome];
+                var cells = CellsFor(rule)!;
                 var on = cells.ToHashSet();
                 if (rule.MaxTotal - objects.Count(o => o.TypeId == rule.ObjectType && on.Contains((o.X, o.Z))) <= 0)
                 {

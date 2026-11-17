@@ -33,6 +33,7 @@
     { "id": "hazel_bush", "description": "A bush with long straight rods and nuts.", "properties": ["burnable", "building_material"], "params": { "wind_block_permille": 300 } },
     { "id": "hazelnut", "description": "A small hard-shelled nut.", "properties": ["fruit", "edible", "long_lasting", "portable", "fatty"], "params": { "density_permille": 1100, "weight_kg": 0.01 } },
     { "id": "reed", "description": "Tall stalks growing in wet ground.", "properties": ["fibrous", "braidable", "burnable", "portable"], "params": { "fuel_minutes": 10, "length_cm": 200, "density_permille": 400, "load_kg": 5, "weight_kg": 0.3 } },
+    { "id": "seaweed", "description": "Long brown-green strands growing in the shallow sea.", "properties": ["edible", "fibrous", "portable"], "params": { "density_permille": 1050, "weight_kg": 0.2 } },
     { "id": "flax", "description": "A slender plant with blue flowers and tough stems.", "properties": ["fibrous", "braidable", "portable"] },
     { "id": "nettle", "description": "A plant whose leaves sting the skin.", "properties": ["fibrous", "braidable", "portable"] },
     { "id": "healing_herb", "description": "A low plant with a strong smell.", "properties": ["healing", "edible", "portable"] },

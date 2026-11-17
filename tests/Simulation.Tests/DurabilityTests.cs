@@ -113,6 +113,48 @@ public sealed class DurabilityTests
     }
 
     [Fact]
+    public void AThingOfAnyQualityEndsAtTheSameTickInARunningAndALoadedWorld()
+    {
+        // A1842 (review GW1 #600): the queue's due tick is a true lower bound at every quality, so where the queue began
+        // (world start or load) does not move the end.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", "start_island");
+        host.World.Run(1);
+        var near = host.Inhabitants.All.First().Position;
+        var solid = Content.Value.Durability!.Quality!.OrderByDescending(q => q.LifePermille).First(q => q.LifePermille > 1000);
+        string? Quality(string type) => type == "dry_wood" ? solid.Tier : null;
+        var thing = host.Objects.Spawn("dry_wood", new Position(near.X + 40, near.Z));
+        host.Durability!.QualityOf = Quality;
+        host.Durability.AddWear(thing.Id, solid.LifePermille - 4);
+        host.World.Step();
+        Assert.True(host.Objects.TryGet(thing.Id, out _), "it ended at once");
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-durability-end-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+            var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), SaveGameStore.Load(path));
+            loaded.Durability!.QualityOf = Quality;
+            Assert.Equal(EndOf(host, thing.Id), EndOf(loaded, thing.Id));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static long EndOf(SimulationHost host, string id)
+    {
+        for (var i = 0; i < host.World.Calendar.TicksPerDay * 20 && host.Objects.TryGet(id, out _); i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.False(host.Objects.TryGet(id, out _), "it did not end within 20 days");
+        return host.World.Tick;
+    }
+
+    [Fact]
     public void AStormHourWearsWhatWasBuiltAndCalmWeatherDoesNot()
     {
         // A1382 S2 (D998, R24): each full storm hour wears every built thing by the data's permille; its quality

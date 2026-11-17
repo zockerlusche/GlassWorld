@@ -5,6 +5,29 @@
   "spawns": [
     {
       "biome": "beach_sea",
+      "object_type": "seaweed",
+      "in_water": "shallow",
+      "per_1000_cells": 12,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 60,
+      "regrow_hours": 120
+    },
+    {
+      "biome": "beach_sea",
+      "object_type": "shell",
+      "in_water": "shallow",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 30
+    },
+    {
+      "biome": "beach_sea",
       "object_type": "shell",
       "per_1000_cells": 9,
       "cluster": {

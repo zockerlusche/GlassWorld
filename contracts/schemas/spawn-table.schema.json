@@ -89,6 +89,11 @@
         "grows_on": {
           "$ref": "#/$defs/SpawnGrowsOn"
         },
+        "in_water": {
+          "description": "A1842 (R43, D1250): shallow = the rule takes the walkable water cells of its biome (the shallow sea of the beach) instead of its dry cells; such rules come after all others with a random stream of their own (worldgen/shallows), so adding one moves nothing else on the island. Absent = dry cells as before.",
+          "type": "string",
+          "enum": ["shallow"]
+        },
         "min_ore_permille": {
           "description": "A1578 (B2827, Marcel W2245): only cells whose underground holds at least this much ore (0..1000) - an outcrop: the things lie at the surface where the ground has ore, and who digs there finds more. Absent = every cell of the biome.",
           "type": "integer",
