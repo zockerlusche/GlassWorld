@@ -8,7 +8,11 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Size">Size option id.</param>
 /// <param name="Climate">Climate option id.</param>
 /// <param name="StartFavor">Start favour.</param>
-public sealed record WorldStart(ulong Seed, string Size, string Climate, int StartFavor);
+/// <param name="Resources">A1854: resources option id; null = the data's default.</param>
+/// <param name="StartPairs">A1854: start pairs; null = the data's default.</param>
+/// <param name="Terrain">A1854: terrain option id; null = the data's default.</param>
+/// <param name="Distribution">A1854: distribution option id; null = the data's default.</param>
+public sealed record WorldStart(ulong Seed, string Size, string Climate, int StartFavor, string? Resources = null, int? StartPairs = null, string? Terrain = null, string? Distribution = null);
 
 /// <summary>
 /// Short world code to copy and share (B2534): seed, size, climate and start favour; the same code
@@ -20,8 +24,14 @@ public sealed record WorldStart(ulong Seed, string Size, string Climate, int Sta
 /// </summary>
 public static class WorldCode
 {
-    /// <summary>Code format version (raise when the coded fields or option lists change meaning).</summary>
-    public const int Version = 1;
+    /// <summary>
+    /// Code format version (raise when the coded fields or option lists change meaning). Version 2 (A1854) adds
+    /// resources, start pairs, terrain and distribution, so a shared code gives the same island (review GW2 #595);
+    /// codes of version 1 still read, with the data's defaults for those.
+    /// </summary>
+    public const int Version = 2;
+
+    private const int Version1 = 1;
 
     private const string Prefix = "GW";
     private const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -37,7 +47,11 @@ public static class WorldCode
         var climate = IndexOf(options.Climates.Select(c => c.Id), start.Climate, nameof(start.Climate));
         var favorIndex = IndexOf(favor.StartOptions.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)), start.StartFavor.ToString(System.Globalization.CultureInfo.InvariantCulture), nameof(start.StartFavor));
 
-        var bytes = new List<byte> { (byte)Version, OptionsHash(options, favor), (byte)size, (byte)climate, (byte)favorIndex };
+        var resources = OptionalIndex((options.Resources ?? []).Select(r => r.Id), start.Resources, nameof(start.Resources));
+        var pairs = OptionalIndex((options.StartPairs ?? []).Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture)), start.StartPairs?.ToString(System.Globalization.CultureInfo.InvariantCulture), nameof(start.StartPairs));
+        var terrain = OptionalIndex((options.Terrains ?? []).Select(t => t.Id), start.Terrain, nameof(start.Terrain));
+        var distribution = OptionalIndex((options.Distributions ?? []).Select(d => d.Id), start.Distribution, nameof(start.Distribution));
+        var bytes = new List<byte> { (byte)Version, OptionsHash(options, favor), (byte)size, (byte)climate, (byte)favorIndex, (byte)resources, (byte)pairs, (byte)terrain, (byte)distribution };
         var seed = start.Seed;
         do
         {
@@ -67,15 +81,16 @@ public static class WorldCode
         }
 
         var bytes = FromBase32(text[Prefix.Length..]);
-        if (bytes is null || bytes.Length < 7 || bytes[0] != Version || Checksum(bytes.AsSpan(0, bytes.Length - 1).ToArray()) != bytes[^1]
-            || bytes[1] != OptionsHash(options, favor))
+        var header = bytes is { Length: > 0 } && bytes[0] == Version ? 9 : 5;
+        if (bytes is null || bytes.Length < header + 2 || (bytes[0] != Version && bytes[0] != Version1) || Checksum(bytes.AsSpan(0, bytes.Length - 1).ToArray()) != bytes[^1]
+            || bytes[1] != (bytes[0] == Version ? OptionsHash(options, favor) : OptionsHashVersion1(options, favor)))
         {
             return false;
         }
 
         ulong seed = 0;
         var shift = 0;
-        var i = 5;
+        var i = header;
         for (; i < bytes.Length - 1; i++)
         {
             if (shift > 63)
@@ -97,23 +112,64 @@ public static class WorldCode
         }
 
         start = new WorldStart(seed, options.Sizes.ElementAt(bytes[2]).Id, options.Climates.ElementAt(bytes[3]).Id, favor.StartOptions.ElementAt(bytes[4]));
+        if (header == 9)
+        {
+            string? Pick(IEnumerable<string>? ids, byte index) => index == 255 ? null : ids?.ElementAtOrDefault(index);
+            var resources = Pick(options.Resources?.Select(r => r.Id), bytes[5]);
+            var pairs = Pick(options.StartPairs?.Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture)), bytes[6]);
+            var terrain = Pick(options.Terrains?.Select(t => t.Id), bytes[7]);
+            var distribution = Pick(options.Distributions?.Select(d => d.Id), bytes[8]);
+            if ((bytes[5] != 255 && resources is null) || (bytes[6] != 255 && pairs is null) || (bytes[7] != 255 && terrain is null) || (bytes[8] != 255 && distribution is null))
+            {
+                start = null;
+                return false;
+            }
+
+            start = start with { Resources = resources, StartPairs = pairs is null ? null : int.Parse(pairs, System.Globalization.CultureInfo.InvariantCulture), Terrain = terrain, Distribution = distribution };
+        }
+
         return true;
     }
 
-    /// <summary>One byte over the ordered option lists (sizes, climates, start favours).</summary>
+    /// <summary>One byte over the ordered option lists (sizes, climates, start favours; since version 2 also resources, pairs, terrains, distributions).</summary>
     public static byte OptionsHash(WorldOptions options, FavorSettings favor)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(favor);
-        var text = string.Join('|', options.Sizes.Select(s => s.Id)) + "#" + string.Join('|', options.Climates.Select(c => c.Id)) + "#"
-            + string.Join('|', favor.StartOptions.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        var text = Version1Text(options, favor) + "#" + string.Join('|', (options.Resources ?? []).Select(r => r.Id)) + "#"
+            + string.Join('|', (options.StartPairs ?? []).Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "#"
+            + string.Join('|', (options.Terrains ?? []).Select(t => t.Id)) + "#" + string.Join('|', (options.Distributions ?? []).Select(d => d.Id))
+
+            // The defaults too (review GW2 #605): 'not chosen' (255) means them, so other defaults must not read the code.
+            + "#" + options.DefaultResources + "|" + options.DefaultStartPairs?.ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + options.DefaultTerrain + "|" + options.DefaultDistribution;
         return Checksum(Encoding.UTF8.GetBytes(text));
+    }
+
+    private static byte OptionsHashVersion1(WorldOptions options, FavorSettings favor) => Checksum(Encoding.UTF8.GetBytes(Version1Text(options, favor)));
+
+    private static string Version1Text(WorldOptions options, FavorSettings favor)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(favor);
+        return string.Join('|', options.Sizes.Select(s => s.Id)) + "#" + string.Join('|', options.Climates.Select(c => c.Id)) + "#"
+            + string.Join('|', favor.StartOptions.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     private static int IndexOf(IEnumerable<string> ids, string id, string what)
     {
         var index = ids.ToList().IndexOf(id);
         return index >= 0 && index < 256 ? index : throw new ArgumentException($"{what} '{id}' is not an option in the data.", what);
+    }
+
+    /// <summary>A1854: an optional option not chosen (null = the data's default when the world is made) is coded as 255.</summary>
+    private static int OptionalIndex(IEnumerable<string> ids, string? id, string what)
+    {
+        if (id is null)
+        {
+            return 255;
+        }
+
+        var index = IndexOf(ids, id, what);
+        return index < 255 ? index : throw new ArgumentException($"{what} '{id}' is beyond the code's range.", what);
     }
 
     private static byte Checksum(IEnumerable<byte> bytes)
@@ -204,6 +260,7 @@ public static class WorldCode
             }
         }
 
-        return [.. bytes];
+        // A1854: the leftover bits of the last character are padding and must be zero - else a typo there would go unseen.
+        return (buffer & ((1 << bits) - 1)) == 0 ? [.. bytes] : null;
     }
 }
