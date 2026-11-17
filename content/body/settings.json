@@ -621,7 +621,7 @@
         "hours": 36,
         "health_per_hour": -6,
         "severity": 0.7,
-        "from": { "condition": "cold", "after_hours": 24, "chance_per_hour_permille": 5 },
+        "grows_from": { "condition": "cold", "after_hours": 24, "chance_per_hour_permille": 5 },
         "heal": { "rest_permille": 1000, "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
       }
     ]

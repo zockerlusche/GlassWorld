@@ -38,6 +38,14 @@ class OthersWarmth(BaseModel):
 type CarryKg = Annotated[float, Field(..., gt=0.0, le=500.0)]
 
 
+class Contagion(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    radius_cm: int = Field(..., ge=0, le=5000)
+    chance_per_hour_permille: int = Field(..., ge=0, le=1000)
+
+
 type GaitPerHour = Annotated[int, Field(..., ge=0, le=100000)]
 
 
@@ -157,6 +165,112 @@ class StaySheltered(BaseModel):
         description='It ends anyway once a need it does not serve falls below this value (hunger, thirst, sleep): then the inhabitant chooses again, and the leaving factor still weighs going out. Placeholder value.',
         ge=0.0,
         le=1.0,
+    )
+
+
+class OnEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    event: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    action: common_schema.VocabId | None = None
+    target_property: common_schema.VocabId | None = None
+    chance_permille: int = Field(..., ge=0, le=1000)
+
+
+class OnNeedItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    below: float = Field(..., ge=0.0, le=1.0)
+    chance_per_hour_permille: int = Field(..., ge=0, le=1000)
+
+
+class From(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    condition: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    after_hours: int = Field(..., ge=0, le=2000)
+    chance_per_hour_permille: int = Field(..., ge=0, le=1000)
+
+
+class Heal(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    rest_permille: int = Field(..., ge=0, le=10000)
+    near_property: common_schema.VocabId | None = None
+    near_radius_cm: int | None = Field(None, ge=0, le=5000)
+    near_permille: int | None = Field(None, ge=0, le=10000)
+
+
+class BodyCondition(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Condition id (vocabulary condition).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    hours: int = Field(
+        ...,
+        description='How long its course runs at normal pace, in game hours.',
+        ge=1,
+        le=2000,
+    )
+    health_per_hour: int = Field(
+        ...,
+        description='Health change per hour while it lasts, permille (negative = it costs).',
+        ge=-1000,
+        le=1000,
+    )
+    severity: float = Field(
+        ...,
+        description='How strongly it is felt (FeltCondition.severity).',
+        ge=0.0,
+        le=1.0,
+    )
+    on_events: list[OnEvent] | None = Field(
+        None,
+        description="It may begin after an event of the inhabitant: the event kind, optionally the action and a property of the target's type (world truth), with a chance in permille.",
+        max_length=16,
+    )
+    on_need: list[OnNeedItem] | None = Field(
+        None,
+        description='It may begin while a need stays below a level (cold and wet), with a chance per game hour in permille.',
+        max_length=16,
+    )
+    from_: From | None = Field(
+        None,
+        alias='from',
+        description='It may grow out of another complaint held for at least after_hours, with a chance per game hour (a cold becomes a fever).',
+    )
+    contagion: Contagion | None = Field(
+        None,
+        description='It may pass to someone within radius_cm of one who has it, with a chance per game hour and person.',
+    )
+    heal: Heal | None = Field(
+        None,
+        description='What speeds the course (truth the inhabitants find out themselves): resting or asleep, and a thing with near_property within near_radius_cm. Each adds permille to the pace (1000 = twice as fast).',
     )
 
 
@@ -437,6 +551,11 @@ class BodyStores(BaseModel):
         description='Carrying strength without a life phase, in kg.',
         gt=0.0,
         le=500.0,
+    )
+    conditions: list[BodyCondition] | None = Field(
+        None,
+        description='A1816 step 2 (B5 R23, A1381): complaints (vocabulary condition) - how they begin, run, cost health and heal. Chances are rolled from the seed. Absent = none. Placeholder values (TL).',
+        max_length=32,
     )
 
 

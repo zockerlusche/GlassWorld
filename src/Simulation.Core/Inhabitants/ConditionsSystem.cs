@@ -204,7 +204,7 @@ public sealed class ConditionsSystem : IWorldSystem, IOptionalWorldState
             }
 
             // The worsening of a complaint it has had for the data's hours.
-            if (!Has(inhabitant.Id, rule.Id) && rule.From is { } from && _held.TryGetValue(inhabitant.Id, out var held)
+            if (!Has(inhabitant.Id, rule.Id) && rule.GrowsFrom is { } from && _held.TryGetValue(inhabitant.Id, out var held)
                 && held.TryGetValue(from.Condition, out var had) && world.Tick - had.Since >= (long)from.AfterHours * _ticksPerHour
                 && Roll(inhabitant.Id, rule.Id, "from/" + from.Condition, hourNo) < from.ChancePerHourPermille / 1000.0)
             {

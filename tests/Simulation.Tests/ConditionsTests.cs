@@ -47,7 +47,7 @@ public sealed class ConditionsTests
         {
             Rule(c, "cold").OnNeed!.First().ChancePerHourPermille = 1000;
             Rule(c, "cold").Contagion!.ChancePerHourPermille = 1000;
-            Rule(c, "fever").From!.ChancePerHourPermille = 1000;
+            Rule(c, "fever").GrowsFrom!.ChancePerHourPermille = 1000;
         });
         var cold = inhabitants.Get("inh-000001");
         var near = inhabitants.Get("inh-000002");
@@ -62,7 +62,7 @@ public sealed class ConditionsTests
         Assert.Contains("cold", conditions.Of(near.Id));
         Assert.Empty(conditions.Of(far.Id));
 
-        world.Run((Rule(content, "fever").From!.AfterHours + 1) * world.Calendar.Settings.TicksPerHour);
+        world.Run((Rule(content, "fever").GrowsFrom!.AfterHours + 1) * world.Calendar.Settings.TicksPerHour);
         Assert.Contains("fever", conditions.Of(cold.Id));
     }
 

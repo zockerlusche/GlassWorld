@@ -149,7 +149,7 @@
             }
           }
         },
-        "from": {
+        "grows_from": {
           "description": "It may grow out of another complaint held for at least after_hours, with a chance per game hour (a cold becomes a fever).",
           "type": "object", "additionalProperties": false, "required": ["condition", "after_hours", "chance_per_hour_permille"],
           "properties": {
