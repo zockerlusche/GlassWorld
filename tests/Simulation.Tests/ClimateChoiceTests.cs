@@ -38,6 +38,23 @@ public sealed class ClimateChoiceTests : IDisposable
     }
 
     [Fact]
+    public void DesignedStartInhabitantsAreInTheSaveGame()
+    {
+        // A1774 (B2805): the design goes with the world specification into the save and comes back unchanged.
+        var design = new[] { new StartInhabitantSpec("Mira", "female", new Dictionary<string, double> { ["curiosity"] = 0.8 }), new StartInhabitantSpec() };
+        var spec = new WorldSpec("small", null, "temperate", 50, Inhabitants: design);
+        var original = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", "start_island", options: new SimulationHostOptions { Spec = spec });
+        var path = Path.Combine(_directory, "design.db");
+        SaveGameStore.Save(path, StateCodec.Capture(original));
+        var back = SaveGameStore.Load(path).Spec!.Inhabitants!;
+        Assert.Equal(2, back.Count);
+        Assert.Equal(("Mira", "female"), (back[0].Name, back[0].Sex));
+        Assert.Equal(0.8, back[0].Traits!["curiosity"], 9);
+        Assert.Null(back[1].Name);
+        Assert.Equal("Mira", original.Inhabitants.All.First().Name);
+    }
+
+    [Fact]
     public void TheWorldSpecificationIsInTheSaveGameAndTheChosenSizeMadeTheIsland()
     {
         // A1768 (B2805): the form's values go with the world into its save and come back with it; the size made the island.

@@ -449,7 +449,11 @@ public sealed class ContentSet
         return (names, bySex);
     }
 
-    private static bool IsProperName(string name) =>
+    /// <summary>
+    /// The shape every inhabitant name has (names.json, and a designed name, A1774): 2 to 16 letters, a capital first,
+    /// then small ones - names reach the AI prompts and the speech, so they stay plain words.
+    /// </summary>
+    public static bool IsProperName(string name) =>
         name.Length is >= 2 and <= 16 && name[0] is >= 'A' and <= 'Z' && name.Skip(1).All(c => c is >= 'a' and <= 'z');
 
     /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
