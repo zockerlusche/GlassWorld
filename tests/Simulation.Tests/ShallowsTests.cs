@@ -32,9 +32,9 @@ public sealed class ShallowsTests
 
         // Shells lie on the beach and in its shallow water; a type only dry rules place is never in the water.
         Assert.Contains(island.Objects, o => o.TypeId == "shell" && map.Cell(o.X, o.Z).Water != WaterKind.None);
+        // Only the sea: a water biome without banks (a swamp) may have its own things in its shallow water (review GW1 #600).
         Assert.All(island.Objects.Where(o => onLand.Contains(o.TypeId) && !inWater.Contains(o.TypeId)), o =>
-            Assert.True(map.Cell(o.X, o.Z).Water == WaterKind.None || Content.Value.WorldGen.Spawns.Spawns.All(r => r.ObjectType != o.TypeId),
-                $"{o.TypeId} at {o.X},{o.Z} lies in the water"));
+            Assert.True(map.Cell(o.X, o.Z).Water != WaterKind.Salt, $"{o.TypeId} at {o.X},{o.Z} lies in the sea"));
 
         // Edible and fibrous by the data (TL #28525).
         var properties = Content.Value.Objects.TrueProperties("seaweed");
