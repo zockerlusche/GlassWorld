@@ -823,6 +823,17 @@ public sealed class SimulationHost
             agingSystem = aging;
             decisions.ActionAllowed = aging.Allows;
         }
+        // A1816 (D1203 v3 layer 2): the body's stores - only with the switch on; off, the world and its hashes stay as they were.
+        StoresSystem? stores = null;
+        if (content.Body?.Stores is { Enabled: true } storesData)
+        {
+            stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
+            {
+                RootOf = typeId => processes?.RootOf(typeId),
+            };
+            world.Add(stores);
+        }
+
         memory.Remembered = forgetting.Remembered;
         inhabitants.UnsureOf = forgetting.IsUnsure;
         if (durability is not null)
@@ -866,6 +877,7 @@ public sealed class SimulationHost
             Forgetting = forgetting,
             Durability = durability,
             Body = body,
+            Stores = stores,
             Milestones = milestones,
             Nature = nature,
             Animals = animals,
@@ -1241,6 +1253,9 @@ public sealed class SimulationHost
 
     /// <summary>Rain, drying and sun on the inhabitants' bodies (B5-11); null without body data or off islands.</summary>
     public BodySystem? Body { get; private init; }
+
+    /// <summary>A1816: the body's stores (stamina, health); null while the switch body.stores.enabled is off.</summary>
+    public StoresSystem? Stores { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;

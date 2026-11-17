@@ -621,6 +621,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("wet", JsonSerializer.Serialize(s.Wet, Json)));
         }
 
+        if (s.Stores is { Count: > 0 })
+        {
+            // A1816: the body stores that are not full (stamina, health); no entry = all full or the switch off.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("stores", JsonSerializer.Serialize(s.Stores, Json)));
+        }
+
         if (s.Overuse is { Count: > 0 })
         {
             // Overuse of field cells (A1380 N2); no entry = none.
@@ -954,6 +960,7 @@ public static class SaveGameStore
             Dug = meta.TryGetValue("dug", out var dug) ? JsonSerializer.Deserialize<List<Simulation.Objects.DugCell>>(dug, Json) : null,
             Used = meta.TryGetValue("used", out var used) ? JsonSerializer.Deserialize<List<Simulation.Objects.UsedThing>>(used, Json) : null,
             Wet = meta.TryGetValue("wet", out var wet) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.WetInhabitant>>(wet, Json) : null,
+            Stores = meta.TryGetValue("stores", out var stores) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.StoredBody>>(stores, Json) : null,
             Overuse = meta.TryGetValue("overuse", out var overuse) ? JsonSerializer.Deserialize<List<Map.OveruseCell>>(overuse, Json) : null,
             Climbed = meta.TryGetValue("climbed", out var climbed) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.UpInhabitant>>(climbed, Json) : null,
             Milestones = meta.TryGetValue("milestones", out var milestones) ? JsonSerializer.Deserialize<List<Simulation.Inventions.ReachedMilestone>>(milestones, Json) : null,

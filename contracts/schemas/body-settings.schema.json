@@ -42,6 +42,10 @@
         "fright_delta": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "stores": {
+      "description": "A1816 (D1203 v3 layer 2, E10, E13; A1799 D1236): the body's stores behind a switch. Stamina falls while walking (by gait, and by the load carried: weight over the carrying strength of the life phase, squared) and comes back at rest and asleep up to a cap that sinks with the sleep need and with health (D1202). Health changes by the events named in the data and comes back slowly. enabled false = the stores are not in the world (hashes unchanged). Placeholder values (TL).",
+      "$ref": "#/$defs/BodyStores"
+    },
     "reflex": {
       "description": "A1731 (B2716 1): a reflex from the world, without AI - an inhabitant closer than radius_cm to something that gives off heat (a burning fire, a spark) steps back at once to step_back_cm from it, reports flinched (for the gesture), feels fear by the data and knows at once that the thing is hot (the experience of the warmth, without waiting). Gentle: no injury is shown (B2466). Absent = no reflex. Placeholder values.",
       "type": "object", "additionalProperties": false, "required": ["radius_cm", "step_back_cm"],
@@ -95,6 +99,48 @@
     }
   },
   "$defs": {
+    "BodyStores": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "stamina", "health", "carry_kg", "default_carry_kg"],
+      "properties": {
+        "enabled": { "description": "The switch of the new body layer (D1203 v3 section 5, stage 2). Off: nothing of this block is in the world.", "type": "boolean" },
+        "stamina": { "$ref": "#/$defs/StaminaRules" },
+        "health": { "$ref": "#/$defs/HealthRules" },
+        "carry_kg": {
+          "description": "Carrying strength by life phase (content/life/aging.json phase ids), in kg (E10).",
+          "type": "object", "propertyNames": { "$ref": "common.schema.json#/$defs/VocabId" },
+          "additionalProperties": { "type": "number", "exclusiveMinimum": 0, "maximum": 500 }
+        },
+        "default_carry_kg": { "description": "Carrying strength without a life phase, in kg.", "type": "number", "exclusiveMinimum": 0, "maximum": 500 }
+      }
+    },
+    "StaminaRules": {
+      "type": "object", "additionalProperties": false,
+      "required": ["gait_per_hour", "load_per_hour", "recover_rest_per_hour", "recover_sleep_per_hour", "sleep_need", "cap_sleep_permille", "cap_health_permille"],
+      "properties": {
+        "gait_per_hour": {
+          "description": "Stamina used per hour of walking by gait id (behaviour/gaits.json), permille of full. A gait not named uses none.",
+          "type": "object", "propertyNames": { "$ref": "common.schema.json#/$defs/VocabId" },
+          "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100000 }
+        },
+        "load_per_hour": { "description": "Added per hour of walking at a full load (load share 1), scaled by the load share squared.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "recover_rest_per_hour": { "description": "Comes back per hour while not walking and awake.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "recover_sleep_per_hour": { "description": "Comes back per hour asleep.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "sleep_need": { "description": "The need whose level lowers the cap (inhabitants/model.json).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "cap_sleep_permille": { "description": "Cap = 1000 - this x (1 - sleep need) - cap_health_permille x (1 - health).", "type": "integer", "minimum": 0, "maximum": 1000 },
+        "cap_health_permille": { "description": "See cap_sleep_permille.", "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    },
+    "HealthRules": {
+      "type": "object", "additionalProperties": false, "required": ["recover_per_hour"],
+      "properties": {
+        "recover_per_hour": { "description": "Health that comes back per hour, permille of full.", "type": "integer", "minimum": 0, "maximum": 100000 },
+        "events": {
+          "description": "Change of health by an event of the inhabitant (vocabulary events), permille; e.g. slipped (a fall, D1105 H3b). Complaints come with A1381 (GW4).",
+          "type": "object", "propertyNames": { "$ref": "common.schema.json#/$defs/VocabId" },
+          "additionalProperties": { "type": "integer", "minimum": -1000, "maximum": 1000 }
+        }
+      }
+    },
     "BodyWorn": {
       "type": "object",
       "additionalProperties": false,
