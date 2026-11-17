@@ -3,11 +3,28 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+type HoursPerStep = Annotated[int, Field(..., ge=0, le=100000)]
+
+
+class Overgrow(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    default_hours_per_step: int = Field(..., ge=0, le=100000)
+    hours_per_step: dict[str, HoursPerStep] | None = Field(None, max_length=32)
+    grows_like: str | None = Field(
+        None,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    keeps: list[common_schema.VocabId] | None = Field(None, max_length=8)
 
 
 class DigLayer(BaseModel):
@@ -54,6 +71,10 @@ class DigOre(BaseModel):
 class DiggingSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
+    )
+    overgrow: Overgrow | None = Field(
+        None,
+        description="A1460 Z1 (R49, D1248): dug earth grows over - after hours_per_step of growth (by the biome, else the default; 0 = never, e.g. rock) a pit gets one step_cm shallower, and at depth 0 it is gone. It grows like the type grows_like of the nature data (its group's seasons), else by the clock. Holes of the types in keeps (a well) stay. Absent = holes stay for ever. Placeholder values (TL).",
     )
     contract_version: Literal['0.2'] = Field(
         ...,

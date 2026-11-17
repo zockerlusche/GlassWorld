@@ -537,6 +537,9 @@ public sealed class SimulationHost
 
             // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
             durability.QualityOf = inventions.QualityOfBuilt;
+
+            // A1382 S2: a storm wears what was built.
+            durability.WeatherNow = weather is null ? null : () => weather.Current;
             durability.MakerOf = typeId => inventions.Builds.FirstOrDefault(b => string.Equals(b.TypeId, typeId, StringComparison.Ordinal))?.InhabitantId ?? inventions.Invention(typeId)?.InhabitantId;
             durability.Report = inhabitants.Report;
             inhabitants.Reported += durability.Observe;
@@ -763,6 +766,7 @@ public sealed class SimulationHost
                 id => inhabitants.TryGet(id, out var who) ? (who.Position, who.Held is { } held && objects.TryGet(held, out var thing) ? thing.TypeId : null) : null,
                 inhabitants.Report);
             inhabitants.Reported += digging.Observe;
+            digging.TicksPerHour = world.Calendar.Settings.TicksPerHour; // A1460: overgrowing on the full hour
             world.Add(digging);
         }
 
@@ -831,13 +835,29 @@ public sealed class SimulationHost
         }
         // A1816 (D1203 v3 layer 2): the body's stores - only with the switch on; off, the world and its hashes stay as they were.
         StoresSystem? stores = null;
+        ConditionsSystem? conditions = null;
         if (content.Body?.Stores is { Enabled: true } storesData)
         {
             stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
             {
                 RootOf = typeId => processes?.RootOf(typeId),
+                Holds = action => content.Actions.HasTiming(action) && content.Actions.Timing(action).Holds,
             };
             world.Add(stores);
+            inhabitants.LiftRefusal = stores.LiftRefusal;
+
+            // A1816 step 2 (R23): complaints of the data, after the stores (they cost health there).
+            if (storesData.Conditions is { Count: > 0 } conditionRules)
+            {
+                conditions = new ConditionsSystem([.. conditionRules], inhabitants, objects, stores, world.Seed, world.Calendar.Settings.TicksPerHour)
+                {
+                    HasProperty = objects.Catalog.HasProperty,
+                };
+                world.Add(conditions);
+                var felt = conditions;
+                decisions.FeltOf = felt.Felt;
+                stores.Ill = id => felt.Of(id).Count > 0;
+            }
         }
 
         memory.Remembered = forgetting.Remembered;
@@ -884,6 +904,7 @@ public sealed class SimulationHost
             Durability = durability,
             Body = body,
             Stores = stores,
+            Conditions = conditions,
             Milestones = milestones,
             Nature = nature,
             Animals = animals,
@@ -1130,7 +1151,7 @@ public sealed class SimulationHost
             positions.Add(map.CentreOf(cells.Current.X, cells.Current.Z));
         }
 
-        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants);
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants, options?.Spec?.Inhabitants);
         host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {
@@ -1262,6 +1283,9 @@ public sealed class SimulationHost
 
     /// <summary>A1816: the body's stores (stamina, health); null while the switch body.stores.enabled is off.</summary>
     public StoresSystem? Stores { get; private init; }
+
+    /// <summary>A1816 step 2: complaints (R23); null while the switch is off or the data name none.</summary>
+    public ConditionsSystem? Conditions { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;

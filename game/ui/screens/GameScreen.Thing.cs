@@ -90,6 +90,15 @@ public partial class GameScreen
             window.Content.AddChild(Line(TextFill.Fill(Tr("ui.thing.knows"), new Dictionary<string, string> { ["name"] = NameOfId(knower.InhabitantId), ["facts"] = facts })));
         }
 
+        // A1832 (B6-16): the hand may take it - only when the core would (its own answer, no rule here).
+        if (HandCanTake(objectId))
+        {
+            var cost = Number((long)Math.Ceiling(host.Player.CostOf("move")));
+            var take = new Button { Name = HandButtonName, Text = TextFill.Fill(Tr("ui.thing.move"), new Dictionary<string, string> { ["cost"] = cost }), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            take.Pressed += () => TakeWithHand(objectId);
+            window.Content.AddChild(take);
+        }
+
         _thingWindow = window;
         ShowWindow(window);
         return window;

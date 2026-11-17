@@ -547,6 +547,66 @@
       "text": "Clustered"
     },
     {
+      "key": "ui.new_world.inhabitants",
+      "text": "Start inhabitants"
+    },
+    {
+      "key": "ui.new_world.inhabitants_random",
+      "text": "Random - design …"
+    },
+    {
+      "key": "ui.new_world.inhabitants_designed",
+      "text": "Designed - change …"
+    },
+    {
+      "key": "ui.new_world.design_title",
+      "text": "Design the start inhabitants"
+    },
+    {
+      "key": "ui.new_world.inhabitant_n",
+      "text": "Inhabitant {n}"
+    },
+    {
+      "key": "ui.new_world.design_this",
+      "text": "Design myself (else random)"
+    },
+    {
+      "key": "ui.new_world.inhabitant_name",
+      "text": "Name"
+    },
+    {
+      "key": "ui.new_world.name_random",
+      "text": "empty = random name"
+    },
+    {
+      "key": "ui.new_world.inhabitant_sex",
+      "text": "Sex"
+    },
+    {
+      "key": "ui.new_world.sex_random",
+      "text": "Random"
+    },
+    {
+      "key": "ui.new_world.sex_female",
+      "text": "female"
+    },
+    {
+      "key": "ui.new_world.sex_male",
+      "text": "male"
+    },
+    {
+      "key": "ui.new_world.design_all_random",
+      "text": "All random"
+    },
+    {
+      "key": "ui.new_world.design_apply",
+      "text": "Apply"
+    },
+    {
+      "key": "ui.new_world.problem.inhabitant_name",
+      "text": "A name does not fit: 2 to 16 plain letters without spaces, a capital first, each name only once."
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -2131,6 +2191,22 @@
       "text": "Click in the world where the gift should lie (Esc cancels)."
     },
     {
+      "key": "ui.thing.move",
+      "text": "Move it with the hand ({cost} favour)"
+    },
+    {
+      "key": "ui.hand.here",
+      "text": "Put it here ({cost} favour)"
+    },
+    {
+      "key": "msg.hint.move_object",
+      "text": "Point where it should go and click (Esc lets go)."
+    },
+    {
+      "key": "msg.hint.object_moved",
+      "text": "The hand puts it there with the next tick."
+    },
+    {
       "key": "msg.hint.gift_placed",
       "text": "The gift now lies in the world. It belongs to nobody."
     },
@@ -2505,6 +2581,18 @@
     {
       "key": "vocab.event.text_read",
       "text": "Read some writing"
+    },
+    {
+      "key": "vocab.event.condition_began",
+      "text": "Feels ill"
+    },
+    {
+      "key": "vocab.event.condition_ended",
+      "text": "Feels well again"
+    },
+    {
+      "key": "vocab.event.cannot_lift",
+      "text": "Could not lift something"
     },
     {
       "key": "vocab.event.voice_tested",

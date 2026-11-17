@@ -112,6 +112,34 @@ public sealed class FellingTests : IDisposable
         return _copy;
     }
 
+    [Fact]
+    public void ATreeDoesNotGrowBackIntoATrunkLyingOnItsPlace()
+    {
+        // A1836 (TL #28434 A): the regrowth waits while something solid lies there, and comes once it is gone.
+        var host = SimulationHost.CreateGeneratedWorld(ContentWithQuickBirches(), 7, new MockDecisionPort(), "de", "start_island");
+        var map = host.Map!;
+        var index = map.Occurrences.ToList().FindIndex(o => o.TypeId == "birch_tree" && o.GoneSinceTick is null);
+        var place = map.Occurrences[index];
+        Assert.True(host.Objects.Remove(place.ObjectId));
+        var trunk = host.Objects.Spawn("felled_trunk", map.CentreOf(place.X, place.Z));
+
+        var ticksPerHour = host.World.Calendar.Settings.TicksPerHour;
+        for (var i = 0; i < 10 * ticksPerHour; i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.NotNull(map.Occurrences[index].GoneSinceTick);
+
+        Assert.True(host.Objects.Remove(trunk.Id));
+        for (var i = 0; i < 5000 && map.Occurrences[index].GoneSinceTick is not null; i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.Null(map.Occurrences[index].GoneSinceTick);
+    }
+
     private static (SimulationHost Host, List<WorldEvent> Events) World()
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 13, new MockDecisionPort(), "de");
