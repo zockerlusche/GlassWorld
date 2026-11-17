@@ -637,6 +637,10 @@ public partial class WorldPresenter : Node3D
     internal bool LiesNow(string inhabitantId) =>
         _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView { Lying: true };
 
+    /// <summary>A1466 check runs: how far a figure sitting on the ground sits above it (m), or null when it does not sit there.</summary>
+    internal double? GroundSeatClearance(string inhabitantId) =>
+        _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView figure ? figure.GroundSeatClearance : null;
+
     private void ShowThoughts()
     {
         if (_host is null)

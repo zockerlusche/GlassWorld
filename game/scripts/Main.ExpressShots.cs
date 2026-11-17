@@ -77,6 +77,25 @@ public partial class Main
                     continue;
                 }
 
+                if (spec == "ground_seat")
+                {
+                    // A1466: wait (fast) until someone sits on the ground, then follow that one and note how it sits.
+                    var quickest = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
+                    var from = Time.GetTicksMsec();
+                    who = null;
+                    while (who is null && (Time.GetTicksMsec() - from) / 1000.0 < 600)
+                    {
+                        _world.Speed = quickest;
+                        await Frames(5);
+                        who = _world.Host.Snapshot().Inhabitants.FirstOrDefault(i => _world.GroundSeatClearance(i.Id) is not null);
+                    }
+
+                    _world.Speed = 1;
+                    await Frames(90); // settled on the ground
+                    var gap = who is null ? null : _world.GroundSeatClearance(who.Id);
+                    GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"EXPRESS_SHOT_GROUND_SEAT {(who is null ? "nobody" : $"{who.Name ?? who.Id} clearance_m={gap:0.000}")}"));
+                }
+
                 if (spec is "wet" or "up")
                 {
                     // A1385: wait (fast) until someone awake is soaked (rain, wading) or up in a tree, then follow that one.

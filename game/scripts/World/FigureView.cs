@@ -120,6 +120,9 @@ public partial class FigureView : Node3D
     private bool _shivering;
     private bool _actionShown;
     private Func<IReadOnlyList<Seat>> _seats = () => [];
+    /// <summary>A1466 check runs: sitting on the ground, the smallest gap of its watched bones to the ground (m); null otherwise.</summary>
+    public double? GroundSeatClearance { get; private set; }
+
     private SeatPose? _seat;
     private SeatPose _lastSeat;
     private double _seatShare;
@@ -489,7 +492,14 @@ public partial class FigureView : Node3D
             _lieSeconds = LyingPose.Advance(lying, _lieSeconds, _lying, delta);
         }
 
-        _knees.Watching = _lying || _lieSeconds > 0;
+        // A1466: sitting on the ground the body is fitted too - its watched bones (hips with their radius) never below it.
+        var groundSeated = !_lying && _lieSeconds <= 0 && !_lastSeat.OnSeat && _seatShare > 0;
+        if (!groundSeated)
+        {
+            GroundSeatClearance = null;
+        }
+
+        _knees.Watching = _lying || _lieSeconds > 0 || groundSeated;
         if (_lieSeconds > 0)
         {
             var stage = LyingPose.Stage(lying, _lieSeconds, _lying);
@@ -510,6 +520,17 @@ public partial class FigureView : Node3D
             {
                 _body.Transform = new Transform3D(BodyBasis(), _bodyPosition);
                 _laid = false;
+            }
+
+            if (groundSeated && _knees.Noted)
+            {
+                // A1466 (#196): the ground seat lowers the clip's chair height, which puts the hip joint on the ground and
+                // the seat of the body 10-20 cm into it. Lifted as far as its lowest watched bone needs (the lying fit's
+                // points and radii from the data), so it sits on the ground on any body (A1436) and any slope.
+                var yaw = new Basis(Vector3.Up, (float)_motion.Yaw);
+                WatchedPoints(lying, new Transform3D(yaw * _body.Transform.Basis, yaw * _body.Transform.Origin));
+                y += (float)LyingPose.Lift(_bodyPoints, x, y, z, _groundM);
+                GroundSeatClearance = LyingPose.Clearance(new LyingFit(new Point3(0, 1, 0), y), _bodyPoints, x, z, _groundM);
             }
         }
 
