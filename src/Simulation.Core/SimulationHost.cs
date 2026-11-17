@@ -45,6 +45,12 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// <summary>A1770 (B2805): pairs of start inhabitants (each pair its start place); null = the preset's pairs.</summary>
     public int? StartPairs { get; init; }
 
+    /// <summary>A1833 (B2805): factor on the height noise (terrain flat/hilly/mountainous); null = the preset as written.</summary>
+    public double? TerrainFactor { get; init; }
+
+    /// <summary>A1833 (B2805): factor on the spawn group sizes (scattered/clustered); null = the data as written.</summary>
+    public double? ClusterFactor { get; init; }
+
     /// <summary>
     /// A1769 (B2805): the island the new-world window's preview generated, taken over as it is instead of generating it
     /// again (the start shows exactly the island the player saw) - but only when seed, preset, grid, resource factor and
@@ -200,8 +206,8 @@ public sealed class SimulationHost
             }
 
             // A saved island is used as it is, so later changes of generator or data keep existing worlds.
-            var shown = options.Island is { } preview && preview.Fits(world.Seed, worldPreset, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs) ? preview.Island : null;
-            var island = savedIsland?.Island ?? shown ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs);
+            var shown = options.Island is { } preview && preview.Fits(world.Seed, worldPreset, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs, options.TerrainFactor ?? 1.0, options.ClusterFactor ?? 1.0) ? preview.Island : null;
+            var island = savedIsland?.Island ?? shown ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed, options.GridCells, options.ResourceFactor ?? 1.0, options.StartPairs, options.TerrainFactor ?? 1.0, options.ClusterFactor ?? 1.0);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -531,6 +537,9 @@ public sealed class SimulationHost
 
             // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
             durability.QualityOf = inventions.QualityOfBuilt;
+
+            // A1382 S2: a storm wears what was built.
+            durability.WeatherNow = weather is null ? null : () => weather.Current;
             durability.MakerOf = typeId => inventions.Builds.FirstOrDefault(b => string.Equals(b.TypeId, typeId, StringComparison.Ordinal))?.InhabitantId ?? inventions.Invention(typeId)?.InhabitantId;
             durability.Report = inhabitants.Report;
             inhabitants.Reported += durability.Observe;

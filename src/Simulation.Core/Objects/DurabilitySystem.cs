@@ -92,6 +92,9 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
     /// <summary>Whether a thing grows in its place (a berry on its bush, a regrowth place of the island): it does not wear there.</summary>
     public Func<string, bool>? GrowsInPlace { get; set; }
 
+    /// <summary>A1382 S2: the main weather now (a storm wears built things); null = no weather.</summary>
+    public Func<string?>? WeatherNow { get; set; }
+
     /// <summary>A1576 (H2): the quality tier of a made thing's type (build quality), or null.</summary>
     public Func<string, string?>? QualityOf { get; set; }
 
@@ -174,6 +177,24 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
         _usedNow.Add(id);
     }
 
+    /// <summary>
+    /// A1382 S2 (D998, R24): at each full hour of a storm weather of the data, every built thing (one with a build
+    /// quality) that is not in a hand wears by the data's permille - its quality stretches the life as always.
+    /// </summary>
+    private void Storm(World world)
+    {
+        if (_data.StormDamage is not { } storm || QualityOf is not { } quality || world.Tick % _ticksPerHour != 0
+            || WeatherNow?.Invoke() is not { } now || !storm.Weather.Contains(now))
+        {
+            return;
+        }
+
+        foreach (var thing in _objects.All.Where(t => quality(t.TypeId) is not null && _objects.HeldBy(t.Id) is null).OrderBy(t => t.Id, StringComparer.Ordinal).ToList())
+        {
+            AddWear(thing.Id, storm.PerHourPermille);
+        }
+    }
+
     /// <summary>The extra wear of a thing so far, permille of its life before quality (A1576).</summary>
     public long ExtraWearOf(string id) => _extra.GetValueOrDefault(id);
 
@@ -190,6 +211,8 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
                 Track(thing, null);
             }
         }
+
+        Storm(world);
 
         // A1576 (H2): things used since the last step - worn out now, or queued anew by their new wear.
         foreach (var id in _usedNow.ToList())

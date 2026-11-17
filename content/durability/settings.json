@@ -74,12 +74,24 @@
       ],
       "properties_none": [],
       "base_hours": null
+    },
+    {
+      "id": "structure",
+      "properties_all": [
+        "crafted"
+      ],
+      "properties_none": [
+        "portable"
+      ],
+      "base_hours": null,
+      "end_event": "broke"
     }
   ],
   "use_actions": [
     "use",
     "build_step"
   ],
+  "storm_damage": { "weather": ["storm"], "per_hour_permille": 20 },
   "quality": [
     {
       "tier": "scrap",
