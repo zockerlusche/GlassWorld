@@ -314,7 +314,7 @@ public partial class MainMenu : CanvasLayer
             var (ok, value) = NewWorldModel.ParseSeed(seed.Text);
             updating = true;
             code.Text = ok && value is { } s
-                ? WorldCode.Encode(new WorldStart(s, size.GetItemMetadata(size.Selected).AsString(), climate.GetItemMetadata(climate.Selected).AsString(), favor.GetItemMetadata(favor.Selected).AsInt32()), data.Options, data.Favor)
+                ? WorldCode.Encode(new WorldStart(s, size.GetItemMetadata(size.Selected).AsString(), climate.GetItemMetadata(climate.Selected).AsString(), favor.GetItemMetadata(favor.Selected).AsInt32(), SelectedId(resources), SelectedPairs(pairs), SelectedId(terrain), SelectedId(distribution)), data.Options, data.Favor)
                 : string.Empty;
             updating = false;
         }
@@ -332,6 +332,26 @@ public partial class MainMenu : CanvasLayer
             Select(size, start.Size);
             Select(climate, start.Climate);
             Select(favor, start.StartFavor);
+            if (start.Resources is { } r)
+            {
+                Select(resources, r);
+            }
+
+            if (start.StartPairs is { } p)
+            {
+                Select(pairs, "pairs_" + p.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (start.Terrain is { } t)
+            {
+                Select(terrain, t);
+            }
+
+            if (start.Distribution is { } d)
+            {
+                Select(distribution, d);
+            }
+
             updating = false;
             ShowCode();
         }
@@ -499,6 +519,10 @@ public partial class MainMenu : CanvasLayer
             }
         }
 
+        resources.ItemSelected += _ => ShowCode();
+        pairs.ItemSelected += _ => ShowCode();
+        terrain.ItemSelected += _ => ShowCode();
+        distribution.ItemSelected += _ => ShowCode();
         seed.TextChanged += _ => Changed();
         code.TextChanged += _ => Changed();
         size.ItemSelected += _ => Changed();
@@ -653,6 +677,13 @@ public partial class MainMenu : CanvasLayer
         return window;
     }
 
+    /// <summary>A1854: the selected option id, or null when the data has no such options.</summary>
+    private static string? SelectedId(OptionButton options) => options.ItemCount > 0 ? options.GetItemMetadata(options.Selected).AsString() : null;
+
+    /// <summary>A1854: the selected number of start pairs (items carry "pairs_N"), or null.</summary>
+    private static int? SelectedPairs(OptionButton pairs) =>
+        pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : null;
+
     /// <summary>Builds the list of saved worlds (also for the layout check).</summary>
     public static GwWindow WorldsWindow(MenuData data, UiStyle style, Action<WorldMeta> load)
     {
@@ -687,8 +718,11 @@ public partial class MainMenu : CanvasLayer
             // Unknown values (older worlds, edited files) give a calm message instead of nothing.
             try
             {
-                var seed = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id)).Seed;
-                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+                var state = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id));
+
+                // A1854 (review GW2 #605): the world's own resources, pairs, terrain and distribution from its specification.
+                var spec = state.Spec;
+                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(state.Seed, world.Size, world.Climate, world.StartFavor, spec?.Resources, spec?.StartPairs, spec?.Terrain, spec?.Distribution), data.Options, data.Favor));
                 copyProblem.Visible = false;
             }
             catch (Exception e) when (e is ArgumentException or InvalidDataException or IOException or Microsoft.Data.Sqlite.SqliteException)
