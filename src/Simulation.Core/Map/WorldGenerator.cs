@@ -244,7 +244,7 @@ public static partial class WorldGenerator
             ? SupplyFeasible(new StartSupply { RadiusCells = prefer, Resources = [.. supply.Resources.Where(r => r.Mandatory == true)] }, spawns, catalog, map, objects)
             : null;
         var starts = Starts(preset, map, feasible, near, content.StartSeparationCm, Stream(attemptSeed, "worldgen/start"));
-        StartSupply(preset.Start.Supply, spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
+        StartSupply(preset.Start.Supply, spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"), preset.Water.DrinkSpots);
         QuietStarts(preset, catalog, spawns.Spawns.Where(r => r.GrowsOn is not null).Select(r => r.GrowsOn!.ObjectType).ToHashSet(StringComparer.Ordinal), objects, starts, Stream(attemptSeed, "worldgen/quiet"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(spawns, catalog, map, objects, starts);
@@ -845,7 +845,7 @@ public static partial class WorldGenerator
     /// to, chosen by the generator stream. Where nothing fits within the radius it stays missing and the
     /// mandatory check reports it.
     /// </summary>
-    private static void StartSupply(StartSupply supply, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
+    private static void StartSupply(StartSupply supply, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng, IEnumerable<WorldPresetDrinkSpot>? drinkSpots = null)
     {
         var areas = PathFinder.WalkableAreas(map);
         var w = map.WidthCells;
@@ -925,6 +925,42 @@ public static partial class WorldGenerator
                     objects.Add(new IslandObject(rules[fruitRule].ObjectType, fruit.X, fruit.Z));
                     room[plantRule]--;
                     room[fruitRule]--;
+                }
+
+                // A1833 (B2808 step 4, the generator always builds): still short and a drink-spot type would serve (the
+                // drink spots have fixed upper limits, so many starts on a large island can run dry) - a spring in reach,
+                // beside fresh water where there is any, else on dry walkable ground. Only islands that would fail change.
+                have = objects.Count(o => Near(o.X, o.Z) && Reachable(o.X, o.Z) && Matches(o.TypeId));
+                if (have < resource.Min && drinkSpots?.FirstOrDefault(d => Matches(d.ObjectType)) is { } spring)
+                {
+                    var used = objects.Select(o => (o.X, o.Z)).ToHashSet();
+                    var dry = new List<(int X, int Z)>();
+                    var shore = new List<(int X, int Z)>();
+                    var reach = supply.RadiusCells;
+                    for (var z = Math.Max(0, start.Z - reach); z <= Math.Min(map.DepthCells - 1, start.Z + reach); z++)
+                    {
+                        for (var x = Math.Max(0, start.X - reach); x <= Math.Min(w - 1, start.X + reach); x++)
+                        {
+                            if (!Near(x, z) || !Reachable(x, z) || (x, z) == (start.X, start.Z) || used.Contains((x, z)) || map.Cell(x, z).Water != WaterKind.None)
+                            {
+                                continue;
+                            }
+
+                            dry.Add((x, z));
+                            if (Neighbours4.Any(n => map.Contains(x + n.Dx, z + n.Dz) && map.Cell(x + n.Dx, z + n.Dz).Water == WaterKind.Fresh))
+                            {
+                                shore.Add((x, z));
+                            }
+                        }
+                    }
+
+                    var place = shore.Count > 0 ? shore : dry;
+                    for (var k = have; k < resource.Min && place.Count > 0; k++)
+                    {
+                        var at = place[rng.NextInt(0, place.Count)];
+                        objects.Add(new IslandObject(spring.ObjectType, at.X, at.Z));
+                        place.Remove(at);
+                    }
                 }
             }
         }
