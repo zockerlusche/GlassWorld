@@ -39,6 +39,7 @@ from glassworld_ai.calllog import CallLog
 from glassworld_ai.grounding import (
     checks_nouns,
     judged_things,
+    noun_list,
     request_words,
     settings_words,
     unknown_nouns,
@@ -423,6 +424,7 @@ class Shown:
                 settings_words(settings, "general_words", self._locale),
             )
             self._world = judged_things(settings, texts, self._locale)
+            self._nouns = noun_list(texts, self._locale)
 
     def problem(self, text: str) -> str | None:
         if not self._guard.check(text).allowed:
@@ -432,7 +434,9 @@ class Shown:
         if self._plain and (found := not_plain(text)) is not None:
             return f"a number or key ({found})"
         if self._words is not None:
-            unknown = unknown_nouns(text, self._words, heads=True, only=self._world)
+            unknown = unknown_nouns(
+                text, self._words, heads=True, only=self._world, nouns=self._nouns
+            )
             if unknown:
                 return f"unknown: {', '.join(unknown[:3])}"
         return None

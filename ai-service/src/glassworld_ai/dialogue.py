@@ -27,6 +27,7 @@ from glassworld_ai.decider.thoughts import wrong_language
 from glassworld_ai.grounding import (
     checks_nouns,
     judged_things,
+    noun_list,
     request_words,
     settings_words,
     unknown_nouns,
@@ -278,6 +279,7 @@ class Turns:
                 for i in range(count)
             ]
             self._world = judged_things(settings, texts, self._locale)
+            self._nouns = noun_list(texts, self._locale)
 
     def problem(self, text: str, speaker: int) -> str | None:
         if not self._guard.check(text).allowed:
@@ -297,7 +299,9 @@ class Turns:
         if self._minor and (hit := _reserved(text, self._minor_stems)) is not None:
             return f"reserved topic for a minor ({hit})"
         if self._words is not None:
-            unknown = unknown_nouns(text, self._words[speaker], heads=True, only=self._world)
+            unknown = unknown_nouns(
+                text, self._words[speaker], heads=True, only=self._world, nouns=self._nouns
+            )
             if unknown:
                 return f"unknown: {', '.join(unknown[:3])}"
         return None

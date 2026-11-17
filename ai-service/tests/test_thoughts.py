@@ -254,3 +254,37 @@ def test_a_thing_from_elsewhere_stays_unknown_in_every_form() -> None:
     words = {stem(w) for w in ("Haselnuss", "Stein", "Nadelbaum")}
     found = unknown_nouns("Ich sehe Kiefern und einen Topf.", words, heads=True)
     assert found == ["Kiefern", "Topf"]
+
+
+def test_english_nouns_from_elsewhere_are_found_by_the_noun_list() -> None:
+    """A1818 (TL F5347): basket, boat and bowl - the English leaks of the night measurement -
+    are judged like German nouns, wherever they stand, plurals by their base form."""
+    from glassworld_ai.grounding import stem, unknown_nouns
+    from glassworld_ai.texts import NounList
+
+    nouns = NounList(
+        frozenset({"basket", "boat", "bowl", "berry", "stone", "hazelnut", "leaf", "dream"}),
+        {"leaves": "leaf"},
+    )
+    known = {stem(w) for w in ("berry", "stone", "hazelnut", "dream")}
+    text = "Baskets of berries. I sail a boat and fill a bowl with stones."
+    assert unknown_nouns(text, known, heads=True, nouns=nouns) == ["Baskets", "boat", "bowl"]
+    # Known things in every form, and words that are no noun of the list, pass.
+    assert unknown_nouns("I dream of hazelnuts and berries, quietly.", known, nouns=nouns) == []
+    assert nouns.base("leaves") == "leaf" and nouns.base("berries") == "berry"
+
+
+def test_the_english_noun_list_of_the_data_catches_the_night_leaks() -> None:
+    """A1818: with the data's list (Moby part-of-speech, public domain) the leaks of the A1582
+    night measurement are found; verbs and words the inhabitant knows pass."""
+    from glassworld_ai.grounding import noun_list, stem, unknown_nouns
+    from glassworld_ai.texts import TextCatalog
+
+    texts = TextCatalog.load(Path(__file__).resolve().parents[2] / "content" / "i18n")
+    nouns = noun_list(texts, "en")
+    assert nouns is not None and noun_list(texts, "de") is None
+    known = {stem(w) for w in ("berry", "stone", "water")}
+    text = "I run to the water, fill a bowl with berries and dream of a basket and a boat."
+    found = unknown_nouns(text, known, heads=True, nouns=nouns)
+    assert {"bowl", "basket", "boat"} <= set(found)
+    assert not {"run", "water", "berries", "fill"} & set(found)

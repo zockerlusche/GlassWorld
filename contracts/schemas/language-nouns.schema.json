@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/language-nouns.schema.json",
+  "title": "LanguageNouns",
+  "description": "A1818 (TL F5347): the nouns of a language whose nouns are not capitalised (English), for the noun check of shown texts - base forms from an open word list, irregular plurals mapped to their base form (regular -s/-es/-ies are folded by rule in the service). Built by tools/language/build_en_nouns.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "locale", "source", "license", "source_sha256", "nouns", "irregular_plurals"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "locale": { "description": "Language of the list.", "type": "string", "enum": ["en"] },
+    "source": { "description": "Where the words come from.", "type": "string", "minLength": 1, "maxLength": 200 },
+    "license": { "description": "Licence of the source (must be free, PR3).", "type": "string", "minLength": 1, "maxLength": 200 },
+    "source_sha256": { "description": "SHA-256 of the source file the list was built from.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nouns": {
+      "description": "Base forms, lower case, sorted.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200000,
+      "items": { "type": "string", "minLength": 1, "maxLength": 60 }
+    },
+    "irregular_plurals": {
+      "description": "Irregular plural -> base form.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 60 }
+    }
+  }
+}
