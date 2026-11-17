@@ -456,6 +456,7 @@ public partial class Main : Node3D
         {
             Sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "sharing.json"))),
             Preview = PreviewMaker(),
+            Traits = [.. ContractSerializer.Deserialize<InhabitantModel>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "inhabitants", "model.json"))).Start.Traits.Select(t => t.Id)],
         };
     }
 
@@ -628,7 +629,8 @@ public partial class Main : Node3D
             choice.Terrain,
             _menuData?.Options?.Terrains?.FirstOrDefault(t => string.Equals(t.Id, choice.Terrain, StringComparison.Ordinal)) is { } terrain ? terrain.HeightFactor : null,
             choice.Distribution,
-            _menuData?.Options?.Distributions?.FirstOrDefault(t => string.Equals(t.Id, choice.Distribution, StringComparison.Ordinal)) is { } distribution ? distribution.ClusterFactor : null);
+            _menuData?.Options?.Distributions?.FirstOrDefault(t => string.Equals(t.Id, choice.Distribution, StringComparison.Ordinal)) is { } distribution ? distribution.ClusterFactor : null,
+            Inhabitants: choice.Inhabitants);
 
     private async Task RunThenQuitAsync(double seconds)
     {

@@ -537,6 +537,9 @@ public sealed class SimulationHost
 
             // A1576 (D1008 H2): use wears things, quality stretches a made thing's life, its end is told.
             durability.QualityOf = inventions.QualityOfBuilt;
+
+            // A1382 S2: a storm wears what was built.
+            durability.WeatherNow = weather is null ? null : () => weather.Current;
             durability.MakerOf = typeId => inventions.Builds.FirstOrDefault(b => string.Equals(b.TypeId, typeId, StringComparison.Ordinal))?.InhabitantId ?? inventions.Invention(typeId)?.InhabitantId;
             durability.Report = inhabitants.Report;
             inhabitants.Reported += durability.Observe;
@@ -837,8 +840,10 @@ public sealed class SimulationHost
             stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
             {
                 RootOf = typeId => processes?.RootOf(typeId),
+                Holds = action => content.Actions.HasTiming(action) && content.Actions.Timing(action).Holds,
             };
             world.Add(stores);
+            inhabitants.LiftRefusal = stores.LiftRefusal;
         }
 
         memory.Remembered = forgetting.Remembered;
@@ -1131,7 +1136,7 @@ public sealed class SimulationHost
             positions.Add(map.CentreOf(cells.Current.X, cells.Current.Z));
         }
 
-        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants);
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants, options?.Spec?.Inhabitants);
         host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {
