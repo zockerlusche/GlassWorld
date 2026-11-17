@@ -170,7 +170,8 @@
           "description": "What speeds the course (truth the inhabitants find out themselves): resting or asleep, and a thing with near_property within near_radius_cm. Each adds permille to the pace (1000 = twice as fast).",
           "type": "object", "additionalProperties": false, "required": ["rest_permille"],
           "properties": {
-            "rest_permille": { "type": "integer", "minimum": 0, "maximum": 10000 },
+            "rest_permille": { "description": "Added while resting: asleep, doing nothing, or doing one of rest_actions (review GW4 #597).", "type": "integer", "minimum": 0, "maximum": 10000 },
+            "rest_actions": { "description": "Actions that count as rest (e.g. idle); absent = only asleep or doing nothing.", "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
             "near_property": { "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
             "near_radius_cm": { "type": "integer", "minimum": 0, "maximum": 5000 },
             "near_permille": { "type": "integer", "minimum": 0, "maximum": 10000 }

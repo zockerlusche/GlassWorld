@@ -576,8 +576,17 @@ namespace GlassWorld.Contracts
     public partial class Heal
     {
 
+        /// <summary>
+        /// Added while resting: asleep, doing nothing, or doing one of rest_actions (review GW4 #597).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rest_permille")]
         public int RestPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Actions that count as rest (e.g. idle); absent = only asleep or doing nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_actions")]
+        public System.Collections.Generic.ICollection<string>? RestActions { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("near_property")]
         public string? NearProperty { get; set; } = default!;

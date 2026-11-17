@@ -33,7 +33,7 @@ public sealed class ConditionsTests
         Assert.Equal("belly_ache", felt.Condition);
         Assert.Null(felt.BodyPart);
 
-        // Resting heals at 1.5 x the pace: the 12 hours run out after 8, and health was lost on the way.
+        // Resting (idle, a rest action of the data) heals at 1.5 x the pace: the 12 hours run out after 8, health was lost on the way.
         var rule = Rule(content, "belly_ache");
         world.Run((rule.Hours * world.Calendar.Settings.TicksPerHour * 1000 / (1000 + rule.Heal!.RestPermille)) + 2);
         Assert.Empty(conditions.Of(eater.Id));
@@ -85,6 +85,25 @@ public sealed class ConditionsTests
 
         Assert.Empty(conditions.Of(helped.Id));
         Assert.Contains("cold", conditions.Of(alone.Id));
+    }
+
+    [Fact]
+    public void WorkIsNoRestOnlySleepIdlenessAndTheDatasRestActionsHealFaster()
+    {
+        // Review GW4 #597: digging or building is no rest.
+        var (world, _, inhabitants, _, conditions, content) = Bare(_ => { });
+        var idle = inhabitants.Get("inh-000001");
+        var working = inhabitants.Get("inh-000003");
+        idle.Activity = new Activity("idle", null, idle.Position, 1_000_000);
+        var work = content.Actions.Actions.First(a => a != "idle" && a != content.InhabitantModel.Togetherness!.SleepAction && content.Actions.HasTiming(a));
+        working.Activity = new Activity(work, null, working.Position, 1_000_000);
+        conditions.Begin(idle.Id, "belly_ache", world.Tick);
+        conditions.Begin(working.Id, "belly_ache", world.Tick);
+
+        var rule = Rule(content, "belly_ache");
+        world.Run((rule.Hours * world.Calendar.Settings.TicksPerHour * 1000 / (1000 + rule.Heal!.RestPermille)) + 2);
+        Assert.Empty(conditions.Of(idle.Id));
+        Assert.Contains("belly_ache", conditions.Of(working.Id));
     }
 
     [Fact]

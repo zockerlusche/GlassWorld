@@ -109,7 +109,8 @@ public sealed class ConditionsSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var resting = inhabitant.Activity is not { RemainingTicks: null } || _inhabitants.IsAsleep(inhabitant);
+            // Rest (review GW4 #597): asleep, doing nothing, or one of the data's resting actions - digging or building is no rest.
+            var asleep = _inhabitants.IsAsleep(inhabitant);
             foreach (var condition in held.Keys.ToList())
             {
                 var rule = Rule(condition)!;
@@ -117,6 +118,8 @@ public sealed class ConditionsSystem : IWorldSystem, IOptionalWorldState
                 var pace = 1000L;
                 if (rule.Heal is { } heal)
                 {
+                    var resting = asleep || inhabitant.Activity is null
+                        || (inhabitant.Activity is { RemainingTicks: not null } doing && heal.RestActions?.Contains(doing.Action) == true);
                     pace += resting ? heal.RestPermille : 0;
                     pace += heal.NearProperty is { } property && Near(inhabitant.Position, property, heal.NearRadiusCm ?? 0) ? heal.NearPermille ?? 0 : 0;
                 }

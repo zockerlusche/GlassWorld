@@ -606,7 +606,7 @@
         "severity": 0.3,
         "on_need": [{ "need": "warmth", "below": 0.2, "chance_per_hour_permille": 20 }],
         "contagion": { "radius_cm": 200, "chance_per_hour_permille": 10 },
-        "heal": { "rest_permille": 500, "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
+        "heal": { "rest_permille": 500, "rest_actions": ["idle"], "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
       },
       {
         "id": "belly_ache",
@@ -614,7 +614,7 @@
         "health_per_hour": -4,
         "severity": 0.5,
         "on_events": [{ "event": "action_finished", "action": "eat", "target_property": "poisonous", "chance_permille": 800 }],
-        "heal": { "rest_permille": 500, "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
+        "heal": { "rest_permille": 500, "rest_actions": ["idle"], "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
       },
       {
         "id": "fever",
@@ -622,7 +622,7 @@
         "health_per_hour": -6,
         "severity": 0.7,
         "grows_from": { "condition": "cold", "after_hours": 24, "chance_per_hour_permille": 5 },
-        "heal": { "rest_permille": 1000, "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
+        "heal": { "rest_permille": 1000, "rest_actions": ["idle"], "near_property": "healing", "near_radius_cm": 150, "near_permille": 500 }
       }
     ]
   },
