@@ -79,19 +79,25 @@ public partial class Main
 
                 if (spec == "ground_seat")
                 {
-                    // A1466: wait (fast) until someone sits on the ground, then follow that one and note how it sits.
-                    var quickest = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
-                    var from = Time.GetTicksMsec();
+                    // A1466: sitting on the ground is a rare idle variant - each awake inhabitant in turn is made to show the
+                    // seated clip (check runs only) until one sits on the ground rather than on a stone; that one is followed.
+                    var seated = _world.SeatedClipForShots ?? string.Empty;
                     who = null;
-                    while (who is null && (Time.GetTicksMsec() - from) / 1000.0 < 600)
+                    foreach (var candidate in awake)
                     {
-                        _world.Speed = quickest;
-                        await Frames(5);
-                        who = _world.Host.Snapshot().Inhabitants.FirstOrDefault(i => _world.GroundSeatClearance(i.Id) is not null);
+                        _world.ClipForShots(candidate.Id, seated);
+                        await Frames(120);
+                        if (_world.GroundSeatClearance(candidate.Id) is not null)
+                        {
+                            who = candidate;
+                            break;
+                        }
+
+                        _world.ClipForShots(candidate.Id, null);
                     }
 
                     _world.Speed = 1;
-                    await Frames(90); // settled on the ground
+                    await Frames(60); // settled on the ground
                     var gap = who is null ? null : _world.GroundSeatClearance(who.Id);
                     GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"EXPRESS_SHOT_GROUND_SEAT {(who is null ? "nobody" : $"{who.Name ?? who.Id} clearance_m={gap:0.000}")}"));
                 }

@@ -123,6 +123,9 @@ public partial class FigureView : Node3D
     /// <summary>A1466 check runs: sitting on the ground, the smallest gap of its watched bones to the ground (m); null otherwise.</summary>
     public double? GroundSeatClearance { get; private set; }
 
+    /// <summary>Check runs only (A1466): a library clip the figure shows instead of its own while it stands; null = its own.</summary>
+    public string? ClipForShots { get; set; }
+
     private SeatPose? _seat;
     private SeatPose _lastSeat;
     private double _seatShare;
@@ -459,6 +462,12 @@ public partial class FigureView : Node3D
         if (_shownPose.Length > 0)
         {
             var clip = _cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate);
+            if (ClipForShots is { } forced && !clip.Walking)
+            {
+                // Check runs only (A1466): a chosen clip instead of what the cadence shows, standing where it is.
+                clip = new FigureClip(_shared.Chooser.ForClip(forced), Walking: false, clip.Missing);
+            }
+
             if (PoseCadence.PoseKey(clip, _shared.Figures.Lying) != _shownPose)
             {
                 Show(clip);

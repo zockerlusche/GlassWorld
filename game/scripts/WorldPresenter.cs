@@ -641,6 +641,18 @@ public partial class WorldPresenter : Node3D
     internal double? GroundSeatClearance(string inhabitantId) =>
         _islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView figure ? figure.GroundSeatClearance : null;
 
+    /// <summary>A1466 check runs: the first seated clip of the figure data, or null.</summary>
+    internal string? SeatedClipForShots => _figuresLook?.Sitting.SeatedClips.FirstOrDefault();
+
+    /// <summary>A1466 check runs: makes a figure show a library clip instead of its own (null = its own again).</summary>
+    internal void ClipForShots(string inhabitantId, string? clipId)
+    {
+        if (_islandNodes.TryGetValue(inhabitantId, out var node) && node is GlassWorld.Game.World.FigureView figure)
+        {
+            figure.ClipForShots = clipId;
+        }
+    }
+
     private void ShowThoughts()
     {
         if (_host is null)
