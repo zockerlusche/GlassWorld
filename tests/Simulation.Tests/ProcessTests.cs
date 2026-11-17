@@ -6,6 +6,7 @@ using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 
@@ -348,6 +349,51 @@ public sealed class ProcessTests
             Assert.Equal("pyrite", loaded.Processes!.RootOf(changed.TypeId));
             Assert.Equal(host.Types.TrueProperties(changed.TypeId).Order(), loaded.Types.TrueProperties(changed.TypeId).Order());
             Assert.Single(loaded.Processes.Rules);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AnInventionMadeOfAProcessedMaterialKeepsItsPropertiesAcrossSavingAndLoading()
+    {
+        // GW2 #28573 (B4b runs 1 and 7): the variants of processing must be known before the inventions are restored,
+        // else an invention of a processed material loses what the variant passes on and the hash after a load differs.
+        var port = new ScriptedJobPort();
+        var (host, _, _) = World(port);
+        var stone = host.Objects.Spawn("pyrite", new Position(1, 0));
+        var hammer = host.Objects.Spawn("pyrite", new Position(1.5, 0));
+        RunCombine(host, stone, hammer);
+        Assert.True(host.Objects.TryGet(stone.Id, out var changed));
+        Assert.NotEqual("pyrite", changed.TypeId);
+
+        // An invention record of the contract example, made of the variant only.
+        var example = File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.invention-approved.json"));
+        var invention = ContractSerializer.Deserialize<JobStatus>(example).Result!.Invention!.Invention!;
+        invention.Materials = [changed.TypeId];
+        foreach (var step in invention.Steps)
+        {
+            step.Materials = [changed.TypeId];
+        }
+
+        var rules = host.Content.Inventions;
+        IEnumerable<string> Truth(string t) => host.Types.Contains(t) ? host.Types.TrueProperties(t) : [];
+        var expected = rules.PropertiesOf(invention, Truth).Order(StringComparer.Ordinal).ToList();
+        Assert.NotEqual(expected, rules.PropertiesOf(invention, _ => []).Order(StringComparer.Ordinal).ToList());
+
+        var typeId = InventionSystem.TypeIdFor("req-variant-invention");
+        var captured = StateCodec.Capture(host);
+        var record = new InventionRecord(typeId, "req-variant-invention", host.Inhabitants.All.First().Id, host.World.Tick, JsonSerializer.Serialize(invention), null);
+        var state = captured with { Inventions = captured.Inventions! with { Inventions = [.. captured.Inventions!.Inventions, record] } };
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-process-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, state);
+            var loaded = StateCodec.Restore(Factory(new ReplayJobPort(host.Inventions.Log)), SaveGameStore.Load(path));
+            Assert.Equal(expected, loaded.Types.TrueProperties(typeId).Order(StringComparer.Ordinal).ToList());
         }
         finally
         {
