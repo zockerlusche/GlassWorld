@@ -441,14 +441,20 @@ public static class UiLayoutCheck
         // A1338 (B6-6, KR5): 100 inhabitants in the list without stutter - the game refills the table on every refresh; the
         // table (a Tree) draws only the visible rows, so refilling 100 must stay well inside one frame (a quarter of 16.7 ms).
         var hundred = Enumerable.Range(1, 100).Select(i => new GwRow($"inh-{i}", [$"Name {i}", "…", $"{(i * 7) % 100}", $"{i % 3}"], [i, 0, (i * 7) % 100, i % 3])).ToList();
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        const int Refills = 30;
-        for (var i = 0; i < Refills; i++)
+        // The median of five blocks of ten refills, so one busy moment of the machine does not decide (review GW2 #596).
+        var blocks = new List<double>();
+        for (var block = 0; block < 5; block++)
         {
-            table.SetRows(hundred);
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < 10; i++)
+            {
+                table.SetRows(hundred);
+            }
+
+            blocks.Add(clock.Elapsed.TotalMilliseconds / 10);
         }
 
-        var refillMs = clock.Elapsed.TotalMilliseconds / Refills;
+        var refillMs = blocks.Order().ElementAt(blocks.Count / 2);
         GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"UI_TABLE rows=100 refill_ms={refillMs:0.00}"));
         if (refillMs > 16.7 / 4)
         {

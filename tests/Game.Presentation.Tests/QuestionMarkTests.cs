@@ -3,6 +3,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.State;
 
@@ -41,7 +42,22 @@ public sealed class QuestionMarkTests
         Assert.All(before.Where(m => m.Value > 0), m => Assert.True(later[m.Key] > 0, $"{m.Key} lost its mark without an answer"));
 
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
-        var restored = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new SilentPort(), "de"), StateCodec.Capture(host));
+        // Through the save file, as the game loads it (review GW2 #596: the border where load bugs live).
+        var path = Path.Combine(Path.GetTempPath(), $"gw-question-marks-{Guid.NewGuid():N}.db");
+        SimulationHost restored;
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            restored = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new SilentPort(), "de"), SaveGameStore.Load(path));
+        }
+        finally
+        {
+            foreach (var file in Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + "*"))
+            {
+                File.Delete(file);
+            }
+        }
+
         var loaded = new WorldFeed(restored).Inhabitants().ToDictionary(r => r.Id, r => r.PuzzlingQuestions, StringComparer.Ordinal);
         Assert.Equal(later, loaded);
     }
