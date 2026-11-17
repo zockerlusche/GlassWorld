@@ -8,13 +8,17 @@ namespace GlassWorld.Simulation.Map;
 /// <param name="GridCells">The grid size it was made with; null = the preset's grid.</param>
 /// <param name="ResourceFactor">The resource factor it was made with (1 = the data as written).</param>
 /// <param name="StartPairs">The start pairs it was made with; null = the preset's pairs.</param>
-public sealed record PreviewIsland(GeneratedIsland Island, int? GridCells, double ResourceFactor, int? StartPairs)
+/// <param name="TerrainFactor">A1833: the terrain factor it was made with (1 = the preset as written).</param>
+/// <param name="ClusterFactor">A1833: the cluster factor it was made with (1 = the data as written).</param>
+public sealed record PreviewIsland(GeneratedIsland Island, int? GridCells, double ResourceFactor, int? StartPairs, double TerrainFactor = 1.0, double ClusterFactor = 1.0)
 {
-    /// <summary>Whether this is the island that seed, preset, grid, resource factor and pairs give.</summary>
-    public bool Fits(ulong seed, string presetId, int? gridCells, double resourceFactor, int? startPairs) =>
+    /// <summary>Whether this is the island that seed, preset, grid, resource, terrain and cluster factors and pairs give.</summary>
+    public bool Fits(ulong seed, string presetId, int? gridCells, double resourceFactor, int? startPairs, double terrainFactor = 1.0, double clusterFactor = 1.0) =>
         Island.Seed == seed
         && string.Equals(Island.PresetId, presetId, StringComparison.Ordinal)
         && GridCells == gridCells
         && Math.Abs(ResourceFactor - resourceFactor) < 1e-9
-        && StartPairs == startPairs;
+        && StartPairs == startPairs
+        && Math.Abs(TerrainFactor - terrainFactor) < 1e-9
+        && Math.Abs(ClusterFactor - clusterFactor) < 1e-9;
 }

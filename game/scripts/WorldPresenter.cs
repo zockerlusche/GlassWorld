@@ -162,7 +162,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate, GridCells = spec?.GridCells, ResourceFactor = spec?.ResourceFactor, StartPairs = spec?.StartPairs, Spec = spec, Island = island }, StartInhabitants())
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate, GridCells = spec?.GridCells, ResourceFactor = spec?.ResourceFactor, StartPairs = spec?.StartPairs, TerrainFactor = spec?.TerrainFactor, ClusterFactor = spec?.ClusterFactor, Spec = spec, Island = island }, StartInhabitants())
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {

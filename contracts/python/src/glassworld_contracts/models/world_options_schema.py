@@ -57,6 +57,40 @@ class ResourceOption(BaseModel):
     )
 
 
+class TerrainOption(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Option id (text key ui.new_world.terrain.<id>).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    height_factor: float = Field(
+        ...,
+        description='Factor on the height noise (1.0 = the preset as written).',
+        ge=0.75,
+        le=1.5,
+    )
+
+
+class DistributionOption(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Option id (text key ui.new_world.distribution.<id>).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    cluster_factor: float = Field(
+        ...,
+        description="Factor on every spawn rule's group size (1.0 = the data as written).",
+        ge=0.25,
+        le=4.0,
+    )
+
+
 class WorldOptions(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -101,4 +135,20 @@ class WorldOptions(BaseModel):
     )
     default_start_pairs: int | None = Field(
         None, description='A1770: the preselected number of start pairs.', ge=1, le=8
+    )
+    terrains: list[TerrainOption] | None = Field(
+        None,
+        description="A1833 (B2805 'Erweitert'): terrain flat/hilly/mountainous - a factor on the island's height noise. The range is what the generator test matrix proves to build (B2808); flatter islands lack the rock edges shelters need.",
+        min_length=1,
+    )
+    default_terrain: str | None = Field(
+        None, description='A1833: id of the preselected terrain option.'
+    )
+    distributions: list[DistributionOption] | None = Field(
+        None,
+        description="A1833 (B2805 'Erweitert'): how things lie - a factor on every spawn rule's group size (scattered below 1, clustered above); the amount stays.",
+        min_length=1,
+    )
+    default_distribution: str | None = Field(
+        None, description='A1833: id of the preselected distribution option.'
     )
