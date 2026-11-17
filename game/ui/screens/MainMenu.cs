@@ -394,7 +394,7 @@ public partial class MainMenu : CanvasLayer
 
         // A1774 (B2805): design the start inhabitants or leave them to the seed - in a window of its own.
         IReadOnlyList<GlassWorld.Simulation.State.StartInhabitantSpec>? designed = null;
-        var designButton = new Button { Text = "ui.new_world.inhabitants_random" };
+        var designButton = new Button { Name = "DesignInhabitants", Text = "ui.new_world.inhabitants_random" };
         designButton.Pressed += () =>
         {
             var count = (pairs.ItemCount > 0 ? int.Parse(pairs.GetItemMetadata(pairs.Selected).AsString()["pairs_".Length..], CultureInfo.InvariantCulture) : 2) * 2;
@@ -551,9 +551,15 @@ public partial class MainMenu : CanvasLayer
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(style);
         ArgumentNullException.ThrowIfNull(done);
-        var window = new GwWindow();
+        var window = new GwWindow { Name = "DesignWindow" };
         window.Setup("ui.new_world.design_title", style);
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        // Wide enough for a label and its control side by side, tall enough for one designed inhabitant (shots 17.11.).
+        var scroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(style.Tokens.Window.FieldMinWidth * 2, style.Tokens.Window.TableMinHeight * 2),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
         var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         scroll.AddChild(list);
         window.Content.AddChild(scroll);
@@ -566,7 +572,6 @@ public partial class MainMenu : CanvasLayer
             {
                 Title = TextFill.Fill(TranslationServer.Translate("ui.new_world.inhabitant_n"), new Dictionary<string, string> { ["n"] = (i + 1).ToString(CultureInfo.InvariantCulture) }),
                 Folded = i > 0 && !designedBefore,
-                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
             };
             var body = new VBoxContainer();
             section.AddChild(body);
