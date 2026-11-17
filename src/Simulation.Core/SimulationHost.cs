@@ -763,6 +763,7 @@ public sealed class SimulationHost
                 id => inhabitants.TryGet(id, out var who) ? (who.Position, who.Held is { } held && objects.TryGet(held, out var thing) ? thing.TypeId : null) : null,
                 inhabitants.Report);
             inhabitants.Reported += digging.Observe;
+            digging.TicksPerHour = world.Calendar.Settings.TicksPerHour; // A1460: overgrowing on the full hour
             world.Add(digging);
         }
 

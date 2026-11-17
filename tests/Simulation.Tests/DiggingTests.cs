@@ -124,6 +124,33 @@ public sealed class DiggingTests
     }
 
     /// <summary>Dry walkable cells of the island.</summary>
+    [Fact]
+    public void ADugPitGrowsOverAndIsGoneAndAWellIsKept()
+    {
+        // A1460 Z1 (R49, D1248): after the biome's hours of growth the pit is one step shallower - here gone after one dig.
+        var (host, who, cell) = Digger();
+        var data = Content.Value.Digging!;
+        Assert.Contains(data.WellType, data.Overgrow!.Keeps!);
+        Dig(host, who);
+        var digging = host.Digging!;
+        Assert.Equal(data.StepCm, digging.DepthAt(cell.X, cell.Z));
+        var centre = host.Map!.CentreOf(cell.X, cell.Z);
+
+        var guard = host.World.Calendar.TicksPerDay * 20;
+        var ticks = 0;
+        while (digging.DepthAt(cell.X, cell.Z) > 0 && ticks < guard)
+        {
+            host.World.Step();
+            ticks++;
+        }
+
+        Assert.Equal(0, digging.DepthAt(cell.X, cell.Z));
+        Assert.DoesNotContain(host.Objects.All, o => o.TypeId == data.PitType && o.Position == centre);
+        var biome = host.Map.Map.BiomeIds[host.Map.Map.Cell(cell.X, cell.Z).Biome];
+        var hours = data.Overgrow.HoursPerStep is { } byBiome && byBiome.TryGetValue(biome, out var h) ? h : data.Overgrow.DefaultHoursPerStep;
+        Assert.True(ticks >= hours * host.World.Calendar.Settings.TicksPerHour, $"gone after {ticks} ticks, before the {hours} hours of {biome}");
+    }
+
     private static IEnumerable<(int X, int Z)> Cells(WorldMapSystem map) =>
         Enumerable.Range(0, map.Map.WidthCells * map.Map.DepthCells)
             .Select(i => (X: i % map.Map.WidthCells, Z: i / map.Map.WidthCells))
