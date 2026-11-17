@@ -950,6 +950,17 @@ public partial class Main
                 GD.Print("SCREEN_OK");
             }
 
+            // A1832 (B6-16): the hand - the move button only where the core lets the hand take a thing, its answer in words.
+            var handCheck = _screen?.CheckHand() ?? "game screen missing";
+            if (handCheck.Length > 0)
+            {
+                problems = [.. problems, "hand: " + handCheck];
+            }
+            else
+            {
+                GD.Print("HAND_OK");
+            }
+
             // The dream images of the night scene (B7, D637 A8): shown from a made-up night list, none from an empty one.
             var dreamCheck = _screen?.CheckDreams() ?? "game screen missing";
             if (dreamCheck.Length > 0)

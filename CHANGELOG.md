@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The hand (A1832, B6-16): a thing's window offers to move it when the core lets the hand take it; a line near the pointer then says the core's answer for the spot (here, or why not), a click puts it there (command `move_object`, costs favour), Esc lets go.
 - Lifting has a limit (A1816 E10, behind the body switch): an action that takes a thing into the hand fails when the thing weighs more than `body.stores.lift_max_share` of the inhabitant's carrying strength (its life phase). The try is cancelled with the reason `too_heavy` and reported (`cannot_lift`); what the inhabitant makes of it is its own.
 - Game screen evidence (A1338, B6-6): the layout check times refilling the inhabitants table with 100 rows (`UI_TABLE`, at most a quarter frame; measured below 2 ms), and a test shows question marks stay while unanswered, several at once, and come back after loading.
 - New world, 'Erweitert' (A1833, B2805/B2808): terrain flat/hilly/mountainous (factor 0.75/1.0/1.4 on the height noise) and distribution scattered/normal/clustered (factor 0.5/1.0/2.0 on spawn group sizes) as data, in the form, the world specification, the preview fit check and `--new-world` (7th and 8th field). A test matrix of terrain x distribution x resources on both sizes builds every island. Flatter than 0.75 lacks the rock edges shelters need (schema minimum). Springs placed for a start on dry ground now well up in the lowest cells.
