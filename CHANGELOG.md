@@ -416,6 +416,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Fixed
 
+- An inhabitant sitting on the ground sits on it, no longer 10-20 cm in it (A1466, #196): the body is lifted as far as its lowest watched bone needs (the lying fit's points), on any body and slope; measured clearance 0.000 m.
 - Loading a world (GW2 #28573, B4b runs 1 and 7): an invention made of a processed material kept fewer properties after a load, so the hash after loading differed. The variants of processing are now restored before the inventions.
 - The generator always builds (A1833 part 1, B2808 step 4): a start place still short of drinking water gets a spring in its reach - beside fresh water where there is any, else on dry walkable ground. Before, a medium island with 8 inhabitants failed in 7 of 12 seeds (the drink spots have fixed upper limits) and the world did not start. Islands that already passed stay the same.
 - Inhabitants no longer walk backwards when their way turns back (A1795, Marcel W2242): a figure turned round only after six backward steps in a row (`turn_back_after_steps`, meant for giving way on a narrow path, W1726), so a real turn showed as a few metres walked backwards. Now every step turns the figure, except the core's give-way step (`InhabitantSnapshot.GivingWay`, a view of the tick, not saved or hashed). `turn_back_after_steps` is gone from `look/figures.json`.
