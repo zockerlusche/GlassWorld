@@ -897,6 +897,39 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     }
 
     /// <summary>
+    /// A1836 (TL #28434 A): whether something solid (an obstacle of the catalog, not the place's own remains, not in a
+    /// hand) lies on a growing place - its circle and the grown thing's would overlap.
+    /// </summary>
+    private bool Blocked(Occurrence place)
+    {
+        if (_objects is null || ObstacleRadiusCm.Count == 0)
+        {
+            return false;
+        }
+
+        var centre = CentreOf(place.X, place.Z);
+        var own = ObstacleRadiusCm.GetValueOrDefault(place.TypeId);
+        var remains = LeavesBehind.GetValueOrDefault(place.TypeId);
+        foreach (var thing in _objects.All)
+        {
+            if (thing.TypeId == remains || !ObstacleRadiusCm.TryGetValue(thing.TypeId, out var radius) || _objects.HeldBy(thing.Id) is not null)
+            {
+                continue;
+            }
+
+            var reach = (radius + own) / 100.0;
+            var dx = thing.Position.X - centre.X;
+            var dz = thing.Position.Z - centre.Z;
+            if ((dx * dx) + (dz * dz) < reach * reach)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// A1830: a thing that grows back where it was used up takes the place of what it left behind there (a tree its
     /// stump): the remains of its type (catalog leaves_behind) in its cell go, the first by id.
     /// </summary>
@@ -1038,6 +1071,13 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
                 : Grown?.Invoke(place.TypeId, place.GoneSinceTick.Value, world.Tick, _regrowTicks[place.TypeId])
                     ?? world.Tick - place.GoneSinceTick.Value >= _regrowTicks[place.TypeId])
             {
+                // A1836 (TL #28434 A): it waits while something solid lies on its place (a felled trunk), and grows
+                // in the first tick after that is gone.
+                if (Blocked(place))
+                {
+                    continue;
+                }
+
                 ClearRemains(place);
                 var grown = _objects.Spawn(place.TypeId, CentreOf(place.X, place.Z));
                 _occurrences[i] = place with { ObjectId = grown.Id, GoneSinceTick = null };
