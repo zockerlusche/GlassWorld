@@ -30,7 +30,7 @@ _SENTENCE_END = re.compile(r"[.!?…:]+[\"'»«)]*\s*$")
 _UMLAUTS = str.maketrans({"ä": "a", "ö": "o", "ü": "u", "ß": "ss"})
 
 
-def _stem(word: str) -> str:
+def stem(word: str) -> str:
     """Lower case without umlauts and common endings, so 'Blaubeeren' meets 'Blaubeere' and 'Beere',
     'Nüsse' meets 'Haselnuss' and 'Heilkräuter' meets 'Heilkraut' (night
     measurements A1735/A1582: inflected forms of known things were taken for unknown ones). Both
@@ -89,18 +89,18 @@ def known_words(
     words: set[str] = set()
     for type_id in types:
         name = texts.thing(locale, type_id) if texts is not None else None
-        words.update(_stem(w) for w in _WORD.findall(name or type_id.replace("_", " ")))
+        words.update(stem(w) for w in _WORD.findall(name or type_id.replace("_", " ")))
     if texts is not None:
         for key, text in texts.texts.get(locale, {}).items():
             if key.startswith(tuple(f"vocab.{kind}." for kind in GENERAL_KINDS)):
-                words.update(_stem(w) for w in _WORD.findall(text))
+                words.update(stem(w) for w in _WORD.findall(text))
     said = [request.player_text, *(line.text for line in request.recent_lines or [])]
     for text in said:
-        words.update(_stem(w) for w in _WORD.findall(str(text)))
+        words.update(stem(w) for w in _WORD.findall(str(text)))
     for own in spoken_names(request, locale).values():
-        words.update(_stem(w) for w in _WORD.findall(own))  # its own name for a made thing
-    words.update(_stem(n) for n in names)
-    words.update(_stem(g) for g in general)
+        words.update(stem(w) for w in _WORD.findall(own))  # its own name for a made thing
+    words.update(stem(n) for n in names)
+    words.update(stem(g) for g in general)
     return words
 
 
@@ -119,7 +119,7 @@ def unknown_nouns(
             if (
                 not start
                 and word[:1].isupper()
-                and (only is None or _stem(word) in only)
+                and (only is None or stem(word) in only)
                 and not _known(word, words, heads)
             ):
                 found.append(word)
@@ -130,13 +130,13 @@ def unknown_nouns(
 
 
 def _known(word: str, words: set[str], heads: bool = False) -> bool:
-    stem = _stem(word)
+    own = stem(word)
     if heads:
         return any(
-            stem == w or (len(w) >= 4 and w in stem) or (len(stem) >= 4 and w.endswith(stem))
+            own == w or (len(w) >= 4 and w in own) or (len(own) >= 4 and w.endswith(own))
             for w in words
         )
-    return any(stem == w or (len(w) >= 4 and (w in stem or stem in w)) for w in words)
+    return any(own == w or (len(w) >= 4 and (w in own or own in w)) for w in words)
 
 
 _NAME_KEYS = frozenset({"name", "called", "own_name", "text", "summary", "label"})
@@ -150,7 +150,7 @@ def world_things(texts: TextCatalog | None, locale: str) -> set[str]:
     if texts is None:
         return set()
     return {
-        _stem(w)
+        stem(w)
         for key, text in texts.texts.get(locale, {}).items()
         if key.startswith("vocab.object.")
         for w in _WORD.findall(text)
@@ -169,7 +169,7 @@ def request_words(
     words: set[str] = set()
 
     def add(text: str) -> None:
-        words.update(_stem(w) for w in _WORD.findall(text))
+        words.update(stem(w) for w in _WORD.findall(text))
 
     def walk(node: object, key: str = "") -> None:
         if isinstance(node, dict):

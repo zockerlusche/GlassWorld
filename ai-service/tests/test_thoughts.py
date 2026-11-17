@@ -186,9 +186,9 @@ def test_v11_a_thought_naming_something_unknown_is_left_out(
 
 def test_v11_the_first_part_of_a_known_compound_is_not_known() -> None:
     """'Feuer' is not known because 'Feuerstein' is; 'Stein' is (its head)."""
-    from glassworld_ai.grounding import _stem, unknown_nouns  # pyright: ignore[reportPrivateUsage]
+    from glassworld_ai.grounding import stem, unknown_nouns  # pyright: ignore[reportPrivateUsage]
 
-    words = {_stem("Feuerstein")}
+    words = {stem("Feuerstein")}
     assert unknown_nouns("Da liegt ein Feuer.", words, heads=True) == ["Feuer"]
     assert unknown_nouns("Da liegt ein Stein.", words, heads=True) == []
     assert unknown_nouns("Da liegt ein Feuer.", words) == []  # the conversation's rule as it was
@@ -243,14 +243,14 @@ def test_v16_a_thought_naming_a_thing_from_elsewhere_is_left_out(
     ],
 )
 def test_an_inflected_form_of_a_known_thing_is_known(word: str, known: str) -> None:
-    from glassworld_ai.grounding import _stem, unknown_nouns
+    from glassworld_ai.grounding import stem, unknown_nouns
 
-    assert unknown_nouns(f"Ich sehe die {word} hier.", {_stem(known)}, heads=True) == []
+    assert unknown_nouns(f"Ich sehe die {word} hier.", {stem(known)}, heads=True) == []
 
 
 def test_a_thing_from_elsewhere_stays_unknown_in_every_form() -> None:
-    from glassworld_ai.grounding import _stem, unknown_nouns
+    from glassworld_ai.grounding import stem, unknown_nouns
 
-    words = {_stem(w) for w in ("Haselnuss", "Stein", "Nadelbaum")}
+    words = {stem(w) for w in ("Haselnuss", "Stein", "Nadelbaum")}
     found = unknown_nouns("Ich sehe Kiefern und einen Topf.", words, heads=True)
     assert found == ["Kiefern", "Topf"]
