@@ -137,7 +137,10 @@ public static class WorldCode
         ArgumentNullException.ThrowIfNull(options);
         var text = Version1Text(options, favor) + "#" + string.Join('|', (options.Resources ?? []).Select(r => r.Id)) + "#"
             + string.Join('|', (options.StartPairs ?? []).Select(p => p.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "#"
-            + string.Join('|', (options.Terrains ?? []).Select(t => t.Id)) + "#" + string.Join('|', (options.Distributions ?? []).Select(d => d.Id));
+            + string.Join('|', (options.Terrains ?? []).Select(t => t.Id)) + "#" + string.Join('|', (options.Distributions ?? []).Select(d => d.Id))
+
+            // The defaults too (review GW2 #605): 'not chosen' (255) means them, so other defaults must not read the code.
+            + "#" + options.DefaultResources + "|" + options.DefaultStartPairs?.ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + options.DefaultTerrain + "|" + options.DefaultDistribution;
         return Checksum(Encoding.UTF8.GetBytes(text));
     }
 

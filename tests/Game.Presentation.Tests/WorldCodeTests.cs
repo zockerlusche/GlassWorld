@@ -53,6 +53,13 @@ public sealed class WorldCodeTests
             }
         }
 
+        // Other defaults on the reading side refuse the code (review GW2 #605): 'not chosen' must mean the same there.
+        var code = WorldCode.Encode(new WorldStart(5, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor);
+        var otherDefaults = Contracts.Validation.ContractSerializer.Deserialize<Contracts.WorldOptions>(
+            File.ReadAllText(Path.Combine(TestPaths.Root, "content", "player", "world_options.json")));
+        otherDefaults.DefaultTerrain = Options.Terrains!.First(t => t.Id != Options.DefaultTerrain).Id;
+        Assert.False(WorldCode.TryDecode(code, otherDefaults, Favor, out _));
+
         // Not chosen stays not chosen (the data's defaults apply when the world is made).
         var plain = new WorldStart(5, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First());
         Assert.True(WorldCode.TryDecode(WorldCode.Encode(plain, Options, Favor), Options, Favor, out var back2));

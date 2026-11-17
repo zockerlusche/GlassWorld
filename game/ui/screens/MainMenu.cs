@@ -718,8 +718,11 @@ public partial class MainMenu : CanvasLayer
             // Unknown values (older worlds, edited files) give a calm message instead of nothing.
             try
             {
-                var seed = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id)).Seed;
-                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+                var state = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id));
+
+                // A1854 (review GW2 #605): the world's own resources, pairs, terrain and distribution from its specification.
+                var spec = state.Spec;
+                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(state.Seed, world.Size, world.Climate, world.StartFavor, spec?.Resources, spec?.StartPairs, spec?.Terrain, spec?.Distribution), data.Options, data.Favor));
                 copyProblem.Visible = false;
             }
             catch (Exception e) when (e is ArgumentException or InvalidDataException or IOException or Microsoft.Data.Sqlite.SqliteException)
