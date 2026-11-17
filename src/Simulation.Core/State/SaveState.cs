@@ -195,6 +195,9 @@ public sealed record SaveState(
     /// <summary>A1816: the body stores that are not full (stamina, health); null = all full or the switch off.</summary>
     public IReadOnlyList<Inhabitants.StoredBody>? Stores { get; init; }
 
+    /// <summary>A1816 step 2: the complaints the inhabitants have; null = none or the switch off.</summary>
+    public IReadOnlyList<Inhabitants.HeldCondition>? Conditions { get; init; }
+
     /// <summary>How wet the inhabitants are (B5-11); null = nobody.</summary>
     public IReadOnlyList<Inhabitants.WetInhabitant>? Wet { get; init; }
 
@@ -302,6 +305,7 @@ public static class StateCodec
             Used = host.Durability?.CaptureUses() is { Count: > 0 } used ? used : null,
             Wet = host.Body is { HasState: true } body ? body.Capture() : null,
             Stores = host.Stores is { HasState: true } stores ? stores.Capture() : null,
+            Conditions = host.Conditions is { HasState: true } conditions ? conditions.Capture() : null,
             Overuse = host.Map?.CaptureOveruse() is { Count: > 0 } overuse ? overuse : null,
             Climbed = host.Body is { HasState: true } up ? up.CaptureUp() : null,
             Milestones = host.Milestones.HasState ? host.Milestones.Capture() : null,
@@ -488,6 +492,7 @@ public static class StateCodec
         host.Digging?.Restore(state.Dug);
         host.Body?.Restore(state.Wet);
         host.Stores?.Restore(state.Stores);
+        host.Conditions?.Restore(state.Conditions);
         host.Map?.RestoreOveruse(state.Overuse);
         host.Body?.RestoreUp(state.Climbed);
         host.Milestones.Restore(state.Milestones);

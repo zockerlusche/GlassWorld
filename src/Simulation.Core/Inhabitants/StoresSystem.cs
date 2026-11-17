@@ -50,6 +50,9 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     public Func<string, string?>? RootOf { get; init; }
 
+    /// <summary>A1816 step 2: whether an inhabitant has a complaint now - health comes back only without one (set by the host).</summary>
+    public Func<string, bool>? Ill { get; set; }
+
     /// <inheritdoc/>
     public string Name => "stores";
 
@@ -61,6 +64,26 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>Health of an inhabitant, 0..1 (full while it has no entry yet).</summary>
     public double Health(string inhabitantId) => (_stores.TryGetValue(inhabitantId, out var s) ? s.Health : Full) / (double)Full;
+
+    /// <summary>Changes an inhabitant's health by permille now (complaints, A1816 step 2); clamped to 0..1000.</summary>
+    public void ChangeHealth(string inhabitantId, int change)
+    {
+        if (change == 0)
+        {
+            return;
+        }
+
+        var (stamina, health) = _stores.TryGetValue(inhabitantId, out var s) ? s : (Full, Full);
+        health = Math.Clamp(health + change, 0, Full);
+        if (stamina == Full && health == Full)
+        {
+            _stores.Remove(inhabitantId);
+        }
+        else
+        {
+            _stores[inhabitantId] = (stamina, health);
+        }
+    }
 
     /// <summary>The carrying strength of an inhabitant in kg: the data's value for its life phase, else the default.</summary>
     public double CarryKg(Inhabitant inhabitant)
@@ -131,7 +154,7 @@ public sealed class StoresSystem : IWorldSystem, IOptionalWorldState
                 }
             }
 
-            if (health < Full && _data.Health.RecoverPerHour > 0)
+            if (health < Full && _data.Health.RecoverPerHour > 0 && Ill?.Invoke(inhabitant.Id) != true)
             {
                 health = Math.Min(Full, health + Step(world.Tick, _data.Health.RecoverPerHour));
             }

@@ -825,6 +825,7 @@ public sealed class SimulationHost
         }
         // A1816 (D1203 v3 layer 2): the body's stores - only with the switch on; off, the world and its hashes stay as they were.
         StoresSystem? stores = null;
+        ConditionsSystem? conditions = null;
         if (content.Body?.Stores is { Enabled: true } storesData)
         {
             stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
@@ -832,6 +833,19 @@ public sealed class SimulationHost
                 RootOf = typeId => processes?.RootOf(typeId),
             };
             world.Add(stores);
+
+            // A1816 step 2 (R23): complaints of the data, after the stores (they cost health there).
+            if (storesData.Conditions is { Count: > 0 } conditionRules)
+            {
+                conditions = new ConditionsSystem([.. conditionRules], inhabitants, objects, stores, world.Seed, world.Calendar.Settings.TicksPerHour)
+                {
+                    HasProperty = objects.Catalog.HasProperty,
+                };
+                world.Add(conditions);
+                var felt = conditions;
+                decisions.FeltOf = felt.Felt;
+                stores.Ill = id => felt.Of(id).Count > 0;
+            }
         }
 
         memory.Remembered = forgetting.Remembered;
@@ -878,6 +892,7 @@ public sealed class SimulationHost
             Durability = durability,
             Body = body,
             Stores = stores,
+            Conditions = conditions,
             Milestones = milestones,
             Nature = nature,
             Animals = animals,
@@ -1256,6 +1271,9 @@ public sealed class SimulationHost
 
     /// <summary>A1816: the body's stores (stamina, health); null while the switch body.stores.enabled is off.</summary>
     public StoresSystem? Stores { get; private init; }
+
+    /// <summary>A1816 step 2: complaints (R23); null while the switch is off or the data name none.</summary>
+    public ConditionsSystem? Conditions { get; private init; }
 
     /// <summary>The world's milestones and reached tech level (B2598, A1625).</summary>
     public MilestoneSystem Milestones { get; private init; } = null!;
