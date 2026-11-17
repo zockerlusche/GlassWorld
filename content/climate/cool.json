@@ -56,7 +56,7 @@
       },
       {
         "weather": "thunderstorm",
-        "wind_permille": 700,
+        "wind_permille": 400,
         "gust_permille": 200,
         "precipitation_permille": 0,
         "cloud_permille": 900,
