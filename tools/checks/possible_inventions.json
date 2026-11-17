@@ -2,40 +2,222 @@
   "description": "B2741 (PR2 sharpened, Marcel W2115): what the inhabitants could invent never exists in advance - no type, recipe, name, animation, sound or prompt example. These are names of possible inventions; test_no_prebuilt_inventions.py reports them in content/, game/ and the active prompts. English words match in any case, German nouns only capitalised (so 'herd' is not 'Herd'). Weapons, traps and slings are not listed: the forbidden lists must name them (content/invention/settings.json forbidden_terms). Nests, eggs and fruit are nature, not inventions.",
   "words": {
     "en": [
-      "ladder", "stairs", "staircase", "raft", "boat", "canoe", "paddle", "oar", "cart", "wagon", "wheelbarrow",
-      "bridge", "hut", "house", "chair", "bench", "basket", "bowl", "cup", "jug", "lamp", "torch", "drum", "flute",
-      "rattle", "axe", "hammer", "knife", "fence", "door", "roof", "oven", "kiln", "hearth", "loom", "needle",
-      "shovel", "spade", "plough", "plow", "mill", "sled", "sledge", "lid", "stopper", "spoon", "comb", "rake", "hoe",
-      "boot", "sandal", "knives"
+      "ladder",
+      "stairs",
+      "staircase",
+      "raft",
+      "boat",
+      "canoe",
+      "paddle",
+      "oar",
+      "cart",
+      "wagon",
+      "wheelbarrow",
+      "bridge",
+      "hut",
+      "house",
+      "chair",
+      "bench",
+      "basket",
+      "bowl",
+      "cup",
+      "jug",
+      "lamp",
+      "torch",
+      "drum",
+      "flute",
+      "rattle",
+      "axe",
+      "hammer",
+      "knife",
+      "fence",
+      "door",
+      "roof",
+      "oven",
+      "kiln",
+      "hearth",
+      "loom",
+      "needle",
+      "shovel",
+      "spade",
+      "plough",
+      "plow",
+      "mill",
+      "sled",
+      "sledge",
+      "lid",
+      "stopper",
+      "spoon",
+      "comb",
+      "rake",
+      "hoe",
+      "boot",
+      "sandal",
+      "knives"
     ],
     "de": [
-      "Leiter", "Treppe", "Floß", "Boot", "Kanu", "Paddel", "Ruder", "Karren", "Wagen", "Schubkarre", "Brücke",
-      "Hütte", "Haus", "Stuhl", "Bank", "Korb", "Schale", "Becher", "Krug", "Lampe", "Fackel", "Trommel", "Flöte",
-      "Rassel", "Axt", "Hammer", "Messer", "Zaun", "Tür", "Dach", "Ofen", "Brennofen", "Herd", "Webstuhl", "Nadel",
-      "Schaufel", "Spaten", "Pflug", "Mühle", "Schlitten", "Deckel", "Stöpsel", "Löffel", "Kamm", "Rechen", "Harke",
-      "Stiefel", "Sandale", "Hut",
-      "Körbe", "Bänke", "Dächer", "Öfen", "Häuser", "Hüte", "Stühle", "Krüge", "Brücken", "Mühlen", "Kämme", "Löffel", "Äxte"
+      "Leiter",
+      "Treppe",
+      "Floß",
+      "Boot",
+      "Kanu",
+      "Paddel",
+      "Ruder",
+      "Karren",
+      "Wagen",
+      "Schubkarre",
+      "Brücke",
+      "Hütte",
+      "Haus",
+      "Stuhl",
+      "Bank",
+      "Korb",
+      "Schale",
+      "Becher",
+      "Krug",
+      "Lampe",
+      "Fackel",
+      "Trommel",
+      "Flöte",
+      "Rassel",
+      "Axt",
+      "Hammer",
+      "Messer",
+      "Zaun",
+      "Tür",
+      "Dach",
+      "Ofen",
+      "Brennofen",
+      "Herd",
+      "Webstuhl",
+      "Nadel",
+      "Schaufel",
+      "Spaten",
+      "Pflug",
+      "Mühle",
+      "Schlitten",
+      "Deckel",
+      "Stöpsel",
+      "Löffel",
+      "Kamm",
+      "Rechen",
+      "Harke",
+      "Stiefel",
+      "Sandale",
+      "Hut",
+      "Körbe",
+      "Bänke",
+      "Dächer",
+      "Öfen",
+      "Häuser",
+      "Hüte",
+      "Stühle",
+      "Krüge",
+      "Brücken",
+      "Mühlen",
+      "Kämme",
+      "Löffel",
+      "Äxte"
     ]
   },
   "allowed": [
-    { "path": "content/objects/start-catalog.json", "word": "needle", "status": "ok", "owner": "GW4", "reason": "the needles of a conifer tree, nature" },
-    { "path": "game/scripts/World/IslandScene.Benchmark.cs", "word": "bench", "status": "ok", "owner": "GW1", "reason": "--bench options and BENCH log lines of the benchmark" },
-    { "path": "game/scripts/World/IslandScene.cs", "word": "bench", "status": "ok", "owner": "GW2", "reason": "--bench-scenario option of the benchmark (A1775)" },
-    { "path": "prompts/help/suggest.v1.toml", "word": "bridge", "status": "ok", "owner": "GW2", "reason": "'bridges the gap', a verb" },
-    { "path": "prompts/conversation/reply.v7.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "'Hause' (zu Hause, at home) in the grounding check's general words - not rendered" },
-    { "path": "prompts/decider/decide.v17.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
-    { "path": "prompts/milestone/sentence.v1.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
-    { "path": "prompts/review/night.v3.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
-    { "path": "prompts/dialogue/talk.v2.toml", "word": "haus", "status": "ok", "owner": "GW2", "reason": "as above" },
-
-
-
-
-
-    { "path": "content/sound/library.json", "word": "door", "status": "open", "owner": "GW3", "reason": "base sound 'a wooden door creaking open' - as above" },
-
-    { "path": "prompts/guard/invention.v4.toml", "word": "axe", "status": "open", "owner": "GW2", "reason": "'a hand axe, a knife, a scraper' as allowed tool examples - removed in guard v6 (B2732); released v4 is not edited" },
-    { "path": "prompts/guard/invention.v4.toml", "word": "knife", "status": "open", "owner": "GW2", "reason": "as above" },
-    { "path": "prompts/builder/plan.v2.toml", "word": "lid", "status": "open", "owner": "GW2", "reason": "part examples 'a rim, a lid, a foot' - removed in builder v3; released v2 is not edited" }
+    {
+      "path": "content/objects/start-catalog.json",
+      "word": "needle",
+      "status": "ok",
+      "owner": "GW4",
+      "reason": "the needles of a conifer tree, nature"
+    },
+    {
+      "path": "game/scripts/World/IslandScene.Benchmark.cs",
+      "word": "bench",
+      "status": "ok",
+      "owner": "GW1",
+      "reason": "--bench options and BENCH log lines of the benchmark"
+    },
+    {
+      "path": "game/scripts/World/IslandScene.cs",
+      "word": "bench",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "--bench-scenario option of the benchmark (A1775)"
+    },
+    {
+      "path": "prompts/help/suggest.v1.toml",
+      "word": "bridge",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "'bridges the gap', a verb"
+    },
+    {
+      "path": "prompts/conversation/reply.v7.toml",
+      "word": "haus",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "'Hause' (zu Hause, at home) in the grounding check's general words - not rendered"
+    },
+    {
+      "path": "prompts/decider/decide.v17.toml",
+      "word": "haus",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "as above"
+    },
+    {
+      "path": "prompts/milestone/sentence.v1.toml",
+      "word": "haus",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "as above"
+    },
+    {
+      "path": "prompts/review/night.v3.toml",
+      "word": "haus",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "as above"
+    },
+    {
+      "path": "prompts/dialogue/talk.v2.toml",
+      "word": "haus",
+      "status": "ok",
+      "owner": "GW2",
+      "reason": "as above"
+    },
+    {
+      "path": "content/sound/library.json",
+      "word": "door",
+      "status": "open",
+      "owner": "GW3",
+      "reason": "base sound 'a wooden door creaking open' - as above"
+    },
+    {
+      "path": "prompts/guard/invention.v4.toml",
+      "word": "axe",
+      "status": "open",
+      "owner": "GW2",
+      "reason": "'a hand axe, a knife, a scraper' as allowed tool examples - removed in guard v6 (B2732); released v4 is not edited"
+    },
+    {
+      "path": "prompts/guard/invention.v4.toml",
+      "word": "knife",
+      "status": "open",
+      "owner": "GW2",
+      "reason": "as above"
+    },
+    {
+      "path": "prompts/builder/plan.v2.toml",
+      "word": "lid",
+      "status": "open",
+      "owner": "GW2",
+      "reason": "part examples 'a rim, a lid, a foot' - removed in builder v3; released v2 is not edited"
+    }
+  ],
+  "dictionaries": [
+    {
+      "path": "content/language/nouns.en.json",
+      "owner": "GW2",
+      "reason": "A1818: the English noun list (Moby, public domain) the service judges shown texts with - it must name every thing from elsewhere so that a leak is found; nothing in the game is made from it"
+    }
   ]
 }

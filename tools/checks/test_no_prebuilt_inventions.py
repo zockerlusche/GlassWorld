@@ -4,6 +4,8 @@ Names of possible inventions (data: possible_inventions.json) must not appear in
 the active prompts - no type, recipe, name, animation, sound or prompt example. A known place is
 listed under "allowed" with owner, status (ok = not an invention, open = to be fixed) and reason;
 anything else fails, and so does an allowed entry that no longer matches (keep the list honest).
+A word list that exists to FIND such names (A1818: the English noun list of the shown-text check)
+is listed whole under "dictionaries" and not scanned; it must exist.
 """
 
 from __future__ import annotations
@@ -78,7 +80,10 @@ def findings() -> set[tuple[str, str]]:
     def add(path: Path, words: set[str]) -> None:
         found.update((path.relative_to(ROOT).as_posix(), w) for w in words)
 
+    dictionaries = {d["path"] for d in DATA.get("dictionaries", [])}
     for path in _files("content"):
+        if path.relative_to(ROOT).as_posix() in dictionaries:
+            continue
         add(path, words_in(path.stem))
         if path.suffix == ".json":
             add(path, words_in(path.read_text("utf-8")))
@@ -128,6 +133,12 @@ def test_no_possible_invention_exists_in_advance() -> None:
         "B2741: names of possible inventions in content/, game/ or an active prompt - "
         f"remove them or list them in possible_inventions.json with a reason: {new}"
     )
+
+
+def test_every_dictionary_exists_and_says_why() -> None:
+    for entry in DATA.get("dictionaries", []):
+        assert (ROOT / entry["path"]).is_file(), entry["path"]
+        assert entry["owner"] and entry["reason"], entry
 
 
 def test_the_allowed_list_has_no_stale_entries() -> None:

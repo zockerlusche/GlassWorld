@@ -7,6 +7,10 @@
       "schema": "vocabulary"
     },
     {
+      "pattern": "language/nouns.*.json",
+      "schema": "language-nouns"
+    },
+    {
       "pattern": "look/carried.json",
       "schema": "look-carried"
     },
