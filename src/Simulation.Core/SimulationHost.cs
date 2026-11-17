@@ -830,8 +830,10 @@ public sealed class SimulationHost
             stores = new StoresSystem(storesData, inhabitants, objects, content.Objects, content.Gaits, world.Calendar.Settings.TicksPerHour)
             {
                 RootOf = typeId => processes?.RootOf(typeId),
+                Holds = action => content.Actions.HasTiming(action) && content.Actions.Timing(action).Holds,
             };
             world.Add(stores);
+            inhabitants.LiftRefusal = stores.LiftRefusal;
         }
 
         memory.Remembered = forgetting.Remembered;
