@@ -547,6 +547,66 @@
       "text": "Gehäuft"
     },
     {
+      "key": "ui.new_world.inhabitants",
+      "text": "Startbewohner"
+    },
+    {
+      "key": "ui.new_world.inhabitants_random",
+      "text": "Zufällig - gestalten …"
+    },
+    {
+      "key": "ui.new_world.inhabitants_designed",
+      "text": "Gestaltet - ändern …"
+    },
+    {
+      "key": "ui.new_world.design_title",
+      "text": "Startbewohner gestalten"
+    },
+    {
+      "key": "ui.new_world.inhabitant_n",
+      "text": "Bewohner {n}"
+    },
+    {
+      "key": "ui.new_world.design_this",
+      "text": "Selbst gestalten (sonst Zufall)"
+    },
+    {
+      "key": "ui.new_world.inhabitant_name",
+      "text": "Name"
+    },
+    {
+      "key": "ui.new_world.name_random",
+      "text": "leer = zufälliger Name"
+    },
+    {
+      "key": "ui.new_world.inhabitant_sex",
+      "text": "Geschlecht"
+    },
+    {
+      "key": "ui.new_world.sex_random",
+      "text": "Zufall"
+    },
+    {
+      "key": "ui.new_world.sex_female",
+      "text": "weiblich"
+    },
+    {
+      "key": "ui.new_world.sex_male",
+      "text": "männlich"
+    },
+    {
+      "key": "ui.new_world.design_all_random",
+      "text": "Alle zufällig"
+    },
+    {
+      "key": "ui.new_world.design_apply",
+      "text": "Übernehmen"
+    },
+    {
+      "key": "ui.new_world.problem.inhabitant_name",
+      "text": "Ein Name passt nicht: 2 bis 16 Buchstaben ohne Umlaute und Leerzeichen, großer Anfangsbuchstabe, jeder Name nur einmal."
+    },
+    {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
     },
@@ -2513,6 +2573,10 @@
     {
       "key": "vocab.event.condition_ended",
       "text": "Ist wieder gesund"
+    },
+    {
+      "key": "vocab.event.cannot_lift",
+      "text": "Konnte etwas nicht anheben"
     },
     {
       "key": "vocab.event.voice_tested",

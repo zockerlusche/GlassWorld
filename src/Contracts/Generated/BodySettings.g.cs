@@ -41,6 +41,13 @@ namespace GlassWorld.Contracts
         public double DefaultCarryKg { get; set; } = default!;
 
         /// <summary>
+        /// A1816 E10: an action that takes a thing into the hand fails (too_heavy) when its weight is more than this share of the carrying strength. Absent = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lift_max_share")]
+        public double? LiftMaxShare { get; set; } = default!;
+
+        /// <summary>
         /// A1816 step 2 (B5 R23, A1381): complaints (vocabulary condition) - how they begin, run, cost health and heal. Chances are rolled from the seed. Absent = none. Placeholder values (TL).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

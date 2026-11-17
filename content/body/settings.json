@@ -598,6 +598,7 @@
     "health": { "recover_per_hour": 5, "events": { "slipped": -100 } },
     "carry_kg": { "child": 5, "youth": 15, "adult": 25, "elder": 15 },
     "default_carry_kg": 25,
+    "lift_max_share": 1.0,
     "conditions": [
       {
         "id": "cold",

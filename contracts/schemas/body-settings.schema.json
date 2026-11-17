@@ -111,6 +111,7 @@
           "additionalProperties": { "type": "number", "exclusiveMinimum": 0, "maximum": 500 }
         },
         "default_carry_kg": { "description": "Carrying strength without a life phase, in kg.", "type": "number", "exclusiveMinimum": 0, "maximum": 500 },
+        "lift_max_share": { "description": "A1816 E10: an action that takes a thing into the hand fails (too_heavy) when its weight is more than this share of the carrying strength. Absent = no limit.", "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
         "conditions": {
           "description": "A1816 step 2 (B5 R23, A1381): complaints (vocabulary condition) - how they begin, run, cost health and heal. Chances are rolled from the seed. Absent = none. Placeholder values (TL).",
           "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/BodyCondition" }
